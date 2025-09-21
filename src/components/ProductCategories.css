@@ -1,0 +1,234 @@
+
+
+.product-categories {
+  background: #0a0a0a;
+  padding: 3rem 0;
+  min-height: 60vh;
+}
+
+/* ===== Category Navigation Wrapper ===== */
+.category-nav-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.category-nav {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;  
+  scroll-behavior: smooth;
+  flex: 1;
+  padding: 0 3rem;       
+}
+
+.category-nav::-webkit-scrollbar {
+  display: none;          
+}
+
+/* ===== Scroll Buttons ===== */
+.scroll-btn {
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.6rem;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.6);
+}
+
+.scroll-btn:hover {
+  background: #00bfff;
+  color: black;
+  box-shadow: 0 0 15px rgba(0, 191, 255, 1);
+}
+
+.scroll-btn.left {
+  left: 10px;
+}
+
+.scroll-btn.right {
+  right: 10px;
+}
+
+.category-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  color: #00bfff;
+  border: 2px solid rgba(0, 191, 255, 0.3);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 8px;
+  font-family: 'Orbitron', monospace;
+}
+
+.category-btn:hover {
+  border-color: #00bfff;
+  color: #00bfff;
+  box-shadow: 0 0 15px rgba(0, 191, 255, 0.4);
+}
+
+.category-btn.active {
+  background: #00bfff;
+  color: #000;
+  border-color: #00bfff;
+  box-shadow: 0 0 25px rgba(0, 191, 255, 0.6);
+}
+
+.products-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.product-card {
+  background: rgba(0, 191, 255, 0.05);
+  border: 1px solid rgba(0, 191, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
+  border-color: rgba(0, 191, 255, 0.5);
+}
+
+.product-image {
+  height: 200px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-bottom: 1px solid rgba(0, 191, 255, 0.2);
+}
+
+.product-emoji {
+  font-size: 4rem;
+  filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.5));
+}
+
+.product-info {
+  padding: 1.5rem;
+  position: relative;
+}
+
+.product-brand {
+  color: #00bfff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Orbitron', monospace;
+}
+
+.product-name {
+  color: #00bfff;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+  min-height: 2.8rem;
+}
+
+.product-price {
+  color: #EFE312;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.favorite-btn {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: rgb(167, 16, 16);
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid black;
+}
+
+.favorite-btn:hover {
+  transform: scale(1.2);
+  background: rgba(255, 107, 107, 0.2);
+  box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+}
+
+.view-all-section {
+  text-align: center;
+}
+
+.view-all-btn {
+  background: #00bfff;
+  color: #000;
+  border: none;
+  padding: 1rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+  font-family: 'Orbitron', monospace;
+}
+
+.view-all-btn:hover {
+  background: #0099cc;
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+}
+
+@media (max-width: 768px) {
+  .category-nav {
+    gap: 1rem;
+    padding: 0 1rem;
+  }
+  
+  .category-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+  
+  .products-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .products-container {
+    padding: 0 1rem;
+  }
+} 
