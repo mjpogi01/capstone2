@@ -44,6 +44,17 @@
   position: relative;
 }
 
+/* Error Message */
+.errorMessage {
+  background: #fee;
+  color: #c33;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border: 1px solid #fcc;
+}
+
 .modalClose {
   position: absolute;
   top: 12px;

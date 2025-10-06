@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";   // ✅ Google colored G
 import { FaFacebook } from "react-icons/fa"; // ✅ Facebook "f"
 import styles from "./SignInModal.module.css";
-import logo from "../images/yohanns_logo-removebg-preview 3.png";
-import jerseyImage from "../images/Group 118.png";
+import logo from "../../images/yohanns_logo-removebg-preview 3.png";
+import jerseyImage from "../../images/Group 118.png";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
   const [formData, setFormData] = useState({
@@ -11,6 +13,10 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -19,9 +25,32 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Sign in attempt:", formData);
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const result = await login(formData);
+      console.log("Sign in successful:", result);
+      onClose(); // Close modal on successful login
+      
+      // Redirect based on user role
+      const user = result.user;
+      if (user.role === 'owner') {
+        navigate('/owner');
+      } else if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        // For customers, stay on current page or redirect to home
+        navigate('/');
+      }
+    } catch (error) {
+      setError(error.message);
+      console.error("Sign in error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSocial = (provider) => console.log(`Sign in with ${provider}`);
@@ -61,6 +90,13 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
             <p className={styles.modalSubtitle}>Welcome back! Please login</p>
           </div>
 
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div className={styles.errorMessage}>
+              {error}
+            </div>
+          )}
+
           {/* FORM */}
           <form className={styles.modalForm} onSubmit={handleSubmit}>
             <div className={styles.formGroup}>
@@ -72,6 +108,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
                 value={formData.email}
                 onChange={handleInputChange}
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -85,6 +122,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
                   value={formData.password}
                   onChange={handleInputChange}
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -98,8 +136,12 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
             </div>
 
             <div className={styles.formActions}>
-              <button type="submit" className={styles.signinButton}>
-                Sign In
+              <button 
+                type="submit" 
+                className={styles.signinButton}
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing In..." : "Sign In"}
               </button>
             </div>
           </form>

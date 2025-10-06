@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc"; // ✅ New Google G
 import { FaFacebook } from "react-icons/fa"; // ✅ Updated Facebook f
 import styles from "./SignUpModal.module.css"; // ✅ scoped CSS
-import logo from "../images/yohanns_logo-removebg-preview 3.png";
-import jerseyImage from "../images/Group 118.png";
+import logo from "../../images/yohanns_logo-removebg-preview 3.png";
+import jerseyImage from "../../images/Group 118.png";
+import { useAuth } from "../../contexts/AuthContext";
 
 const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,9 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { register } = useAuth();
 
   if (!isOpen) return null;
 
@@ -22,13 +26,35 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match");
+      setIsLoading(false);
       return;
     }
-    console.log("Sign up attempt:", formData);
+
+    try {
+      // Map contact to phone for the API
+      const userData = {
+        email: formData.email,
+        password: formData.password,
+        phone: formData.contact
+      };
+
+      const result = await register(userData);
+      console.log("Sign up successful:", result);
+      onClose(); // Close modal on successful registration
+      // You can add a success message or redirect here
+    } catch (error) {
+      setError(error.message);
+      console.error("Sign up error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSocial = (provider) => console.log(`Sign up with ${provider}`);
@@ -68,6 +94,13 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
             <p className={styles.modalSubtitle}>Fill all credentials</p>
           </div>
 
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div className={styles.errorMessage}>
+              {error}
+            </div>
+          )}
+
           {/* FORM */}
           <form className={styles.modalForm} onSubmit={handleSubmit}>
             <div className={styles.formGrid}>
@@ -80,6 +113,7 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -92,6 +126,7 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
                   value={formData.contact}
                   onChange={handleInputChange}
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -105,6 +140,7 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
                     value={formData.password}
                     onChange={handleInputChange}
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
@@ -127,6 +163,7 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
@@ -141,8 +178,12 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
             </div>
 
             <div className={styles.formActions}>
-              <button type="submit" className={styles.signinButton}>
-                Sign Up
+              <button 
+                type="submit" 
+                className={styles.signinButton}
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating Account..." : "Sign Up"}
               </button>
             </div>
           </form>

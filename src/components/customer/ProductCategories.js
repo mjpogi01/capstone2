@@ -3,6 +3,8 @@ import './ProductCategories.css';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProductModal from './ProductModal'; // Add this import
+import ProtectedAction from '../ProtectedAction';
+import { useModal } from '../../contexts/ModalContext';
 
 const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   const [favorites, setFavorites] = useState([]);
@@ -12,6 +14,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   const navRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const { openSignIn } = useModal();
 
   const toggleFavorite = (productId) => {
     setFavorites(prev =>
@@ -192,29 +195,35 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
       <div className="products-container">
         <div className="products-grid">
           {displayedProducts.map(product => (
-            <div key={product.id} className="product-card" onClick={() => openProductModal(product)}>
-              <div className="product-image">
-                <span className="product-emoji">{product.image}</span>
+            <ProtectedAction
+              key={product.id}
+              onAuthenticated={() => openProductModal(product)}
+              onUnauthenticated={() => openSignIn()}
+            >
+              <div className="product-card">
+                <div className="product-image">
+                  <span className="product-emoji">{product.image}</span>
+                </div>
+                <div className="product-info">
+                  <h3 className="product-brand">Yohann's Sportswear</h3>
+                  <p className="product-name">{product.name}</p>
+                  <div className="product-price">{product.price}</div>
+                  <button
+                    className="favorite-btn"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent modal from opening when clicking favorite
+                      toggleFavorite(product.id);
+                    }}
+                  >
+                    {favorites.includes(product.id) ? (
+                      <AiFillHeart color="red" />
+                    ) : (
+                      <AiOutlineHeart />
+                    )}
+                  </button>
+                </div>
               </div>
-              <div className="product-info">
-                <h3 className="product-brand">Yohann's Sportswear</h3>
-                <p className="product-name">{product.name}</p>
-                <div className="product-price">{product.price}</div>
-                <button
-                  className="favorite-btn"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent modal from opening when clicking favorite
-                    toggleFavorite(product.id);
-                  }}
-                >
-                  {favorites.includes(product.id) ? (
-                    <AiFillHeart color="red" />
-                  ) : (
-                    <AiOutlineHeart />
-                  )}
-                </button>
-              </div>
-            </div>
+            </ProtectedAction>
           ))}
         </div>
 

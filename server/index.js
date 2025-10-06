@@ -1,20 +1,37 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const authRouter = require('./routes/auth');
+const adminRouter = require('./routes/admin');
+const productsRouter = require('./routes/products');
+const uploadRouter = require('./routes/upload');
 const { ensureUsersTable } = require('./lib/db');
-
-dotenv.config();
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+
+app.get('/', (_req, res) => {
+  res.json({ 
+    message: 'Yohanns API Server',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      admin: '/api/admin',
+      products: '/api/products',
+      upload: '/api/upload'
+    }
+  });
+});
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/products', productsRouter);
+app.use('/api/upload', uploadRouter);
 
 const port = process.env.PORT || 4000;
 
