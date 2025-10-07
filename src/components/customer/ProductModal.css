@@ -14,25 +14,25 @@
 }
 
 .product-modal {
-  background: white;
+  background: #2a2a2a;
   border-radius: 12px;
   max-width: 1000px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal-close-btn {
   position: fixed;
   top: 25px;
   right: 20px;
-  background: rgba(255, 255, 255, 0.95);;
+  background: rgba(42, 42, 42, 0.95);
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #666;
+  color: #ccc;
   z-index: 1001;
   padding: 5px;
   border-radius: 50%;
@@ -45,10 +45,10 @@
 }
 
 .modal-close-btn:hover {
-  background: rgba(255, 255, 255, 1);
-  color: #333;
+  background: rgba(60, 60, 60, 1);
+  color: #fff;
   transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .modal-content {
@@ -63,7 +63,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
   border-radius: 12px 0 0 12px;
 }
 
@@ -73,9 +73,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: #1a1a1a;
   border-radius: 12px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 .product-emoji-large {
@@ -92,13 +92,13 @@
 }
 
 .product-header {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #444;
   padding-bottom: 20px;
 }
 
 .product-brand {
   font-size: 14px;
-  color: #666;
+  color: #999;
   margin: 0 0 8px 0;
   font-weight: 500;
   text-transform: uppercase;
@@ -108,7 +108,7 @@
 .product-title {
   font-size: 24px;
   font-weight: 700;
-  color: #333;
+  color: #fff;
   margin: 0 0 12px 0;
   line-height: 1.3;
 }
@@ -116,7 +116,7 @@
 .product-price-large {
   font-size: 28px;
   font-weight: 700;
-  color: #2c5aa0;
+  color: #00bfff;
   margin: 0;
 }
 
@@ -131,12 +131,12 @@
   align-items: center;
   cursor: pointer;
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #444;
   transition: all 0.3s ease;
 }
 
 .description-header:hover {
-  background-color: #f8f9fa;
+  background-color: #3a3a3a;
   border-radius: 6px;
   padding: 8px 12px;
 }
@@ -144,7 +144,7 @@
 .description-header h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: #fff;
   margin: 0;
 }
 
@@ -152,7 +152,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #666;
+  color: #999;
   font-size: 16px;
   padding: 4px;
   border-radius: 4px;
@@ -163,8 +163,8 @@
 }
 
 .description-toggle-btn:hover {
-  background-color: #e9ecef;
-  color: #333;
+  background-color: #4a4a4a;
+  color: #fff;
 }
 
 .description-content {
@@ -204,20 +204,20 @@
 .order-info {
   margin-bottom: 20px;
   padding: 15px;
-  background: #f8f9fa;
+  background: #3a3a3a;
   border-radius: 8px;
-  border-left: 4px solid #007bff;
+  border-left: 4px solid #00bfff;
 }
 
 .order-info h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: #fff;
   margin: 0 0 8px 0;
 }
 
 .order-message {
-  color: #666;
+  color: #ccc;
   font-size: 14px;
   margin: 0;
   line-height: 1.4;
@@ -263,7 +263,7 @@
 .quantity-selection h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: #fff;
   margin: 0 0 12px 0;
 }
 
@@ -276,12 +276,13 @@
 .quantity-btn {
   width: 35px;
   height: 35px;
-  border: 2px solid #ddd;
-  background: white;
+  border: 2px solid #555;
+  background: #3a3a3a;
   border-radius: 6px;
   cursor: pointer;
   font-size: 18px;
   font-weight: 600;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -289,8 +290,8 @@
 }
 
 .quantity-btn:hover {
-  border-color: #2c5aa0;
-  color: #2c5aa0;
+  border-color: #00bfff;
+  color: #00bfff;
 }
 
 .quantity-display {
@@ -298,6 +299,7 @@
   font-weight: 600;
   min-width: 30px;
   text-align: center;
+  color: #fff;
 }
 
 /* Action Buttons */
@@ -331,7 +333,7 @@
 
 /* Reviews Section */
 .reviews-section {
-  border-top: 1px solid #eee;
+  border-top: 1px solid #444;
   padding-top: 20px;
   flex-shrink: 0;
 }
@@ -342,12 +344,12 @@
   align-items: center;
   cursor: pointer;
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #444;
   transition: all 0.3s ease;
 }
 
 .reviews-header:hover {
-  background-color: #f8f9fa;
+  background-color: #3a3a3a;
   border-radius: 6px;
   padding: 8px 12px;
 }
@@ -355,7 +357,7 @@
 .reviews-header h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: #fff;
   margin: 0;
 }
 
@@ -363,7 +365,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #666;
+  color: #999;
   font-size: 16px;
   padding: 4px;
   border-radius: 4px;
@@ -374,8 +376,8 @@
 }
 
 .reviews-toggle-btn:hover {
-  background-color: #e9ecef;
-  color: #333;
+  background-color: #4a4a4a;
+  color: #fff;
 }
 
 .rating-summary {
@@ -391,7 +393,7 @@
 .rating-number {
   font-size: 28px;
   font-weight: 700;
-  color: #333;
+  color: #fff;
 }
 
 .rating-stars {
@@ -409,7 +411,7 @@
 }
 
 .rating-count {
-  color: #666;
+  color: #999;
   font-size: 16px;
 }
 
@@ -425,9 +427,9 @@
 
 .review-item {
   padding: 16px;
-  background-color: #f8f9fa;
+  background-color: #3a3a3a;
   border-radius: 10px;
-  border-left: 4px solid #2c5aa0;
+  border-left: 4px solid #00bfff;
 }
 
 .review-header {
@@ -440,7 +442,7 @@
 
 .reviewer-name {
   font-weight: 600;
-  color: #333;
+  color: #fff;
   font-size: 16px;
 }
 
@@ -454,13 +456,13 @@
 }
 
 .review-date {
-  color: #666;
+  color: #999;
   font-size: 14px;
   margin-left: auto;
 }
 
 .review-comment {
-  color: #555;
+  color: #ccc;
   line-height: 1.5;
   margin: 0;
   font-size: 15px;
@@ -517,9 +519,9 @@
 .team-order-toggle {
   margin: 16px 0;
   padding: 12px;
-  background-color: #f8f9fa;
+  background-color: #3a3a3a;
   border-radius: 8px;
-  border: 2px solid #e9ecef;
+  border: 2px solid #4a4a4a;
   flex-shrink: 0;
 }
 
@@ -529,7 +531,7 @@
   gap: 10px;
   cursor: pointer;
   font-weight: 600;
-  color: #333;
+  color: #fff;
   position: relative;
   font-size: 14px;
 }
@@ -753,10 +755,10 @@
 /* Buy Now Button */
 .buy-now-btn {
   padding: 12px 16px;
-  background-color: none;
-  color: #333;
+  background-color: #3a3a3a;
+  color: #fff;
   border: none;
-  border: 1px solid #333;
+  border: 1px solid #555;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -770,7 +772,9 @@
 }
 
 .buy-now-btn:hover {
-  background-color: #fff316;
+  background-color: #4a4a4a;
+  border-color: #00bfff;
+  color: #00bfff;
   transform: translateY(-2px);
 }
 
