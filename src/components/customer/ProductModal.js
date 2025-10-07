@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
-import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaChevronUp, FaFacebook } from 'react-icons/fa';
+import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaFacebook } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import './ProductModal.css';
 
@@ -10,120 +9,37 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const [isTeamOrder, setIsTeamOrder] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   const [newMember, setNewMember] = useState({ surname: '', number: '', size: 'M' });
-  const [singleOrderDetails, setSingleOrderDetails] = useState({ surname: '', number: '', size: 'M' });
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [cartItems, setCartItems] = useState([]);
 
   if (!isOpen || !product) return null;
-
-  // Determine what fields are needed based on product category
-  const getOrderFields = () => {
-    if (!product.category) return { needsSize: false, needsNumber: false, needsSurname: true };
-    
-    const category = product.category.toLowerCase();
-    
-    // Accessories that don't need sizes or numbers
-    if (['trophies', 'medals', 'awards', 'certificates'].includes(category)) {
-      return { needsSize: false, needsNumber: false, needsSurname: true };
-    }
-    
-    // Balls and equipment that might need customization but no size
-    if (['balls', 'equipment', 'accessories'].includes(category)) {
-      return { needsSize: false, needsNumber: true, needsSurname: true };
-    }
-    
-    // Clothing items that need all fields
-    if (['jerseys', 't-shirts', 'long sleeves', 'hoodies', 'uniforms', 'replicated'].includes(category)) {
-      return { needsSize: true, needsNumber: true, needsSurname: true };
-    }
-    
-    // Default for unknown categories
-    return { needsSize: true, needsNumber: true, needsSurname: true };
-  };
-
-  const orderFields = getOrderFields();
-
-  // Mock reviews data - in a real app, this would come from an API
-  const reviews = [
-    {
-      id: 1,
-      user: "John D.",
-      rating: 5,
-      comment: "Excellent quality! The jersey fits perfectly and the material is very comfortable.",
-      date: "2024-01-15"
-    },
-    {
-      id: 2,
-      user: "Maria S.",
-      rating: 4,
-      comment: "Great product, fast shipping. Would definitely order again.",
-      date: "2024-01-10"
-    },
-    {
-      id: 3,
-      user: "Carlos M.",
-      rating: 5,
-      comment: "Amazing design and quality. Perfect for basketball games!",
-      date: "2024-01-08"
-    },
-    {
-      id: 4,
-      user: "Sarah L.",
-      rating: 5,
-      comment: "Love the fit and quality. Great value for money!",
-      date: "2024-01-05"
-    },
-    {
-      id: 5,
-      user: "Mike R.",
-      rating: 4,
-      comment: "Good product, fast delivery. Would recommend to others.",
-      date: "2024-01-02"
-    }
-  ];
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
   const handleAddToCart = () => {
     const cartItem = {
       ...product,
-      size: product.size || (orderFields.needsSize ? singleOrderDetails.size : null),
+      size: selectedSize,
       quantity: isTeamOrder ? teamMembers.length : quantity,
       isTeamOrder: isTeamOrder,
-      teamMembers: isTeamOrder ? teamMembers : null,
-      singleOrderDetails: (!product.size || orderFields.needsSurname) && !isTeamOrder ? singleOrderDetails : null
+      teamMembers: isTeamOrder ? teamMembers : null
     };
     onAddToCart(cartItem);
     const orderType = isTeamOrder ? 'Team Order' : 'Individual';
     const memberCount = isTeamOrder ? teamMembers.length : quantity;
-    
-    // Build order details based on what fields are needed
-    let orderDetails = '';
-    if ((!product.size || orderFields.needsSurname) && !isTeamOrder) {
-      const details = [];
-      if (orderFields.needsSurname && singleOrderDetails.surname) details.push(`Name: ${singleOrderDetails.surname}`);
-      if (orderFields.needsNumber && singleOrderDetails.number) details.push(`Number: ${singleOrderDetails.number}`);
-      if (orderFields.needsSize && singleOrderDetails.size) details.push(`Size: ${singleOrderDetails.size}`);
-      if (details.length > 0) orderDetails = `\nOrder Details: ${details.join(' - ')}`;
-    }
-    
-    const sizeInfo = product.size ? selectedSize : (orderFields.needsSize ? singleOrderDetails.size : 'N/A');
-    alert(`Added ${memberCount} ${product.name}${orderFields.needsSize ? ` (Size: ${sizeInfo})` : ''} to cart!\nOrder Type: ${orderType}${orderDetails}`);
+    alert(`Added ${memberCount} ${product.name} (Size: ${selectedSize}) to cart!\nOrder Type: ${orderType}`);
   };
 
   const handleBuyNow = () => {
     const cartItem = {
       ...product,
-      size: product.size || (orderFields.needsSize ? singleOrderDetails.size : null),
+      size: selectedSize,
       quantity: isTeamOrder ? teamMembers.length : quantity,
       isTeamOrder: isTeamOrder,
-      teamMembers: isTeamOrder ? teamMembers : null,
-      singleOrderDetails: (!product.size || orderFields.needsSurname) && !isTeamOrder ? singleOrderDetails : null
+      teamMembers: isTeamOrder ? teamMembers : null
     };
     
-    // Add to cart and show checkout
     setCartItems([cartItem]);
     setShowCheckout(true);
   };
@@ -146,8 +62,8 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
     if (newMember.surname.trim()) {
       const member = {
         id: Date.now(),
-        surname: newMember.surname.trim(),
-        number: newMember.number.trim(),
+        surname: newMember.surname,
+        number: newMember.number,
         size: newMember.size
       };
       setTeamMembers([...teamMembers, member]);
@@ -163,57 +79,44 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
     setIsDescriptionExpanded(!isDescriptionExpanded);
   };
 
-  const toggleReviews = () => {
-    setIsReviewsExpanded(!isReviewsExpanded);
-  };
-
-  const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, index) => (
-      <span key={index}>
-        {index < rating ? (
-          <AiFillStar className="star filled" />
-        ) : (
-          <AiOutlineStar className="star" />
-        )}
-      </span>
-    ));
-  };
-
-  const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
-
   return (
     <div className="product-modal-overlay" onClick={onClose}>
-      <div className="product-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="product-modal-container" onClick={(e) => e.stopPropagation()}>
+        {/* Close Button */}
         <button className="modal-close-btn" onClick={onClose}>
           <FaTimes />
         </button>
 
-        <div className="modal-content">
-          {/* Left Section - Product Image and Details */}
-          <div className="left-section">
-            <div className="product-image-container">
+        {/* Main Modal Content - Single Container */}
+        <div className="modal-main-content">
+          {/* Left Panel - Product Image and Brand Info */}
+          <div className="left-panel">
+            {/* Product Image */}
+            <div className="product-image-section">
               {product.main_image ? (
                 <img 
                   src={product.main_image} 
                   alt={product.name}
-                  className="product-image-large"
+                  className="product-image"
                 />
               ) : (
-                <div className="product-placeholder">
-                  <span className="product-emoji-large">🏀</span>
+                <div className="product-image-placeholder">
+                  <span className="product-emoji">🏀</span>
                 </div>
               )}
             </div>
-            
+
+            {/* Product Title */}
             <div className="product-title-section">
-              <h1 className="product-title">{product.name}</h1>
+              <h1 className="product-title">HUSTLE</h1>
               <p className="product-subtitle">SUBLIMATION JERSEY</p>
               <p className="product-disclaimer">
                 Please note actual colours may vary. It's important to note that they may look different on a real product than what you see on your monitor. We try to edit our photos to show the products as life-like as possible, but please understand the actual colour may vary slightly from your monitor.
               </p>
             </div>
 
-            <div className="brand-logo">
+            {/* Brand Logo */}
+            <div className="brand-logo-section">
               <div className="crown-icon">👑</div>
               <div className="brand-text">
                 <div className="brand-name">YOHANNS</div>
@@ -221,30 +124,34 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
               </div>
             </div>
 
-            <div className="contact-info">
-              <div className="facebook-link">
+            {/* Contact Info */}
+            <div className="contact-info-section">
+              <div className="facebook-contact">
                 <FaFacebook className="facebook-icon" />
                 <span>MIZAEL ARCED / PRINCE YOHANN ARCED / YOHANNS SPORTSWEAR HOUSE FB PAGE</span>
               </div>
-              <div className="phone-numbers">
+              <div className="phone-contact">
                 <span>09123456789 / 09876543210 / 09111222333</span>
               </div>
             </div>
           </div>
 
-          {/* Right Section - Product Configuration */}
-          <div className="right-section">
-            <div className="product-header">
-              <h2 className="product-brand">YOHANN'S SPORTSWEAR</h2>
-              <h1 className="product-name">{product.name}</h1>
-              <div className="product-price">₱ {parseFloat(product.price).toFixed(2)}</div>
-            </div>
+          {/* Right Panel - Product Configuration */}
+          <div className="right-panel">
+            {/* Brand Header */}
+            <div className="brand-header">YOHANN'S SPORTSWEAR</div>
+
+            {/* Product Name */}
+            <div className="product-name">PURPLE-YELLOW 'BONESIAN' JERSEY SET</div>
+
+            {/* Price */}
+            <div className="product-price">₱ 700.00</div>
 
             {/* Size Selection */}
-            <div className="size-selection">
-              <label className="size-label">SIZE</label>
+            <div className="size-section">
+              <div className="size-label">SIZE</div>
               <div className="size-buttons">
-                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
+                {sizes.map(size => (
                   <button
                     key={size}
                     className={`size-btn ${selectedSize === size ? 'selected' : ''}`}
@@ -256,9 +163,9 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
               </div>
             </div>
 
-            {/* Team Order Toggle */}
-            <div className="team-order-toggle">
-              <label className="team-order-checkbox">
+            {/* Team Orders Checkbox */}
+            <div className="team-orders-section">
+              <label className="team-orders-checkbox">
                 <input
                   type="checkbox"
                   checked={isTeamOrder}
@@ -273,11 +180,11 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
             {/* Team Members Section */}
             {isTeamOrder && (
               <div className="team-members-section">
-                <label className="team-members-label">Team Members</label>
+                <div className="team-members-label">Team Members</div>
                 
                 {/* Add New Member */}
                 <div className="add-member-form">
-                  <div className="member-input-row">
+                  <div className="member-inputs">
                     <input
                       type="text"
                       placeholder="Surname"
@@ -297,7 +204,7 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
                       onChange={(e) => setNewMember({...newMember, size: e.target.value})}
                       className="member-select"
                     >
-                      {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
+                      {sizes.map(size => (
                         <option key={size} value={size}>{size}</option>
                       ))}
                     </select>
@@ -330,10 +237,10 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
               </div>
             )}
 
-            {/* Quantity Selection */}
+            {/* Quantity Section */}
             {!isTeamOrder && (
-              <div className="quantity-selection">
-                <label className="quantity-label">QUANTITY</label>
+              <div className="quantity-section">
+                <div className="quantity-label">QUANTITY</div>
                 <div className="quantity-controls">
                   <button 
                     className="quantity-btn"
@@ -369,20 +276,20 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
                 BUY NOW
               </button>
             </div>
-          </div>
-        </div>
 
-        {/* Product Description Section */}
-        <div className="product-description-section">
-          <div className="description-header" onClick={toggleDescription}>
-            <span className="description-title">PRODUCT DESCRIPTION</span>
-            <FaChevronDown className="description-chevron" />
-          </div>
-          {isDescriptionExpanded && (
-            <div className="description-content">
-              <p>{product.description || 'High-quality sportswear designed for comfort and performance.'}</p>
+            {/* Product Description */}
+            <div className="product-description-section">
+              <div className="description-header" onClick={toggleDescription}>
+                <span className="description-title">PRODUCT DESCRIPTION</span>
+                <FaChevronDown className="description-chevron" />
+              </div>
+              {isDescriptionExpanded && (
+                <div className="description-content">
+                  <p>{product.description || 'High-quality sportswear designed for comfort and performance.'}</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
       
