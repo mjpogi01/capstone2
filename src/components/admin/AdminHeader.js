@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import './AdminHeader.css';
 
 const AdminHeader = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
@@ -29,6 +33,11 @@ const AdminHeader = () => {
     setShowUserDropdown(!showUserDropdown);
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <header className="admin-header">
       <div className="header-left">
@@ -42,7 +51,7 @@ const AdminHeader = () => {
               <div className="dropdown-item">Profile Settings</div>
               <div className="dropdown-item">Account Settings</div>
               <div className="dropdown-divider"></div>
-              <div className="dropdown-item logout">Logout</div>
+              <div className="dropdown-item logout" onClick={handleLogout}>Logout</div>
             </div>
           )}
         </div>

@@ -175,20 +175,29 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
             </div>
 
             {/* Size Selection */}
-            <div className="size-selection">
-              <h3>Size</h3>
-              <div className="size-options">
-                {sizes.map(size => (
-                  <button
-                    key={size}
-                    className={`size-btn ${selectedSize === size ? 'selected' : ''}`}
-                    onClick={() => setSelectedSize(size)}
-                  >
-                    {size}
-                  </button>
-                ))}
+            {product.size && (
+              <div className="size-selection">
+                <h3>Size</h3>
+                <div className="size-options">
+                  {sizes.map(size => (
+                    <button
+                      key={size}
+                      className={`size-btn ${selectedSize === size ? 'selected' : ''}`}
+                      onClick={() => setSelectedSize(size)}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            
+            {!product.size && (
+              <div className="order-info">
+                <h3>Custom Order</h3>
+                <p className="order-message">This item is made to order. Size will be specified during the ordering process.</p>
+              </div>
+            )}
 
             {/* Team Order Toggle */}
             <div className="team-order-toggle">

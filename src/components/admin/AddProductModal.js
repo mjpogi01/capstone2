@@ -8,7 +8,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
     size: '',
     price: '',
     description: '',
-    stock_quantity: 0,
+    stock_quantity: null, // Changed to null for order-based model
     branch_id: 1
   });
   const [loading, setLoading] = useState(false);
@@ -155,6 +155,8 @@ const AddProductModal = ({ onClose, onAdd }) => {
     try {
       const productData = {
         ...formData,
+        size: formData.size || null,
+        stock_quantity: formData.stock_quantity || null,
         main_image: mainImage,
         additional_images: additionalImages
       };
@@ -317,8 +319,15 @@ const AddProductModal = ({ onClose, onAdd }) => {
               </div>
 
               <div className="form-group">
-                <label>Size</label>
+                <label>Size (Optional)</label>
                 <div className="size-buttons">
+                  <button
+                    type="button"
+                    className={`size-btn ${formData.size === '' ? 'selected' : ''}`}
+                    onClick={() => handleSizeSelect('')}
+                  >
+                    No Size
+                  </button>
                   {sizes.map(size => (
                     <button
                       key={size}
@@ -330,6 +339,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
                     </button>
                   ))}
                 </div>
+                <small className="form-help">Leave blank if not applicable</small>
               </div>
 
               <div className="form-group">
@@ -347,16 +357,16 @@ const AddProductModal = ({ onClose, onAdd }) => {
               </div>
 
               <div className="form-group">
-                <label>Stock Quantity</label>
+                <label>Stock Quantity (Optional)</label>
                 <input
                   type="number"
                   name="stock_quantity"
-                  value={formData.stock_quantity}
+                  value={formData.stock_quantity || ''}
                   onChange={handleInputChange}
-                  required
-                  placeholder="0"
+                  placeholder="Leave blank for order-based items"
                   min="0"
                 />
+                <small className="form-help">Leave blank for custom orders - items are made to order</small>
               </div>
 
               <div className="form-group">

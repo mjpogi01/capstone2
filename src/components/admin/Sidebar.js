@@ -1,9 +1,13 @@
 import React from 'react';
 import './Sidebar.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 
 const Sidebar = ({ activePage, setActivePage }) => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  
   const menuItems = [
     { id: 'home', label: 'Home', icon: '🏠', path: '/admin' },
     { id: 'analytics', label: 'Analytics', icon: '📊', path: '/admin/analytics' },
@@ -13,8 +17,8 @@ const Sidebar = ({ activePage, setActivePage }) => {
   ];
 
   const handleLogout = () => {
-    // Handle logout logic here
-    console.log('Logout clicked');
+    logout();
+    navigate('/');
   };
 
   return (

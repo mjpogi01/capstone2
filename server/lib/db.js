@@ -1,9 +1,12 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 // Supabase connection configuration
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.xnuzdzjfqhbpcnsetjif:lLqK8vaaYeCOlQj7@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres';
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: connectionString,
   ssl: { rejectUnauthorized: false }
 });
 
