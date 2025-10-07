@@ -11,22 +11,30 @@ const RoleRedirect = () => {
     if (isAuthenticated && user) {
       const currentPath = location.pathname;
       
-      // Only redirect if user is on home page or other non-admin pages
+      // Define admin/owner protected routes
       const isOnAdminPage = currentPath.startsWith('/admin') || 
                            currentPath.startsWith('/owner') || 
                            currentPath.startsWith('/inventory');
       
-      if (!isOnAdminPage) {
-        // Redirect based on user role only when not on admin pages
+      // Define customer pages that should be accessible
+      const customerPages = ['/', '/about', '/highlights', '/branches', '/faqs', '/contacts'];
+      const isOnCustomerPage = customerPages.includes(currentPath);
+      
+      // Only redirect if:
+      // 1. User is on home page (/) and has admin/owner role
+      // 2. User is trying to access admin pages without proper role
+      if (currentPath === '/' && (user.role === 'owner' || user.role === 'admin')) {
+        // Redirect admin/owner users from home to their dashboard
         if (user.role === 'owner') {
           navigate('/owner', { replace: true });
         } else if (user.role === 'admin') {
           navigate('/admin', { replace: true });
-        } else {
-          // For customers, redirect to home
-          navigate('/', { replace: true });
         }
+      } else if (isOnAdminPage && user.role === 'customer') {
+        // Redirect customers away from admin pages
+        navigate('/', { replace: true });
       }
+      // Allow customers to access all customer pages without redirect
     }
   }, [user, isAuthenticated, navigate, location.pathname]);
 
