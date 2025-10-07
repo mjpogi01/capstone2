@@ -252,7 +252,7 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
               </div>
             )}
             
-            {(!product.size || orderFields.needsSurname) && (
+            {(!product.size || orderFields.needsSurname) && !isTeamOrder && (
               <div className="single-order-form">
                 <h3>Order Details</h3>
                 <div className={`order-form-row ${!orderFields.needsSize && !orderFields.needsNumber ? 'single-column' : ''}`}>
