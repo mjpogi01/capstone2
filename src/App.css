@@ -4,17 +4,22 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   font-family: 'Orbitron', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #0a0a0a;
   color: #00bfff;
   line-height: 1.6;
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 
 .App {
   min-height: 100vh;
   background: #0a0a0a;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Global button styles */
