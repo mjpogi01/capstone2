@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import CheckoutModal from './CheckoutModal';
 import './ProductModal.css';
 
 const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
@@ -12,6 +13,8 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const [singleOrderDetails, setSingleOrderDetails] = useState({ surname: '', number: '', size: 'M' });
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
   if (!isOpen || !product) return null;
 
@@ -119,23 +122,10 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
       teamMembers: isTeamOrder ? teamMembers : null,
       singleOrderDetails: (!product.size || orderFields.needsSurname) && !isTeamOrder ? singleOrderDetails : null
     };
-    const orderType = isTeamOrder ? 'Team Order' : 'Individual';
-    const memberCount = isTeamOrder ? teamMembers.length : quantity;
     
-    // Build order details based on what fields are needed
-    let orderDetails = '';
-    if ((!product.size || orderFields.needsSurname) && !isTeamOrder) {
-      const details = [];
-      if (orderFields.needsSurname && singleOrderDetails.surname) details.push(`Name: ${singleOrderDetails.surname}`);
-      if (orderFields.needsNumber && singleOrderDetails.number) details.push(`Number: ${singleOrderDetails.number}`);
-      if (orderFields.needsSize && singleOrderDetails.size) details.push(`Size: ${singleOrderDetails.size}`);
-      if (details.length > 0) orderDetails = `\nOrder Details: ${details.join(' - ')}`;
-    }
-    
-    const sizeInfo = product.size ? selectedSize : (orderFields.needsSize ? singleOrderDetails.size : 'N/A');
-    alert(`Proceeding to checkout with ${memberCount} ${product.name}${orderFields.needsSize ? ` (Size: ${sizeInfo})` : ''}\nOrder Type: ${orderType}\nTotal: ${product.price}${orderDetails}`);
-    onAddToCart(cartItem);
-    onClose();
+    // Add to cart and show checkout
+    setCartItems([cartItem]);
+    setShowCheckout(true);
   };
 
   const handleTeamOrderToggle = () => {
@@ -143,6 +133,13 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
     if (!isTeamOrder) {
       setTeamMembers([]);
     }
+  };
+
+  const handlePlaceOrder = (orderData) => {
+    console.log('Order placed:', orderData);
+    alert('Order placed successfully! We will contact you soon for confirmation.');
+    setShowCheckout(false);
+    onClose();
   };
 
   const addTeamMember = () => {
@@ -466,6 +463,14 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
           </div>
         </div>
       </div>
+      
+      {/* Checkout Modal */}
+      <CheckoutModal
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        cartItems={cartItems}
+        onPlaceOrder={handlePlaceOrder}
+      />
     </div>
   );
 };
