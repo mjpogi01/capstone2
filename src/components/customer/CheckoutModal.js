@@ -16,6 +16,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
     paymentMethod: 'cash'
   });
   const [orderNotes, setOrderNotes] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
 
   if (!isOpen) return null;
 
@@ -29,10 +30,101 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
       ...prev,
       [name]: value
     }));
+    
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Validation functions
+  const validateStep1 = () => {
+    const errors = {};
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'province', 'postalCode'];
+    
+    requiredFields.forEach(field => {
+      if (!customerInfo[field] || customerInfo[field].trim() === '') {
+        errors[field] = 'This field is required';
+      }
+    });
+    
+    // Email validation
+    if (customerInfo.email && !/\S+@\S+\.\S+/.test(customerInfo.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    
+    // Phone validation (basic)
+    if (customerInfo.phone && !/^[\d\s\-\+\(\)]+$/.test(customerInfo.phone)) {
+      errors.phone = 'Please enter a valid phone number';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const errors = {};
+    
+    // Check if there are any items
+    if (cartItems.length === 0) {
+      errors.items = 'No items in cart';
+      setValidationErrors(errors);
+      return false;
+    }
+    
+    // Validate each item based on order type
+    cartItems.forEach((item, index) => {
+      if (item.isTeamOrder) {
+        // Team order validation - at least 2 players required
+        if (!item.teamMembers || item.teamMembers.length < 2) {
+          errors[`item_${index}`] = 'Team orders require at least 2 players';
+        } else {
+          // Validate each team member
+          item.teamMembers.forEach((member, memberIndex) => {
+            if (!member.surname || member.surname.trim() === '') {
+              errors[`member_${index}_${memberIndex}_surname`] = 'Player surname is required';
+            }
+            if (!member.number || member.number.trim() === '') {
+              errors[`member_${index}_${memberIndex}_number`] = 'Player number is required';
+            }
+            if (!member.size || member.size.trim() === '') {
+              errors[`member_${index}_${memberIndex}_size`] = 'Player size is required';
+            }
+          });
+        }
+      } else {
+        // Single order validation - all custom fields must be filled if they exist
+        if (item.singleOrderDetails) {
+          if (item.singleOrderDetails.surname && item.singleOrderDetails.surname.trim() === '') {
+            errors[`item_${index}_surname`] = 'Surname is required';
+          }
+          if (item.singleOrderDetails.number && item.singleOrderDetails.number.trim() === '') {
+            errors[`item_${index}_number`] = 'Number is required';
+          }
+          if (item.singleOrderDetails.size && item.singleOrderDetails.size.trim() === '') {
+            errors[`item_${index}_size`] = 'Size is required';
+          }
+        }
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    let isValid = false;
+    
+    if (currentStep === 1) {
+      isValid = validateStep1();
+    } else if (currentStep === 2) {
+      isValid = validateStep2();
+    }
+    
+    if (isValid && currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -68,7 +160,11 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
             value={customerInfo.firstName}
             onChange={handleInputChange}
             required
+            className={validationErrors.firstName ? 'error' : ''}
           />
+          {validationErrors.firstName && (
+            <span className="error-message">{validationErrors.firstName}</span>
+          )}
         </div>
         <div className="form-group">
           <label>Last Name *</label>
@@ -78,7 +174,11 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
             value={customerInfo.lastName}
             onChange={handleInputChange}
             required
+            className={validationErrors.lastName ? 'error' : ''}
           />
+          {validationErrors.lastName && (
+            <span className="error-message">{validationErrors.lastName}</span>
+          )}
         </div>
         <div className="form-group">
           <label>Email *</label>
@@ -88,7 +188,11 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
             value={customerInfo.email}
             onChange={handleInputChange}
             required
+            className={validationErrors.email ? 'error' : ''}
           />
+          {validationErrors.email && (
+            <span className="error-message">{validationErrors.email}</span>
+          )}
         </div>
         <div className="form-group">
           <label>Phone *</label>
@@ -98,7 +202,11 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
             value={customerInfo.phone}
             onChange={handleInputChange}
             required
+            className={validationErrors.phone ? 'error' : ''}
           />
+          {validationErrors.phone && (
+            <span className="error-message">{validationErrors.phone}</span>
+          )}
         </div>
         <div className="form-group full-width">
           <label>Address *</label>
@@ -108,7 +216,11 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
             value={customerInfo.address}
             onChange={handleInputChange}
             required
+            className={validationErrors.address ? 'error' : ''}
           />
+          {validationErrors.address && (
+            <span className="error-message">{validationErrors.address}</span>
+          )}
         </div>
         <div className="form-group">
           <label>City *</label>
@@ -118,7 +230,11 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
             value={customerInfo.city}
             onChange={handleInputChange}
             required
+            className={validationErrors.city ? 'error' : ''}
           />
+          {validationErrors.city && (
+            <span className="error-message">{validationErrors.city}</span>
+          )}
         </div>
         <div className="form-group">
           <label>Province *</label>
@@ -128,7 +244,11 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
             value={customerInfo.province}
             onChange={handleInputChange}
             required
+            className={validationErrors.province ? 'error' : ''}
           />
+          {validationErrors.province && (
+            <span className="error-message">{validationErrors.province}</span>
+          )}
         </div>
         <div className="form-group">
           <label>Postal Code *</label>
@@ -138,7 +258,11 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
             value={customerInfo.postalCode}
             onChange={handleInputChange}
             required
+            className={validationErrors.postalCode ? 'error' : ''}
           />
+          {validationErrors.postalCode && (
+            <span className="error-message">{validationErrors.postalCode}</span>
+          )}
         </div>
       </div>
     </div>
@@ -184,6 +308,27 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, onPlaceOrder }) => {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+              {/* Validation errors for this item */}
+              {validationErrors[`item_${index}`] && (
+                <div className="validation-error">
+                  <span className="error-message">{validationErrors[`item_${index}`]}</span>
+                </div>
+              )}
+              {validationErrors[`item_${index}_surname`] && (
+                <div className="validation-error">
+                  <span className="error-message">{validationErrors[`item_${index}_surname`]}</span>
+                </div>
+              )}
+              {validationErrors[`item_${index}_number`] && (
+                <div className="validation-error">
+                  <span className="error-message">{validationErrors[`item_${index}_number`]}</span>
+                </div>
+              )}
+              {validationErrors[`item_${index}_size`] && (
+                <div className="validation-error">
+                  <span className="error-message">{validationErrors[`item_${index}_size`]}</span>
                 </div>
               )}
             </div>
