@@ -9,6 +9,7 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const [isTeamOrder, setIsTeamOrder] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   const [newMember, setNewMember] = useState({ surname: '', number: '', size: 'M' });
+  const [singleOrderDetails, setSingleOrderDetails] = useState({ surname: '', number: '', size: 'M' });
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
 
@@ -58,28 +59,36 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const handleAddToCart = () => {
     const cartItem = {
       ...product,
-      size: selectedSize,
+      size: product.size || singleOrderDetails.size,
       quantity: isTeamOrder ? teamMembers.length : quantity,
       isTeamOrder: isTeamOrder,
-      teamMembers: isTeamOrder ? teamMembers : null
+      teamMembers: isTeamOrder ? teamMembers : null,
+      singleOrderDetails: !product.size && !isTeamOrder ? singleOrderDetails : null
     };
     onAddToCart(cartItem);
     const orderType = isTeamOrder ? 'Team Order' : 'Individual';
     const memberCount = isTeamOrder ? teamMembers.length : quantity;
-    alert(`Added ${memberCount} ${product.name} (Size: ${selectedSize}) to cart!\nOrder Type: ${orderType}`);
+    const sizeInfo = product.size ? selectedSize : singleOrderDetails.size;
+    const orderDetails = !product.size && !isTeamOrder ? 
+      `\nOrder Details: ${singleOrderDetails.surname} - #${singleOrderDetails.number} - Size: ${singleOrderDetails.size}` : '';
+    alert(`Added ${memberCount} ${product.name} (Size: ${sizeInfo}) to cart!\nOrder Type: ${orderType}${orderDetails}`);
   };
 
   const handleBuyNow = () => {
     const cartItem = {
       ...product,
-      size: selectedSize,
+      size: product.size || singleOrderDetails.size,
       quantity: isTeamOrder ? teamMembers.length : quantity,
       isTeamOrder: isTeamOrder,
-      teamMembers: isTeamOrder ? teamMembers : null
+      teamMembers: isTeamOrder ? teamMembers : null,
+      singleOrderDetails: !product.size && !isTeamOrder ? singleOrderDetails : null
     };
     const orderType = isTeamOrder ? 'Team Order' : 'Individual';
     const memberCount = isTeamOrder ? teamMembers.length : quantity;
-    alert(`Proceeding to checkout with ${memberCount} ${product.name} (Size: ${selectedSize})\nOrder Type: ${orderType}\nTotal: ${product.price}`);
+    const sizeInfo = product.size ? selectedSize : singleOrderDetails.size;
+    const orderDetails = !product.size && !isTeamOrder ? 
+      `\nOrder Details: ${singleOrderDetails.surname} - #${singleOrderDetails.number} - Size: ${singleOrderDetails.size}` : '';
+    alert(`Proceeding to checkout with ${memberCount} ${product.name} (Size: ${sizeInfo})\nOrder Type: ${orderType}\nTotal: ${product.price}${orderDetails}`);
     onAddToCart(cartItem);
     onClose();
   };
@@ -199,9 +208,45 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
             )}
             
             {!product.size && (
-              <div className="order-info">
-                <h3>Custom Order</h3>
-                <p className="order-message">This item is made to order. Size will be specified during the ordering process.</p>
+              <div className="single-order-form">
+                <h3>Order Details</h3>
+                <div className="order-form-row">
+                  <div className="form-group">
+                    <label>Surname</label>
+                    <input
+                      type="text"
+                      placeholder="Enter surname"
+                      value={singleOrderDetails.surname}
+                      onChange={(e) => setSingleOrderDetails({...singleOrderDetails, surname: e.target.value})}
+                      className="order-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Number</label>
+                    <input
+                      type="text"
+                      placeholder="Enter number"
+                      value={singleOrderDetails.number}
+                      onChange={(e) => setSingleOrderDetails({...singleOrderDetails, number: e.target.value})}
+                      className="order-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Size</label>
+                    <select
+                      value={singleOrderDetails.size}
+                      onChange={(e) => setSingleOrderDetails({...singleOrderDetails, size: e.target.value})}
+                      className="order-select"
+                    >
+                      <option value="XS">XS</option>
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                      <option value="XXL">XXL</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
 

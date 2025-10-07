@@ -200,7 +200,88 @@
   margin: 0 0 12px 0;
 }
 
-/* Order Info */
+/* Single Order Form */
+.single-order-form {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #3a3a3a;
+  border-radius: 8px;
+  border-left: 4px solid #00bfff;
+}
+
+.single-order-form h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px 0;
+}
+
+.order-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ccc;
+  margin: 0;
+}
+
+.order-input, .order-select {
+  padding: 10px 12px;
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.order-input:focus, .order-select:focus {
+  outline: none;
+  border-color: #00bfff;
+  box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.2);
+}
+
+.order-input::placeholder {
+  color: #666;
+}
+
+.order-select {
+  cursor: pointer;
+}
+
+.order-select option {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+/* Responsive Design for Single Order Form */
+@media (max-width: 768px) {
+  .order-form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .single-order-form {
+    padding: 16px;
+  }
+  
+  .order-input, .order-select {
+    padding: 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Order Info (fallback) */
 .order-info {
   margin-bottom: 20px;
   padding: 15px;
