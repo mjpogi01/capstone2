@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
-import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaChevronUp, FaFacebook } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import './ProductModal.css';
 
@@ -12,7 +11,6 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const [newMember, setNewMember] = useState({ surname: '', number: '', size: 'M' });
   const [singleOrderDetails, setSingleOrderDetails] = useState({ surname: '', number: '', size: 'M' });
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [cartItems, setCartItems] = useState([]);
 
@@ -189,8 +187,8 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
         </button>
 
         <div className="modal-content">
-          {/* Product Image Section */}
-          <div className="product-image-section">
+          {/* Left Section - Product Image and Details */}
+          <div className="left-section">
             <div className="product-image-container">
               {product.main_image ? (
                 <img 
@@ -199,109 +197,62 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
                   className="product-image-large"
                 />
               ) : (
-                <span className="product-emoji-large">🏀</span>
+                <div className="product-placeholder">
+                  <span className="product-emoji-large">🏀</span>
+                </div>
               )}
+            </div>
+            
+            <div className="product-title-section">
+              <h1 className="product-title">{product.name}</h1>
+              <p className="product-subtitle">SUBLIMATION JERSEY</p>
+              <p className="product-disclaimer">
+                Please note actual colours may vary. It's important to note that they may look different on a real product than what you see on your monitor. We try to edit our photos to show the products as life-like as possible, but please understand the actual colour may vary slightly from your monitor.
+              </p>
+            </div>
+
+            <div className="brand-logo">
+              <div className="crown-icon">👑</div>
+              <div className="brand-text">
+                <div className="brand-name">YOHANNS</div>
+                <div className="brand-subtitle">Sportswear House</div>
+              </div>
+            </div>
+
+            <div className="contact-info">
+              <div className="facebook-link">
+                <FaFacebook className="facebook-icon" />
+                <span>MIZAEL ARCED / PRINCE YOHANN ARCED / YOHANNS SPORTSWEAR HOUSE FB PAGE</span>
+              </div>
+              <div className="phone-numbers">
+                <span>09123456789 / 09876543210 / 09111222333</span>
+              </div>
             </div>
           </div>
 
-          {/* Product Details Section */}
-          <div className="product-details-section">
+          {/* Right Section - Product Configuration */}
+          <div className="right-section">
             <div className="product-header">
-              <h2 className="product-brand">Yohann's Sportswear</h2>
-              <h1 className="product-title">{product.name}</h1>
-              <div className="product-price-large">
-                ₱ {parseFloat(product.price).toFixed(2)}
-              </div>
-            </div>
-
-            {/* Product Description */}
-            <div className="product-description">
-              <div className="description-header" onClick={toggleDescription}>
-                <h3>Description</h3>
-                <button className="description-toggle-btn">
-                  {isDescriptionExpanded ? <FaChevronUp /> : <FaChevronDown />}
-                </button>
-              </div>
-              {isDescriptionExpanded && (
-                <div className="description-content">
-                  <p>
-                    {product.description || 'High-quality sportswear designed for comfort and performance. Made with premium materials that provide excellent breathability and durability. Perfect for sports activities, training sessions, and casual wear.'}
-                  </p>
-                </div>
-              )}
+              <h2 className="product-brand">YOHANN'S SPORTSWEAR</h2>
+              <h1 className="product-name">{product.name}</h1>
+              <div className="product-price">₱ {parseFloat(product.price).toFixed(2)}</div>
             </div>
 
             {/* Size Selection */}
-            {product.size && (
-              <div className="size-selection">
-                <h3>Size</h3>
-                <div className="size-options">
-                  {sizes.map(size => (
-                    <button
-                      key={size}
-                      className={`size-btn ${selectedSize === size ? 'selected' : ''}`}
-                      onClick={() => setSelectedSize(size)}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
+            <div className="size-selection">
+              <label className="size-label">SIZE</label>
+              <div className="size-buttons">
+                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
+                  <button
+                    key={size}
+                    className={`size-btn ${selectedSize === size ? 'selected' : ''}`}
+                    onClick={() => setSelectedSize(size)}
+                  >
+                    {size}
+                  </button>
+                ))}
               </div>
-            )}
-            
-            {(!product.size || orderFields.needsSurname) && !isTeamOrder && (
-              <div className="single-order-form">
-                <h3>Order Details</h3>
-                <div className={`order-form-row ${!orderFields.needsSize && !orderFields.needsNumber ? 'single-column' : ''}`}>
-                  {orderFields.needsSurname && (
-                    <div className="form-group">
-                      <label>Surname</label>
-                      <input
-                        type="text"
-                        placeholder="Enter surname"
-                        value={singleOrderDetails.surname}
-                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, surname: e.target.value})}
-                        className="order-input"
-                      />
-                    </div>
-                  )}
-                  {orderFields.needsNumber && (
-                    <div className="form-group">
-                      <label>Number</label>
-                      <input
-                        type="text"
-                        placeholder="Enter number"
-                        value={singleOrderDetails.number}
-                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, number: e.target.value})}
-                        className="order-input"
-                      />
-                    </div>
-                  )}
-                  {orderFields.needsSize && (
-                    <div className="form-group">
-                      <label>Size</label>
-                      <select
-                        value={singleOrderDetails.size}
-                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, size: e.target.value})}
-                        className="order-select"
-                      >
-                        <option value="XS">XS</option>
-                        <option value="S">S</option>
-                        <option value="M">M</option>
-                        <option value="L">L</option>
-                        <option value="XL">XL</option>
-                        <option value="XXL">XXL</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-                {!orderFields.needsSize && !orderFields.needsNumber && (
-                  <div className="accessory-note">
-                    <p>This item will be customized with your details.</p>
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
 
             {/* Team Order Toggle */}
             <div className="team-order-toggle">
@@ -313,18 +264,18 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
                 />
                 <span className="checkmark"></span>
                 <FaUsers className="team-icon" />
-                Team Order
+                Team Orders
               </label>
             </div>
 
-            {/* Team Customization */}
+            {/* Team Members Section */}
             {isTeamOrder && (
-              <div className="team-customization">
-                <h3>Team Members ({teamMembers.length})</h3>
+              <div className="team-members-section">
+                <label className="team-members-label">Team Members</label>
                 
                 {/* Add New Member */}
                 <div className="add-member-form">
-                  <div className="form-row">
+                  <div className="member-input-row">
                     <input
                       type="text"
                       placeholder="Surname"
@@ -344,7 +295,7 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
                       onChange={(e) => setNewMember({...newMember, size: e.target.value})}
                       className="member-select"
                     >
-                      {sizes.map(size => (
+                      {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
                         <option key={size} value={size}>{size}</option>
                       ))}
                     </select>
@@ -362,30 +313,25 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
                 <div className="team-members-list">
                   {teamMembers.map(member => (
                     <div key={member.id} className="team-member-item">
-                      <div className="member-display">
-                        <div className="member-info">
-                          <span className="member-surname">{member.surname}</span>
-                          {member.number && <span className="member-number">#{member.number}</span>}
-                          <span className="member-size">Size: {member.size}</span>
-                        </div>
-                        <button 
-                          className="remove-member-btn"
-                          onClick={() => removeTeamMember(member.id)}
-                          title="Remove member"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
+                      <span className="member-name">{member.surname}</span>
+                      <span className="member-number">#{member.number}</span>
+                      <span className="member-size">Size: {member.size}</span>
+                      <button 
+                        className="remove-member-btn"
+                        onClick={() => removeTeamMember(member.id)}
+                      >
+                        <FaTrash />
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Quantity Selection (for individual orders) */}
+            {/* Quantity Selection */}
             {!isTeamOrder && (
               <div className="quantity-selection">
-                <h3>Quantity</h3>
+                <label className="quantity-label">QUANTITY</label>
                 <div className="quantity-controls">
                   <button 
                     className="quantity-btn"
@@ -411,56 +357,30 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
                 onClick={handleAddToCart}
               >
                 <FaShoppingCart />
-                Add to Cart
+                ADD TO CART
               </button>
               <button 
                 className="buy-now-btn"
                 onClick={handleBuyNow}
               >
                 <FaCreditCard />
-                Buy Now
+                BUY NOW
               </button>
             </div>
-
-            {/* Reviews Section */}
-            <div className="reviews-section">
-              <div className="reviews-header" onClick={toggleReviews}>
-                <h3>Customer Reviews</h3>
-                <button className="reviews-toggle-btn">
-                  {isReviewsExpanded ? <FaChevronUp /> : <FaChevronDown />}
-                </button>
-              </div>
-              
-              <div className="rating-summary">
-                <div className="average-rating">
-                  <span className="rating-number">{averageRating.toFixed(1)}</span>
-                  <div className="rating-stars">
-                    {renderStars(Math.round(averageRating))}
-                  </div>
-                  <span className="rating-count">({reviews.length} reviews)</span>
-                </div>
-              </div>
-
-              {isReviewsExpanded && (
-                <div className="reviews-content">
-                  <div className="reviews-list">
-                    {reviews.map(review => (
-                      <div key={review.id} className="review-item">
-                        <div className="review-header">
-                          <span className="reviewer-name">{review.user}</span>
-                          <div className="review-rating">
-                            {renderStars(review.rating)}
-                          </div>
-                          <span className="review-date">{review.date}</span>
-                        </div>
-                        <p className="review-comment">{review.comment}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
+        </div>
+
+        {/* Product Description Section */}
+        <div className="product-description-section">
+          <div className="description-header" onClick={toggleDescription}>
+            <span className="description-title">PRODUCT DESCRIPTION</span>
+            <FaChevronDown className="description-chevron" />
+          </div>
+          {isDescriptionExpanded && (
+            <div className="description-content">
+              <p>{product.description || 'High-quality sportswear designed for comfort and performance.'}</p>
+            </div>
+          )}
         </div>
       </div>
       
