@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaChevronUp, FaFacebook } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import './ProductModal.css';
@@ -11,6 +12,7 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const [newMember, setNewMember] = useState({ surname: '', number: '', size: 'M' });
   const [singleOrderDetails, setSingleOrderDetails] = useState({ surname: '', number: '', size: 'M' });
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [cartItems, setCartItems] = useState([]);
 
