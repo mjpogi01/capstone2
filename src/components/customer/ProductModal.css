@@ -206,29 +206,29 @@
   margin-bottom: 25px;
 }
 
-.product-brand {
-  font-size: 1rem;
-  color: #fff;
+.product-modal .product-brand {
+  font-size: 1rem !important;
+  color: #fff !important;
   margin: 0 0 8px 0;
-  font-weight: 600;
+  font-weight: 600 !important;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
-.product-name {
-  font-size: 1.8rem;
-  color: #00bfff;
+.product-modal .product-name {
+  font-size: 1.8rem !important;
+  color: #00bfff !important;
   margin: 0 0 15px 0;
-  font-weight: 900;
+  font-weight: 900 !important;
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-family: 'Arial Black', sans-serif;
+  font-family: 'Arial Black', sans-serif !important;
 }
 
-.product-price {
-  font-size: 2.5rem;
-  color: #ffd700;
-  font-weight: 900;
+.product-modal .product-price {
+  font-size: 2.5rem !important;
+  color: #ffd700 !important;
+  font-weight: 900 !important;
   margin: 0;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
