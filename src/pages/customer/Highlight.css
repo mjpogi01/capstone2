@@ -108,13 +108,16 @@ html, body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
   background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  overflow: hidden;
 }
 
 .modal-content {
@@ -122,11 +125,17 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 100%;
+  height: 100%;
 }
 
 .modal-image {
-  width: 400px;
-  height: 400px;
+  max-width: 80vw;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 12px;
   border: 2px solid #00bfff;
@@ -135,8 +144,8 @@ html, body {
 
 .close-button {
   position: absolute;
-  top: -30px;
-  right: -120px;
+  top: 20px;
+  right: 20px;
   background: #00bfff;
   color: #000;
   border: none;
@@ -149,6 +158,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1002;
 }
 
 .close-button:hover {
@@ -159,16 +169,23 @@ html, body {
 
 
 .nav-button {
-  background: rgba(0, 191, 255, 0.7);
+  background: rgba(0, 191, 255, 0.9);
   border: none;
   color: #000;
-  font-size: 2rem;
-  padding: 10px;
+  font-size: 1.5rem;
+  padding: 15px;
   cursor: pointer;
   border-radius: 50%;
-  margin: 0 20px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
-  z-index: 1001;
+  z-index: 1002;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .nav-button:hover {
@@ -178,13 +195,11 @@ html, body {
 }
 
 .nav-button.prev {
-  position: absolute;
-  left: -70px;
+  left: 20px;
 }
 
 .nav-button.next {
-  position: absolute;
-  right: -70px;
+  right: 20px;
 }
 
 
@@ -328,8 +343,30 @@ html, body {
   }
   
   .modal-image {
-    width: 300px;
-    height: 300px;
     max-width: 90vw;
+    max-height: 80vh;
+  }
+  
+  .nav-button {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    padding: 10px;
+  }
+  
+  .nav-button.prev {
+    left: 10px;
+  }
+  
+  .nav-button.next {
+    right: 10px;
+  }
+  
+  .close-button {
+    top: 10px;
+    right: 10px;
+    width: 35px;
+    height: 35px;
+    font-size: 20px;
   }
 }
