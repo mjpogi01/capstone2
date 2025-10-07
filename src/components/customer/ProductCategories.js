@@ -5,12 +5,16 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProductModal from './ProductModal'; // Add this import
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
+import productService from '../../services/productService';
 
 const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   const [favorites, setFavorites] = useState([]);
   const [showAll, setShowAll] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null); // Add this state
   const [isModalOpen, setIsModalOpen] = useState(false); // Add this state
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -45,8 +49,8 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
 
   const categories = [
     { id: 'jerseys', name: 'JERSEYS' },
-    { id: 'tshirts', name: 'T-SHIRTS' },
-    { id: 'longsleeves', name: 'LONG SLEEVES' },
+    { id: 't-shirts', name: 'T-SHIRTS' },
+    { id: 'long sleeves', name: 'LONG SLEEVES' },
     { id: 'hoodies', name: 'HOODIES' },
     { id: 'uniforms', name: 'UNIFORMS' },
     { id: 'replicated', name: 'REPLICATED JERSEYS' },
@@ -54,62 +58,30 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
     { id: 'trophies', name: 'TROPHIES' }
   ];
 
-  const products = [
-    { id: 1, name: "GREEN-WHITE 'PERSIAN RAGS' JERSEY SET", price: "₱ 700.00", image: "🏀", category: 'jerseys' }, 
-    { id: 2, name: "PURPLE-YELLOW 'BONESIAN' JERSEY SET", price: "₱ 700.00", image: "🏀", category: 'jerseys' },
-    { id: 3, name: "MAROON-BLACK 'MAMBLE' JERSEY SET", price: "₱ 700.00", image: "🏀", category: 'jerseys' },
-    { id: 4, name: "GREEN-WHITE LA SALLE INSPIRED JERSEY", price: "₱ 700.00", image: "🏀", category: 'jerseys' },
-  
-    { id: 5, name: "GREEN-WHITE 'PERSIAN RAGS' T-SHIRT", price: "₱ 500.00", image: "👕", category: 'tshirts' },
-    { id: 6, name: "PURPLE-YELLOW 'BONESIAN' T-SHIRT", price: "₱ 500.00", image: "👕", category: 'tshirts' },
-    { id: 7, name: "MAROON-BLACK 'MAMBLE' T-SHIRT", price: "₱ 500.00", image: "👕", category: 'tshirts' },
-    { id: 8, name: "GREEN-WHITE LA SALLE INSPIRED T-SHIRT", price: "₱ 500.00", image: "👕", category: 'tshirts' },
-  
-    { id: 9, name: "GREEN-WHITE 'PERSIAN RAGS' UNIFORM", price: "₱ 800.00", image: "👔", category: 'uniforms' },
-    { id: 10, name: "PURPLE-YELLOW 'BONESIAN' UNIFORM", price: "₱ 800.00", image: "👔", category: 'uniforms' },
-    { id: 11, name: "MAROON-BLACK 'MAMBLE' UNIFORM", price: "₱ 800.00", image: "👔", category: 'uniforms' },
-    { id: 12, name: "GREEN-WHITE LA SALLE INSPIRED UNIFORM", price: "₱ 800.00", image: "👔", category: 'uniforms' },
-  
-    { id: 13, name: "BLACK-GOLD 'KINGS ERA' REPLICATED JERSEY", price: "₱ 750.00", image: "👑", category: 'replicated' },
-    { id: 14, name: "PURPLE-GOLD 'DYNASTY' REPLICATED JERSEY", price: "₱ 750.00", image: "🏆", category: 'replicated' },
-    { id: 15, name: "RED-BLACK 'BULL RUN' REPLICATED JERSEY", price: "₱ 750.00", image: "🐂", category: 'replicated' },
-    { id: 16, name: "GREEN-WHITE 'CELTICA' REPLICATED JERSEY", price: "₱ 750.00", image: "🍀", category: 'replicated' },
-    { id: 17, name: "BLUE-ORANGE 'BIG APPLE' REPLICATED JERSEY", price: "₱ 750.00", image: "🗽", category: 'replicated' },
-    { id: 18, name: "YELLOW-PURPLE 'ROYALTY' REPLICATED JERSEY", price: "₱ 750.00", image: "👑", category: 'replicated' },
-    { id: 19, name: "YELLOW-PURPLE 'ROYALTY 1' REPLICATED JERSEY", price: "₱ 750.00", image: "👑", category: 'replicated' },
-  
-    { id: 20, name: "NAVY-WHITE PERFORMANCE LONG SLEEVES", price: "₱ 650.00", image: "🧥", category: 'longsleeves' },
-    { id: 21, name: "BLACK-RED THERMAL LONG SLEEVES", price: "₱ 650.00", image: "🧥", category: 'longsleeves' },
-    { id: 22, name: "OLIVE-ORANGE TRAIL LONG SLEEVES", price: "₱ 650.00", image: "🧥", category: 'longsleeves' },
-    { id: 23, name: "CHARCOAL-GRAY TRAINING LONG SLEEVES", price: "₱ 650.00", image: "🧥", category: 'longsleeves' },
-    { id: 24, name: "WHITE-BLUE AERO LONG SLEEVES", price: "₱ 650.00", image: "🧥", category: 'longsleeves' },
-    { id: 25, name: "MAROON-BLACK COMP LONG SLEEVES", price: "₱ 650.00", image: "🧥", category: 'longsleeves' },
-  
-    { id: 26, name: "GREEN-WHITE 'PERSIAN RAGS' HOODIE", price: "₱ 800.00", image: "🧥", category: 'hoodies' },
-    { id: 27, name: "PURPLE-YELLOW 'BONESIAN' HOODIE", price: "₱ 800.00", image: "🧥", category: 'hoodies' },
-    { id: 28, name: "MAROON-BLACK 'MAMBLE' HOODIE", price: "₱ 800.00", image: "🧥", category: 'hoodies' },
-    { id: 29, name: "GREEN-WHITE LA SALLE INSPIRED HOODIE", price: "₱ 800.00", image: "🧥", category: 'hoodies' },
-    { id: 30, name: "GREEN-WHITE LA SALLE INSPIRED HOODIE 2", price: "₱ 800.00", image: "🧥", category: 'hoodies' },
-    { id: 31, name: "GREEN-WHITE LA SALLE INSPIRED HOODIE 3", price: "₱ 800.00", image: "🧥", category: 'hoodies' },
-  
-    { id: 32, name: "MOLTEN 1", price: "₱ 650.00", image: "🏀", category: 'balls' },
-    { id: 33, name: "MOLTEN 2", price: "₱ 650.00", image: "🏀", category: 'balls' },
-    { id: 34, name: "MOLTEN 3", price: "₱ 650.00", image: "🏀", category: 'balls' },
-    { id: 35, name: "MOLTEN 4", price: "₱ 650.00", image: "🏀", category: 'balls' },
-    { id: 36, name: "MOLTEN 5", price: "₱ 650.00", image: "🏀", category: 'balls' },
-    { id: 37, name: "MOLTEN 6", price: "₱ 650.00", image: "🏀", category: 'balls' },
-    { id: 38, name: "MIKASA", price: "₱ 650.00", image: "🏐", category: 'balls' },
-  
-    { id: 39, name: "TROPHY 1", price: "₱ 650.00", image: "", category: 'trophies' },
-    { id: 40, name: "TROPHY 2", price: "₱ 650.00", image: "", category: 'trophies' },
-    { id: 41, name: "TROPHY 3", price: "₱ 650.00", image: "", category: 'trophies' },
-    { id: 42, name: "TROPHY 4", price: "₱ 650.00", image: "", category: 'trophies' },
-    { id: 43, name: "TROPHY 5", price: "₱ 650.00", image: "", category: 'trophies' },
-    { id: 44, name: "TROPHY 6", price: "₱ 650.00", image: "", category: 'trophies' },
-    { id: 45, name: "TROPHY", price: "₱ 650.00", image: "", category: 'trophies' }
-  ];
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedProducts = await productService.getAllProducts();
+        setProducts(fetchedProducts);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+        // Fallback to empty array
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredProducts = products.filter(product => product.category === activeCategory);
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = products.filter(product => 
+    product.category && product.category.toLowerCase() === activeCategory.toLowerCase()
+  );
   const displayedProducts = showAll ? filteredProducts : filteredProducts.slice(0, 6);
 
   const checkScroll = () => {
@@ -193,39 +165,60 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
 
       {/* Products */}
       <div className="products-container">
-        <div className="products-grid">
-          {displayedProducts.map(product => (
-            <ProtectedAction
-              key={product.id}
-              onAuthenticated={() => openProductModal(product)}
-              onUnauthenticated={() => openSignIn()}
-            >
-              <div className="product-card">
-                <div className="product-image">
-                  <span className="product-emoji">{product.image}</span>
-                </div>
-                <div className="product-info">
-                  <h3 className="product-brand">Yohann's Sportswear</h3>
-                  <p className="product-name">{product.name}</p>
-                  <div className="product-price">{product.price}</div>
-                  <button
-                    className="favorite-btn"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent modal from opening when clicking favorite
-                      toggleFavorite(product.id);
-                    }}
-                  >
-                    {favorites.includes(product.id) ? (
-                      <AiFillHeart color="red" />
+        {loading ? (
+          <div className="loading-container">
+            <div className="loading-spinner">Loading products...</div>
+          </div>
+        ) : error ? (
+          <div className="error-container">
+            <p className="error-message">{error}</p>
+            <button onClick={() => window.location.reload()} className="retry-btn">
+              Retry
+            </button>
+          </div>
+        ) : (
+          <div className="products-grid">
+            {displayedProducts.map(product => (
+              <ProtectedAction
+                key={product.id}
+                onAuthenticated={() => openProductModal(product)}
+                onUnauthenticated={() => openSignIn()}
+              >
+                <div className="product-card">
+                  <div className="product-image">
+                    {product.main_image ? (
+                      <img 
+                        src={product.main_image} 
+                        alt={product.name}
+                        className="product-image-img"
+                      />
                     ) : (
-                      <AiOutlineHeart />
+                      <span className="product-emoji">🏀</span>
                     )}
-                  </button>
+                  </div>
+                  <div className="product-info">
+                    <h3 className="product-brand">Yohann's Sportswear</h3>
+                    <p className="product-name">{product.name}</p>
+                    <div className="product-price">₱ {parseFloat(product.price).toFixed(2)}</div>
+                    <button
+                      className="favorite-btn"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent modal from opening when clicking favorite
+                        toggleFavorite(product.id);
+                      }}
+                    >
+                      {favorites.includes(product.id) ? (
+                        <AiFillHeart color="red" />
+                      ) : (
+                        <AiOutlineHeart />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </ProtectedAction>
-          ))}
-        </div>
+              </ProtectedAction>
+            ))}
+          </div>
+        )}
 
         {/* View All Button */}
         {filteredProducts.length > 6 && !showAll && (

@@ -141,7 +141,15 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
           {/* Product Image Section */}
           <div className="product-image-section">
             <div className="product-image-container">
-              <span className="product-emoji-large">{product.image}</span>
+              {product.main_image ? (
+                <img 
+                  src={product.main_image} 
+                  alt={product.name}
+                  className="product-image-large"
+                />
+              ) : (
+                <span className="product-emoji-large">🏀</span>
+              )}
             </div>
           </div>
 
@@ -151,7 +159,7 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
               <h2 className="product-brand">Yohann's Sportswear</h2>
               <h1 className="product-title">{product.name}</h1>
               <div className="product-price-large">
-                {product.price}
+                ₱ {parseFloat(product.price).toFixed(2)}
               </div>
             </div>
 
@@ -166,9 +174,7 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
               {isDescriptionExpanded && (
                 <div className="description-content">
                   <p>
-                    High-quality sportswear designed for comfort and performance. Made with premium materials 
-                    that provide excellent breathability and durability. Perfect for sports activities, 
-                    training sessions, and casual wear. Available in multiple sizes and colors.
+                    {product.description || 'High-quality sportswear designed for comfort and performance. Made with premium materials that provide excellent breathability and durability. Perfect for sports activities, training sessions, and casual wear.'}
                   </p>
                 </div>
               )}
