@@ -13,6 +13,8 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
 
+  if (!isOpen || !product) return null;
+
   // Determine what fields are needed based on product category
   const getOrderFields = () => {
     if (!product.category) return { needsSize: false, needsNumber: false, needsSurname: true };
@@ -39,8 +41,6 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   };
 
   const orderFields = getOrderFields();
-
-  if (!isOpen || !product) return null;
 
   // Mock reviews data - in a real app, this would come from an API
   const reviews = [
