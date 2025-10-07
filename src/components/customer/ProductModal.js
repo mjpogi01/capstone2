@@ -13,6 +13,33 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
 
+  // Determine what fields are needed based on product category
+  const getOrderFields = () => {
+    if (!product.category) return { needsSize: false, needsNumber: false, needsSurname: true };
+    
+    const category = product.category.toLowerCase();
+    
+    // Accessories that don't need sizes or numbers
+    if (['trophies', 'medals', 'awards', 'certificates'].includes(category)) {
+      return { needsSize: false, needsNumber: false, needsSurname: true };
+    }
+    
+    // Balls and equipment that might need customization but no size
+    if (['balls', 'equipment', 'accessories'].includes(category)) {
+      return { needsSize: false, needsNumber: true, needsSurname: true };
+    }
+    
+    // Clothing items that need all fields
+    if (['jerseys', 't-shirts', 'long sleeves', 'hoodies', 'uniforms', 'replicated'].includes(category)) {
+      return { needsSize: true, needsNumber: true, needsSurname: true };
+    }
+    
+    // Default for unknown categories
+    return { needsSize: true, needsNumber: true, needsSurname: true };
+  };
+
+  const orderFields = getOrderFields();
+
   if (!isOpen || !product) return null;
 
   // Mock reviews data - in a real app, this would come from an API
@@ -59,36 +86,54 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const handleAddToCart = () => {
     const cartItem = {
       ...product,
-      size: product.size || singleOrderDetails.size,
+      size: product.size || (orderFields.needsSize ? singleOrderDetails.size : null),
       quantity: isTeamOrder ? teamMembers.length : quantity,
       isTeamOrder: isTeamOrder,
       teamMembers: isTeamOrder ? teamMembers : null,
-      singleOrderDetails: !product.size && !isTeamOrder ? singleOrderDetails : null
+      singleOrderDetails: (!product.size || orderFields.needsSurname) && !isTeamOrder ? singleOrderDetails : null
     };
     onAddToCart(cartItem);
     const orderType = isTeamOrder ? 'Team Order' : 'Individual';
     const memberCount = isTeamOrder ? teamMembers.length : quantity;
-    const sizeInfo = product.size ? selectedSize : singleOrderDetails.size;
-    const orderDetails = !product.size && !isTeamOrder ? 
-      `\nOrder Details: ${singleOrderDetails.surname} - #${singleOrderDetails.number} - Size: ${singleOrderDetails.size}` : '';
-    alert(`Added ${memberCount} ${product.name} (Size: ${sizeInfo}) to cart!\nOrder Type: ${orderType}${orderDetails}`);
+    
+    // Build order details based on what fields are needed
+    let orderDetails = '';
+    if ((!product.size || orderFields.needsSurname) && !isTeamOrder) {
+      const details = [];
+      if (orderFields.needsSurname && singleOrderDetails.surname) details.push(`Name: ${singleOrderDetails.surname}`);
+      if (orderFields.needsNumber && singleOrderDetails.number) details.push(`Number: ${singleOrderDetails.number}`);
+      if (orderFields.needsSize && singleOrderDetails.size) details.push(`Size: ${singleOrderDetails.size}`);
+      if (details.length > 0) orderDetails = `\nOrder Details: ${details.join(' - ')}`;
+    }
+    
+    const sizeInfo = product.size ? selectedSize : (orderFields.needsSize ? singleOrderDetails.size : 'N/A');
+    alert(`Added ${memberCount} ${product.name}${orderFields.needsSize ? ` (Size: ${sizeInfo})` : ''} to cart!\nOrder Type: ${orderType}${orderDetails}`);
   };
 
   const handleBuyNow = () => {
     const cartItem = {
       ...product,
-      size: product.size || singleOrderDetails.size,
+      size: product.size || (orderFields.needsSize ? singleOrderDetails.size : null),
       quantity: isTeamOrder ? teamMembers.length : quantity,
       isTeamOrder: isTeamOrder,
       teamMembers: isTeamOrder ? teamMembers : null,
-      singleOrderDetails: !product.size && !isTeamOrder ? singleOrderDetails : null
+      singleOrderDetails: (!product.size || orderFields.needsSurname) && !isTeamOrder ? singleOrderDetails : null
     };
     const orderType = isTeamOrder ? 'Team Order' : 'Individual';
     const memberCount = isTeamOrder ? teamMembers.length : quantity;
-    const sizeInfo = product.size ? selectedSize : singleOrderDetails.size;
-    const orderDetails = !product.size && !isTeamOrder ? 
-      `\nOrder Details: ${singleOrderDetails.surname} - #${singleOrderDetails.number} - Size: ${singleOrderDetails.size}` : '';
-    alert(`Proceeding to checkout with ${memberCount} ${product.name} (Size: ${sizeInfo})\nOrder Type: ${orderType}\nTotal: ${product.price}${orderDetails}`);
+    
+    // Build order details based on what fields are needed
+    let orderDetails = '';
+    if ((!product.size || orderFields.needsSurname) && !isTeamOrder) {
+      const details = [];
+      if (orderFields.needsSurname && singleOrderDetails.surname) details.push(`Name: ${singleOrderDetails.surname}`);
+      if (orderFields.needsNumber && singleOrderDetails.number) details.push(`Number: ${singleOrderDetails.number}`);
+      if (orderFields.needsSize && singleOrderDetails.size) details.push(`Size: ${singleOrderDetails.size}`);
+      if (details.length > 0) orderDetails = `\nOrder Details: ${details.join(' - ')}`;
+    }
+    
+    const sizeInfo = product.size ? selectedSize : (orderFields.needsSize ? singleOrderDetails.size : 'N/A');
+    alert(`Proceeding to checkout with ${memberCount} ${product.name}${orderFields.needsSize ? ` (Size: ${sizeInfo})` : ''}\nOrder Type: ${orderType}\nTotal: ${product.price}${orderDetails}`);
     onAddToCart(cartItem);
     onClose();
   };
@@ -207,46 +252,57 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
               </div>
             )}
             
-            {!product.size && (
+            {(!product.size || orderFields.needsSurname) && (
               <div className="single-order-form">
                 <h3>Order Details</h3>
-                <div className="order-form-row">
-                  <div className="form-group">
-                    <label>Surname</label>
-                    <input
-                      type="text"
-                      placeholder="Enter surname"
-                      value={singleOrderDetails.surname}
-                      onChange={(e) => setSingleOrderDetails({...singleOrderDetails, surname: e.target.value})}
-                      className="order-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Number</label>
-                    <input
-                      type="text"
-                      placeholder="Enter number"
-                      value={singleOrderDetails.number}
-                      onChange={(e) => setSingleOrderDetails({...singleOrderDetails, number: e.target.value})}
-                      className="order-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Size</label>
-                    <select
-                      value={singleOrderDetails.size}
-                      onChange={(e) => setSingleOrderDetails({...singleOrderDetails, size: e.target.value})}
-                      className="order-select"
-                    >
-                      <option value="XS">XS</option>
-                      <option value="S">S</option>
-                      <option value="M">M</option>
-                      <option value="L">L</option>
-                      <option value="XL">XL</option>
-                      <option value="XXL">XXL</option>
-                    </select>
-                  </div>
+                <div className={`order-form-row ${!orderFields.needsSize && !orderFields.needsNumber ? 'single-column' : ''}`}>
+                  {orderFields.needsSurname && (
+                    <div className="form-group">
+                      <label>Surname</label>
+                      <input
+                        type="text"
+                        placeholder="Enter surname"
+                        value={singleOrderDetails.surname}
+                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, surname: e.target.value})}
+                        className="order-input"
+                      />
+                    </div>
+                  )}
+                  {orderFields.needsNumber && (
+                    <div className="form-group">
+                      <label>Number</label>
+                      <input
+                        type="text"
+                        placeholder="Enter number"
+                        value={singleOrderDetails.number}
+                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, number: e.target.value})}
+                        className="order-input"
+                      />
+                    </div>
+                  )}
+                  {orderFields.needsSize && (
+                    <div className="form-group">
+                      <label>Size</label>
+                      <select
+                        value={singleOrderDetails.size}
+                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, size: e.target.value})}
+                        className="order-select"
+                      >
+                        <option value="XS">XS</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="XXL">XXL</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
+                {!orderFields.needsSize && !orderFields.needsNumber && (
+                  <div className="accessory-note">
+                    <p>This item will be customized with your details.</p>
+                  </div>
+                )}
               </div>
             )}
 

@@ -222,6 +222,11 @@
   gap: 16px;
 }
 
+.order-form-row.single-column {
+  grid-template-columns: 1fr;
+  max-width: 300px;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -262,6 +267,22 @@
 .order-select option {
   background: #2a2a2a;
   color: #fff;
+}
+
+/* Accessory Note */
+.accessory-note {
+  margin-top: 12px;
+  padding: 12px;
+  background: #2a2a2a;
+  border-radius: 6px;
+  border-left: 3px solid #00bfff;
+}
+
+.accessory-note p {
+  margin: 0;
+  color: #ccc;
+  font-size: 14px;
+  font-style: italic;
 }
 
 /* Responsive Design for Single Order Form */
