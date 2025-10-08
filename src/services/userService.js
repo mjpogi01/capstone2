@@ -152,6 +152,29 @@ class UserService {
     }
   }
 
+  async clearAllUserAddresses() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error } = await supabase
+        .from('user_addresses')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) {
+        throw new Error(`Failed to clear addresses: ${error.message}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      throw new Error(error.message || 'Network error occurred');
+    }
+  }
+
   async setDefaultAddress(addressId) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
