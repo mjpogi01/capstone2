@@ -1,13 +1,18 @@
-const API_BASE_URL = 'http://localhost:4000/api';
+import { supabase } from '../lib/supabase';
 
 class ProductService {
   async getAllProducts() {
     try {
-      const response = await fetch(`${API_BASE_URL}/products`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw new Error(`Failed to fetch products: ${error.message}`);
       }
-      return await response.json();
+      
+      return data || [];
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
@@ -16,11 +21,17 @@ class ProductService {
 
   async getProductById(id) {
     try {
-      const response = await fetch(`${API_BASE_URL}/products/${id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch product');
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        throw new Error(`Failed to fetch product: ${error.message}`);
       }
-      return await response.json();
+      
+      return data;
     } catch (error) {
       console.error('Error fetching product:', error);
       throw error;
@@ -29,11 +40,17 @@ class ProductService {
 
   async getProductsByBranch(branchId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/products/branch/${branchId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch products by branch');
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('branch_id', branchId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw new Error(`Failed to fetch products by branch: ${error.message}`);
       }
-      return await response.json();
+      
+      return data || [];
     } catch (error) {
       console.error('Error fetching products by branch:', error);
       throw error;
@@ -42,10 +59,17 @@ class ProductService {
 
   async getProductsByCategory(category) {
     try {
-      const allProducts = await this.getAllProducts();
-      return allProducts.filter(product => 
-        product.category.toLowerCase() === category.toLowerCase()
-      );
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', category)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw new Error(`Failed to fetch products by category: ${error.message}`);
+      }
+      
+      return data || [];
     } catch (error) {
       console.error('Error fetching products by category:', error);
       throw error;

@@ -1,29 +1,30 @@
-const API_BASE_URL = 'http://localhost:4000/api';
+import { supabase } from '../lib/supabase';
 
 class AuthService {
   async signUp(userData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            first_name: userData.firstName,
+            last_name: userData.lastName,
+            full_name: userData.fullName,
+            phone: userData.phone,
+            role: userData.role || 'customer'
+          }
+        }
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Sign up failed');
+      if (error) {
+        throw new Error(error.message || 'Sign up failed');
       }
 
-      // Store token in localStorage
-      if (data.token) {
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-
-      return data;
+      return {
+        user: data.user,
+        session: data.session
+      };
     } catch (error) {
       throw new Error(error.message || 'Network error occurred');
     }
@@ -31,48 +32,63 @@ class AuthService {
 
   async signIn(credentials) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Sign in failed');
+      if (error) {
+        throw new Error(error.message || 'Sign in failed');
       }
 
-      // Store token in localStorage
-      if (data.token) {
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-
-      return data;
+      return {
+        user: data.user,
+        session: data.session
+      };
     } catch (error) {
       throw new Error(error.message || 'Network error occurred');
     }
   }
 
-  signOut() {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+  async signOut() {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      throw new Error(error.message || 'Sign out failed');
+    }
   }
 
-  getCurrentUser() {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+  async getCurrentUser() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
   }
 
-  getToken() {
-    return localStorage.getItem('authToken');
+  async getSession() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
+    } catch (error) {
+      console.error('Error getting session:', error);
+      return null;
+    }
   }
 
   isAuthenticated() {
-    return !!this.getToken();
+    // This will be handled by Supabase's built-in auth state management
+    return false; // We'll use Supabase's auth state listener instead
+  }
+
+  // Listen to auth state changes
+  onAuthStateChange(callback) {
+    return supabase.auth.onAuthStateChange(callback);
   }
 }
 

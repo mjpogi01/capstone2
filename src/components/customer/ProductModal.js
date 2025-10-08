@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaFacebook } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import './ProductModal.css';
@@ -8,14 +9,58 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1);
   const [isTeamOrder, setIsTeamOrder] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [teamName, setTeamName] = useState('');
   const [newMember, setNewMember] = useState({ surname: '', number: '', size: 'M' });
+  const [singleOrderDetails, setSingleOrderDetails] = useState({ teamName: '', surname: '', number: '', size: 'M' });
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [cartItems, setCartItems] = useState([]);
 
   if (!isOpen || !product) return null;
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+  // Mock reviews data
+  const reviews = [
+    {
+      id: 1,
+      user: "John D.",
+      rating: 5,
+      comment: "Excellent quality! The jersey fits perfectly and the material is very comfortable.",
+      date: "2024-01-15"
+    },
+    {
+      id: 2,
+      user: "Maria S.",
+      rating: 4,
+      comment: "Great product, fast shipping. Would definitely order again.",
+      date: "2024-01-10"
+    },
+    {
+      id: 3,
+      user: "Carlos M.",
+      rating: 5,
+      comment: "Amazing design and quality. Perfect for basketball games!",
+      date: "2024-01-08"
+    },
+    {
+      id: 4,
+      user: "Sarah L.",
+      rating: 5,
+      comment: "Love the fit and quality. Great value for money!",
+      date: "2024-01-05"
+    },
+    {
+      id: 5,
+      user: "Mike R.",
+      rating: 4,
+      comment: "Good quality, but took a bit longer to arrive than expected.",
+      date: "2024-01-03"
+    }
+  ];
+
+  const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
 
   const handleAddToCart = () => {
     const cartItem = {
@@ -79,137 +124,130 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
     setIsDescriptionExpanded(!isDescriptionExpanded);
   };
 
+  const toggleReviews = () => {
+    setIsReviewsExpanded(!isReviewsExpanded);
+  };
+
+  const renderStars = (rating) => {
+    return Array.from({ length: 5 }, (_, index) => (
+      <span key={index}>
+        {index < rating ? (
+          <AiFillStar className="star filled" />
+        ) : (
+          <AiOutlineStar className="star" />
+        )}
+      </span>
+    ));
+  };
+
   return (
-    <div className="product-modal-overlay" onClick={onClose}>
-      <div className="product-modal-container" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Close Button */}
-        <button className="modal-close-btn" onClick={onClose}>
+        <button className="modal-close-button" onClick={onClose}>
           <FaTimes />
         </button>
 
         {/* Main Modal Content - Single Container */}
         <div className="modal-main-content">
-          {/* Left Panel - Product Image and Brand Info */}
-          <div className="left-panel">
+          {/* Left Panel - Product Image Only */}
+          <div className="modal-left-panel">
             {/* Product Image */}
-            <div className="product-image-section">
+            <div className="modal-image-container">
               {product.main_image ? (
                 <img 
                   src={product.main_image} 
                   alt={product.name}
-                  className="product-image"
+                  className="modal-image"
                 />
               ) : (
-                <div className="product-image-placeholder">
-                  <span className="product-emoji">🏀</span>
+                <div className="modal-image-placeholder">
+                  <span className="modal-image-emoji">🏀</span>
                 </div>
               )}
-            </div>
-
-            {/* Product Title */}
-            <div className="product-title-section">
-              <h1 className="product-title">HUSTLE</h1>
-              <p className="product-subtitle">SUBLIMATION JERSEY</p>
-              <p className="product-disclaimer">
-                Please note actual colours may vary. It's important to note that they may look different on a real product than what you see on your monitor. We try to edit our photos to show the products as life-like as possible, but please understand the actual colour may vary slightly from your monitor.
-              </p>
-            </div>
-
-            {/* Brand Logo */}
-            <div className="brand-logo-section">
-              <div className="crown-icon">👑</div>
-              <div className="brand-text">
-                <div className="brand-name">YOHANNS</div>
-                <div className="brand-subtitle">Sportswear House</div>
-              </div>
-            </div>
-
-            {/* Contact Info */}
-            <div className="contact-info-section">
-              <div className="facebook-contact">
-                <FaFacebook className="facebook-icon" />
-                <span>MIZAEL ARCED / PRINCE YOHANN ARCED / YOHANNS SPORTSWEAR HOUSE FB PAGE</span>
-              </div>
-              <div className="phone-contact">
-                <span>09123456789 / 09876543210 / 09111222333</span>
-              </div>
             </div>
           </div>
 
           {/* Right Panel - Product Configuration */}
-          <div className="right-panel">
-            {/* Brand Header */}
-            <div className="brand-header">YOHANN'S SPORTSWEAR</div>
+          <div className="modal-right-panel">
+            {/* Content Section - Scrollable */}
+            <div className="modal-content-section">
+              {/* Header Section - Now scrolls with content */}
+              <div className="modal-header-section">
+                {/* Brand Header */}
+                <div className="modal-brand-header">YOHANN'S SPORTSWEAR</div>
 
-            {/* Product Name */}
-            <div className="product-name">PURPLE-YELLOW 'BONESIAN' JERSEY SET</div>
+                {/* Product Name */}
+                <div className="modal-product-title">{product.name}</div>
 
-            {/* Price */}
-            <div className="product-price">₱ 700.00</div>
-
-            {/* Size Selection */}
-            <div className="size-section">
-              <div className="size-label">SIZE</div>
-              <div className="size-buttons">
-                {sizes.map(size => (
-                  <button
-                    key={size}
-                    className={`size-btn ${selectedSize === size ? 'selected' : ''}`}
-                    onClick={() => setSelectedSize(size)}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {/* Price */}
+                <div className="modal-product-price">₱ {parseFloat(product.price).toFixed(2)}</div>
               </div>
-            </div>
 
-            {/* Team Orders Checkbox */}
-            <div className="team-orders-section">
-              <label className="team-orders-checkbox">
-                <input
-                  type="checkbox"
-                  checked={isTeamOrder}
-                  onChange={handleTeamOrderToggle}
-                />
-                <span className="checkmark"></span>
-                <FaUsers className="team-icon" />
-                Team Orders
-              </label>
+
+            {/* Order Type Switch */}
+            <div className="modal-order-switch">
+              <div className="modal-switch-container">
+                <button
+                  className={`modal-switch-option ${!isTeamOrder ? 'active' : ''}`}
+                  onClick={() => setIsTeamOrder(false)}
+                >
+                  <span className="modal-switch-text">Single Order</span>
+                </button>
+                <button
+                  className={`modal-switch-option ${isTeamOrder ? 'active' : ''}`}
+                  onClick={() => setIsTeamOrder(true)}
+                >
+                  <FaUsers className="modal-switch-icon" />
+                  <span className="modal-switch-text">Team Order</span>
+                </button>
+              </div>
             </div>
 
             {/* Team Members Section */}
             {isTeamOrder && (
-              <div className="team-members-section">
-                <div className="team-members-label">Team Members</div>
+              <div className="modal-team-section">
+                <div className="modal-team-label">Team Members</div>
+                
+                {/* Team Name Input */}
+                <div className="modal-team-name-section">
+                  <input
+                    type="text"
+                    placeholder="Team Name"
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    className="modal-team-name-input"
+                  />
+                </div>
                 
                 {/* Add New Member */}
-                <div className="add-member-form">
-                  <div className="member-inputs">
+                <div className="modal-add-member-form">
+                  <div className="modal-member-inputs">
                     <input
                       type="text"
                       placeholder="Surname"
                       value={newMember.surname}
                       onChange={(e) => setNewMember({...newMember, surname: e.target.value})}
-                      className="member-input"
+                      className="modal-member-input"
                     />
                     <input
                       type="text"
                       placeholder="#"
                       value={newMember.number}
                       onChange={(e) => setNewMember({...newMember, number: e.target.value})}
-                      className="member-input number-input"
+                      className="modal-member-input number-input"
                     />
                     <select
                       value={newMember.size}
                       onChange={(e) => setNewMember({...newMember, size: e.target.value})}
-                      className="member-select"
+                      className="modal-member-select"
                     >
                       {sizes.map(size => (
                         <option key={size} value={size}>{size}</option>
                       ))}
                     </select>
                     <button 
-                      className="add-member-btn"
+                      className="modal-add-member-button"
                       onClick={addTeamMember}
                       disabled={!newMember.surname.trim()}
                     >
@@ -219,14 +257,14 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
                 </div>
 
                 {/* Team Members List */}
-                <div className="team-members-list">
+                <div className="modal-members-list">
                   {teamMembers.map(member => (
-                    <div key={member.id} className="team-member-item">
-                      <span className="member-name">{member.surname}</span>
-                      <span className="member-number">#{member.number}</span>
-                      <span className="member-size">Size: {member.size}</span>
+                    <div key={member.id} className="modal-member-item">
+                      <span className="modal-member-name">{member.surname}</span>
+                      <span className="modal-member-number">#{member.number}</span>
+                      <span className="modal-member-size">Size: {member.size}</span>
                       <button 
-                        className="remove-member-btn"
+                        className="modal-remove-member-button"
                         onClick={() => removeTeamMember(member.id)}
                       >
                         <FaTrash />
@@ -237,20 +275,59 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
               </div>
             )}
 
+            {/* Single Order Form */}
+            {!isTeamOrder && (
+              <div className="modal-single-order-section">
+                <div className="modal-single-order-label">Order Details</div>
+                <div className="modal-single-order-form">
+                  <input
+                    type="text"
+                    placeholder="Team Name"
+                    value={singleOrderDetails.teamName}
+                    onChange={(e) => setSingleOrderDetails({...singleOrderDetails, teamName: e.target.value})}
+                    className="modal-single-order-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Surname"
+                    value={singleOrderDetails.surname}
+                    onChange={(e) => setSingleOrderDetails({...singleOrderDetails, surname: e.target.value})}
+                    className="modal-single-order-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Number"
+                    value={singleOrderDetails.number}
+                    onChange={(e) => setSingleOrderDetails({...singleOrderDetails, number: e.target.value})}
+                    className="modal-single-order-input"
+                  />
+                  <select
+                    value={singleOrderDetails.size}
+                    onChange={(e) => setSingleOrderDetails({...singleOrderDetails, size: e.target.value})}
+                    className="modal-single-order-select"
+                  >
+                    {sizes.map(size => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
             {/* Quantity Section */}
             {!isTeamOrder && (
-              <div className="quantity-section">
-                <div className="quantity-label">QUANTITY</div>
-                <div className="quantity-controls">
+              <div className="modal-quantity-section">
+                <div className="modal-quantity-label">QUANTITY</div>
+                <div className="modal-quantity-controls">
                   <button 
-                    className="quantity-btn"
+                    className="modal-quantity-button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   >
                     -
                   </button>
-                  <span className="quantity-display">{quantity}</span>
+                  <span className="modal-quantity-display">{quantity}</span>
                   <button 
-                    className="quantity-btn"
+                    className="modal-quantity-button"
                     onClick={() => setQuantity(quantity + 1)}
                   >
                     +
@@ -260,16 +337,16 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
             )}
 
             {/* Action Buttons */}
-            <div className="action-buttons">
+            <div className="modal-action-buttons">
               <button 
-                className="add-to-cart-btn"
+                  className="modal-add-cart-button"
                 onClick={handleAddToCart}
               >
                 <FaShoppingCart />
                 ADD TO CART
               </button>
               <button 
-                className="buy-now-btn"
+                  className="modal-buy-now-button"
                 onClick={handleBuyNow}
               >
                 <FaCreditCard />
@@ -278,16 +355,49 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
             </div>
 
             {/* Product Description */}
-            <div className="product-description-section">
-              <div className="description-header" onClick={toggleDescription}>
-                <span className="description-title">PRODUCT DESCRIPTION</span>
-                <FaChevronDown className="description-chevron" />
+            <div className="modal-description-section">
+              <div className="modal-description-header" onClick={toggleDescription}>
+                <span className="modal-description-title">PRODUCT DESCRIPTION</span>
+                <FaChevronDown className="modal-description-chevron" />
               </div>
               {isDescriptionExpanded && (
-                <div className="description-content">
+                <div className="modal-description-content">
                   <p>{product.description || 'High-quality sportswear designed for comfort and performance.'}</p>
                 </div>
               )}
+            </div>
+
+            {/* Reviews Section */}
+            <div className="modal-reviews-section">
+              <div className="modal-reviews-header" onClick={toggleReviews}>
+                <div className="modal-reviews-title-row">
+                  <span className="modal-reviews-title">CUSTOMER REVIEWS</span>
+                  <div className="modal-average-rating">
+                    <div className="modal-stars-display">
+                      {renderStars(Math.round(averageRating))}
+                    </div>
+                    <span className="modal-rating-text">({averageRating.toFixed(1)})</span>
+                  </div>
+                </div>
+                <FaChevronDown className="modal-reviews-chevron" />
+              </div>
+              {isReviewsExpanded && (
+                <div className="modal-reviews-content">
+                  {reviews.map(review => (
+                    <div key={review.id} className="modal-review-item">
+                      <div className="modal-review-header">
+                        <span className="modal-review-user">{review.user}</span>
+                        <div className="modal-review-rating">
+                          {renderStars(review.rating)}
+                        </div>
+                      </div>
+                      <p className="modal-review-comment">{review.comment}</p>
+                      <span className="modal-review-date">{review.date}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             </div>
           </div>
         </div>

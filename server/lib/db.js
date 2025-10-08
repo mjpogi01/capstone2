@@ -42,22 +42,30 @@ async function ensureUsersTable() {
     );
   `);
 
-  // Safe ALTERs in case table existed before
+  // Safe ALTERs in case table existed before - only essential user fields
   const columns = [
-    ['first_name', 'TEXT'],
-    ['last_name', 'TEXT'],
+    ['full_name', 'TEXT'],
     ['phone', 'TEXT'],
-    ['address1', 'TEXT'],
-    ['address2', 'TEXT'],
-    ['city', 'TEXT'],
-    ['province', 'TEXT'],
-    ['postal_code', 'TEXT'],
-    ['country', 'TEXT'],
     ['role', 'TEXT DEFAULT \'customer\' CHECK (role IN (\'customer\', \'admin\', \'owner\'))'],
     ['branch_id', 'INTEGER']
   ];
   for (const [name, type] of columns) {
     await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${name} ${type};`);
+  }
+
+  // Remove unnecessary address columns from users table since we use user_addresses table
+  const columnsToRemove = [
+    'address1', 'address2', 'city', 'province', 'postal_code', 'country',
+    'street_address', 'barangay', 'address'
+  ];
+  
+  for (const columnName of columnsToRemove) {
+    try {
+      await query(`ALTER TABLE users DROP COLUMN IF EXISTS ${columnName};`);
+      console.log(`Removed column: ${columnName}`);
+    } catch (error) {
+      console.log(`Column ${columnName} may not exist or couldn't be removed:`, error.message);
+    }
   }
 
   // Create branches table
@@ -105,6 +113,34 @@ async function ensureUsersTable() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+
+  // Create user_addresses table
+  await query(`
+    CREATE TABLE IF NOT EXISTS user_addresses (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      full_name VARCHAR(255) NOT NULL,
+      phone VARCHAR(20) NOT NULL,
+      street_address TEXT NOT NULL,
+      barangay VARCHAR(100) NOT NULL,
+      city VARCHAR(100) NOT NULL,
+      province VARCHAR(100) NOT NULL,
+      postal_code VARCHAR(10) NOT NULL,
+      address TEXT NOT NULL,
+      is_default BOOLEAN DEFAULT false,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+  `);
+
+  // Create indexes for user_addresses
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id ON user_addresses(user_id);`);
+  
+  // Add is_default column if it doesn't exist
+  await query(`ALTER TABLE user_addresses ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false;`);
+  
+  // Create index for default addresses
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_addresses_default ON user_addresses(user_id, is_default);`);
 }
 
 module.exports = { pool, query, ensureUsersTable };

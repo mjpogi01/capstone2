@@ -4,6 +4,7 @@ const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
 const productsRouter = require('./routes/products');
 const uploadRouter = require('./routes/upload');
+const userRouter = require('./routes/user');
 const { ensureUsersTable } = require('./lib/db');
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/user', userRouter);
 
 const port = process.env.PORT || 4000;
 

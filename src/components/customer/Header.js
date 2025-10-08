@@ -79,14 +79,16 @@ const Header = () => {
   return (
     <header className="header">
       <div className="header-top">
-        <div className="logo">
-          <Link to="/">
-            <img 
-              src={logo} 
-              alt="YOHANNS Sportswear House" 
-              className="logo-image"
-            />
-          </Link>
+        <div className="header-left">
+          <div className="logo">
+            <Link to="/">
+              <img 
+                src={logo} 
+                alt="YOHANNS Sportswear House" 
+                className="logo-image"
+              />
+            </Link>
+          </div>
         </div>
         
         <nav className="nav-menu">
@@ -128,7 +130,8 @@ const Header = () => {
           </Link>
         </nav>
         
-        <div className="utility-icons">
+        <div className="header-right">
+          <div className="utility-icons">
           <div className="search-container">
             <input
               type="text"
@@ -288,6 +291,7 @@ const Header = () => {
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
       
