@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaFacebook } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
+import { useCart } from '../../contexts/CartContext';
 import './ProductModal.css';
 
-const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
-  const [selectedSize, setSelectedSize] = useState('M');
-  const [quantity, setQuantity] = useState(1);
-  const [isTeamOrder, setIsTeamOrder] = useState(false);
-  const [teamMembers, setTeamMembers] = useState([]);
-  const [teamName, setTeamName] = useState('');
+const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null }) => {
+  const { addToCart, removeFromCart } = useCart();
+  const [selectedSize, setSelectedSize] = useState(existingCartItemData?.size || 'M');
+  const [quantity, setQuantity] = useState(existingCartItemData?.quantity || 1);
+  const [isTeamOrder, setIsTeamOrder] = useState(existingCartItemData?.isTeamOrder || false);
+  const [teamMembers, setTeamMembers] = useState(existingCartItemData?.teamMembers || []);
+  const [teamName, setTeamName] = useState(existingCartItemData?.teamMembers?.[0]?.teamName || '');
   const [newMember, setNewMember] = useState({ surname: '', number: '', size: 'M' });
-  const [singleOrderDetails, setSingleOrderDetails] = useState({ teamName: '', surname: '', number: '', size: 'M' });
+  const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [cartItems, setCartItems] = useState([]);
+
+  // Reset form when modal opens with existing cart data
+  useEffect(() => {
+    if (isOpen && existingCartItemData) {
+      setSelectedSize(existingCartItemData.size || 'M');
+      setQuantity(existingCartItemData.quantity || 1);
+      setIsTeamOrder(existingCartItemData.isTeamOrder || false);
+      setTeamMembers(existingCartItemData.teamMembers || []);
+      setTeamName(existingCartItemData.teamMembers?.[0]?.teamName || '');
+      setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
+    }
+  }, [isOpen, existingCartItemData]);
 
   if (!isOpen || !product) return null;
 
@@ -62,31 +75,63 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
 
   const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
 
-  const handleAddToCart = () => {
-    const cartItem = {
-      ...product,
-      size: selectedSize,
-      quantity: isTeamOrder ? teamMembers.length : quantity,
-      isTeamOrder: isTeamOrder,
-      teamMembers: isTeamOrder ? teamMembers : null
-    };
-    onAddToCart(cartItem);
-    const orderType = isTeamOrder ? 'Team Order' : 'Individual';
-    const memberCount = isTeamOrder ? teamMembers.length : quantity;
-    alert(`Added ${memberCount} ${product.name} (Size: ${selectedSize}) to cart!\nOrder Type: ${orderType}`);
+  const handleAddToCart = async () => {
+    try {
+      
+      // If this is from cart, remove the existing item first
+      if (isFromCart && existingCartItemId) {
+        await removeFromCart(existingCartItemId);
+        // Add a small delay to ensure the removal is processed
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      const cartOptions = {
+        size: selectedSize,
+        quantity: isTeamOrder ? teamMembers.length : quantity,
+        isTeamOrder: isTeamOrder,
+        teamMembers: isTeamOrder ? teamMembers : null,
+        singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+        isReplacement: isFromCart // Mark as replacement when coming from cart
+      };
+      
+      await addToCart(product, cartOptions);
+      
+      const orderType = isTeamOrder ? 'Team Order' : 'Single Order';
+      const memberCount = isTeamOrder ? teamMembers.length : quantity;
+      alert(`Added ${memberCount} ${product.name} (Size: ${selectedSize}) to cart!\nOrder Type: ${orderType}`);
+      
+      // Close the modal after adding to cart
+      onClose();
+    } catch (error) {
+      console.error('Error updating cart:', error);
+      alert('Error updating cart. Please try again.');
+    }
   };
 
-  const handleBuyNow = () => {
-    const cartItem = {
-      ...product,
-      size: selectedSize,
-      quantity: isTeamOrder ? teamMembers.length : quantity,
-      isTeamOrder: isTeamOrder,
-      teamMembers: isTeamOrder ? teamMembers : null
-    };
-    
-    setCartItems([cartItem]);
-    setShowCheckout(true);
+  const handleBuyNow = async () => {
+    try {
+      // If this is from cart, remove the existing item first
+      if (isFromCart && existingCartItemId) {
+        await removeFromCart(existingCartItemId);
+        // Add a small delay to ensure the removal is processed
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      const cartOptions = {
+        size: selectedSize,
+        quantity: isTeamOrder ? teamMembers.length : quantity,
+        isTeamOrder: isTeamOrder,
+        teamMembers: isTeamOrder ? teamMembers : null,
+        singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+        isReplacement: isFromCart // Mark as replacement when coming from cart
+      };
+      
+      await addToCart(product, cartOptions);
+      setShowCheckout(true);
+    } catch (error) {
+      console.error('Error updating cart:', error);
+      alert('Error updating cart. Please try again.');
+    }
   };
 
   const handleTeamOrderToggle = () => {
@@ -97,7 +142,6 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
   };
 
   const handlePlaceOrder = (orderData) => {
-    console.log('Order placed:', orderData);
     alert('Order placed successfully! We will contact you soon for confirmation.');
     setShowCheckout(false);
     onClose();
@@ -107,6 +151,7 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
     if (newMember.surname.trim()) {
       const member = {
         id: Date.now(),
+        teamName: teamName,
         surname: newMember.surname,
         number: newMember.number,
         size: newMember.size
@@ -407,7 +452,6 @@ const ProductModal = ({ isOpen, onClose, product, onAddToCart }) => {
       <CheckoutModal
         isOpen={showCheckout}
         onClose={() => setShowCheckout(false)}
-        cartItems={cartItems}
         onPlaceOrder={handlePlaceOrder}
       />
     </div>

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import './AddProductModal.css';
 
-const AddProductModal = ({ onClose, onAdd }) => {
+const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -9,6 +10,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
     price: '',
     description: '',
     stock_quantity: null, // Changed to null for order-based model
+    sold_quantity: 0, // Added sold quantity field
     branch_id: 1
   });
   const [loading, setLoading] = useState(false);
@@ -18,6 +20,30 @@ const AddProductModal = ({ onClose, onAdd }) => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState(null); // Track which slot is uploading
   const [uploadingAdditionalIndex, setUploadingAdditionalIndex] = useState(null); // Track which additional slot is uploading
+
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (isEditMode && editingProduct) {
+      setFormData({
+        name: editingProduct.name || '',
+        category: editingProduct.category || '',
+        size: editingProduct.size || '',
+        price: editingProduct.price || '',
+        description: editingProduct.description || '',
+        stock_quantity: editingProduct.stock_quantity || null,
+        sold_quantity: editingProduct.sold_quantity || 0,
+        branch_id: editingProduct.branch_id || 1
+      });
+      
+      // Set existing images
+      if (editingProduct.main_image) {
+        setMainImage(editingProduct.main_image);
+      }
+      if (editingProduct.additional_images && editingProduct.additional_images.length > 0) {
+        setAdditionalImages(editingProduct.additional_images);
+      }
+    }
+  }, [isEditMode, editingProduct]);
 
   const categories = [
     'Jerseys',
@@ -56,11 +82,10 @@ const AddProductModal = ({ onClose, onAdd }) => {
     setError('');
     
     try {
-      const token = localStorage.getItem('authToken');
-      console.log('Token from localStorage:', token);
-      console.log('All localStorage keys:', Object.keys(localStorage));
+      // Get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!token) {
+      if (sessionError || !session) {
         setError('Please log in to upload images');
         return;
       }
@@ -68,18 +93,15 @@ const AddProductModal = ({ onClose, onAdd }) => {
       const formData = new FormData();
       formData.append('image', file);
 
-      console.log('Uploading main image:', file.name);
-
       const response = await fetch('http://localhost:4000/api/upload/single', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: formData
       });
 
       const result = await response.json();
-      console.log('Upload response:', result);
 
       if (result.success) {
         setMainImage(result.imageUrl);
@@ -106,8 +128,10 @@ const AddProductModal = ({ onClose, onAdd }) => {
     setError('');
     
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
+      // Get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
         setError('Please log in to upload images');
         return;
       }
@@ -115,18 +139,15 @@ const AddProductModal = ({ onClose, onAdd }) => {
       const formData = new FormData();
       formData.append('image', file);
 
-      console.log('Uploading additional image to slot', index, ':', file.name);
-
       const response = await fetch('http://localhost:4000/api/upload/single', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: formData
       });
 
       const result = await response.json();
-      console.log('Upload response:', result);
 
       if (result.success) {
         // Update the specific slot
@@ -153,19 +174,35 @@ const AddProductModal = ({ onClose, onAdd }) => {
     setError('');
 
     try {
+      // Get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        setError('Please log in to add products');
+        return;
+      }
+
       const productData = {
         ...formData,
         size: formData.size || null,
-        stock_quantity: formData.stock_quantity || null,
+        stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : null,
+        sold_quantity: formData.sold_quantity ? parseInt(formData.sold_quantity) : 0,
         main_image: mainImage,
         additional_images: additionalImages
       };
 
-      const response = await fetch('http://localhost:4000/api/products', {
-        method: 'POST',
+
+      const url = isEditMode 
+        ? `http://localhost:4000/api/products/${editingProduct.id}`
+        : 'http://localhost:4000/api/products';
+      
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(productData),
       });
@@ -185,10 +222,10 @@ const AddProductModal = ({ onClose, onAdd }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay add-product-modal" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>ADD NEW ITEMS</h2>
+          <h2>{isEditMode ? 'EDIT PRODUCT' : 'ADD NEW ITEMS'}</h2>
         </div>
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-row">
@@ -370,6 +407,39 @@ const AddProductModal = ({ onClose, onAdd }) => {
               </div>
 
               <div className="form-group">
+                <label>Sold Quantity</label>
+                <input
+                  type="number"
+                  name="sold_quantity"
+                  value={formData.sold_quantity}
+                  onChange={handleInputChange}
+                  placeholder="Enter initial sold quantity"
+                  min="0"
+                />
+                <small className="form-help">Number of items already sold</small>
+              </div>
+
+              <div className="form-group">
+                <label>Branch</label>
+                <select
+                  name="branch_id"
+                  value={formData.branch_id}
+                  onChange={handleInputChange}
+                >
+                  <option value="1">Main Branch</option>
+                  <option value="2">Mall Branch</option>
+                  <option value="3">Downtown Branch</option>
+                  <option value="4">Suburb Branch</option>
+                  <option value="5">Coastal Branch</option>
+                  <option value="6">University Branch</option>
+                  <option value="7">Industrial Branch</option>
+                  <option value="8">Residential Branch</option>
+                  <option value="9">Business Branch</option>
+                </select>
+                <small className="form-help">Select the branch for this product</small>
+              </div>
+
+              <div className="form-group">
                 <label>Product Description</label>
                 <textarea
                   name="description"
@@ -393,7 +463,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
               Cancel
             </button>
             <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? 'Adding...' : 'ADD PRODUCT'}
+              {loading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'UPDATE PRODUCT' : 'ADD PRODUCT')}
             </button>
           </div>
         </form>

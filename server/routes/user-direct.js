@@ -1,11 +1,11 @@
 const express = require('express');
 const { pool } = require('../lib/db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateSupabaseToken } = require('../middleware/supabaseAuth');
 
 const router = express.Router();
 
 // Get user's address from users table
-router.get('/address', authenticateToken, async (req, res) => {
+router.get('/address', authenticateSupabaseToken, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT 
@@ -44,7 +44,7 @@ router.get('/address', authenticateToken, async (req, res) => {
 });
 
 // Save user's address to users table
-router.post('/address', authenticateToken, async (req, res) => {
+router.post('/address', authenticateSupabaseToken, async (req, res) => {
   try {
     const { fullName, phone, streetAddress, barangay, city, province, postalCode, address } = req.body;
 
@@ -78,7 +78,7 @@ router.post('/address', authenticateToken, async (req, res) => {
 });
 
 // Update user's address in users table
-router.put('/address', authenticateToken, async (req, res) => {
+router.put('/address', authenticateSupabaseToken, async (req, res) => {
   try {
     const { fullName, phone, streetAddress, barangay, city, province, postalCode, address } = req.body;
 

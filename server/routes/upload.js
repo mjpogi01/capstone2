@@ -1,11 +1,11 @@
 const express = require('express');
 const { upload, uploadToCloudinary } = require('../middleware/upload');
-const { authenticateToken, requireAdminOrOwner } = require('../middleware/auth');
+const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
 
 const router = express.Router();
 
 // Upload single image
-router.post('/single', authenticateToken, requireAdminOrOwner, upload.single('image'), async (req, res) => {
+router.post('/single', authenticateSupabaseToken, requireAdminOrOwner, upload.single('image'), async (req, res) => {
   try {
     console.log('Upload request received:', {
       file: req.file ? {
@@ -37,7 +37,7 @@ router.post('/single', authenticateToken, requireAdminOrOwner, upload.single('im
 });
 
 // Upload multiple images
-router.post('/multiple', authenticateToken, requireAdminOrOwner, upload.array('images', 5), async (req, res) => {
+router.post('/multiple', authenticateSupabaseToken, requireAdminOrOwner, upload.array('images', 5), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No image files provided' });
@@ -61,7 +61,7 @@ router.post('/multiple', authenticateToken, requireAdminOrOwner, upload.array('i
 });
 
 // Delete image from Cloudinary
-router.delete('/:publicId', authenticateToken, requireAdminOrOwner, async (req, res) => {
+router.delete('/:publicId', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
     const { publicId } = req.params;
     const cloudinary = require('../lib/cloudinary');

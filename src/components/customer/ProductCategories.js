@@ -5,6 +5,7 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProductModal from './ProductModal'; // Add this import
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
+import { useCart } from '../../contexts/CartContext';
 import productService from '../../services/productService';
 
 const ProductCategories = ({ activeCategory, setActiveCategory }) => {
@@ -19,6 +20,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const { openSignIn } = useModal();
+  const { addToCart } = useCart();
 
   const toggleFavorite = (productId) => {
     setFavorites(prev =>
@@ -42,9 +44,13 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
 
   // Add this function to handle adding to cart
   const handleAddToCart = (cartItem) => {
-    console.log('Added to cart:', cartItem);
-    // Here you would typically add the item to a cart context or state
-    // For now, we'll just log it
+    addToCart(cartItem.product, {
+      size: cartItem.size,
+      quantity: cartItem.quantity,
+      isTeamOrder: cartItem.isTeamOrder,
+      teamMembers: cartItem.teamMembers,
+      singleOrderDetails: cartItem.singleOrderDetails
+    });
   };
 
   const categories = [
@@ -237,7 +243,6 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
         product={selectedProduct}
         favorites={favorites}
         onToggleFavorite={toggleFavorite}
-        onAddToCart={handleAddToCart}
       />
     </section>
   );

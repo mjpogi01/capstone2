@@ -20,17 +20,20 @@ const RoleRedirect = () => {
       const customerPages = ['/', '/about', '/highlights', '/branches', '/faqs', '/contacts'];
       const isOnCustomerPage = customerPages.includes(currentPath);
       
+      // Get user role from metadata
+      const role = user.user_metadata?.role || 'customer';
+      
       // Only redirect if:
       // 1. User is on home page (/) and has admin/owner role
       // 2. User is trying to access admin pages without proper role
-      if (currentPath === '/' && (user.role === 'owner' || user.role === 'admin')) {
+      if (currentPath === '/' && (role === 'owner' || role === 'admin')) {
         // Redirect admin/owner users from home to their dashboard
-        if (user.role === 'owner') {
+        if (role === 'owner') {
           navigate('/owner', { replace: true });
-        } else if (user.role === 'admin') {
+        } else if (role === 'admin') {
           navigate('/admin', { replace: true });
         }
-      } else if (isOnAdminPage && user.role === 'customer') {
+      } else if (isOnAdminPage && role === 'customer') {
         // Redirect customers away from admin pages
         navigate('/', { replace: true });
       }

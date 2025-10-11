@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import authService from '../services/authService';
 
 const AuthContext = createContext();
@@ -16,18 +17,40 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in on app start
-    const currentUser = authService.getCurrentUser();
-    if (currentUser && authService.isAuthenticated()) {
-      setUser(currentUser);
-    }
-    setIsLoading(false);
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getInitialSession();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setUser(session?.user || null);
+        setIsLoading(false);
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const login = async (credentials) => {
     try {
       const result = await authService.signIn(credentials);
-      setUser(result.user);
+      // User will be set by the auth state listener
       return result;
     } catch (error) {
       throw error;
@@ -37,23 +60,27 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const result = await authService.signUp(userData);
-      setUser(result.user);
+      // User will be set by the auth state listener
       return result;
     } catch (error) {
       throw error;
     }
   };
 
-  const logout = () => {
-    authService.signOut();
-    setUser(null);
+  const logout = async () => {
+    try {
+      await authService.signOut();
+      // User will be cleared by the auth state listener
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   // Role-based helper functions
-  const isOwner = () => user?.role === 'owner';
-  const isAdmin = () => user?.role === 'admin';
-  const isCustomer = () => user?.role === 'customer';
-  const hasAdminAccess = () => user?.role === 'admin' || user?.role === 'owner';
+  const isOwner = () => user?.user_metadata?.role === 'owner';
+  const isAdmin = () => user?.user_metadata?.role === 'admin';
+  const isCustomer = () => user?.user_metadata?.role === 'customer';
+  const hasAdminAccess = () => user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'owner';
   const canAccessAdmin = () => hasAdminAccess();
 
   const value = {

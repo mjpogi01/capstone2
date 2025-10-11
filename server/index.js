@@ -1,11 +1,14 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
 const productsRouter = require('./routes/products');
 const uploadRouter = require('./routes/upload');
 const userRouter = require('./routes/user');
-const { ensureUsersTable } = require('./lib/db');
+const branchesRouter = require('./routes/branches');
+// Using Supabase instead of local database
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -20,7 +23,9 @@ app.get('/', (_req, res) => {
       auth: '/api/auth',
       admin: '/api/admin',
       products: '/api/products',
-      upload: '/api/upload'
+      upload: '/api/upload',
+      user: '/api/user',
+      branches: '/api/branches'
     }
   });
 });
@@ -34,21 +39,16 @@ app.use('/api/admin', adminRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/user', userRouter);
+app.use('/api/branches', branchesRouter);
 
 const port = process.env.PORT || 4000;
 
-ensureUsersTable()
-  .then(() => {
-    app.listen(port, () => {
-      // eslint-disable-next-line no-console
-      console.log(`API listening on http://localhost:${port}`);
-    });
-  })
-  .catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('Failed to initialize database:', err);
-    process.exit(1);
-  });
+// Start server directly - using Supabase instead of local database
+app.listen(port, () => {
+  // eslint-disable-next-line no-console
+  console.log(`API listening on http://localhost:${port}`);
+  console.log('Using Supabase for database operations');
+});
 
 
 

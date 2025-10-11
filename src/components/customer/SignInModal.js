@@ -32,14 +32,14 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
 
     try {
       const result = await login(formData);
-      console.log("Sign in successful:", result);
       onClose(); // Close modal on successful login
       
       // Redirect based on user role
       const user = result.user;
-      if (user.role === 'owner') {
+      const role = user.user_metadata?.role || 'customer';
+      if (role === 'owner') {
         navigate('/owner');
-      } else if (user.role === 'admin') {
+      } else if (role === 'admin') {
         navigate('/admin');
       } else {
         // For customers, stay on current page or redirect to home
@@ -47,7 +47,6 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
       }
     } catch (error) {
       setError(error.message);
-      console.error("Sign in error:", error);
     } finally {
       setIsLoading(false);
     }

@@ -3,11 +3,11 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 // Supabase connection configuration
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.xnuzdzjfqhbpcnsetjif:lLqK8vaaYeCOlQj7@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres';
+const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool({
   connectionString: connectionString,
-  ssl: { rejectUnauthorized: false }
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 async function query(text, params) {
@@ -22,51 +22,9 @@ async function query(text, params) {
 async function ensureUsersTable() {
   // Ensure pgcrypto for gen_random_uuid()
   await query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
-  await query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      first_name TEXT,
-      last_name TEXT,
-      phone TEXT,
-      address1 TEXT,
-      address2 TEXT,
-      city TEXT,
-      province TEXT,
-      postal_code TEXT,
-      country TEXT,
-      role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'owner')),
-      branch_id INTEGER,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
-
-  // Safe ALTERs in case table existed before - only essential user fields
-  const columns = [
-    ['full_name', 'TEXT'],
-    ['phone', 'TEXT'],
-    ['role', 'TEXT DEFAULT \'customer\' CHECK (role IN (\'customer\', \'admin\', \'owner\'))'],
-    ['branch_id', 'INTEGER']
-  ];
-  for (const [name, type] of columns) {
-    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${name} ${type};`);
-  }
-
-  // Remove unnecessary address columns from users table since we use user_addresses table
-  const columnsToRemove = [
-    'address1', 'address2', 'city', 'province', 'postal_code', 'country',
-    'street_address', 'barangay', 'address'
-  ];
   
-  for (const columnName of columnsToRemove) {
-    try {
-      await query(`ALTER TABLE users DROP COLUMN IF EXISTS ${columnName};`);
-      console.log(`Removed column: ${columnName}`);
-    } catch (error) {
-      console.log(`Column ${columnName} may not exist or couldn't be removed:`, error.message);
-    }
-  }
+  // Note: Using Supabase Auth users table (auth.users) - no custom users table needed
+  console.log('Using Supabase Auth users table (auth.users)');
 
   // Create branches table
   await query(`
@@ -108,6 +66,7 @@ async function ensureUsersTable() {
       main_image TEXT,
       additional_images TEXT[],
       stock_quantity INTEGER DEFAULT 0,
+      sold_quantity INTEGER DEFAULT 0,
       branch_id INTEGER REFERENCES branches(id),
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -118,7 +77,7 @@ async function ensureUsersTable() {
   await query(`
     CREATE TABLE IF NOT EXISTS user_addresses (
       id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
       full_name VARCHAR(255) NOT NULL,
       phone VARCHAR(20) NOT NULL,
       street_address TEXT NOT NULL,
@@ -141,6 +100,28 @@ async function ensureUsersTable() {
   
   // Create index for default addresses
   await query(`CREATE INDEX IF NOT EXISTS idx_user_addresses_default ON user_addresses(user_id, is_default);`);
+
+  // Create user_carts table
+  await query(`
+    CREATE TABLE IF NOT EXISTS user_carts (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      unique_id TEXT NOT NULL,
+      is_team_order BOOLEAN DEFAULT false,
+      team_members JSONB,
+      team_name TEXT,
+      single_order_details JSONB,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+  `);
+
+  // Create indexes for user_carts
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_carts_user_id ON user_carts(user_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_carts_product_id ON user_carts(product_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_carts_unique_id ON user_carts(unique_id);`);
 }
 
 module.exports = { pool, query, ensureUsersTable };

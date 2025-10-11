@@ -3,9 +3,11 @@ import './Header.css';
 import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 import SignInModal from './SignInModal';
 import SignUpModal from './SignUpModal';
+import CartModal from './CartModal';
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
+import { useCart } from '../../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
@@ -22,6 +24,7 @@ const Header = () => {
     openSignUp, 
     closeSignUp 
   } = useModal();
+  const { getCartItemCount, openCart } = useCart();
   const dropdownRef = useRef(null);
 
   // SAVED FILTER DROPDOWN CONTENTS FOR LATER USE:
@@ -174,12 +177,15 @@ const Header = () => {
           )}
           */}
           
-          <div className="icon" aria-label="Cart">
+          <div className="icon cart-icon" aria-label="Cart" onClick={openCart}>
             <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
               <path d="M3 3h2l3 12h10l3-8H6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="9" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
               <circle cx="17" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
             </svg>
+            {getCartItemCount() > 0 && (
+              <span className="cart-badge">{getCartItemCount()}</span>
+            )}
           </div>
           <div className="icon" aria-label="Wishlist">
             <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
@@ -306,6 +312,7 @@ const Header = () => {
         onClose={closeSignUp}
         onOpenSignIn={() => { closeSignUp(); openSignIn(); }}
       />
+      <CartModal />
     </header>
   );
 };

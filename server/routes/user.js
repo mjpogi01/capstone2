@@ -1,11 +1,11 @@
 const express = require('express');
 const { pool } = require('../lib/db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateSupabaseToken } = require('../middleware/supabaseAuth');
 
 const router = express.Router();
 
 // Get user's default address
-router.get('/address', authenticateToken, async (req, res) => {
+router.get('/address', authenticateSupabaseToken, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT * FROM user_addresses 
@@ -26,7 +26,7 @@ router.get('/address', authenticateToken, async (req, res) => {
 });
 
 // Get all user addresses
-router.get('/addresses', authenticateToken, async (req, res) => {
+router.get('/addresses', authenticateSupabaseToken, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT * FROM user_addresses 
@@ -42,7 +42,7 @@ router.get('/addresses', authenticateToken, async (req, res) => {
 });
 
 // Save user's address
-router.post('/address', authenticateToken, async (req, res) => {
+router.post('/address', authenticateSupabaseToken, async (req, res) => {
   try {
     const { fullName, phone, streetAddress, barangay, city, province, postalCode, address, isDefault = true } = req.body;
 
@@ -92,7 +92,7 @@ router.post('/address', authenticateToken, async (req, res) => {
 });
 
 // Update specific address by ID
-router.put('/address/:id', authenticateToken, async (req, res) => {
+router.put('/address/:id', authenticateSupabaseToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { fullName, phone, streetAddress, barangay, city, province, postalCode, address, isDefault } = req.body;
@@ -125,7 +125,7 @@ router.put('/address/:id', authenticateToken, async (req, res) => {
 });
 
 // Delete address by ID
-router.delete('/address/:id', authenticateToken, async (req, res) => {
+router.delete('/address/:id', authenticateSupabaseToken, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -147,7 +147,7 @@ router.delete('/address/:id', authenticateToken, async (req, res) => {
 });
 
 // Set default address
-router.patch('/address/:id/default', authenticateToken, async (req, res) => {
+router.patch('/address/:id/default', authenticateSupabaseToken, async (req, res) => {
   try {
     const { id } = req.params;
 

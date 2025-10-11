@@ -16,6 +16,7 @@ import RoleRedirect from './components/RoleRedirect';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ModalProvider } from './contexts/ModalContext';
+import { CartProvider } from './contexts/CartContext';
 
 const AppContent = () => {
   const location = useLocation();
@@ -69,9 +70,11 @@ function App() {
     <div className="App">
       <AuthProvider>
         <ModalProvider>
-          <Router>
-            <AppContent />
-          </Router>
+          <CartProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </CartProvider>
         </ModalProvider>
       </AuthProvider>
     </div>

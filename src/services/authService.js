@@ -82,8 +82,8 @@ class AuthService {
   }
 
   isAuthenticated() {
-    // This will be handled by Supabase's built-in auth state management
-    return false; // We'll use Supabase's auth state listener instead
+    // This method is deprecated - use the auth state listener in AuthContext instead
+    return false;
   }
 
   // Listen to auth state changes

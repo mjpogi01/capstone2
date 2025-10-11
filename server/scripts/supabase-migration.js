@@ -8,27 +8,8 @@ async function migrateToSupabase() {
     console.log('📦 Enabling required extensions...');
     await query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
     
-    // Create users table
-    console.log('👥 Creating users table...');
-    await query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        first_name TEXT,
-        last_name TEXT,
-        phone TEXT,
-        address1 TEXT,
-        address2 TEXT,
-        city TEXT,
-        province TEXT,
-        postal_code TEXT,
-        country TEXT,
-        role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'owner')),
-        branch_id INTEGER,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-      );
-    `);
+    // Note: Using Supabase Auth users table directly
+    console.log('👥 Using Supabase Auth users table...');
 
     // Create branches table
     console.log('🏢 Creating branches table...');
@@ -79,33 +60,30 @@ async function migrateToSupabase() {
       );
     `);
 
-    // Create admin user
-    console.log('👤 Creating admin user...');
-    const bcrypt = require('bcryptjs');
-    const adminPassword = 'admin123'; // Change this to a secure password
-    const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
-    
+    // Create user_carts table
+    console.log('🛒 Creating user_carts table...');
     await query(`
-      INSERT INTO users (email, password_hash, first_name, last_name, role, branch_id)
-      VALUES ('admin@yohanns.com', $1, 'Admin', 'User', 'admin', 1)
-      ON CONFLICT (email) DO NOTHING;
-    `, [adminPasswordHash]);
+      CREATE TABLE IF NOT EXISTS user_carts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        size TEXT,
+        is_team_order BOOLEAN DEFAULT FALSE,
+        team_members JSONB,
+        single_order_details JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE(user_id, product_id, size, is_team_order, team_members, single_order_details)
+      );
+    `);
 
-    // Create owner user
-    console.log('👑 Creating owner user...');
-    const ownerPassword = 'owner123'; // Change this to a secure password
-    const ownerPasswordHash = await bcrypt.hash(ownerPassword, 10);
-    
-    await query(`
-      INSERT INTO users (email, password_hash, first_name, last_name, role)
-      VALUES ('owner@yohanns.com', $1, 'Owner', 'User', 'owner')
-      ON CONFLICT (email) DO NOTHING;
-    `, [ownerPasswordHash]);
+    // Note: Admin and owner users should be created through Supabase Auth dashboard
+    console.log('👤 Note: Create admin users through Supabase Auth dashboard...');
 
     console.log('✅ Supabase migration completed successfully!');
-    console.log('📧 Admin credentials: admin@yohanns.com / admin123');
-    console.log('👑 Owner credentials: owner@yohanns.com / owner123');
-    console.log('⚠️  Please change these passwords in production!');
+    console.log('📧 Note: Create admin users through Supabase Auth dashboard');
+    console.log('🔐 Users will be managed through Supabase Auth');
     
   } catch (error) {
     console.error('❌ Migration failed:', error);
