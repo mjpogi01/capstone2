@@ -5,15 +5,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 
 const Sidebar = ({ activePage, setActivePage }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   
+  // Get user role to determine correct paths
+  const userRole = user?.user_metadata?.role || 'customer';
+  const basePath = userRole === 'owner' ? '/owner' : '/admin';
+  
   const menuItems = [
-    { id: 'home', label: 'Home', icon: '🏠', path: '/admin' },
-    { id: 'analytics', label: 'Analytics', icon: '📊', path: '/admin/analytics' },
-    { id: 'orders', label: 'Orders', icon: '📋', path: '/admin/orders' },
+    { id: 'home', label: 'Home', icon: '🏠', path: basePath },
+    { id: 'analytics', label: 'Analytics', icon: '📊', path: `${basePath}/analytics` },
+    { id: 'orders', label: 'Orders', icon: '📋', path: `${basePath}/orders` },
     { id: 'inventory', label: 'Inventory', icon: '📦', path: '/inventory' },
-    { id: 'accounts', label: 'Accounts', icon: '👥', path: '/admin/accounts' },
+    { id: 'accounts', label: 'Accounts', icon: '👥', path: `${basePath}/accounts` },
   ];
 
   const handleLogout = () => {

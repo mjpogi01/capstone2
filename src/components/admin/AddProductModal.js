@@ -226,11 +226,15 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{isEditMode ? 'EDIT PRODUCT' : 'ADD NEW ITEMS'}</h2>
+          <button type="button" className="close-btn" onClick={onClose}>
+            ×
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-row">
             {/* Image Upload Section */}
             <div className="image-section">
+              <h3 className="image-section-title">Product Images</h3>
               <div className="main-image-upload">
                 {mainImage ? (
                   <div className="uploaded-image">
@@ -244,31 +248,34 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                     </button>
                   </div>
                 ) : (
-                  <label className="image-placeholder">
+                  <div className="image-placeholder">
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleMainImageUpload}
                       disabled={uploadingImages && uploadingSlot === 'main'}
                       style={{ display: 'none' }}
+                      id="main-image-upload"
                     />
-                    {uploadingImages && uploadingSlot === 'main' ? (
-                      <div className="uploading-indicator">
-                        <div className="spinner"></div>
-                        <div className="uploading-text">Uploading...</div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="image-icon">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                            <circle cx="12" cy="13" r="3"/>
-                          </svg>
+                    <label htmlFor="main-image-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
+                      {uploadingImages && uploadingSlot === 'main' ? (
+                        <div className="uploading-overlay">
+                          <div className="uploading-spinner"></div>
+                          <p>Uploading...</p>
                         </div>
-                        <div className="plus-icon">+</div>
-                      </>
-                    )}
-                  </label>
+                      ) : (
+                        <>
+                          <div className="image-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                              <circle cx="12" cy="13" r="3"/>
+                            </svg>
+                          </div>
+                          <p>Click to upload main image</p>
+                        </>
+                      )}
+                    </label>
+                  </div>
                 )}
               </div>
               <div className="additional-images">
@@ -293,31 +300,34 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                   } else {
                     // Show placeholder for this position
                     return (
-                      <label key={`placeholder-${index}`} className="image-placeholder small">
+                      <div key={`placeholder-${index}`} className="image-placeholder small">
                         <input
                           type="file"
                           accept="image/*"
                           onChange={(e) => handleAdditionalImageUpload(e, index)}
                           disabled={uploadingImages && uploadingSlot === 'additional' && uploadingAdditionalIndex === index}
                           style={{ display: 'none' }}
+                          id={`additional-image-${index}`}
                         />
-                        {uploadingImages && uploadingSlot === 'additional' && uploadingAdditionalIndex === index ? (
-                          <div className="uploading-indicator">
-                            <div className="spinner"></div>
-                            <div className="uploading-text">Uploading...</div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="image-icon">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                                <circle cx="12" cy="13" r="3"/>
-                              </svg>
+                        <label htmlFor={`additional-image-${index}`} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
+                          {uploadingImages && uploadingSlot === 'additional' && uploadingAdditionalIndex === index ? (
+                            <div className="uploading-overlay">
+                              <div className="uploading-spinner"></div>
+                              <p>Uploading...</p>
                             </div>
-                            <div className="plus-icon">+</div>
-                          </>
-                        )}
-                      </label>
+                          ) : (
+                            <>
+                              <div className="image-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                                  <circle cx="12" cy="13" r="3"/>
+                                </svg>
+                              </div>
+                              <p>+</p>
+                            </>
+                          )}
+                        </label>
+                      </div>
                     );
                   }
                 })}
@@ -449,22 +459,22 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                   rows="4"
                 />
               </div>
-            </div>
-          </div>
 
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
+              {error && (
+                <div className="error-message">
+                  {error}
+                </div>
+              )}
 
-          <div className="form-actions">
-            <button type="button" className="cancel-btn" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'UPDATE PRODUCT' : 'ADD PRODUCT')}
-            </button>
+              <div className="form-actions">
+                <button type="button" className="cancel-btn" onClick={onClose}>
+                  Cancel
+                </button>
+                <button type="submit" className="submit-btn" disabled={loading}>
+                  {loading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'UPDATE PRODUCT' : 'ADD PRODUCT')}
+                </button>
+              </div>
+            </div>
           </div>
         </form>
       </div>

@@ -8,6 +8,7 @@ const productsRouter = require('./routes/products');
 const uploadRouter = require('./routes/upload');
 const userRouter = require('./routes/user');
 const branchesRouter = require('./routes/branches');
+const deleteRouter = require('./routes/delete');
 // Using Supabase instead of local database
 
 const app = express();
@@ -40,6 +41,7 @@ app.use('/api/products', productsRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/user', userRouter);
 app.use('/api/branches', branchesRouter);
+app.use('/api/delete', deleteRouter);
 
 const port = process.env.PORT || 4000;
 

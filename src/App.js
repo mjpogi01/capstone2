@@ -11,6 +11,7 @@ import Contacts from './pages/customer/Contacts';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import Inventory from './pages/admin/Inventory';
+import Accounts from './pages/admin/Accounts';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleRedirect from './components/RoleRedirect';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
@@ -56,6 +57,22 @@ const AppContent = () => {
           element={
             <ProtectedRoute requireAdmin={true}>
               <Inventory />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/accounts" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <Accounts />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/owner/accounts" 
+          element={
+            <ProtectedRoute requireOwner={true}>
+              <Accounts />
             </ProtectedRoute>
           } 
         />
