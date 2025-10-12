@@ -1,8 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Your Supabase credentials
-const SUPABASE_URL = 'https://xnuzdzjfqhbpcnsetjif.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhudXpkempmcWhicGNuc2V0amlmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTUwMTE3MywiZXhwIjoyMDc1MDc3MTczfQ.uoLRclXrq6d83GbLqur4Who41AOwjt62nCyuibk1TpE';
+require('dotenv').config({ path: '../.env' });
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);

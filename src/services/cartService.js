@@ -196,7 +196,7 @@ class CartService {
     }
   }
 
-  // Sync localStorage cart with database (for when user logs in)
+  // Sync cart with database (for when user logs in)
   async syncCartWithDatabase(userId, localCartItems) {
     try {
       // Ensure user exists in database first
@@ -216,7 +216,7 @@ class CartService {
         return [];
       }
 
-      // Add all valid localStorage items to database
+      // Add all valid cart items to database
       const promises = validItems.map(item => 
         this.addToCart(userId, item)
       );

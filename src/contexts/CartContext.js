@@ -47,11 +47,7 @@ export const CartProvider = ({ children }) => {
     loadCart();
   }, [user]);
 
-  // No localStorage - cart is database-only
-  // Clear any existing localStorage data
-  useEffect(() => {
-    localStorage.removeItem('yohanns_cart');
-  }, []);
+  // Cart is database-only - no localStorage needed
 
   // Function to reload cart from database
   const reloadCart = async (forceRefresh = true) => {
@@ -86,7 +82,7 @@ export const CartProvider = ({ children }) => {
       teamMembers: isTeamOrder ? teamMembers : null,
       singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
       addedAt: new Date().toISOString(),
-      uniqueId: Date.now() + Math.random() // Generate a simple unique ID for localStorage
+      uniqueId: Date.now() + Math.random() // Generate a simple unique ID
     };
 
     if (!user) {
