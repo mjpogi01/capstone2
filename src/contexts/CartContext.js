@@ -33,7 +33,9 @@ export const CartProvider = ({ children }) => {
 
       try {
         // Load from database only
+        console.log('🛒 Loading cart for user:', user.id, user.email);
         const dbCartItems = await cartService.getUserCart(user.id);
+        console.log('🛒 Cart items loaded:', dbCartItems.length, 'items');
         setCartItems(dbCartItems);
       } catch (error) {
         console.error('Error loading cart from database:', error);
@@ -98,25 +100,47 @@ export const CartProvider = ({ children }) => {
       const newCartItem = await cartService.addToCart(user.id, cartItem);
       
       setCartItems(prevItems => {
+        let updatedItems;
         if (isReplacement) {
           // For replacements, just add the new item without checking for existing items
-          return [...prevItems, newCartItem];
-        }
-        
-        const existingItemIndex = prevItems.findIndex(item => 
-          item.id === cartItem.id && 
-          item.size === cartItem.size && 
-          item.isTeamOrder === cartItem.isTeamOrder
-        );
-
-        if (existingItemIndex >= 0) {
-          const updatedItems = [...prevItems];
-          updatedItems[existingItemIndex].quantity += quantity;
-          return updatedItems;
+          updatedItems = [...prevItems, newCartItem];
         } else {
-          return [...prevItems, newCartItem];
+          const existingItemIndex = prevItems.findIndex(item => 
+            item.id === cartItem.id && 
+            item.size === cartItem.size && 
+            item.isTeamOrder === cartItem.isTeamOrder
+          );
+
+          if (existingItemIndex >= 0) {
+            updatedItems = [...prevItems];
+            updatedItems[existingItemIndex].quantity += quantity;
+          } else {
+            updatedItems = [...prevItems, newCartItem];
+          }
         }
+
+        return updatedItems;
       });
+
+      // Auto-select the newly added item for Buy Now functionality
+      if (options.isBuyNow) {
+        console.log('🛒 Auto-selecting item for Buy Now:', newCartItem.uniqueId || newCartItem.id);
+        // Use setTimeout to ensure cart items are updated first
+        setTimeout(() => {
+          // For Buy Now, clear existing selections and only select the new item
+          const newItemId = newCartItem.uniqueId || newCartItem.id;
+          setSelectedItems(new Set([newItemId]));
+          console.log('🛒 Buy Now: Cleared existing selections, only selected new item:', newItemId);
+          
+          // Double-check that the item is in the cart
+          setCartItems(currentItems => {
+            const itemExists = currentItems.some(item => (item.uniqueId || item.id) === newItemId);
+            console.log('🛒 Buy Now: Item exists in cart:', itemExists);
+            console.log('🛒 Buy Now: Current cart items:', currentItems.map(item => ({ id: item.uniqueId || item.id, name: item.name })));
+            return currentItems;
+          });
+        }, 200); // Increased timeout to ensure proper sequencing
+      }
     } catch (error) {
       console.error('Error adding to cart:', error);
       setError('Failed to add item to cart');
@@ -234,9 +258,12 @@ export const CartProvider = ({ children }) => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
         newSet.delete(itemId);
+        console.log('🛒 Item deselected:', itemId);
       } else {
         newSet.add(itemId);
+        console.log('🛒 Item selected:', itemId);
       }
+      console.log('🛒 Selected items:', Array.from(newSet));
       return newSet;
     });
   };

@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaTruck, FaUsers, FaChevronDown } from 'react-icons/fa';
 import userService from '../../services/userService';
-import { useCart } from '../../contexts/CartContext';
 import './CheckoutModal.css';
 
-const CheckoutModal = ({ isOpen, onClose, onPlaceOrder }) => {
-  const { cartItems, clearCart } = useCart();
+const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartItems }) => {
+  // Use the filtered cart items passed as props, not all cart items from context
+  const cartItems = selectedCartItems || [];
+  
+  // Debug logging
+  console.log('🛒 CheckoutModal received cart items:', cartItems.length);
+  console.log('🛒 CheckoutModal cart items:', cartItems.map(item => ({ id: item.uniqueId || item.id, name: item.name })));
+  
+  // Log when cart items change
+  useEffect(() => {
+    console.log('🛒 CheckoutModal: Cart items updated:', cartItems.length);
+    if (cartItems.length === 0) {
+      console.log('⚠️ CheckoutModal: No items received - this might be the issue!');
+    }
+  }, [cartItems.length]);
   const [deliveryAddress, setDeliveryAddress] = useState({
     address: '',
     receiver: '',
@@ -150,7 +162,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder }) => {
     });
     
     // Phone validation
-    if (newAddress.phone && !/^[\d\s\-\+\(\)]+$/.test(newAddress.phone)) {
+    if (newAddress.phone && !/^[\d\s\-+()]+$/.test(newAddress.phone)) {
       errors.phone = 'Please enter a valid phone number';
     }
     

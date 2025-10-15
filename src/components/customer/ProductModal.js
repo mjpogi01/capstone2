@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
-import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaFacebook } from 'react-icons/fa';
+import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import { useCart } from '../../contexts/CartContext';
+import orderService from '../../services/orderService';
+import { useAuth } from '../../contexts/AuthContext';
 import './ProductModal.css';
 
 const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null }) => {
-  const { addToCart, removeFromCart } = useCart();
+  const { addToCart, removeFromCart, cartItems, selectedItems } = useCart();
+  const { user } = useAuth();
   const [selectedSize, setSelectedSize] = useState(existingCartItemData?.size || 'M');
   const [quantity, setQuantity] = useState(existingCartItemData?.quantity || 1);
   const [isTeamOrder, setIsTeamOrder] = useState(existingCartItemData?.isTeamOrder || false);
@@ -18,6 +21,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [buyNowItem, setBuyNowItem] = useState(null);
+
+  // Debug: Monitor Buy Now item changes
+  useEffect(() => {
+    if (buyNowItem) {
+      console.log('🛒 ProductModal: Buy Now item set:', buyNowItem.name);
+    }
+  }, [buyNowItem]);
 
   // Reset form when modal opens with existing cart data
   useEffect(() => {
@@ -118,46 +129,83 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
   const handleBuyNow = async () => {
     try {
-      // If this is from cart, remove the existing item first
-      if (isFromCart && existingCartItemId) {
-        await removeFromCart(existingCartItemId);
-        // Add a small delay to ensure the removal is processed
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
+      console.log('🛒 Buy Now clicked for product:', product.name);
+      
       // Calculate price based on size type
       const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
       
-      const cartOptions = {
+      // Create a standalone order item for Buy Now (not added to cart)
+      const buyNowItem = {
+        id: product.id,
+        name: product.name,
+        price: finalPrice,
+        image: product.main_image,
         size: selectedSize,
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
         singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
         sizeType: sizeType,
-        price: finalPrice, // Use discounted price for kids
-        isReplacement: isFromCart // Mark as replacement when coming from cart
+        isBuyNow: true, // Mark as Buy Now item
+        uniqueId: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` // Generate unique ID
       };
       
-      await addToCart(product, cartOptions);
+      console.log('🛒 Buy Now item created:', buyNowItem);
+      console.log('🛒 Opening checkout with Buy Now item only');
+      
+      // Store the Buy Now item in component state and open checkout
+      setBuyNowItem(buyNowItem);
       setShowCheckout(true);
+      
     } catch (error) {
-      console.error('Error updating cart:', error);
-      alert('Error updating cart. Please try again.');
+      console.error('Error creating Buy Now item:', error);
+      alert('Error processing Buy Now. Please try again.');
     }
   };
 
-  const handleTeamOrderToggle = () => {
-    setIsTeamOrder(!isTeamOrder);
-    if (!isTeamOrder) {
-      setTeamMembers([]);
-    }
-  };
+  // Removed unused handleTeamOrderToggle function
 
-  const handlePlaceOrder = (orderData) => {
-    alert('Order placed successfully! We will contact you soon for confirmation.');
-    setShowCheckout(false);
-    onClose();
+  const handlePlaceOrder = async (orderData) => {
+    try {
+      if (!user) {
+        alert('Please log in to place an order.');
+        return;
+      }
+
+      console.log('🛒 Creating order with data:', orderData);
+
+      // Format order data for database
+      const formattedOrderData = {
+        user_id: user.id,
+        order_number: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        status: 'pending',
+        shipping_method: orderData.shippingMethod,
+        pickup_location: orderData.selectedLocation || null,
+        delivery_address: orderData.deliveryAddress,
+        order_notes: orderData.orderNotes || null,
+        subtotal_amount: orderData.subtotalAmount,
+        shipping_cost: orderData.shippingCost,
+        total_amount: orderData.totalAmount,
+        total_items: orderData.totalItems,
+        order_items: orderData.items
+      };
+
+      console.log('🛒 Formatted order data:', formattedOrderData);
+
+      // Create order in database
+      const createdOrder = await orderService.createOrder(formattedOrderData);
+      
+      console.log('✅ Order created successfully:', createdOrder);
+      
+      alert(`Order placed successfully! Order #${createdOrder.order_number}. We will contact you soon for confirmation.`);
+      setShowCheckout(false);
+      setBuyNowItem(null); // Clear Buy Now item
+      onClose();
+      
+    } catch (error) {
+      console.error('❌ Error creating order:', error);
+      alert(`Failed to place order: ${error.message}. Please try again.`);
+    }
   };
 
   const addTeamMember = () => {
@@ -528,6 +576,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       <CheckoutModal
         isOpen={showCheckout}
         onClose={() => setShowCheckout(false)}
+        cartItems={buyNowItem ? [buyNowItem] : cartItems.filter(item => selectedItems.has(item.uniqueId || item.id))}
         onPlaceOrder={handlePlaceOrder}
       />
     </div>
