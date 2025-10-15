@@ -4,10 +4,12 @@ import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 import SignInModal from './SignInModal';
 import SignUpModal from './SignUpModal';
 import CartModal from './CartModal';
+import WishlistModal from './WishlistModal';
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
@@ -25,6 +27,7 @@ const Header = () => {
     closeSignUp 
   } = useModal();
   const { getCartItemCount, openCart } = useCart();
+  const { openWishlist, wishlistItems } = useWishlist();
   const dropdownRef = useRef(null);
 
   // SAVED FILTER DROPDOWN CONTENTS FOR LATER USE:
@@ -187,10 +190,13 @@ const Header = () => {
               <span className="cart-badge">{getCartItemCount()}</span>
             )}
           </div>
-          <div className="icon" aria-label="Wishlist">
+          <div className="icon wishlist-icon" aria-label="Wishlist" onClick={openWishlist}>
             <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
+            {wishlistItems.length > 0 && (
+              <span className="wishlist-badge">{wishlistItems.length}</span>
+            )}
           </div>
           <div className="icon profile-icon" aria-label="Account" onClick={handleProfileClick}>
             <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
@@ -273,8 +279,7 @@ const Header = () => {
                       className="profile-menu-item" 
                       onClick={() => {
                         setShowProfileDropdown(false);
-                        console.log('Wishlist clicked');
-                        // Add navigation to wishlist page
+                        openWishlist();
                       }}
                     >
                       <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
@@ -313,6 +318,7 @@ const Header = () => {
         onOpenSignIn={() => { closeSignUp(); openSignIn(); }}
       />
       <CartModal />
+      <WishlistModal />
     </header>
   );
 };

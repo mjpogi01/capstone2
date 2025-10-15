@@ -122,6 +122,41 @@ async function ensureUsersTable() {
   await query(`CREATE INDEX IF NOT EXISTS idx_user_carts_user_id ON user_carts(user_id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_user_carts_product_id ON user_carts(product_id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_user_carts_unique_id ON user_carts(unique_id);`);
+
+  // Create user_wishlist table
+  await query(`
+    CREATE TABLE IF NOT EXISTS user_wishlist (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      UNIQUE(user_id, product_id)
+    );
+  `);
+
+  // Create indexes for user_wishlist
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_wishlist_user_id ON user_wishlist(user_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_wishlist_product_id ON user_wishlist(product_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_wishlist_created_at ON user_wishlist(created_at);`);
+
+  // Create trigger to update updated_at timestamp for wishlist
+  await query(`
+    CREATE OR REPLACE FUNCTION update_wishlist_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+    END;
+    $$ language 'plpgsql';
+  `);
+
+  await query(`
+    CREATE TRIGGER update_user_wishlist_updated_at
+      BEFORE UPDATE ON user_wishlist
+      FOR EACH ROW
+      EXECUTE FUNCTION update_wishlist_updated_at();
+  `);
 }
 
 module.exports = { pool, query, ensureUsersTable };

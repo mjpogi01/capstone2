@@ -18,6 +18,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AuthProvider } from './contexts/AuthContext';
 import { ModalProvider } from './contexts/ModalContext';
 import { CartProvider } from './contexts/CartContext';
+import { WishlistProvider } from './contexts/WishlistContext';
 
 const AppContent = () => {
   const location = useLocation();
@@ -88,9 +89,11 @@ function App() {
       <AuthProvider>
         <ModalProvider>
           <CartProvider>
-            <Router>
-              <AppContent />
-            </Router>
+            <WishlistProvider>
+              <Router>
+                <AppContent />
+              </Router>
+            </WishlistProvider>
           </CartProvider>
         </ModalProvider>
       </AuthProvider>

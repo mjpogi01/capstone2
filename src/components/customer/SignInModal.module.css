@@ -15,11 +15,22 @@
 .modalBox {
   display: flex;
   width: 900px;
-  height: 520px;
+  min-height: 520px;
+  max-height: 90vh;
   background: #fff;
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Hide scrollbars for the entire modal */
+.modalBox * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.modalBox *::-webkit-scrollbar {
+  display: none; /* WebKit */
 }
 
 /* Left Image */
@@ -42,6 +53,11 @@
   flex: 1;
   padding: 40px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 /* Error Message */
@@ -219,11 +235,22 @@
   transform: scale(1.05);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
+/* Main Content */
+.modalContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+}
+
 /* Footer */
 .modalFooter {
   text-align: center;
   font-size: 14px;
   color: #333;
+  margin-top: auto;
+  padding-top: 16px;
+  flex-shrink: 0;
 }
 
 .signupLink {

@@ -6,10 +6,11 @@ import ProductModal from './ProductModal'; // Add this import
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
 import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
+import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
 
 const ProductCategories = ({ activeCategory, setActiveCategory }) => {
-  const [favorites, setFavorites] = useState([]);
   const [showAll, setShowAll] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null); // Add this state
   const [isModalOpen, setIsModalOpen] = useState(false); // Add this state
@@ -21,13 +22,15 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   const [canScrollRight, setCanScrollRight] = useState(false);
   const { openSignIn } = useModal();
   const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated } = useAuth();
 
-  const toggleFavorite = (productId) => {
-    setFavorites(prev =>
-      prev.includes(productId)
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
+  const handleToggleWishlist = async (product) => {
+    if (!isAuthenticated) {
+      openSignIn();
+      return;
+    }
+    await toggleWishlist(product);
   };
 
   // Add this function to handle opening the modal
@@ -188,12 +191,12 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
         ) : (
           <div className="products-grid">
             {displayedProducts.map(product => (
-              <ProtectedAction
-                key={product.id}
-                onAuthenticated={() => openProductModal(product)}
-                onUnauthenticated={() => openSignIn()}
-              >
-                <div className="product-card">
+              <div key={product.id} className="product-card">
+                <ProtectedAction
+                  onAuthenticated={() => openProductModal(product)}
+                  onUnauthenticated={() => openSignIn()}
+                  className="product-clickable-area"
+                >
                   <div className="product-image">
                     {product.main_image ? (
                       <img 
@@ -209,22 +212,22 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
                     <h3 className="product-brand">Yohann's Sportswear</h3>
                     <p className="product-name">{product.name}</p>
                     <div className="product-price">₱ {parseFloat(product.price).toFixed(2)}</div>
-                    <button
-                      className="favorite-btn"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent modal from opening when clicking favorite
-                        toggleFavorite(product.id);
-                      }}
-                    >
-                      {favorites.includes(product.id) ? (
-                        <AiFillHeart color="red" />
-                      ) : (
-                        <AiOutlineHeart />
-                      )}
-                    </button>
                   </div>
-                </div>
-              </ProtectedAction>
+                </ProtectedAction>
+                <button
+                  className="favorite-btn"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent modal from opening when clicking favorite
+                    handleToggleWishlist(product);
+                  }}
+                >
+                  {isInWishlist(product.id) ? (
+                    <AiFillHeart color="red" />
+                  ) : (
+                    <AiOutlineHeart />
+                  )}
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -250,8 +253,6 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
         isOpen={isModalOpen}
         onClose={closeProductModal}
         product={selectedProduct}
-        favorites={favorites}
-        onToggleFavorite={toggleFavorite}
       />
     </section>
   );
