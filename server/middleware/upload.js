@@ -11,11 +11,25 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Check file type
-    if (file.mimetype.startsWith('image/')) {
+    // Check file type - allow images and design files
+    const allowedTypes = [
+      'image/', 'application/pdf', 'application/postscript', 
+      'application/illustrator', 'application/x-illustrator',
+      'image/vnd.adobe.photoshop', 'application/x-photoshop'
+    ];
+    
+    const isAllowed = allowedTypes.some(type => file.mimetype.startsWith(type)) ||
+                     file.mimetype === 'application/pdf' ||
+                     file.mimetype === 'application/postscript' ||
+                     file.mimetype === 'application/illustrator' ||
+                     file.mimetype === 'application/x-illustrator' ||
+                     file.mimetype === 'image/vnd.adobe.photoshop' ||
+                     file.mimetype === 'application/x-photoshop';
+    
+    if (isAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'), false);
+      cb(new Error('Only image files, PDF, AI, and PSD files are allowed!'), false);
     }
   }
 });

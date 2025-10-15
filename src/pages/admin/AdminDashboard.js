@@ -6,27 +6,55 @@ import EarningsChart from '../../components/admin/EarningsChart';
 import StocksTable from '../../components/admin/StocksTable';
 import RecentOrders from '../../components/admin/RecentOrders';
 import PopularProducts from '../../components/admin/PopularProducts';
+import Orders from '../../components/admin/Orders';
 
 const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('home');
+
+  const renderContent = () => {
+    switch (activePage) {
+      case 'home':
+        return (
+          <div className="dashboard-content">
+            <MetricsCards />
+            <div className="dashboard-grid">
+              <div className="dashboard-left">
+                <EarningsChart />
+              </div>
+              <div className="dashboard-right">
+                <StocksTable />
+                <PopularProducts />
+              </div>
+            </div>
+            <RecentOrders />
+          </div>
+        );
+      case 'orders':
+        return <Orders />;
+      default:
+        return (
+          <div className="dashboard-content">
+            <MetricsCards />
+            <div className="dashboard-grid">
+              <div className="dashboard-left">
+                <EarningsChart />
+              </div>
+              <div className="dashboard-right">
+                <StocksTable />
+                <PopularProducts />
+              </div>
+            </div>
+            <RecentOrders />
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="admin-dashboard">
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
       <div className="admin-main-content">
-        <div className="dashboard-content">
-          <MetricsCards />
-          <div className="dashboard-grid">
-            <div className="dashboard-left">
-              <EarningsChart />
-            </div>
-            <div className="dashboard-right">
-              <StocksTable />
-              <PopularProducts />
-            </div>
-          </div>
-          <RecentOrders />
-        </div>
+        {renderContent()}
       </div>
     </div>
   );

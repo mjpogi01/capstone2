@@ -8,6 +8,8 @@ class CartService {
         throw new Error('User ID is required');
       }
 
+      console.log('🔍 CartService: Fetching cart for user ID:', userId);
+
       // Ensure user exists in database first
       await this.ensureUserExists(userId);
 
@@ -32,6 +34,8 @@ class CartService {
         console.error('Supabase error:', error);
         throw new Error(`Database error: ${error.message}`);
       }
+
+      console.log('🔍 CartService: Found', data?.length || 0, 'cart items for user:', userId);
 
 
       // Transform the data to match the cart item format
@@ -161,12 +165,11 @@ class CartService {
   // Remove item from cart
   async removeFromCart(userId, uniqueId) {
     try {
-      const { data: deleteResult, error } = await supabase
+      const { error } = await supabase
         .from('user_carts')
         .delete()
         .eq('id', uniqueId)
-        .eq('user_id', userId)
-        .select();
+        .eq('user_id', userId);
 
       if (error) {
         console.error('CartService: Supabase delete error:', error);
@@ -270,4 +273,5 @@ class CartService {
   }
 }
 
-export default new CartService();
+const cartService = new CartService();
+export default cartService;

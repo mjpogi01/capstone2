@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { FaTimes, FaTrash, FaMinus, FaPlus, FaShoppingBag, FaUsers, FaChevronDown } from 'react-icons/fa';
+import { FaTimes, FaTrash, FaMinus, FaPlus, FaShoppingBag } from 'react-icons/fa';
 import { useCart } from '../../contexts/CartContext';
+import { useAuth } from '../../contexts/AuthContext';
+import orderService from '../../services/orderService';
 import CheckoutModal from './CheckoutModal';
 import ProductModal from './ProductModal';
 import './CartModal.css';
@@ -23,6 +25,7 @@ const CartModal = () => {
     isAllSelected,
     isItemSelected
   } = useCart();
+  const { user } = useAuth();
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
@@ -69,15 +72,54 @@ const CartModal = () => {
   };
 
   const handleCheckout = () => {
+    const selectedItemsList = cartItems.filter(item => selectedItems.has(item.uniqueId || item.id));
+    console.log('🛒 Proceeding to checkout with items:', selectedItemsList.length);
+    console.log('🛒 Selected items:', selectedItemsList.map(item => ({ id: item.uniqueId || item.id, name: item.name })));
     setShowCheckout(true);
   };
 
-  const handlePlaceOrder = (orderData) => {
-    // Here you would typically send the order to your backend
-    // For now, we'll just close the modals and clear the cart
-    setShowCheckout(false);
-    closeCart();
-    // clearCart(); // Uncomment if you want to clear cart after order
+  const handlePlaceOrder = async (orderData) => {
+    try {
+      if (!user) {
+        alert('Please log in to place an order.');
+        return;
+      }
+
+      console.log('🛒 Creating order from cart with data:', orderData);
+
+      // Format order data for database
+      const formattedOrderData = {
+        user_id: user.id,
+        order_number: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        status: 'pending',
+        shipping_method: orderData.shippingMethod,
+        pickup_location: orderData.selectedLocation || null,
+        delivery_address: orderData.deliveryAddress,
+        order_notes: orderData.orderNotes || null,
+        subtotal_amount: orderData.subtotalAmount,
+        shipping_cost: orderData.shippingCost,
+        total_amount: orderData.totalAmount,
+        total_items: orderData.totalItems,
+        order_items: orderData.items
+      };
+
+      console.log('🛒 Formatted order data:', formattedOrderData);
+
+      // Create order in database
+      const createdOrder = await orderService.createOrder(formattedOrderData);
+      
+      console.log('✅ Order created successfully:', createdOrder);
+      
+      alert(`Order placed successfully! Order #${createdOrder.order_number}. We will contact you soon for confirmation.`);
+      
+      // Close modals and clear selected items from cart
+      setShowCheckout(false);
+      closeCart();
+      
+    } catch (error) {
+      console.error('❌ Error creating order:', error);
+      alert(`Failed to place order: ${error.message}. Please try again.`);
+    }
   };
 
   const handleCloseProductModal = () => {
