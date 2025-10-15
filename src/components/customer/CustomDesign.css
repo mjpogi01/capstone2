@@ -46,10 +46,10 @@
   z-index: 10;
 }
 
-/* Album-like positioning with different rotation angles */
+/* Album-like positioning with different rotation angles - moved closer to center */
 .basketball-player {
-  top: 8%;
-  left: 6%;
+  top: 15%;
+  left: 15%;
   width: 140px;
   height: 200px;
   transform: rotate(-18deg);
@@ -57,8 +57,8 @@
 }
 
 .volleyball-player {
-  bottom: 8%;
-  left: 8%;
+  bottom: 15%;
+  left: 18%;
   width: 140px;
   height: 200px;
   transform: rotate(14deg);
@@ -66,8 +66,8 @@
 }
 
 .basketball1-player {
-  top: 10%;
-  right: 6%;
+  top: 18%;
+  right: 15%;
   width: 140px;
   height: 200px;
   transform: rotate(16deg);
@@ -75,8 +75,8 @@
 }
 
 .football-player {
-  bottom: 10%;
-  right: 8%;
+  bottom: 18%;
+  right: 18%;
   width: 140px;
   height: 200px;
   transform: rotate(-12deg);
@@ -255,26 +255,26 @@
   }
   
   .basketball-player {
-    top: 12%;
-    left: 8%;
+    top: 18%;
+    left: 18%;
     transform: rotate(-15deg);
   }
   
   .basketball1-player {
-    top: 15%;
-    right: 8%;
+    top: 20%;
+    right: 18%;
     transform: rotate(12deg);
   }
   
   .volleyball-player {
-    bottom: 12%;
-    left: 10%;
+    bottom: 18%;
+    left: 20%;
     transform: rotate(10deg);
   }
   
   .football-player {
-    bottom: 15%;
-    right: 10%;
+    bottom: 20%;
+    right: 20%;
     transform: rotate(-10deg);
   }
 }
