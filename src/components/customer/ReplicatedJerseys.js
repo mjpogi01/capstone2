@@ -5,6 +5,7 @@ import productService from '../../services/productService';
 const ReplicatedJerseys = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const fetchReplicatedJerseys = async () => {
@@ -58,13 +59,16 @@ const ReplicatedJerseys = () => {
     );
   }
 
+  const allJerseys = products.length > 0 ? products : pilipinasJerseys;
+  const displayedJerseys = showAll ? allJerseys : allJerseys.slice(0, 6);
+
   return (
     <section className="replicated-jerseys">
       <div className="container">
         <h2 className="section-title">REPLICATED DESIGN JERSEYS</h2>
         <div className="jerseys-grid">
           {products.length > 0 ? (
-            products.map((product, index) => (
+            displayedJerseys.map((product, index) => (
               <div key={product.id || index} className={`jersey-item ${product.color || 'blue'}`}>
                 {product.main_image ? (
                   <img 
@@ -81,7 +85,7 @@ const ReplicatedJerseys = () => {
               </div>
             ))
           ) : (
-            pilipinasJerseys.map((jersey, index) => (
+            displayedJerseys.map((jersey, index) => (
               <div key={index} className={`jersey-item ${jersey.color}`}>
                 <div className="jersey-number">{jersey.number}</div>
                 <div className="jersey-brand">PILIPINAS</div>
@@ -89,6 +93,21 @@ const ReplicatedJerseys = () => {
             ))
           )}
         </div>
+        
+        {/* View More/Show Less Button */}
+        {allJerseys.length > 6 && (
+          <div className="view-all-section">
+            {!showAll ? (
+              <button className="view-all-btn" onClick={() => setShowAll(true)}>
+                VIEW ALL
+              </button>
+            ) : (
+              <button className="view-all-btn show-less" onClick={() => setShowAll(false)}>
+                SHOW LESS
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );
