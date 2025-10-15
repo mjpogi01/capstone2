@@ -44,7 +44,7 @@ const Highlights = () => {
     setBuyerImages(images);
   }, []);
 
-  const visibleImages = showAll ? buyerImages : buyerImages.slice(0, 8);
+  const visibleImages = showAll ? buyerImages : buyerImages.slice(0, 10);
 
   const handleImageClick = (index) => {
     setSelectedImageIndex(index);
