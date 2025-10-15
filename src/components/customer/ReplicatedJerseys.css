@@ -166,4 +166,43 @@
   height: 100%;
   object-fit: cover;
   border-radius: 8px;
+}
+
+/* View All Button Styles */
+.view-all-section {
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.view-all-btn {
+  background: #00bfff;
+  color: #000;
+  border: none;
+  padding: 1rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+  font-family: 'Orbitron', monospace;
+}
+
+.view-all-btn:hover {
+  background: #0099cc;
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+}
+
+.view-all-btn.show-less {
+  background: #666;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(102, 102, 102, 0.3);
+}
+
+.view-all-btn.show-less:hover {
+  background: #555;
+  box-shadow: 0 0 30px rgba(102, 102, 102, 0.5);
 } 

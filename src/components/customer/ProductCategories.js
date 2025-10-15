@@ -89,6 +89,9 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
     product.category && product.category.toLowerCase() === activeCategory.toLowerCase()
   );
   const displayedProducts = showAll ? filteredProducts : filteredProducts.slice(0, 6);
+  
+  // Debug logging
+  console.log(`Category: ${activeCategory}, Total products: ${products.length}, Filtered: ${filteredProducts.length}, Displayed: ${displayedProducts.length}, Show All: ${showAll}`);
 
   const checkScroll = () => {
     if (navRef.current) {
@@ -226,12 +229,18 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
           </div>
         )}
 
-        {/* View All Button */}
-        {filteredProducts.length > 6 && !showAll && (
+        {/* View All/Show Less Button */}
+        {filteredProducts.length > 6 && (
           <div className="view-all-section">
-            <button className="view-all-btn" onClick={() => setShowAll(true)}>
-              VIEW ALL
-            </button>
+            {!showAll ? (
+              <button className="view-all-btn" onClick={() => setShowAll(true)}>
+                VIEW ALL
+              </button>
+            ) : (
+              <button className="view-all-btn show-less" onClick={() => setShowAll(false)}>
+                SHOW LESS
+              </button>
+            )}
           </div>
         )}
       </div>
