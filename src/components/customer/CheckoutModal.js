@@ -592,7 +592,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder }) => {
                                     </div>
                                     <div className="detail-row">
                                       <span className="detail-label">Size:</span>
-                                      <span className="detail-value">{member.size || 'N/A'}</span>
+                                      <span className="detail-value">{member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                     </div>
                                   </div>
                                 ))}
@@ -615,7 +615,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder }) => {
                                 </div>
                                 <div className="detail-row">
                                   <span className="detail-label">Size:</span>
-                                  <span className="detail-value">{item.singleOrderDetails?.size || item.size || 'N/A'}</span>
+                                  <span className="detail-value">{item.singleOrderDetails?.size || item.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                 </div>
                               </div>
                             </div>

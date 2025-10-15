@@ -50,7 +50,8 @@ const CartModal = () => {
             quantity: cartItem.quantity,
             isTeamOrder: cartItem.isTeamOrder,
             teamMembers: cartItem.teamMembers,
-            singleOrderDetails: cartItem.singleOrderDetails
+            singleOrderDetails: cartItem.singleOrderDetails,
+            sizeType: cartItem.sizeType
           }
         };
         
@@ -170,7 +171,7 @@ const CartModal = () => {
                                     <div key={memberIndex} className="compact-member">
                                       <span className="compact-detail surname-detail">Surname: {member.surname || 'N/A'}</span>
                                       <span className="compact-detail">Jersey: {member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
-                                      <span className="compact-detail">Size: {member.size || 'N/A'}</span>
+                                      <span className="compact-detail">Size: {member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                     </div>
                                   ))}
                                 </div>
@@ -179,7 +180,7 @@ const CartModal = () => {
                                   <span className="compact-detail team-name-detail">Team: {item.singleOrderDetails?.teamName || 'N/A'}</span>
                                   <span className="compact-detail surname-detail">Surname: {item.singleOrderDetails?.surname || 'N/A'}</span>
                                   <span className="compact-detail">Jersey: {item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
-                                  <span className="compact-detail">Size: {item.singleOrderDetails?.size || 'N/A'}</span>
+                                  <span className="compact-detail">Size: {item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                 </div>
                               )}
                             </div>

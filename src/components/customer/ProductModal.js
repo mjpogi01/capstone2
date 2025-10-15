@@ -14,6 +14,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [teamName, setTeamName] = useState(existingCartItemData?.teamMembers?.[0]?.teamName || '');
   const [newMember, setNewMember] = useState({ surname: '', number: '', size: 'M' });
   const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
+  const [sizeType, setSizeType] = useState(existingCartItemData?.sizeType || 'adult'); // 'adult' or 'kids'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -32,7 +33,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
   if (!isOpen || !product) return null;
 
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const adultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const kidsSizes = ['2XS', 'XS', 'S', 'M', 'L', 'XL'];
+  const sizes = sizeType === 'adult' ? adultSizes : kidsSizes;
 
   // Mock reviews data
   const reviews = [
@@ -85,12 +88,17 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         await new Promise(resolve => setTimeout(resolve, 200));
       }
 
+      // Calculate price based on size type
+      const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
+      
       const cartOptions = {
         size: selectedSize,
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
         singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+        sizeType: sizeType,
+        price: finalPrice, // Use discounted price for kids
         isReplacement: isFromCart // Mark as replacement when coming from cart
       };
       
@@ -117,12 +125,17 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
+      // Calculate price based on size type
+      const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
+      
       const cartOptions = {
         size: selectedSize,
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
         singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+        sizeType: sizeType,
+        price: finalPrice, // Use discounted price for kids
         isReplacement: isFromCart // Mark as replacement when coming from cart
       };
       
@@ -226,7 +239,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 <div className="modal-product-title">{product.name}</div>
 
                 {/* Price */}
-                <div className="modal-product-price">₱ {parseFloat(product.price).toFixed(2)}</div>
+                <div className="modal-product-price">
+                  {sizeType === 'kids' ? (
+                    <>
+                      <span className="discounted-price">₱ {(parseFloat(product.price) - 200).toFixed(2)}</span>
+                      <span className="original-price">₱ {parseFloat(product.price).toFixed(2)}</span>
+                    </>
+                  ) : (
+                    `₱ ${parseFloat(product.price).toFixed(2)}`
+                  )}
+                </div>
               </div>
 
 
@@ -248,6 +270,33 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 </button>
               </div>
             </div>
+
+            {/* Size Type Toggle for Team Orders */}
+            {isTeamOrder && (
+              <div className="modal-size-type-section">
+                <div className="modal-size-type-label">SIZE TYPE</div>
+                <div className="modal-size-type-buttons">
+                  <button
+                    className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
+                    onClick={() => {
+                      setSizeType('adult');
+                      setNewMember({...newMember, size: 'M'});
+                    }}
+                  >
+                    Adult
+                  </button>
+                  <button
+                    className={`modal-size-type-button ${sizeType === 'kids' ? 'active' : ''}`}
+                    onClick={() => {
+                      setSizeType('kids');
+                      setNewMember({...newMember, size: 'M'});
+                    }}
+                  >
+                    Kids
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Team Members Section */}
             {isTeamOrder && (
@@ -316,6 +365,33 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Size Type Toggle */}
+            {!isTeamOrder && (
+              <div className="modal-size-type-section">
+                <div className="modal-size-type-label">SIZE TYPE</div>
+                <div className="modal-size-type-buttons">
+                  <button
+                    className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
+                    onClick={() => {
+                      setSizeType('adult');
+                      setSingleOrderDetails({...singleOrderDetails, size: 'M'});
+                    }}
+                  >
+                    Adult
+                  </button>
+                  <button
+                    className={`modal-size-type-button ${sizeType === 'kids' ? 'active' : ''}`}
+                    onClick={() => {
+                      setSizeType('kids');
+                      setSingleOrderDetails({...singleOrderDetails, size: 'M'});
+                    }}
+                  >
+                    Kids
+                  </button>
                 </div>
               </div>
             )}
