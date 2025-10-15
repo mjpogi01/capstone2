@@ -1,8 +1,8 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
-const path = require('path');
 const { authenticateSupabaseToken, requireAdminOrOwner, requireOwner } = require('../middleware/supabaseAuth');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // Initialize Supabase client for admin operations
 const supabase = createClient(

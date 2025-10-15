@@ -2,7 +2,7 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const router = express.Router();
 
 // Initialize Supabase client
@@ -101,18 +101,40 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
       branch_id 
     } = req.body;
 
-    const { rows } = await query(`
-      INSERT INTO products (
-        name, category, size, price, description, 
-        main_image, additional_images, stock_quantity, sold_quantity, branch_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *
-    `, [
-      name, category, size, price, description,
-      main_image, additional_images || [], stock_quantity || 0, sold_quantity || 0, branch_id
-    ]);
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        name,
+        category,
+        size,
+        price: parseFloat(price),
+        description,
+        main_image,
+        additional_images: additional_images || [],
+        stock_quantity: stock_quantity ? parseInt(stock_quantity) : 0,
+        sold_quantity: sold_quantity ? parseInt(sold_quantity) : 0,
+        branch_id: branch_id ? parseInt(branch_id) : 1
+      })
+      .select(`
+        *,
+        branches (
+          name
+        )
+      `)
+      .single();
 
-    res.status(201).json(rows[0]);
+    if (error) {
+      console.error('Supabase insert error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Transform the data to match the expected format
+    const transformedData = {
+      ...data,
+      branch_name: data.branches?.name || null
+    };
+
+    res.status(201).json(transformedData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -188,9 +210,19 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
     const { id } = req.params;
-    const { rows } = await query('DELETE FROM products WHERE id = $1 RETURNING *', [id]);
+    const { data, error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
     
-    if (rows.length === 0) {
+    if (error) {
+      console.error('Supabase delete error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+    
+    if (!data) {
       return res.status(404).json({ error: 'Product not found' });
     }
     

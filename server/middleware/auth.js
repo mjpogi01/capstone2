@@ -1,5 +1,13 @@
 const jwt = require('jsonwebtoken');
-const { query } = require('../lib/db');
+const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 // Middleware to verify JWT token
 const authenticateToken = async (req, res, next) => {
@@ -13,17 +21,23 @@ const authenticateToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, 'yohanns_super_secure_jwt_secret_2024_xyz789_abc123_def456_ghi789_jkl012_mno345_pqr678_stu901_vwx234_yz567');
     
-    // Get user details including role and branch_id
-    const { rows } = await query(
-      'SELECT id, email, role, branch_id, first_name, last_name FROM users WHERE id = $1',
-      [decoded.sub]
-    );
-
-    if (rows.length === 0) {
+    // Get user details including role and branch_id from Supabase
+    const { data: userData, error } = await supabase.auth.admin.getUserById(decoded.sub);
+    
+    if (error || !userData.user) {
       return res.status(401).json({ error: 'User not found' });
     }
-
-    req.user = rows[0];
+    
+    const user = userData.user;
+    
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.user_metadata?.role || 'customer',
+      branch_id: user.user_metadata?.branch_id || null,
+      first_name: user.user_metadata?.first_name || null,
+      last_name: user.user_metadata?.last_name || null
+    };
     next();
   } catch (error) {
     return res.status(403).json({ error: 'Invalid or expired token' });

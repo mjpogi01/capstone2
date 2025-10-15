@@ -1,19 +1,31 @@
 const express = require('express');
-const { query } = require('../lib/db');
+const { createClient } = require('@supabase/supabase-js');
 const { authenticateSupabaseToken, requireRole } = require('../middleware/supabaseAuth');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 const router = express.Router();
 
 // Get all branches
 router.get('/', authenticateSupabaseToken, requireRole(['admin', 'owner']), async (req, res) => {
   try {
-    const { rows } = await query(`
-      SELECT id, name, address, city, phone, email, created_at
-      FROM branches 
-      ORDER BY name
-    `);
+    const { data: branches, error } = await supabase
+      .from('branches')
+      .select('id, name, address, city, phone, email, created_at')
+      .order('name');
 
-    res.json(rows);
+    if (error) {
+      console.error('Supabase error fetching branches:', error);
+      return res.status(500).json({ error: 'Failed to fetch branches' });
+    }
+
+    res.json(branches);
   } catch (error) {
     console.error('Error fetching branches:', error);
     res.status(500).json({ error: 'Failed to fetch branches' });
@@ -24,17 +36,22 @@ router.get('/', authenticateSupabaseToken, requireRole(['admin', 'owner']), asyn
 router.get('/:id', authenticateSupabaseToken, requireRole(['admin', 'owner']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { rows } = await query(`
-      SELECT id, name, address, city, phone, email, created_at
-      FROM branches 
-      WHERE id = $1
-    `, [id]);
+    const { data: branch, error } = await supabase
+      .from('branches')
+      .select('id, name, address, city, phone, email, created_at')
+      .eq('id', id)
+      .single();
 
-    if (rows.length === 0) {
+    if (error) {
+      console.error('Supabase error fetching branch:', error);
+      return res.status(500).json({ error: 'Failed to fetch branch' });
+    }
+
+    if (!branch) {
       return res.status(404).json({ error: 'Branch not found' });
     }
 
-    res.json(rows[0]);
+    res.json(branch);
   } catch (error) {
     console.error('Error fetching branch:', error);
     res.status(500).json({ error: 'Failed to fetch branch' });

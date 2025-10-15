@@ -1,9 +1,8 @@
 const express = require('express');
-const { query } = require('../lib/db');
 const { authenticateSupabaseToken, requireAdminOrOwner, requireOwner, requireBranchAccess } = require('../middleware/supabaseAuth');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // Initialize Supabase client for admin operations
 const supabase = createClient(
@@ -36,8 +35,17 @@ router.get('/dashboard', requireAdminOrOwner, async (req, res) => {
 // Get all branches (owner only)
 router.get('/branches', requireOwner, async (req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM branches ORDER BY id');
-    res.json({ branches: rows });
+    const { data: branches, error } = await supabase
+      .from('branches')
+      .select('*')
+      .order('id');
+    
+    if (error) {
+      console.error('Supabase error fetching branches:', error);
+      return res.status(500).json({ error: 'Failed to fetch branches' });
+    }
+    
+    res.json({ branches });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch branches' });
   }
@@ -72,11 +80,15 @@ router.get('/users', requireOwner, async (req, res) => {
         let branchName = null;
         if (user.user_metadata?.branch_id) {
           try {
-            const { rows } = await query(
-              'SELECT name FROM branches WHERE id = $1',
-              [user.user_metadata.branch_id]
-            );
-            branchName = rows[0]?.name || null;
+            const { data: branchData, error: branchError } = await supabase
+              .from('branches')
+              .select('name')
+              .eq('id', user.user_metadata.branch_id)
+              .single();
+            
+            if (!branchError && branchData) {
+              branchName = branchData.name;
+            }
           } catch (err) {
             console.error('Error fetching branch name:', err);
           }
