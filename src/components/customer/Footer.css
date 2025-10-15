@@ -108,6 +108,19 @@
   font-family: 'Orbitron', monospace;
 }
 
+.contact-link {
+  color: #ffffff;
+  font-size: 0.9rem;
+  text-decoration: none;
+  font-family: 'Orbitron', monospace;
+  transition: color 0.3s ease;
+}
+
+.contact-link:hover {
+  color: #00bfff;
+  text-decoration: underline;
+}
+
 .footer-bottom {
   border-top: 1px solid rgba(0, 191, 255, 0.2);
   padding-top: 1.5rem;

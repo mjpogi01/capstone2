@@ -43,7 +43,14 @@ const Footer = () => {
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="currentColor"/>
                 </svg>
               </span>
-              <span className="contact-text">Yohann's Sportswear House</span>
+              <a 
+                href="https://www.facebook.com/princeyohannsportswear" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="contact-link"
+              >
+                Yohann's Sportswear House
+              </a>
             </div>
             <div className="contact-item">
               <span className="contact-icon" aria-hidden="true">
@@ -52,7 +59,12 @@ const Footer = () => {
                   <path d="M22 8l-10 6L2 8" fill="none" stroke="currentColor" strokeWidth="2"/>
                 </svg>
               </span>
-              <span className="contact-text">yohanns.sportswear@gmail.com</span>
+              <a 
+                href="mailto:yohanns.sportswear@gmail.com"
+                className="contact-link"
+              >
+                yohanns.sportswear@gmail.com
+              </a>
             </div>
             <div className="contact-item">
               <span className="contact-icon" aria-hidden="true">
@@ -60,7 +72,12 @@ const Footer = () => {
                   <path d="M6.6 10.8a15.8 15.8 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11 11 0 0 0 3.5.6 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 7a1 1 0 0 1 1-1h3.4a1 1 0 0 1 1 1 11 11 0 0 0 .6 3.5 1 1 0 0 1-.25 1z" fill="currentColor"/>
                 </svg>
               </span>
-              <span className="contact-text">(043) 300-1633 / 0917 139 5661</span>
+              <a 
+                href="tel:+63433001633"
+                className="contact-link"
+              >
+                (043) 300-1633 / 0917 139 5661
+              </a>
             </div>
           </div>
         </div>
