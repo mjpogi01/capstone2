@@ -58,7 +58,12 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const addToWishlist = async (product) => {
+    console.log('=== ADD TO WISHLIST CALLED ===');
+    console.log('User:', user);
+    console.log('Product:', product);
+    
     if (!user) {
+      console.log('No user found, returning early');
       return;
     }
 
@@ -66,13 +71,18 @@ export const WishlistProvider = ({ children }) => {
     setError(null);
 
     try {
+      console.log('Calling wishlistService.addToWishlist');
       const newWishlistItem = await wishlistService.addToWishlist(user.id, product);
+      console.log('New wishlist item:', newWishlistItem);
+      
       setWishlistItems(prevItems => {
         // Check if item already exists
         const existingItem = prevItems.find(item => item.id === product.id);
         if (existingItem) {
+          console.log('Item already exists, not adding duplicate');
           return prevItems; // Don't add duplicates
         }
+        console.log('Adding new item to wishlist state');
         return [...prevItems, newWishlistItem];
       });
     } catch (error) {
@@ -84,16 +94,28 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const removeFromWishlist = async (productId) => {
-    if (!user) return;
+    console.log('=== REMOVE FROM WISHLIST CALLED ===');
+    console.log('User:', user);
+    console.log('Product ID:', productId);
+    
+    if (!user) {
+      console.log('No user found, returning early');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log('Calling wishlistService.removeFromWishlist');
       await wishlistService.removeFromWishlist(user.id, productId);
-      setWishlistItems(prevItems => 
-        prevItems.filter(item => item.id !== productId)
-      );
+      console.log('Successfully removed from database');
+      
+      setWishlistItems(prevItems => {
+        const filteredItems = prevItems.filter(item => item.id !== productId);
+        console.log('Updated wishlist items:', filteredItems);
+        return filteredItems;
+      });
     } catch (error) {
       console.error('Error removing from wishlist:', error);
       setError('Failed to remove item from wishlist');
@@ -103,13 +125,24 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const toggleWishlist = async (product) => {
-    if (!user) return;
+    console.log('=== TOGGLE WISHLIST CALLED ===');
+    console.log('User:', user);
+    console.log('Product:', product);
+    console.log('Current wishlist items:', wishlistItems);
+    
+    if (!user) {
+      console.log('No user found, returning early');
+      return;
+    }
 
     const isInWishlist = wishlistItems.some(item => item.id === product.id);
+    console.log('Is in wishlist:', isInWishlist);
     
     if (isInWishlist) {
+      console.log('Removing from wishlist');
       await removeFromWishlist(product.id);
     } else {
+      console.log('Adding to wishlist');
       await addToWishlist(product);
     }
   };
