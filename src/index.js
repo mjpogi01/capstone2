@@ -4,6 +4,34 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Handle Ethereum extension conflicts
+window.addEventListener('error', (event) => {
+  if (event.message && event.message.includes('Cannot redefine property: ethereum')) {
+    console.warn('Ethereum extension conflict detected and handled gracefully');
+    event.preventDefault();
+    return false;
+  }
+});
+
+// Prevent Ethereum property redefinition errors
+if (typeof window !== 'undefined') {
+  const originalDefineProperty = Object.defineProperty;
+  Object.defineProperty = function(obj, prop, descriptor) {
+    if (prop === 'ethereum' && obj === window) {
+      try {
+        return originalDefineProperty.call(this, obj, prop, descriptor);
+      } catch (error) {
+        if (error.message.includes('Cannot redefine property')) {
+          console.warn('Ethereum property already exists, skipping redefinition');
+          return obj;
+        }
+        throw error;
+      }
+    }
+    return originalDefineProperty.call(this, obj, prop, descriptor);
+  };
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

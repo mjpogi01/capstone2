@@ -58,20 +58,20 @@ const EarningsChart = () => {
             
             {/* Area under the curve */}
             <path
-              d={`M 0,200 ${earningsData.map((d, i) => {
+              d={`M0,200 ${earningsData.map((d, i) => {
                 const x = (i / (earningsData.length - 1)) * 400;
                 const y = 200 - ((d.value - minValue) / (maxValue - minValue)) * 180;
-                return `L ${x},${y}`;
-              }).join(' ')} L 400,200 Z`}
+                return `L${x},${y}`;
+              }).join(' ')} L400,200 Z`}
               fill="url(#earningsGradient)"
             />
             
             {/* Line */}
             <path
-              d={`M ${earningsData.map((d, i) => {
+              d={`M${earningsData.map((d, i) => {
                 const x = (i / (earningsData.length - 1)) * 400;
                 const y = 200 - ((d.value - minValue) / (maxValue - minValue)) * 180;
-                return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
+                return `${i === 0 ? '' : 'L'}${x},${y}`;
               }).join(' ')}`}
               stroke="#3b82f6"
               strokeWidth="2"

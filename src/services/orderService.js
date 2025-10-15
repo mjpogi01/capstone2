@@ -147,7 +147,8 @@ class OrderService {
       orderDate: order.created_at,
       orderItems: order.order_items,
       deliveryAddress: order.delivery_address,
-      orderNotes: order.order_notes
+      orderNotes: order.order_notes,
+      designFiles: order.design_files || []
     };
   }
 }
