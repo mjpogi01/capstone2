@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Inventory.css';
 import Sidebar from '../../components/admin/Sidebar';
 import AddProductModal from '../../components/admin/AddProductModal';
+import { supabase } from '../../lib/supabase';
 
 const Inventory = () => {
   const [activePage, setActivePage] = useState('inventory');
@@ -128,12 +129,33 @@ const Inventory = () => {
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await fetch(`http://localhost:4000/api/products/${productId}`, {
-          method: 'DELETE'
+        // Get current session for authentication
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          alert('Please log in to delete products');
+          return;
+        }
+
+        const response = await fetch(`http://localhost:4000/api/products/${productId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          }
         });
-        setProducts(products.filter(p => p.id !== productId));
+
+        if (response.ok) {
+          setProducts(products.filter(p => p.id !== productId));
+          console.log('Product deleted successfully');
+        } else {
+          const errorData = await response.json();
+          console.error('Delete failed:', errorData.error);
+          alert(`Failed to delete product: ${errorData.error}`);
+        }
       } catch (error) {
         console.error('Error deleting product:', error);
+        alert('Failed to delete product. Please try again.');
       }
     }
   };

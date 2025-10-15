@@ -20,6 +20,34 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState(null); // Track which slot is uploading
   const [uploadingAdditionalIndex, setUploadingAdditionalIndex] = useState(null); // Track which additional slot is uploading
+  const [branches, setBranches] = useState([]);
+  const [loadingBranches, setLoadingBranches] = useState(true);
+
+  // Fetch branches from API
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const response = await fetch('http://localhost:4000/api/branches');
+        if (response.ok) {
+          const branchesData = await response.json();
+          setBranches(branchesData);
+          // Set default branch to San Pascual (main manufacturing branch)
+          const mainBranch = branchesData.find(branch => branch.is_main_manufacturing);
+          if (mainBranch && !isEditMode) {
+            setFormData(prev => ({ ...prev, branch_id: mainBranch.id }));
+          }
+        } else {
+          console.error('Failed to fetch branches');
+        }
+      } catch (error) {
+        console.error('Error fetching branches:', error);
+      } finally {
+        setLoadingBranches(false);
+      }
+    };
+
+    fetchBranches();
+  }, [isEditMode]);
 
   // Pre-populate form when editing
   useEffect(() => {
@@ -435,16 +463,17 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                   name="branch_id"
                   value={formData.branch_id}
                   onChange={handleInputChange}
+                  disabled={loadingBranches}
                 >
-                  <option value="1">Main Branch</option>
-                  <option value="2">Mall Branch</option>
-                  <option value="3">Downtown Branch</option>
-                  <option value="4">Suburb Branch</option>
-                  <option value="5">Coastal Branch</option>
-                  <option value="6">University Branch</option>
-                  <option value="7">Industrial Branch</option>
-                  <option value="8">Residential Branch</option>
-                  <option value="9">Business Branch</option>
+                  {loadingBranches ? (
+                    <option value="">Loading branches...</option>
+                  ) : (
+                    branches.map(branch => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name} {branch.is_main_manufacturing ? '(Main Manufacturing)' : ''}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <small className="form-help">Select the branch for this product</small>
               </div>

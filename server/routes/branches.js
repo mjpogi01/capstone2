@@ -12,12 +12,12 @@ const supabase = createClient(
 
 const router = express.Router();
 
-// Get all branches
-router.get('/', authenticateSupabaseToken, requireRole(['admin', 'owner']), async (req, res) => {
+// Get all branches (public endpoint for customers)
+router.get('/', async (req, res) => {
   try {
     const { data: branches, error } = await supabase
       .from('branches')
-      .select('id, name, address, city, phone, email, created_at')
+      .select('id, name, address, city, phone, email, is_main_manufacturing, created_at')
       .order('name');
 
     if (error) {
@@ -32,13 +32,13 @@ router.get('/', authenticateSupabaseToken, requireRole(['admin', 'owner']), asyn
   }
 });
 
-// Get branch by ID
-router.get('/:id', authenticateSupabaseToken, requireRole(['admin', 'owner']), async (req, res) => {
+// Get branch by ID (public endpoint for customers)
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { data: branch, error } = await supabase
       .from('branches')
-      .select('id, name, address, city, phone, email, created_at')
+      .select('id, name, address, city, phone, email, is_main_manufacturing, created_at')
       .eq('id', id)
       .single();
 
