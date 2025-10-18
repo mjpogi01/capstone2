@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './FAQs.css';
 
 const FAQs = () => {
   const [openFAQ, setOpenFAQ] = useState(null);
+  const navigate = useNavigate();
 
   const faqs = [
     {
@@ -90,9 +92,12 @@ const FAQs = () => {
             <a href="/branches" className="faqs-contact-button primary">
               Visit Our Branches
             </a>
-            <a href="#contacts" className="faqs-contact-button secondary">
+            <button 
+              onClick={() => navigate('/contacts')} 
+              className="faqs-contact-button secondary"
+            >
               Contact Us
-            </a>
+            </button>
           </div>
         </div>
       </div>

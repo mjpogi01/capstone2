@@ -83,6 +83,31 @@ class OrderService {
     }
   }
 
+  async getUserOrders(userId, excludeCancelled = true) {
+    try {
+      let query = supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', userId);
+
+      // Exclude cancelled orders by default
+      if (excludeCancelled) {
+        query = query.neq('status', 'cancelled');
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      return (data || []).map(order => this.formatOrderForDisplay(order));
+    } catch (error) {
+      console.error('Error fetching user orders:', error);
+      throw error;
+    }
+  }
+
   async updateOrderStatus(orderId, status) {
     try {
       const { data, error } = await supabase

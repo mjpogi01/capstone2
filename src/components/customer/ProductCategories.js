@@ -5,7 +5,7 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProductModal from './ProductModal'; // Add this import
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
-import { useCart } from '../../contexts/CartContext';
+// import { useCart } from '../../contexts/CartContext'; // Removed unused import
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
@@ -21,40 +21,16 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const { openSignIn } = useModal();
-  const { addToCart } = useCart();
-  const { toggleWishlist, isInWishlist, wishlistItems } = useWishlist();
+  // const { addToCart } = useCart(); // Removed unused import
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
 
   const handleToggleWishlist = async (product) => {
-    console.log('=== HEART BUTTON CLICKED ===');
-    console.log('Product:', product);
-    console.log('Product ID:', product.id, 'Type:', typeof product.id);
-    console.log('User authenticated:', isAuthenticated);
-    console.log('Current wishlist items:', wishlistItems);
-    console.log('Is in wishlist:', isInWishlist(product.id));
-    
     if (!isAuthenticated) {
-      console.log('User not authenticated, opening sign in modal');
       openSignIn();
       return;
     }
-    
-    console.log('Toggling wishlist for product:', product.id);
-    try {
-      await toggleWishlist(product);
-      console.log('Toggle completed successfully');
-    } catch (error) {
-      console.error('Error in toggleWishlist:', error);
-    }
-  };
-
-  // Test function to manually add an item
-  const testAddToWishlist = () => {
-    if (displayedProducts.length > 0) {
-      const testProduct = displayedProducts[0];
-      console.log('Testing with first product:', testProduct);
-      handleToggleWishlist(testProduct);
-    }
+    await toggleWishlist(product);
   };
 
   // Add this function to handle opening the modal
@@ -69,16 +45,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
     setSelectedProduct(null);
   };
 
-  // Add this function to handle adding to cart
-  const handleAddToCart = (cartItem) => {
-    addToCart(cartItem.product, {
-      size: cartItem.size,
-      quantity: cartItem.quantity,
-      isTeamOrder: cartItem.isTeamOrder,
-      teamMembers: cartItem.teamMembers,
-      singleOrderDetails: cartItem.singleOrderDetails
-    });
-  };
+  // Removed unused handleAddToCart function
 
   const categories = [
     { id: 'jerseys', name: 'JERSEYS' },
@@ -199,24 +166,6 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
         )}
       </div>
 
-      {/* Temporary test button */}
-      <div style={{ textAlign: 'center', margin: '10px 0' }}>
-        <button 
-          onClick={testAddToWishlist}
-          style={{
-            padding: '8px 16px',
-            background: '#00bfff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}
-        >
-          Test Wishlist (Add First Product)
-        </button>
-      </div>
-
       {/* Products */}
       <div className="products-container">
         {loading ? (
@@ -251,7 +200,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
                     )}
                   </div>
                   <div className="product-info">
-                    <h3 className="product-brand">Yohann's Sportswear</h3>
+                    <div className="product-brand"></div>
                     <p className="product-name">{product.name}</p>
                     <div className="product-price">₱ {parseFloat(product.price).toFixed(2)}</div>
                   </div>
@@ -263,15 +212,11 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
                     handleToggleWishlist(product);
                   }}
                 >
-                  {(() => {
-                    const inWishlist = isInWishlist(product.id);
-                    console.log(`Product ${product.id} (${product.name}) - In wishlist: ${inWishlist}`);
-                    return inWishlist ? (
-                      <AiFillHeart color="red" />
-                    ) : (
-                      <AiOutlineHeart />
-                    );
-                  })()}
+                  {isInWishlist(product.id) ? (
+                    <AiFillHeart color="red" />
+                  ) : (
+                    <AiOutlineHeart />
+                  )}
                 </button>
               </div>
             ))}

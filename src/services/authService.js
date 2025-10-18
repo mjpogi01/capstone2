@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import userProfileService from './userProfileService';
 
 class AuthService {
   async signUp(userData) {
@@ -19,6 +20,23 @@ class AuthService {
 
       if (error) {
         throw new Error(error.message || 'Sign up failed');
+      }
+
+      // Create user profile if user was created successfully
+      if (data.user) {
+        try {
+          await userProfileService.createUserProfile(data.user.id, {
+            full_name: userData.fullName,
+            phone: userData.phone,
+            gender: userData.gender || 'Male',
+            date_of_birth: userData.dateOfBirth,
+            address: userData.address,
+            avatar_url: null
+          });
+        } catch (profileError) {
+          console.error('Error creating user profile:', profileError);
+          // Don't throw error here as the user account was created successfully
+        }
       }
 
       return {

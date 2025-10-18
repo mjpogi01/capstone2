@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -17,8 +17,7 @@ const RoleRedirect = () => {
                            currentPath.startsWith('/inventory');
       
       // Define customer pages that should be accessible
-      const customerPages = ['/', '/about', '/highlights', '/branches', '/faqs', '/contacts'];
-      const isOnCustomerPage = customerPages.includes(currentPath);
+      // const customerPages = ['/', '/about', '/highlights', '/branches', '/faqs', '/contacts'];
       
       // Get user role from metadata
       const role = user.user_metadata?.role || 'customer';

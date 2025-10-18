@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext';
 import cartService from '../services/cartService';
 
 const CartContext = createContext();
@@ -14,6 +15,7 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const { user } = useAuth();
+  const { showCartUpdate, showError } = useNotification();
   const [cartItems, setCartItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -76,7 +78,7 @@ export const CartProvider = ({ children }) => {
     const cartItem = {
       id: product.id,
       name: product.name,
-      price: parseFloat(product.price),
+      price: parseFloat(options.price || product.price), // Use custom price if provided
       image: product.main_image || product.image || '/images/placeholder-jersey.png',
       size,
       quantity,
@@ -97,6 +99,15 @@ export const CartProvider = ({ children }) => {
     setError(null);
 
     try {
+      // Validate required fields before making API call
+      if (!product.id || !product.name) {
+        throw new Error('Invalid product data');
+      }
+
+      if (!user.id) {
+        throw new Error('User not authenticated');
+      }
+
       const newCartItem = await cartService.addToCart(user.id, cartItem);
       
       setCartItems(prevItems => {
@@ -122,6 +133,9 @@ export const CartProvider = ({ children }) => {
         return updatedItems;
       });
 
+      // Show success notification
+      showCartUpdate('added', product.name);
+
       // Auto-select the newly added item for Buy Now functionality
       if (options.isBuyNow) {
         console.log('🛒 Auto-selecting item for Buy Now:', newCartItem.uniqueId || newCartItem.id);
@@ -144,6 +158,19 @@ export const CartProvider = ({ children }) => {
     } catch (error) {
       console.error('Error adding to cart:', error);
       setError('Failed to add item to cart');
+      
+      // Show specific error message based on error type
+      if (error.message.includes('Invalid product data')) {
+        showError('Invalid Product', 'Product information is missing. Please try again.');
+      } else if (error.message.includes('User not authenticated')) {
+        showError('Login Required', 'Please log in to add items to cart.');
+      } else if (error.message.includes('Invalid product ID')) {
+        showError('Product Error', 'Invalid product. Please refresh and try again.');
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        showError('Network Error', 'Please check your internet connection and try again.');
+      } else {
+        showError('Cart Error', 'Failed to add item to cart. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -181,6 +208,7 @@ export const CartProvider = ({ children }) => {
     } catch (error) {
       console.error('Error removing from cart:', error);
       setError('Failed to remove item from cart');
+      showError('Cart Error', 'Failed to remove item from cart. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -229,6 +257,7 @@ export const CartProvider = ({ children }) => {
     try {
       await cartService.clearCart(user.id);
       setCartItems([]);
+      setSelectedItems(new Set()); // Clear selected items as well
     } catch (error) {
       console.error('Error clearing cart:', error);
       setError('Failed to clear cart');

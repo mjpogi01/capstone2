@@ -149,6 +149,9 @@
   font-weight: bold;
   transition: all 0.3s ease;
   display: inline-block;
+  cursor: pointer;
+  border: none;
+  font-size: inherit;
 }
 
 .faqs-contact-button.primary {
