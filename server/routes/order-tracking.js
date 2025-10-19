@@ -118,35 +118,52 @@ router.get('/review/:orderId', async (req, res) => {
   }
 });
 
-// Add order review
+// Add order review (Universal - works for ALL orders)
 router.post('/review', async (req, res) => {
   try {
-    const { orderId, userId, rating, comment } = req.body;
+    const { orderId, userId, rating, comment, reviewType = 'general' } = req.body;
     
-    // Check if order is COD before allowing review
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+
+    // Check if order exists (any order type)
     const orderCheck = await query(`
-      SELECT shipping_method FROM orders WHERE id = $1
+      SELECT id, status, shipping_method FROM orders WHERE id = $1
     `, [orderId]);
 
     if (orderCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    if (orderCheck.rows[0].shipping_method !== 'cod') {
+    const order = orderCheck.rows[0];
+    
+    // Allow reviews for all order types and statuses
+    // Only restrict if order is cancelled or refunded
+    if (order.status === 'cancelled' || order.status === 'refunded') {
       return res.status(400).json({ 
-        error: 'Order reviews are only available for Cash on Delivery (COD) orders' 
+        error: 'Reviews are not available for cancelled or refunded orders' 
       });
     }
     
     const result = await query(`
-      INSERT INTO order_reviews (order_id, user_id, rating, comment)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO order_reviews (order_id, user_id, rating, comment, review_type)
+      VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (order_id, user_id) 
-      DO UPDATE SET rating = EXCLUDED.rating, comment = EXCLUDED.comment, updated_at = NOW()
+      DO UPDATE SET 
+        rating = EXCLUDED.rating, 
+        comment = EXCLUDED.comment, 
+        review_type = EXCLUDED.review_type,
+        updated_at = NOW()
       RETURNING *
-    `, [orderId, userId, rating, comment]);
+    `, [orderId, userId, rating, comment, reviewType]);
 
-    res.json(result.rows[0]);
+    res.json({
+      success: true,
+      message: 'Review submitted successfully',
+      review: result.rows[0]
+    });
   } catch (error) {
     console.error('Error adding order review:', error);
     res.status(500).json({ error: 'Failed to add order review' });
@@ -314,6 +331,126 @@ router.get('/status/:orderId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching current order status:', error);
     res.status(500).json({ error: 'Failed to fetch current order status' });
+  }
+});
+
+// Get all reviews for an order (Universal)
+router.get('/reviews/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const result = await query(`
+      SELECT 
+        r.*,
+        u.email as user_email,
+        u.user_metadata->>'full_name' as user_name
+      FROM order_reviews r
+      LEFT JOIN auth.users u ON r.user_id = u.id
+      WHERE r.order_id = $1
+      ORDER BY r.created_at DESC
+    `, [orderId]);
+
+    res.json({
+      success: true,
+      reviews: result.rows,
+      total: result.rows.length
+    });
+  } catch (error) {
+    console.error('Error fetching order reviews:', error);
+    res.status(500).json({ error: 'Failed to fetch order reviews' });
+  }
+});
+
+// Get all reviews by a user (Universal)
+router.get('/user-reviews/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const result = await query(`
+      SELECT 
+        r.*,
+        o.order_number,
+        o.total_amount,
+        o.status as order_status
+      FROM order_reviews r
+      JOIN orders o ON r.order_id = o.id
+      WHERE r.user_id = $1
+      ORDER BY r.created_at DESC
+    `, [userId]);
+
+    res.json({
+      success: true,
+      reviews: result.rows,
+      total: result.rows.length
+    });
+  } catch (error) {
+    console.error('Error fetching user reviews:', error);
+    res.status(500).json({ error: 'Failed to fetch user reviews' });
+  }
+});
+
+// Get review statistics for an order
+router.get('/review-stats/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const result = await query(`
+      SELECT 
+        COUNT(*) as total_reviews,
+        AVG(rating) as average_rating,
+        COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star,
+        COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
+        COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
+        COUNT(CASE WHEN rating = 2 THEN 1 END) as two_star,
+        COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
+      FROM order_reviews 
+      WHERE order_id = $1
+    `, [orderId]);
+
+    const stats = result.rows[0];
+    
+    res.json({
+      success: true,
+      statistics: {
+        totalReviews: parseInt(stats.total_reviews),
+        averageRating: parseFloat(stats.average_rating || 0).toFixed(1),
+        ratingDistribution: {
+          fiveStar: parseInt(stats.five_star),
+          fourStar: parseInt(stats.four_star),
+          threeStar: parseInt(stats.three_star),
+          twoStar: parseInt(stats.two_star),
+          oneStar: parseInt(stats.one_star)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching review statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch review statistics' });
+  }
+});
+
+// Update database schema to support review types
+router.post('/migrate-reviews', async (req, res) => {
+  try {
+    // Add review_type column if it doesn't exist
+    await query(`
+      ALTER TABLE order_reviews 
+      ADD COLUMN IF NOT EXISTS review_type VARCHAR(50) DEFAULT 'general'
+    `);
+
+    // Add index for better performance
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_order_reviews_type 
+      ON order_reviews(review_type)
+    `);
+
+    res.json({
+      success: true,
+      message: 'Review system migrated successfully'
+    });
+  } catch (error) {
+    console.error('Error migrating review system:', error);
+    res.status(500).json({ error: 'Failed to migrate review system' });
   }
 });
 
