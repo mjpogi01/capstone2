@@ -114,6 +114,11 @@
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .add-review-btn:hover {
@@ -129,6 +134,24 @@
   border-radius: 12px;
   padding: 2rem;
   margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.review-form-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #00bfff, #0099cc, #00bfff);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .review-form h4 {
@@ -141,6 +164,7 @@
 
 .form-group {
   margin-bottom: 1.5rem;
+  position: relative;
 }
 
 .form-group label {
@@ -155,21 +179,28 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .star-rating {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
 }
 
 .star {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  padding: 0.25rem;
+  border-radius: 50%;
 }
 
 .star.filled {
   color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .star.empty {
@@ -177,7 +208,8 @@
 }
 
 .star:hover {
-  transform: scale(1.1);
+  transform: scale(1.2);
+  background: rgba(255, 215, 0, 0.1);
 }
 
 .rating-text {
@@ -227,7 +259,11 @@
 .form-actions {
   display: flex;
   gap: 1rem;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 191, 255, 0.2);
 }
 
 .cancel-btn {
@@ -235,13 +271,20 @@
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.75rem 1.5rem;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-width: 120px;
+  text-align: center;
 }
 
 .cancel-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
 }
 
 .submit-btn {
@@ -249,21 +292,27 @@
   color: #000;
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 0.95rem;
+  min-width: 120px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.3);
 }
 
 .submit-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #0099cc, #007aa3);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.4);
 }
 
 .submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* Reviews List */
@@ -439,11 +488,13 @@
   
   .form-actions {
     flex-direction: column;
+    gap: 0.75rem;
   }
   
   .cancel-btn,
   .submit-btn {
     width: 100%;
+    min-width: unset;
   }
 }
 

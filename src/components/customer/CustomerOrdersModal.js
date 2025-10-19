@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import orderTrackingService from '../../services/orderTrackingService';
-import UniversalOrderReview from './UniversalOrderReview';
+import SimpleOrderReview from './SimpleOrderReview';
 import './CustomerOrdersModal.css';
 
 const CustomerOrdersModal = ({ isOpen, onClose }) => {
@@ -436,20 +436,21 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         )}
                       </div>
 
-                      {/* Review Section - Only for COD orders */}
-                      {/* Universal Review System - Works for ALL orders */}
-                      <div className="universal-review-section">
-                        <UniversalOrderReview 
-                          orderId={order.id}
-                          orderNumber={order.orderNumber}
-                          onReviewSubmit={(review) => {
-                            setOrderReviews(prev => ({
-                              ...prev,
-                              [order.id]: review
-                            }));
-                          }}
-                        />
-                      </div>
+                      {/* Simple Review Section - Only for delivered orders */}
+                      {order.status.toLowerCase() === 'delivered' && (
+                        <div className="simple-review-section">
+                          <SimpleOrderReview 
+                            orderId={order.id}
+                            orderNumber={order.orderNumber}
+                            onReviewSubmit={(review) => {
+                              setOrderReviews(prev => ({
+                                ...prev,
+                                [order.id]: review
+                              }));
+                            }}
+                          />
+                        </div>
+                      )}
 
                       {/* Cancel Button - Only show for pending orders */}
                       {order.status.toLowerCase() === 'pending' && (
