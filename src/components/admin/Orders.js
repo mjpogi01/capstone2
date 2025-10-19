@@ -206,6 +206,161 @@ const Orders = () => {
     }));
   };
 
+  // Cross-platform file manager opener
+  const openFileManager = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+    
+    if (isMobile) {
+      // For mobile devices, show a message instead of trying to open file manager
+      alert('Files downloaded successfully! Check your Downloads folder or file manager app.');
+      return;
+    }
+    
+    // Simple approach - just show a success message
+    // File manager opening can be unreliable across different browsers and systems
+    alert('Files downloaded successfully! Check your Downloads folder.');
+    
+    // Optional: Try to open file manager (may not work in all browsers)
+    try {
+      if (userAgent.includes('windows')) {
+        // Windows - try to open Downloads folder
+        window.open('file:///C:/Users/' + (navigator.userAgent.includes('Windows') ? 'User' : 'User') + '/Downloads', '_blank');
+      } else if (userAgent.includes('mac')) {
+        // macOS - try to open Downloads folder
+        window.open('file:///Users/' + (navigator.userAgent.includes('Mac') ? 'User' : 'User') + '/Downloads', '_blank');
+      } else {
+        // Fallback for other systems
+        window.open('file:///' + (navigator.userAgent.includes('Mac') ? '~/Downloads' : '~/Downloads'), '_blank');
+      }
+    } catch (error) {
+      // Silently fail - the alert message is sufficient
+      console.log('File manager opening not supported in this browser.');
+    }
+  };
+
+  // Download individual file with original filename
+  const handleDownloadFile = async (file) => {
+    try {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      
+      if (isMobile) {
+        // For mobile devices, open in new tab for better compatibility
+        window.open(file.url, '_blank');
+        setTimeout(() => {
+          alert('File opened in new tab. Long press to download or save to device.');
+        }, 500);
+        return;
+      }
+      
+      // For desktop: Fetch and download with original filename
+      console.log('Starting download for:', file.filename);
+      
+      const response = await fetch(file.url);
+      const blob = await response.blob();
+      
+      // Create download link with original filename
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.filename; // Use original filename
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('Download triggered successfully');
+      
+      // Open file manager after download
+      setTimeout(() => {
+        openFileManager();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  };
+
+  // Download all files as a zip
+  const handleDownloadAll = async (files) => {
+    try {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      
+      // Show loading state
+      const downloadAllBtn = document.querySelector('.download-all-btn');
+      downloadAllBtn.textContent = '⏳ Downloading...';
+      downloadAllBtn.disabled = true;
+
+      if (isMobile) {
+        // For mobile devices, download files individually
+        alert('Mobile download: Files will be downloaded individually. Please wait...');
+        
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          setTimeout(() => {
+            window.open(file.url, '_blank');
+          }, i * 1000); // Stagger downloads to avoid overwhelming the device
+        }
+        
+        setTimeout(() => {
+          alert('All files opened in new tabs. Long press each tab to download or save to device.');
+        }, files.length * 1000 + 1000);
+        
+        return;
+      }
+
+      // Create a zip file using JSZip (desktop only)
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Download each file and add to zip
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const response = await fetch(file.url);
+          const blob = await response.blob();
+          zip.file(file.filename, blob);
+        } catch (error) {
+          console.error(`Error downloading file ${file.filename}:`, error);
+        }
+      }
+
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download the zip file
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `design-files-${new Date().toISOString().split('T')[0]}.zip`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // Open file manager after download
+      setTimeout(() => {
+        openFileManager();
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error creating zip file:', error);
+      alert('Failed to create zip file. Please try downloading files individually.');
+    } finally {
+      // Reset button state
+      const downloadAllBtn = document.querySelector('.download-all-btn');
+      if (downloadAllBtn) {
+        downloadAllBtn.textContent = '📁 Download All';
+        downloadAllBtn.disabled = false;
+      }
+    }
+  };
+
   const branches = [
     'MAIN (SAN PASCUAL)',
     'MUZON',
@@ -541,9 +696,17 @@ const Orders = () => {
                     <div className="details-section">
                       <h4>Design Files</h4>
                       <div className="design-files-section">
-                        <p className="files-description">
-                          Design files uploaded for manufacturing. Click to download.
-                        </p>
+                        <div className="files-header">
+                          <p className="files-description">
+                            Design files uploaded for manufacturing. Click to download.
+                          </p>
+                          <button 
+                            className="download-all-btn"
+                            onClick={() => handleDownloadAll(order.designFiles)}
+                          >
+                            📁 Download All
+                          </button>
+                        </div>
                         <div className="design-files-list">
                           {order.designFiles.map((file, index) => (
                             <div key={index} className="design-file-item">
@@ -558,14 +721,12 @@ const Orders = () => {
                                   </span>
                                 </div>
                               </div>
-                              <a 
-                                href={file.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
+                              <button 
                                 className="download-btn"
+                                onClick={() => handleDownloadFile(file)}
                               >
                                 Download
-                              </a>
+                              </button>
                             </div>
                           ))}
                         </div>
