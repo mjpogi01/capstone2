@@ -12,6 +12,7 @@ const deleteRouter = require('./routes/delete');
 const ordersRouter = require('./routes/orders');
 const orderTrackingRouter = require('./routes/order-tracking');
 const designUploadRouter = require('./routes/design-upload');
+const analyticsRouter = require('./routes/analytics');
 // Using Supabase instead of local database
 
 const app = express();
@@ -32,7 +33,8 @@ app.get('/', (_req, res) => {
       branches: '/api/branches',
       orders: '/api/orders',
       orderTracking: '/api/order-tracking',
-      designUpload: '/api/design-upload'
+      designUpload: '/api/design-upload',
+      analytics: '/api/analytics'
     }
   });
 });
@@ -51,6 +53,7 @@ app.use('/api/delete', deleteRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/order-tracking', orderTrackingRouter);
 app.use('/api/design-upload', designUploadRouter);
+app.use('/api/analytics', analyticsRouter);
 
 const port = process.env.PORT || 4000;
 
