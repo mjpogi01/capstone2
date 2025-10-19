@@ -44,7 +44,6 @@ const WishlistModal = () => {
       <div className="wishlist-modal" onClick={(e) => e.stopPropagation()}>
         <div className="wishlist-header">
           <h2 className="wishlist-title">
-            <FaHeart className="wishlist-icon" />
             My Wishlist
           </h2>
           <button className="wishlist-close-btn" onClick={closeWishlist}>
