@@ -14,10 +14,17 @@ const OrderTrackingManager = ({ order, onClose, onUpdate }) => {
   
   // Form states
   const [trackingForm, setTrackingForm] = useState({
-    status: 'processing',
+    status: 'in_store',
     location: '',
     description: ''
   });
+
+  // Order status options
+  const statusOptions = [
+    { value: 'in_store', label: 'In Store Branch', icon: '🏪', color: '#3B82F6' },
+    { value: 'on_the_way', label: 'On The Way', icon: '🚚', color: '#F59E0B' },
+    { value: 'delivered', label: 'Delivered', icon: '✅', color: '#10B981' }
+  ];
   
   const [proofForm, setProofForm] = useState({
     deliveryPersonName: '',

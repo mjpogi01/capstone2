@@ -1,6 +1,20 @@
 import { supabase } from '../lib/supabase';
 
 class OrderTrackingService {
+  // Order status constants
+  static ORDER_STATUS = {
+    IN_STORE: 'in_store',
+    ON_THE_WAY: 'on_the_way', 
+    DELIVERED: 'delivered'
+  };
+
+  // Location descriptions
+  static LOCATION_DESCRIPTIONS = {
+    in_store: 'Your order is being prepared at our store branch',
+    on_the_way: 'Your order is on the way to your location',
+    delivered: 'Your order has arrived at your location'
+  };
+
   // Get order tracking history
   async getOrderTracking(orderId) {
     try {
@@ -17,6 +31,84 @@ class OrderTrackingService {
       return data || [];
     } catch (error) {
       console.error('Error fetching order tracking:', error);
+      throw error;
+    }
+  }
+
+  // Get current order status
+  async getCurrentOrderStatus(orderId) {
+    try {
+      const { data, error } = await supabase
+        .from('order_tracking')
+        .select('*')
+        .eq('order_id', orderId)
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      return data || null;
+    } catch (error) {
+      console.error('Error fetching current order status:', error);
+      throw error;
+    }
+  }
+
+  // Update order status to specific location
+  async updateOrderStatus(orderId, status, additionalInfo = {}) {
+    try {
+      const statusInfo = {
+        [this.constructor.ORDER_STATUS.IN_STORE]: {
+          location: 'Store Branch',
+          description: this.constructor.LOCATION_DESCRIPTIONS.in_store,
+          icon: '🏪',
+          color: '#3B82F6'
+        },
+        [this.constructor.ORDER_STATUS.ON_THE_WAY]: {
+          location: 'On The Way',
+          description: this.constructor.LOCATION_DESCRIPTIONS.on_the_way,
+          icon: '🚚',
+          color: '#F59E0B'
+        },
+        [this.constructor.ORDER_STATUS.DELIVERED]: {
+          location: 'Delivered',
+          description: this.constructor.LOCATION_DESCRIPTIONS.delivered,
+          icon: '✅',
+          color: '#10B981'
+        }
+      };
+
+      const statusData = statusInfo[status];
+      if (!statusData) {
+        throw new Error(`Invalid order status: ${status}`);
+      }
+
+      const { data, error } = await supabase
+        .from('order_tracking')
+        .insert([{
+          order_id: orderId,
+          status,
+          location: statusData.location,
+          description: statusData.description,
+          metadata: {
+            icon: statusData.icon,
+            color: statusData.color,
+            ...additionalInfo
+          }
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error updating order status:', error);
       throw error;
     }
   }
