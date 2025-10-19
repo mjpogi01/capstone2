@@ -206,6 +206,33 @@ const Orders = () => {
     }));
   };
 
+  const handleStatusUpdate = async (orderId, newStatus) => {
+    try {
+      await orderService.updateOrderStatus(orderId, newStatus);
+      
+      // Update local state
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, status: newStatus }
+            : order
+        )
+      );
+      setFilteredOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, status: newStatus }
+            : order
+        )
+      );
+      
+      alert(`Order status updated to ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)} successfully!`);
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert(`Failed to update order status: ${error.message}`);
+    }
+  };
+
   // Cross-platform file manager opener
   const openFileManager = () => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -733,6 +760,39 @@ const Orders = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Status Update Section */}
+                  <div className="details-section">
+                    <h4>Order Status Management</h4>
+                    <div className="status-update-section">
+                      <p className="status-description">
+                        Update the order status as it progresses through the fulfillment process.
+                      </p>
+                      <div className="status-buttons">
+                        {order.status === 'processing' && (
+                          <button 
+                            className="status-update-btn complete-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'completed')}
+                          >
+                            ✅ Mark as Completed
+                          </button>
+                        )}
+                        {order.status === 'completed' && (
+                          <button 
+                            className="status-update-btn deliver-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                          >
+                            🚚 Mark as Delivered
+                          </button>
+                        )}
+                        {order.status !== 'processing' && order.status !== 'completed' && order.status !== 'delivered' && (
+                          <p className="no-status-update">
+                            No status updates available for this order.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
