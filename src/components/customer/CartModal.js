@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FaTimes, FaTrash, FaMinus, FaPlus, FaShoppingBag } from 'react-icons/fa';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import CheckoutModal from './CheckoutModal';
 import ProductModal from './ProductModal';
@@ -23,9 +24,11 @@ const CartModal = () => {
     selectAllItems,
     deselectAllItems,
     isAllSelected,
-    isItemSelected
+    isItemSelected,
+    clearCart
   } = useCart();
   const { user } = useAuth();
+  const { showOrderConfirmation, showError } = useNotification();
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
@@ -81,7 +84,7 @@ const CartModal = () => {
   const handlePlaceOrder = async (orderData) => {
     try {
       if (!user) {
-        alert('Please log in to place an order.');
+        showError('Login Required', 'Please log in to place an order.');
         return;
       }
 
@@ -110,15 +113,22 @@ const CartModal = () => {
       
       console.log('✅ Order created successfully:', createdOrder);
       
-      alert(`Order placed successfully! Order #${createdOrder.order_number}. We will contact you soon for confirmation.`);
+      // Show success notification
+      showOrderConfirmation(createdOrder.order_number, orderData.totalAmount);
       
-      // Close modals and clear selected items from cart
+      // Clear the entire cart after successful checkout
+      await clearCart();
+      
+      // Trigger a custom event to refresh orders count in header
+      window.dispatchEvent(new CustomEvent('orderPlaced'));
+      
+      // Close modals
       setShowCheckout(false);
       closeCart();
       
     } catch (error) {
       console.error('❌ Error creating order:', error);
-      alert(`Failed to place order: ${error.message}. Please try again.`);
+      showError('Order Failed', `Failed to place order: ${error.message}. Please try again.`);
     }
   };
 

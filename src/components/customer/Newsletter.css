@@ -1,8 +1,18 @@
 .newsletter {
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
-  padding: 2rem 0;
+  padding: 0 0 2rem 0;
   position: relative;
   overflow: hidden;
+}
+
+.newsletter::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 191, 255, 0.3), transparent);
 }
 
 .newsletter::before {
@@ -19,7 +29,7 @@
 .newsletter-content {
   max-width: 800px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 3rem 1.5rem 0 1.5rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -122,6 +132,10 @@
     padding: 1.5rem 0;
   }
   
+  .newsletter-content {
+    padding: 2rem 1rem 0 1rem;
+  }
+  
   .newsletter-title {
     font-size: 1.5rem;
   }
@@ -132,5 +146,23 @@
   
   .email-input {
     min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .newsletter-content {
+    padding: 1.5rem 0.5rem 0 0.5rem;
+  }
+  
+  .newsletter-title {
+    font-size: 1.3rem;
+  }
+  
+  .newsletter-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .newsletter-description {
+    font-size: 0.8rem;
   }
 } 

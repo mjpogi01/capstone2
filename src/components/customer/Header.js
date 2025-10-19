@@ -4,15 +4,21 @@ import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 import SignInModal from './SignInModal';
 import SignUpModal from './SignUpModal';
 import CartModal from './CartModal';
+import WishlistModal from './WishlistModal';
+import CustomerOrdersModal from './CustomerOrdersModal';
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import { useNavigate } from 'react-router-dom';
+import orderService from '../../services/orderService';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [ordersCount, setOrdersCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, isOwner, isAdmin } = useAuth();
@@ -24,8 +30,61 @@ const Header = () => {
     openSignUp, 
     closeSignUp 
   } = useModal();
-  const { getCartItemCount, openCart } = useCart();
+  const { getCartItemsCount, openCart } = useCart();
+  const { openWishlist, wishlistItems } = useWishlist();
   const dropdownRef = useRef(null);
+
+  // Load orders count when user changes
+  useEffect(() => {
+    const loadOrdersCount = async () => {
+      if (!user) {
+        setOrdersCount(0);
+        return;
+      }
+
+      try {
+        const userOrders = await orderService.getUserOrders(user.id);
+        setOrdersCount(userOrders.length);
+      } catch (error) {
+        console.error('Error loading orders count:', error);
+        setOrdersCount(0);
+      }
+    };
+
+    loadOrdersCount();
+  }, [user]);
+
+  // Listen for order placed events to refresh orders count
+  useEffect(() => {
+    const handleOrderPlaced = async () => {
+      if (user) {
+        try {
+          const userOrders = await orderService.getUserOrders(user.id);
+          setOrdersCount(userOrders.length);
+        } catch (error) {
+          console.error('Error refreshing orders count:', error);
+        }
+      }
+    };
+
+    const handleOrderCancelled = async () => {
+      if (user) {
+        try {
+          const userOrders = await orderService.getUserOrders(user.id);
+          setOrdersCount(userOrders.length);
+        } catch (error) {
+          console.error('Error refreshing orders count:', error);
+        }
+      }
+    };
+
+    window.addEventListener('orderPlaced', handleOrderPlaced);
+    window.addEventListener('orderCancelled', handleOrderCancelled);
+    return () => {
+      window.removeEventListener('orderPlaced', handleOrderPlaced);
+      window.removeEventListener('orderCancelled', handleOrderCancelled);
+    };
+  }, [user]);
 
   // SAVED FILTER DROPDOWN CONTENTS FOR LATER USE:
   // const filterOptions = [
@@ -40,14 +99,7 @@ const Header = () => {
     return location.pathname === path;
   };
 
-  const handleProtectedAction = (action) => {
-    if (!isAuthenticated) {
-      openSignIn();
-      return;
-    }
-    // If authenticated, proceed with the action
-    action();
-  };
+  // Removed unused handleProtectedAction function
 
   const handleProfileClick = () => {
     if (!isAuthenticated) {
@@ -183,14 +235,17 @@ const Header = () => {
               <circle cx="9" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
               <circle cx="17" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
             </svg>
-            {getCartItemCount() > 0 && (
-              <span className="cart-badge">{getCartItemCount()}</span>
+            {getCartItemsCount() > 0 && (
+              <span className="cart-badge">{getCartItemsCount()}</span>
             )}
           </div>
-          <div className="icon" aria-label="Wishlist">
+          <div className="icon wishlist-icon" aria-label="Wishlist" onClick={openWishlist}>
             <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
+            {wishlistItems.length > 0 && (
+              <span className="wishlist-badge">{wishlistItems.length}</span>
+            )}
           </div>
           <div className="icon profile-icon" aria-label="Account" onClick={handleProfileClick}>
             <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
@@ -200,18 +255,6 @@ const Header = () => {
             {isAuthenticated && showProfileDropdown && (
               <div className="profile-dropdown" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
                 <div className="profile-dropdown-content">
-                  <div className="profile-header">
-                    <div className="profile-avatar">
-                      <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                        <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
-                        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                    <div className="profile-info">
-                      <div className="profile-name">{user?.email}</div>
-                      <div className="profile-status">Online</div>
-                    </div>
-                  </div>
                   <div className="profile-menu">
                     {/* Dashboard Links for Admin/Owner */}
                     {isOwner() && (
@@ -247,34 +290,43 @@ const Header = () => {
                       className="profile-menu-item" 
                       onClick={() => {
                         setShowProfileDropdown(false);
-                        console.log('Profile Settings clicked');
-                        // Add navigation to profile settings page
+                        navigate('/profile');
                       }}
                     >
                       <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor" />
                       </svg>
-                      Profile Settings
+                      My Account
                     </button>
                     <button 
-                      className="profile-menu-item" 
-                      onClick={() => {
+                      className="profile-menu-item orders-menu-item" 
+                      onClick={async () => {
                         setShowProfileDropdown(false);
-                        console.log('Orders clicked');
-                        // Add navigation to orders page
+                        // Refresh orders count before opening modal
+                        if (user) {
+                          try {
+                            const userOrders = await orderService.getUserOrders(user.id);
+                            setOrdersCount(userOrders.length);
+                          } catch (error) {
+                            console.error('Error refreshing orders count:', error);
+                          }
+                        }
+                        setShowOrdersModal(true);
                       }}
                     >
                       <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor" />
                       </svg>
                       Orders
+                      {ordersCount > 0 && (
+                        <span className="orders-badge">{ordersCount}</span>
+                      )}
                     </button>
                     <button 
                       className="profile-menu-item" 
                       onClick={() => {
                         setShowProfileDropdown(false);
-                        console.log('Wishlist clicked');
-                        // Add navigation to wishlist page
+                        openWishlist();
                       }}
                     >
                       <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
@@ -313,6 +365,11 @@ const Header = () => {
         onOpenSignIn={() => { closeSignUp(); openSignIn(); }}
       />
       <CartModal />
+      <WishlistModal />
+      <CustomerOrdersModal 
+        isOpen={showOrdersModal} 
+        onClose={() => setShowOrdersModal(false)} 
+      />
     </header>
   );
 };

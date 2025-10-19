@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './Highlight.css';
 
 const Highlights = () => {
@@ -6,6 +6,7 @@ const Highlights = () => {
   const [buyerImages, setBuyerImages] = useState([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false); // For fade-in
 
   useEffect(() => {
     // Image file list
@@ -39,43 +40,55 @@ const Highlights = () => {
     const images = imageFiles.map((file) => ({
       id: file.id,
       image: `/image_highlights/${file.filename}`,
+      alt: `Highlight ${file.id}`, // Better alt text
     }));
 
     setBuyerImages(images);
+    setIsLoaded(true); // Trigger fade-in
   }, []);
 
-  const visibleImages = showAll ? buyerImages : buyerImages.slice(0, 10);
-
-  const handleImageClick = (index) => {
-    setSelectedImageIndex(index);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedImageIndex(null);
-  };
+  }, []);
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      closeModal();
-    }
-  };
-
-  const showPrev = () => {
+  const showPrev = useCallback(() => {
     setSelectedImageIndex((prevIndex) =>
       prevIndex > 0 ? prevIndex - 1 : buyerImages.length - 1
     );
-  };
+  }, [buyerImages.length]);
 
-  const showNext = () => {
+  const showNext = useCallback(() => {
     setSelectedImageIndex((prevIndex) =>
       prevIndex < buyerImages.length - 1 ? prevIndex + 1 : 0
     );
-  };
+  }, [buyerImages.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isModalOpen) return;
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'ArrowLeft') showPrev();
+      if (e.key === 'ArrowRight') showNext();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, closeModal, showPrev, showNext]);
+
+  const visibleImages = showAll ? buyerImages : buyerImages.slice(0, 10);
+
+  const handleImageClick = useCallback((index) => {
+    setSelectedImageIndex(index);
+    setIsModalOpen(true);
+  }, []);
+
+  const handleBackdropClick = useCallback((e) => {
+    if (e.target === e.currentTarget) closeModal();
+  }, [closeModal]);
 
   return (
-    <div className="highlights">
+    <div className={`highlights ${isLoaded ? 'fade-in' : ''}`}>
       <div className="container">
         {/* Title Section */}
         <div className="title-section">
@@ -85,25 +98,34 @@ const Highlights = () => {
 
         {/* Buyers Album Section */}
         <div className="buyers-album">
-          <div className="buyers-grid">
+          <div className="buyers-grid" role="grid" aria-label="Image gallery">
             {visibleImages.map((item, index) => (
               <div
                 key={item.id}
                 className="buyer-item"
                 onClick={() => handleImageClick(index)}
+                role="button"
+                tabIndex={0}
+                aria-label={`View ${item.alt}`}
+                onKeyDown={(e) => e.key === 'Enter' && handleImageClick(index)}
               >
-                <img src={item.image} alt={`Buyer ${item.id}`} />
+                <img
+                  src={item.image}
+                  alt={item.alt}
+                  loading="lazy"
+                  onError={(e) => { e.target.src = '/fallback-image.png'; }}
+                />
               </div>
             ))}
           </div>
 
           <div className="button-container">
             {!showAll ? (
-              <button className="view-more" onClick={() => setShowAll(true)}>
+              <button className="view-more" onClick={() => setShowAll(true)} aria-expanded={showAll}>
                 View More
               </button>
             ) : (
-              <button className="show-less" onClick={() => setShowAll(false)}>
+              <button className="show-less" onClick={() => setShowAll(false)} aria-expanded={showAll}>
                 Show Less
               </button>
             )}
@@ -114,7 +136,7 @@ const Highlights = () => {
         <div className="cta-section">
           <h2>Explore Our Collection</h2>
           <p>Visit our branches to see our full range of products</p>
-          <a href="/branches" className="cta-button">
+          <a href="/branches" className="cta-button" aria-label="Find our branches">
             Find Our Branches
           </a>
         </div>
@@ -122,25 +144,47 @@ const Highlights = () => {
 
       {/* Modal */}
       {isModalOpen && selectedImageIndex !== null && (
-        <div className="image-modal" onClick={handleBackdropClick}>
+        <div
+          className="image-modal"
+          onClick={handleBackdropClick}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-image"
+          aria-describedby="modal-caption"
+        >
           <div className="modal-content">
-            <button className="close-button" onClick={closeModal}>
+            <button
+              className="close-button"
+              onClick={closeModal}
+              aria-label="Close modal"
+            >
               &times;
             </button>
 
-            <button className="nav-button prev" onClick={showPrev}>
+            <button
+              className="nav-button prev"
+              onClick={showPrev}
+              aria-label="Previous image"
+            >
               &#10094;
             </button>
 
             <img
+              id="modal-image"
               src={buyerImages[selectedImageIndex].image}
-              alt={`Buyer ${buyerImages[selectedImageIndex].id}`}
+              alt={buyerImages[selectedImageIndex].alt}
               className="modal-image"
+              onError={(e) => { e.target.src = '/fallback-image.png'; }}
             />
 
-            <button className="nav-button next" onClick={showNext}>
+            <button
+              className="nav-button next"
+              onClick={showNext}
+              aria-label="Next image"
+            >
               &#10095;
             </button>
+
           </div>
         </div>
       )}

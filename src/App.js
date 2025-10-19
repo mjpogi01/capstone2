@@ -8,6 +8,7 @@ import About from './pages/customer/About';
 import Highlights from './pages/customer/Highlights';
 import FAQs from './pages/customer/FAQs';
 import Contacts from './pages/customer/Contacts';
+import Profile from './pages/customer/Profile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import Inventory from './pages/admin/Inventory';
@@ -19,6 +20,9 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AuthProvider } from './contexts/AuthContext';
 import { ModalProvider } from './contexts/ModalContext';
 import { CartProvider } from './contexts/CartContext';
+import { WishlistProvider } from './contexts/WishlistContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import NotificationContainer from './components/NotificationContainer';
 
 const AppContent = () => {
   const location = useLocation();
@@ -37,6 +41,14 @@ const AppContent = () => {
         <Route path="/branches" element={<Branches />} />
         <Route path="/faqs" element={<FAQs />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
         <Route 
           path="/admin" 
           element={
@@ -102,15 +114,20 @@ const AppContent = () => {
 function App() {
   return (
     <div className="App">
-      <AuthProvider>
-        <ModalProvider>
-          <CartProvider>
-            <Router>
-              <AppContent />
-            </Router>
-          </CartProvider>
-        </ModalProvider>
-      </AuthProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <ModalProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <Router>
+                  <AppContent />
+                  <NotificationContainer />
+                </Router>
+              </WishlistProvider>
+            </CartProvider>
+          </ModalProvider>
+        </AuthProvider>
+      </NotificationProvider>
     </div>
   );
 }

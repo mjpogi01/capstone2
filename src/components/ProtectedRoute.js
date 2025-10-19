@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const ProtectedRoute = ({ children, requireRole = null, requireAdmin = false, requireOwner = false }) => {
-  const { isAuthenticated, user, canAccessAdmin, isOwner, isAdmin } = useAuth();
+  const { isAuthenticated, canAccessAdmin, isOwner, isAdmin } = useAuth();
 
   // Check if user is authenticated
   if (!isAuthenticated) {

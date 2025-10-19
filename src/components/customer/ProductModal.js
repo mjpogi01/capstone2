@@ -3,13 +3,15 @@ import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import { useCart } from '../../contexts/CartContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import { useAuth } from '../../contexts/AuthContext';
 import './ProductModal.css';
 
 const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null }) => {
-  const { addToCart, removeFromCart, cartItems, selectedItems } = useCart();
+  const { addToCart, removeFromCart, cartItems, selectedItems, clearCart } = useCart();
   const { user } = useAuth();
+  const { showOrderConfirmation, showError } = useNotification();
   const [selectedSize, setSelectedSize] = useState(existingCartItemData?.size || 'M');
   const [quantity, setQuantity] = useState(existingCartItemData?.quantity || 1);
   const [isTeamOrder, setIsTeamOrder] = useState(existingCartItemData?.isTeamOrder || false);
@@ -22,6 +24,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [buyNowItem, setBuyNowItem] = useState(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Debug: Monitor Buy Now item changes
   useEffect(() => {
@@ -90,8 +93,22 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
 
   const handleAddToCart = async () => {
+    if (isAddingToCart) return; // Prevent multiple clicks
+    
     try {
+      setIsAddingToCart(true);
       
+      // Validate required fields
+      if (!product || !product.id || !product.name) {
+        showError('Invalid Product', 'Product information is missing. Please try again.');
+        return;
+      }
+
+      if (!user) {
+        showError('Login Required', 'Please log in to add items to cart.');
+        return;
+      }
+
       // If this is from cart, remove the existing item first
       if (isFromCart && existingCartItemId) {
         await removeFromCart(existingCartItemId);
@@ -115,15 +132,24 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       await addToCart(product, cartOptions);
       
-      const orderType = isTeamOrder ? 'Team Order' : 'Single Order';
-      const memberCount = isTeamOrder ? teamMembers.length : quantity;
-      alert(`Added ${memberCount} ${product.name} (Size: ${selectedSize}) to cart!\nOrder Type: ${orderType}`);
-      
+      // The notification is already handled by CartContext
       // Close the modal after adding to cart
       onClose();
     } catch (error) {
       console.error('Error updating cart:', error);
-      alert('Error updating cart. Please try again.');
+      
+      // Show specific error message based on error type
+      if (error.message.includes('Invalid product data')) {
+        showError('Invalid Product', 'Product information is missing. Please try again.');
+      } else if (error.message.includes('User not authenticated')) {
+        showError('Login Required', 'Please log in to add items to cart.');
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        showError('Network Error', 'Please check your internet connection and try again.');
+      } else {
+        showError('Cart Error', 'Error updating cart. Please try again.');
+      }
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -168,7 +194,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const handlePlaceOrder = async (orderData) => {
     try {
       if (!user) {
-        alert('Please log in to place an order.');
+        showError('Login Required', 'Please log in to place an order.');
         return;
       }
 
@@ -197,14 +223,22 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       console.log('✅ Order created successfully:', createdOrder);
       
-      alert(`Order placed successfully! Order #${createdOrder.order_number}. We will contact you soon for confirmation.`);
+      // Show success notification
+      showOrderConfirmation(createdOrder.order_number, orderData.totalAmount);
+      
+      // Clear the entire cart after successful checkout
+      await clearCart();
+      
+      // Trigger a custom event to refresh orders count in header
+      window.dispatchEvent(new CustomEvent('orderPlaced'));
+      
       setShowCheckout(false);
       setBuyNowItem(null); // Clear Buy Now item
       onClose();
       
     } catch (error) {
       console.error('❌ Error creating order:', error);
-      alert(`Failed to place order: ${error.message}. Please try again.`);
+      showError('Order Failed', `Failed to place order: ${error.message}. Please try again.`);
     }
   };
 
@@ -281,7 +315,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               {/* Header Section - Now scrolls with content */}
               <div className="modal-header-section">
                 {/* Brand Header */}
-                <div className="modal-brand-header">YOHANN'S SPORTSWEAR</div>
+                <div className="modal-brand-header"></div>
 
                 {/* Product Name */}
                 <div className="modal-product-title">{product.name}</div>
@@ -510,9 +544,10 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               <button 
                   className="modal-add-cart-button"
                 onClick={handleAddToCart}
+                disabled={isAddingToCart}
               >
                 <FaShoppingCart />
-                ADD TO CART
+                {isAddingToCart ? 'ADDING...' : 'ADD TO CART'}
               </button>
               <button 
                   className="modal-buy-now-button"
