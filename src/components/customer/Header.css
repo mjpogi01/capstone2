@@ -548,6 +548,26 @@
 }
 
 
+/* Tablet styles */
+@media (max-width: 1024px) {
+  .header-top {
+    padding: 0.5rem 1rem;
+  }
+  
+  .nav-menu {
+    gap: 2rem;
+  }
+  
+  .nav-link {
+    font-size: 0.8rem;
+  }
+  
+  .search-container {
+    max-width: 250px;
+  }
+}
+
+/* Mobile styles */
 @media (max-width: 768px) {
   .header-top {
     flex-direction: column;
@@ -556,20 +576,28 @@
   }
   
   .logo-image {
-    height: 30px;
-    max-width: 90px;
+    height: 45px;
   }
   
   .nav-menu {
-    gap: 1rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
     justify-content: center;
+    order: 2;
+  }
+  
+  .nav-link {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
   }
   
   .utility-icons {
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
-    align-items: stretch;
+    align-items: center;
+    justify-content: center;
+    order: 3;
+    flex-wrap: wrap;
   }
   
   .search-container {
@@ -581,15 +609,24 @@
   }
   
   .search-input {
-    font-size: 0.85rem;
-    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
   }
   
   .search-button {
-    padding: 0.6rem 0.8rem;
-    font-size: 0.8rem;
+    padding: 0.75rem 1rem;
   }
   
+  .icon {
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .cart-badge, .wishlist-badge, .orders-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+  }
   
   .dropdown-menu {
     position: fixed;
@@ -634,28 +671,86 @@
   }
 }
 
+/* Small mobile styles */
 @media (max-width: 480px) {
-  .logo-image {
-    height: 28px;
-    max-width: 80px;
+  .header-top {
+    padding: 0.75rem;
+    gap: 0.75rem;
   }
   
-  .search-container {
-    margin-bottom: 0.3rem;
+  .logo-image {
+    height: 40px;
+  }
+  
+  .nav-menu {
+    gap: 0.5rem;
+  }
+  
+  .nav-link {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .utility-icons {
+    gap: 0.25rem;
+  }
+  
+  .icon {
+    padding: 0.4rem;
+    font-size: 0.9rem;
   }
   
   .search-input {
-    font-size: 0.8rem;
-    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+    padding: 0.6rem 0.8rem;
   }
   
   .search-button {
-    padding: 0.5rem 0.6rem;
-    font-size: 0.75rem;
+    padding: 0.6rem 0.8rem;
   }
   
-  .search-button svg {
-    width: 14px;
-    height: 14px;
+  .cart-badge, .wishlist-badge, .orders-badge {
+    width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+  }
+  
+  .profile-dropdown {
+    width: 95%;
+    max-width: 280px;
+  }
+  
+  .profile-header {
+    padding: 0.75rem;
+  }
+  
+  .profile-menu-item {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small mobile styles */
+@media (max-width: 360px) {
+  .header-top {
+    padding: 0.5rem;
+  }
+  
+  .nav-menu {
+    gap: 0.25rem;
+  }
+  
+  .nav-link {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .utility-icons {
+    gap: 0.2rem;
+  }
+  
+  .icon {
+    padding: 0.3rem;
+    font-size: 0.8rem;
   }
 } 

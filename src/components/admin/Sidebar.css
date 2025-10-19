@@ -115,24 +115,172 @@
   height: 100%;
 }
 
-/* Responsive Design */
+/* Tablet styles */
 @media (max-width: 1024px) {
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    width: 220px;
   }
   
   .sidebar.open {
     transform: translateX(0);
   }
+  
+  .sidebar-header {
+    padding: 1.5rem 1.25rem;
+  }
+  
+  .logo-image {
+    height: 70px;
+  }
+  
+  .nav-item {
+    padding: 0.9rem 1.25rem;
+  }
+  
+  .nav-label {
+    font-size: 0.9rem;
+  }
+  
+  .sidebar-footer {
+    padding: 1.25rem;
+  }
+  
+  .logout-btn {
+    padding: 0.7rem 0.9rem;
+    font-size: 0.85rem;
+  }
 }
 
+/* Mobile styles */
 @media (max-width: 768px) {
   .sidebar {
     width: 200px;
   }
   
+  .sidebar-header {
+    padding: 1.25rem 1rem;
+  }
+  
   .logo-image {
-    height: 70px;
+    height: 60px;
+  }
+  
+  .nav-item {
+    padding: 0.8rem 1rem;
+    gap: 0.75rem;
+  }
+  
+  .nav-icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .nav-label {
+    font-size: 0.85rem;
+  }
+  
+  .sidebar-footer {
+    padding: 1rem;
+  }
+  
+  .logout-btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+    gap: 0.75rem;
+  }
+  
+  .logout-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+  .sidebar {
+    width: 180px;
+  }
+  
+  .sidebar-header {
+    padding: 1rem 0.75rem;
+  }
+  
+  .logo-image {
+    height: 50px;
+  }
+  
+  .nav-item {
+    padding: 0.7rem 0.75rem;
+    gap: 0.6rem;
+  }
+  
+  .nav-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .nav-label {
+    font-size: 0.8rem;
+  }
+  
+  .sidebar-footer {
+    padding: 0.75rem;
+  }
+  
+  .logout-btn {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.75rem;
+    gap: 0.6rem;
+  }
+  
+  .logout-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* Extra small mobile styles */
+@media (max-width: 360px) {
+  .sidebar {
+    width: 160px;
+  }
+  
+  .sidebar-header {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .logo-image {
+    height: 45px;
+  }
+  
+  .nav-item {
+    padding: 0.6rem 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .nav-icon {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .nav-label {
+    font-size: 0.75rem;
+  }
+  
+  .sidebar-footer {
+    padding: 0.5rem;
+  }
+  
+  .logout-btn {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.7rem;
+    gap: 0.5rem;
+  }
+  
+  .logout-icon {
+    width: 12px;
+    height: 12px;
   }
 }
