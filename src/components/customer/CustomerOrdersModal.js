@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaEye, FaTruck, FaMapMarkerAlt, FaCalendarAlt, FaShoppingBag, FaUsers, FaBan } from 'react-icons/fa';
+import { FaTimes, FaEye, FaTruck, FaMapMarkerAlt, FaCalendarAlt, FaShoppingBag, FaUsers, FaBan, FaRoute, FaCheckCircle, FaStar, FaCamera, FaLocationArrow } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
+import orderTrackingService from '../../services/orderTrackingService';
 import './CustomerOrdersModal.css';
 
 const CustomerOrdersModal = ({ isOpen, onClose }) => {
@@ -13,6 +14,12 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const [error, setError] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [orderTracking, setOrderTracking] = useState({});
+  const [orderReviews, setOrderReviews] = useState({});
+  const [deliveryProof, setDeliveryProof] = useState({});
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedOrderForReview, setSelectedOrderForReview] = useState(null);
+  const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
 
   useEffect(() => {
     if (isOpen && user) {
@@ -29,12 +36,43 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
       // getUserOrders now excludes cancelled orders by default
       const userOrders = await orderService.getUserOrders(user.id);
       setOrders(userOrders);
+      
+      // Load tracking, reviews, and delivery proof for each order
+      await loadOrderDetails(userOrders);
     } catch (err) {
       console.error('Error loading user orders:', err);
       setError('Failed to load orders. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadOrderDetails = async (userOrders) => {
+    const trackingData = {};
+    const reviewsData = {};
+    const proofData = {};
+
+    for (const order of userOrders) {
+      try {
+        // Load tracking data
+        const tracking = await orderTrackingService.getOrderTracking(order.id);
+        trackingData[order.id] = tracking;
+
+        // Load review data
+        const review = await orderTrackingService.getOrderReview(order.id);
+        reviewsData[order.id] = review;
+
+        // Load delivery proof
+        const proof = await orderTrackingService.getDeliveryProof(order.id);
+        proofData[order.id] = proof;
+      } catch (error) {
+        console.error(`Error loading details for order ${order.id}:`, error);
+      }
+    }
+
+    setOrderTracking(trackingData);
+    setOrderReviews(reviewsData);
+    setDeliveryProof(proofData);
   };
 
   const formatDate = (dateString) => {
@@ -99,6 +137,88 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
 
   const toggleOrderExpansion = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
+  };
+
+  const handleReviewSubmit = async () => {
+    if (!selectedOrderForReview || !user) return;
+
+    try {
+      await orderTrackingService.addOrderReview(
+        selectedOrderForReview.id,
+        user.id,
+        reviewData.rating,
+        reviewData.comment
+      );
+
+      // Update local state
+      setOrderReviews(prev => ({
+        ...prev,
+        [selectedOrderForReview.id]: {
+          rating: reviewData.rating,
+          comment: reviewData.comment,
+          created_at: new Date().toISOString()
+        }
+      }));
+
+      showSuccess('Review Submitted', 'Thank you for your review!');
+      setShowReviewModal(false);
+      setSelectedOrderForReview(null);
+      setReviewData({ rating: 5, comment: '' });
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      showError('Review Failed', 'Failed to submit review. Please try again.');
+    }
+  };
+
+  const openReviewModal = (order) => {
+    setSelectedOrderForReview(order);
+    setReviewData({ rating: 5, comment: '' });
+    setShowReviewModal(true);
+  };
+
+  const getTrackingStatus = (orderId) => {
+    const tracking = orderTracking[orderId] || [];
+    if (tracking.length === 0) return null;
+    
+    const latest = tracking[tracking.length - 1];
+    return {
+      status: latest.status,
+      location: latest.location,
+      description: latest.description,
+      timestamp: latest.timestamp
+    };
+  };
+
+  const getLocationIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+      case 'confirmed':
+        return <FaMapMarkerAlt className="location-icon main-branch" />;
+      case 'processing':
+        return <FaRoute className="location-icon processing" />;
+      case 'shipped':
+        return <FaTruck className="location-icon on-the-way" />;
+      case 'delivered':
+        return <FaCheckCircle className="location-icon delivered" />;
+      default:
+        return <FaMapMarkerAlt className="location-icon" />;
+    }
+  };
+
+  const getLocationText = (status, location) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+      case 'confirmed':
+        return 'At Main Branch - Yohanns';
+      case 'processing':
+        return 'Being Prepared';
+      case 'shipped':
+        return `On the way to ${location || 'your location'}`;
+      case 'delivered':
+        return 'Delivered Successfully';
+      default:
+        return 'Status Unknown';
+    }
   };
 
   if (!isOpen) return null;
@@ -192,6 +312,40 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         </div>
                       </div>
 
+                      {/* Order Tracking Section - Only for COD orders */}
+                      {order.shippingMethod === 'cod' && (
+                        <div className="customer-order-tracking">
+                          <h4>Order Tracking</h4>
+                          <div className="tracking-info">
+                            {(() => {
+                              const trackingStatus = getTrackingStatus(order.id);
+                              return (
+                                <div className="tracking-status">
+                                  <div className="tracking-icon">
+                                    {getLocationIcon(trackingStatus?.status)}
+                                  </div>
+                                  <div className="tracking-details">
+                                    <div className="tracking-location">
+                                      {getLocationText(trackingStatus?.status, trackingStatus?.location)}
+                                    </div>
+                                    {trackingStatus?.description && (
+                                      <div className="tracking-description">
+                                        {trackingStatus.description}
+                                      </div>
+                                    )}
+                                    {trackingStatus?.timestamp && (
+                                      <div className="tracking-time">
+                                        {formatDate(trackingStatus.timestamp)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="customer-order-shipping">
                         <h4>Shipping Information</h4>
                         <div className="shipping-info">
@@ -220,6 +374,46 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         </div>
                       </div>
 
+                      {/* Delivery Proof Section - Only for COD orders */}
+                      {order.shippingMethod === 'cod' && deliveryProof[order.id] && (
+                        <div className="customer-order-delivery-proof">
+                          <h4>Delivery Proof</h4>
+                          <div className="delivery-proof-info">
+                            <div className="delivery-person">
+                              <strong>Delivered by:</strong> {deliveryProof[order.id].delivery_person_name}
+                            </div>
+                            {deliveryProof[order.id].delivery_person_contact && (
+                              <div className="delivery-contact">
+                                <strong>Contact:</strong> {deliveryProof[order.id].delivery_person_contact}
+                              </div>
+                            )}
+                            {deliveryProof[order.id].proof_images && deliveryProof[order.id].proof_images.length > 0 && (
+                              <div className="proof-images">
+                                <strong>Proof Images:</strong>
+                                <div className="proof-images-grid">
+                                  {deliveryProof[order.id].proof_images.map((image, index) => (
+                                    <img 
+                                      key={index} 
+                                      src={image} 
+                                      alt={`Delivery proof ${index + 1}`}
+                                      className="proof-image"
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {deliveryProof[order.id].delivery_notes && (
+                              <div className="delivery-notes">
+                                <strong>Notes:</strong> {deliveryProof[order.id].delivery_notes}
+                              </div>
+                            )}
+                            <div className="delivery-time">
+                              <strong>Delivered at:</strong> {formatDate(deliveryProof[order.id].delivered_at)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="customer-order-summary">
                         <h4>Order Summary</h4>
                         <div className="summary-row">
@@ -240,6 +434,41 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                           </div>
                         )}
                       </div>
+
+                      {/* Review Section - Only for COD orders */}
+                      {order.shippingMethod === 'cod' && order.status.toLowerCase() === 'delivered' && (
+                        <div className="customer-order-review">
+                          <h4>Order Review</h4>
+                          {orderReviews[order.id] ? (
+                            <div className="existing-review">
+                              <div className="review-rating">
+                                {[...Array(5)].map((_, i) => (
+                                  <FaStar 
+                                    key={i} 
+                                    className={i < orderReviews[order.id].rating ? 'star-filled' : 'star-empty'} 
+                                  />
+                                ))}
+                              </div>
+                              <div className="review-comment">
+                                "{orderReviews[order.id].comment}"
+                              </div>
+                              <div className="review-date">
+                                Reviewed on {formatDate(orderReviews[order.id].created_at)}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="review-prompt">
+                              <p>How was your order experience?</p>
+                              <button 
+                                className="review-btn"
+                                onClick={() => openReviewModal(order)}
+                              >
+                                <FaStar /> Leave a Review
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Cancel Button - Only show for pending orders */}
                       {order.status.toLowerCase() === 'pending' && (
@@ -262,6 +491,68 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
           )}
         </div>
       </div>
+
+      {/* Review Modal */}
+      {showReviewModal && selectedOrderForReview && (
+        <div className="review-modal-overlay" onClick={() => setShowReviewModal(false)}>
+          <div className="review-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="review-modal-header">
+              <h3>Leave a Review</h3>
+              <button 
+                className="review-modal-close" 
+                onClick={() => setShowReviewModal(false)}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="review-modal-body">
+              <div className="review-order-info">
+                <h4>Order #{selectedOrderForReview.orderNumber}</h4>
+                <p>Total: ₱{selectedOrderForReview.totalAmount.toFixed(2)}</p>
+              </div>
+              
+              <div className="review-rating-input">
+                <label>Rating:</label>
+                <div className="star-rating">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <FaStar
+                      key={rating}
+                      className={rating <= reviewData.rating ? 'star-filled' : 'star-empty'}
+                      onClick={() => setReviewData(prev => ({ ...prev, rating }))}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="review-comment-input">
+                <label>Comment (optional):</label>
+                <textarea
+                  value={reviewData.comment}
+                  onChange={(e) => setReviewData(prev => ({ ...prev, comment: e.target.value }))}
+                  placeholder="Tell us about your experience..."
+                  rows={4}
+                />
+              </div>
+              
+              <div className="review-modal-actions">
+                <button 
+                  className="cancel-review-btn"
+                  onClick={() => setShowReviewModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="submit-review-btn"
+                  onClick={handleReviewSubmit}
+                >
+                  Submit Review
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

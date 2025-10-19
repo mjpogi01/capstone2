@@ -152,17 +152,30 @@
   color: #718096;
 }
 
-/* Responsive Design */
+/* Tablet styles */
 @media (max-width: 1024px) {
   .admin-header {
     padding: 1rem 1.5rem;
   }
   
-  .header-center {
-    display: none;
+  .welcome-text {
+    font-size: 1rem;
+  }
+  
+  .search-form {
+    max-width: 350px;
+  }
+  
+  .date {
+    font-size: 0.95rem;
+  }
+  
+  .time {
+    font-size: 0.85rem;
   }
 }
 
+/* Mobile styles */
 @media (max-width: 768px) {
   .admin-header {
     padding: 1rem;
@@ -183,5 +196,129 @@
   
   .search-form {
     max-width: none;
+  }
+  
+  .welcome-section {
+    justify-content: center;
+  }
+  
+  .welcome-text {
+    font-size: 0.95rem;
+  }
+  
+  .search-container {
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .search-input {
+    font-size: 0.85rem;
+  }
+  
+  .date-time {
+    text-align: center;
+  }
+  
+  .date {
+    font-size: 0.9rem;
+  }
+  
+  .time {
+    font-size: 0.8rem;
+  }
+  
+  .user-dropdown {
+    min-width: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+  .admin-header {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .welcome-text {
+    font-size: 0.9rem;
+  }
+  
+  .search-container {
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .search-input {
+    font-size: 0.8rem;
+  }
+  
+  .search-input::placeholder {
+    font-size: 0.8rem;
+  }
+  
+  .filter-btn {
+    font-size: 0.9rem;
+  }
+  
+  .date {
+    font-size: 0.85rem;
+  }
+  
+  .time {
+    font-size: 0.75rem;
+  }
+  
+  .user-dropdown {
+    min-width: 160px;
+  }
+  
+  .dropdown-item {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Extra small mobile styles */
+@media (max-width: 360px) {
+  .admin-header {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .welcome-text {
+    font-size: 0.85rem;
+  }
+  
+  .search-container {
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .search-input {
+    font-size: 0.75rem;
+  }
+  
+  .search-input::placeholder {
+    font-size: 0.75rem;
+  }
+  
+  .filter-btn {
+    font-size: 0.8rem;
+  }
+  
+  .date {
+    font-size: 0.8rem;
+  }
+  
+  .time {
+    font-size: 0.7rem;
+  }
+  
+  .user-dropdown {
+    min-width: 140px;
+  }
+  
+  .dropdown-item {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8rem;
   }
 }
