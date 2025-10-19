@@ -589,10 +589,41 @@
   margin-top: 15px;
 }
 
+.files-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
 .files-description {
   color: #666;
   font-size: 14px;
-  margin-bottom: 15px;
+  margin: 0;
+}
+
+.download-all-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.download-all-btn:hover {
+  background-color: #0056b3;
+}
+
+.download-all-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
 }
 
 .design-files-list {
@@ -649,15 +680,14 @@
   background-color: #28a745;
   color: white;
   padding: 6px 12px;
+  border: none;
   border-radius: 4px;
-  text-decoration: none;
   font-size: 12px;
   font-weight: 500;
+  cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .download-btn:hover {
   background-color: #218838;
-  color: white;
-  text-decoration: none;
 }
