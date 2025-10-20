@@ -95,7 +95,7 @@ const OrderTracking = () => {
       <div className="tracking-container">
         {/* Order Header */}
         <div className="order-header">
-          <h1>Track Your Order</h1>
+          <h1 className="page-title">Track Your Order</h1>
           <p className="order-subtitle">
             Monitor your order's journey from our store to your doorstep
           </p>

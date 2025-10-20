@@ -92,7 +92,7 @@ const Highlights = () => {
       <div className="container">
         {/* Title Section */}
         <div className="title-section">
-          <h1>Highlights</h1>
+          <h1 className="page-title">Highlights</h1>
           <p>Discover our featured products and latest collections</p>
         </div>
 

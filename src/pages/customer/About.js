@@ -35,7 +35,7 @@ const About = () => {
       <div className="container">
         {/* Hero Section */}
         <div className="about-hero">
-          <h1 className="about-title" id="about-title">ABOUT US</h1>
+          <h1 className="about-title page-title" id="about-title">About Us</h1>
           
           {/* Tagline */}
           <p className="about-tagline" aria-describedby="about-title">
