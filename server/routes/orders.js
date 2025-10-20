@@ -18,80 +18,68 @@ router.get('/', async (req, res) => {
       limit = 50
     } = req.query;
 
-    let whereConditions = [];
-    let queryParams = [];
-    let paramIndex = 1;
+    // Build Supabase query
+    let query = supabase
+      .from('orders')
+      .select(`
+        *,
+        user:auth.users!user_id (
+          email,
+          user_metadata
+        )
+      `);
 
-    // Pickup branch filter
+    // Apply filters
     if (pickupBranch) {
-      whereConditions.push(`o.pickup_location = $${paramIndex}`);
-      queryParams.push(pickupBranch);
-      paramIndex++;
+      query = query.eq('pickup_location', pickupBranch);
     }
 
-    // Status filter
     if (status) {
-      whereConditions.push(`o.status = $${paramIndex}`);
-      queryParams.push(status);
-      paramIndex++;
+      query = query.eq('status', status);
     }
 
-    const whereClause = whereConditions.length > 0 
-      ? `WHERE ${whereConditions.join(' AND ')}`
-      : '';
-
-    // Determine sorting
-    let orderByClause = 'ORDER BY o.created_at DESC'; // Default sorting
+    // Apply sorting
     if (dateSort === 'asc') {
-      orderByClause = 'ORDER BY o.created_at ASC';
+      query = query.order('created_at', { ascending: true });
     } else if (dateSort === 'desc') {
-      orderByClause = 'ORDER BY o.created_at DESC';
+      query = query.order('created_at', { ascending: false });
     } else if (priceSort === 'asc') {
-      orderByClause = 'ORDER BY o.total_amount ASC';
+      query = query.order('total_amount', { ascending: true });
     } else if (priceSort === 'desc') {
-      orderByClause = 'ORDER BY o.total_amount DESC';
+      query = query.order('total_amount', { ascending: false });
     } else if (quantitySort === 'asc') {
-      orderByClause = 'ORDER BY o.total_items ASC';
+      query = query.order('total_items', { ascending: true });
     } else if (quantitySort === 'desc') {
-      orderByClause = 'ORDER BY o.total_items DESC';
+      query = query.order('total_items', { ascending: false });
+    } else {
+      // Default sorting by date descending
+      query = query.order('created_at', { ascending: false });
     }
 
-    const offset = (page - 1) * limit;
+    // Apply pagination
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    query = query.range(offset, offset + parseInt(limit) - 1);
 
-    // Get orders with user information
-    const ordersQuery = `
-      SELECT 
-        o.*,
-        u.email as customer_email,
-        u.raw_user_meta_data->>'full_name' as customer_name
-      FROM orders o
-      LEFT JOIN auth.users u ON o.user_id = u.id
-      ${whereClause}
-      ${orderByClause}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
+    const { data: orders, error, count } = await query;
 
-    queryParams.push(parseInt(limit), offset);
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`);
+    }
 
-    const ordersResult = await query(ordersQuery, queryParams);
-    
-    // Get total count for pagination
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM orders o
-      ${whereClause}
-    `;
-    
-    const countResult = await query(countQuery, queryParams.slice(0, -2));
-    const total = parseInt(countResult.rows[0].total);
+    // Transform data to match expected format
+    const transformedOrders = (orders || []).map(order => ({
+      ...order,
+      customer_email: order.user?.email || null,
+      customer_name: order.user?.user_metadata?.full_name || null
+    }));
 
     res.json({
-      orders: ordersResult.rows,
+      orders: transformedOrders,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total,
-        totalPages: Math.ceil(total / limit)
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / parseInt(limit))
       }
     });
 
@@ -106,23 +94,33 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const orderQuery = `
-      SELECT 
-        o.*,
-        u.email as customer_email,
-        u.raw_user_meta_data->>'full_name' as customer_name
-      FROM orders o
-      LEFT JOIN auth.users u ON o.user_id = u.id
-      WHERE o.id = $1
-    `;
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        user:auth.users!user_id (
+          email,
+          user_metadata
+        )
+      `)
+      .eq('id', id)
+      .single();
 
-    const result = await query(orderQuery, [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Order not found' });
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      throw new Error(`Supabase error: ${error.message}`);
     }
 
-    res.json(result.rows[0]);
+    // Transform data to match expected format
+    const transformedOrder = {
+      ...order,
+      customer_email: order.user?.email || null,
+      customer_name: order.user?.user_metadata?.full_name || null
+    };
+
+    res.json(transformedOrder);
 
   } catch (error) {
     console.error('Error fetching order:', error);
