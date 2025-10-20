@@ -14,7 +14,7 @@ class OrderService {
       if (filters.page) params.append('page', filters.page);
       if (filters.limit) params.append('limit', filters.limit);
 
-      const response = await fetch(`/api/orders?${params.toString()}`);
+      const response = await fetch(`http://localhost:4000/api/orders?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -44,7 +44,7 @@ class OrderService {
 
   async getOrderById(orderId) {
     try {
-      const response = await fetch(`/api/orders/${orderId}`);
+      const response = await fetch(`http://localhost:4000/api/orders/${orderId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

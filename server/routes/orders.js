@@ -21,13 +21,7 @@ router.get('/', async (req, res) => {
     // Build Supabase query
     let query = supabase
       .from('orders')
-      .select(`
-        *,
-        user:auth.users!user_id (
-          email,
-          user_metadata
-        )
-      `);
+      .select('*');
 
     // Apply filters
     if (pickupBranch) {
@@ -69,8 +63,8 @@ router.get('/', async (req, res) => {
     // Transform data to match expected format
     const transformedOrders = (orders || []).map(order => ({
       ...order,
-      customer_email: order.user?.email || null,
-      customer_name: order.user?.user_metadata?.full_name || null
+      customer_email: null, // Will be populated separately if needed
+      customer_name: null   // Will be populated separately if needed
     }));
 
     res.json({
@@ -96,13 +90,7 @@ router.get('/:id', async (req, res) => {
 
     const { data: order, error } = await supabase
       .from('orders')
-      .select(`
-        *,
-        user:auth.users!user_id (
-          email,
-          user_metadata
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -116,8 +104,8 @@ router.get('/:id', async (req, res) => {
     // Transform data to match expected format
     const transformedOrder = {
       ...order,
-      customer_email: order.user?.email || null,
-      customer_name: order.user?.user_metadata?.full_name || null
+      customer_email: null, // Will be populated separately if needed
+      customer_name: null   // Will be populated separately if needed
     };
 
     res.json(transformedOrder);
