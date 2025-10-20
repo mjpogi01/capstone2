@@ -8,7 +8,10 @@
   flex: 1;
   margin-left: 250px;
   padding: 2rem;
+  transition: margin-left 0.25s ease;
 }
+
+.admin-dashboard.collapsed .admin-main-content { margin-left: 64px; }
 
 .dashboard-content {
   max-width: 1200px;

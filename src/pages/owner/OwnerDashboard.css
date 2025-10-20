@@ -7,18 +7,21 @@
 .owner-main-content {
   flex: 1;
   margin-left: 250px;
-  padding: 2rem;
+  padding: 1.5rem 2rem;
+  transition: margin-left 0.25s ease;
 }
 
+.owner-dashboard.collapsed .owner-main-content { margin-left: 64px; }
+
 .dashboard-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1.5rem;
   margin: 2rem 0;
 }
 
@@ -36,12 +39,13 @@
 
 @media (max-width: 768px) {
   .owner-main-content {
-    margin-left: 0;
     padding: 1rem;
   }
+  .owner-dashboard.collapsed .owner-main-content { margin-left: 0; }
   
   .dashboard-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 

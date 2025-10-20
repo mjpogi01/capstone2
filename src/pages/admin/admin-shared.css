@@ -1,0 +1,62 @@
+/* Shared dashboard typography and UI theme for Admin/Owner tabs */
+
+:root {
+  --dash-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --dash-text: #0f172a;          /* slate-900 */
+  --dash-text-muted: #475569;    /* slate-600 */
+  --dash-border: #e5e7eb;        /* gray-200 */
+  --dash-card-bg: #ffffff;
+  --dash-surface: #f8fafc;       /* slate-50 */
+  --dash-primary: #1e3a8a;       /* blue-800 */
+  --dash-primary-2: #2563eb;     /* blue-600 */
+}
+
+/* Base text styles for dashboard areas */
+.admin-dashboard, .owner-dashboard, .inventory-page, .accounts-page, .analytics-page {
+  font-family: var(--dash-font-family);
+  color: var(--dash-text);
+}
+
+.admin-dashboard h1, .owner-dashboard h1, .inventory-page h1, .accounts-page h1, .analytics-page h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+
+.admin-dashboard h2, .owner-dashboard h2, .inventory-page h2, .accounts-page h2, .analytics-page h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+
+.admin-dashboard h3, .owner-dashboard h3, .inventory-page h3, .accounts-page h3, .analytics-page h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Inputs, buttons consistency */
+.admin-dashboard input, .owner-dashboard input,
+.admin-dashboard select, .owner-dashboard select,
+.admin-dashboard button, .owner-dashboard button {
+  font-family: var(--dash-font-family);
+}
+
+/* Card and table defaults */
+.dash-card { background: var(--dash-card-bg); border: 1px solid var(--dash-border); border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.06); }
+.dash-surface { background: var(--dash-surface); }
+.dash-divider { border-color: var(--dash-border); }
+
+/* Table typography */
+.dash-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.dash-table thead { background: var(--dash-surface); border-bottom: 1px solid var(--dash-border); }
+.dash-table th { text-transform: uppercase; letter-spacing: .04em; font-weight: 600; color: #334155; font-size: .78rem; padding: .9rem 1rem; }
+.dash-table td { padding: .9rem 1rem; color: #334155; }
+
+/* Smooth hover/focus */
+.dash-hover:hover { background: #f9fbff; }
+.dash-focus:focus { outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,.15); border-color: var(--dash-primary-2); }
+
+

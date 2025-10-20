@@ -3,6 +3,8 @@ import './Sidebar.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../images/yohanns_logo-removebg-preview 3.png';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHouse, faChartLine, faClipboardList, faBoxesStacked, faUsers } from '@fortawesome/free-solid-svg-icons';
 
 const Sidebar = ({ activePage, setActivePage }) => {
   const { logout, user } = useAuth();
@@ -13,11 +15,11 @@ const Sidebar = ({ activePage, setActivePage }) => {
   const basePath = userRole === 'owner' ? '/owner' : '/admin';
   
   const menuItems = [
-    { id: 'home', label: 'Home', icon: '🏠', path: basePath },
-    { id: 'analytics', label: 'Analytics', icon: '📊', path: `${basePath}/analytics` },
-    { id: 'orders', label: 'Orders', icon: '📋', path: `${basePath}/orders` },
-    { id: 'inventory', label: 'Inventory', icon: '📦', path: '/inventory' },
-    { id: 'accounts', label: 'Accounts', icon: '👥', path: `${basePath}/accounts` },
+    { id: 'home', label: 'Home', icon: faHouse, path: basePath },
+    { id: 'analytics', label: 'Analytics', icon: faChartLine, path: `${basePath}/analytics` },
+    { id: 'orders', label: 'Orders', icon: faClipboardList, path: `${basePath}/orders` },
+    { id: 'inventory', label: 'Inventory', icon: faBoxesStacked, path: '/inventory' },
+    { id: 'accounts', label: 'Accounts', icon: faUsers, path: `${basePath}/accounts` },
   ];
 
   const handleLogout = () => {
@@ -48,35 +50,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
             onClick={() => setActivePage(item.id)}
           >
             <div className="nav-icon">
-              {item.id === 'home' && (
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                </svg>
-              )}
-              {item.id === 'analytics' && (
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3 13h2v8H3v-8zm4-6h2v14H7V7zm4-4h2v18h-2V3zm4 8h2v10h-2V11z"/>
-                </svg>
-              )}
-              {item.id === 'orders' && (
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                  <path d="M14 2v6h6"/>
-                  <path d="M16 13H8"/>
-                  <path d="M16 17H8"/>
-                  <path d="M10 9H8"/>
-                </svg>
-              )}
-              {item.id === 'inventory' && (
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20 6h-2l-2-2H8L6 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/>
-                </svg>
-              )}
-              {item.id === 'accounts' && (
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.54-7.63A1.5 1.5 0 0 0 18.54 7H17c-.8 0-1.54.37-2.01.99L14 9.5c-.47-.62-1.21-.99-2.01-.99h-1.54c-.8 0-1.54.37-2.01.99L7 9.5c-.47-.62-1.21-.99-2.01-.99H3.46c-.8 0-1.54.37-2.01.99L-1.5 15.5 1 18h2.5v4h2v-4h2v4h2v-4h2v4h2v-4h2v4h2z"/>
-                </svg>
-              )}
+              <FontAwesomeIcon icon={item.icon} />
             </div>
             <span className="nav-label">{item.label}</span>
           </Link>

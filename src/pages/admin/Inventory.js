@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './Inventory.css';
+import './admin-shared.css';
 import Sidebar from '../../components/admin/Sidebar';
 import AddProductModal from '../../components/admin/AddProductModal';
 import { supabase } from '../../lib/supabase';
 
 const Inventory = () => {
   const [activePage, setActivePage] = useState('inventory');
+  const [collapsed, setCollapsed] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [products, setProducts] = useState([]);
@@ -161,8 +163,8 @@ const Inventory = () => {
   };
 
   return (
-    <div className="inventory-page">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} />
+    <div className={`inventory-page ${collapsed ? 'collapsed' : ''}`}>
+      <Sidebar activePage={activePage} setActivePage={setActivePage} collapsed={collapsed} onToggleCollapse={() => setCollapsed(v => !v)} />
       <div className="inventory-main-content">
         <div className="inventory-header">
           <h1>Inventory Management</h1>

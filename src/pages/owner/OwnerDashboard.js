@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './OwnerDashboard.css';
+import '../admin/admin-shared.css';
 import Sidebar from '../../components/admin/Sidebar';
 import MetricsCards from '../../components/admin/MetricsCards';
 import EarningsChart from '../../components/admin/EarningsChart';
@@ -11,6 +12,7 @@ import Analytics from '../admin/Analytics';
 
 const OwnerDashboard = () => {
   const [activePage, setActivePage] = useState('home');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const renderContent = () => {
     switch (activePage) {
@@ -54,8 +56,13 @@ const OwnerDashboard = () => {
   };
 
   return (
-    <div className="owner-dashboard">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} />
+    <div className={`owner-dashboard ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+      <Sidebar 
+        activePage={activePage} 
+        setActivePage={setActivePage} 
+        collapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((v) => !v)}
+      />
       <div className="owner-main-content">
         {renderContent()}
       </div>

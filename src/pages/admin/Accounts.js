@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch, faRotateRight } from '@fortawesome/free-solid-svg-icons';
+import Sidebar from '../../components/admin/Sidebar';
+import '../admin/AdminDashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import './Accounts.css';
+import './admin-shared.css';
 
 const Accounts = () => {
   const { user } = useAuth();
@@ -214,18 +219,27 @@ const Accounts = () => {
 
   if (loading) {
     return (
-      <div className="accounts-container">
-        <div className="loading">Loading accounts...</div>
+      <div className={`admin-dashboard`}>
+        <Sidebar activePage={'accounts'} setActivePage={() => {}} />
+        <div className="admin-main-content">
+          <div className="accounts-container">
+            <div className="loading">Loading accounts...</div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
+    <div className={`admin-dashboard`}>
+      <Sidebar activePage={'accounts'} setActivePage={() => {}} />
+      <div className="admin-main-content">
     <div className="accounts-container">
       <div className="accounts-header">
         <h1>Account Management</h1>
         <button onClick={handleRefresh} className="refresh-btn">
-          🔄 Refresh
+          <FontAwesomeIcon icon={faRotateRight} />
+          Refresh
         </button>
       </div>
 
@@ -234,17 +248,20 @@ const Accounts = () => {
         <div className="accounts-section">
           <div className="section-header">
             <h2>Admin Accounts ({filteredAdminAccounts.length})</h2>
-            <input
-              type="text"
-              placeholder="Search admin accounts..."
-              value={adminSearchTerm}
-              onChange={(e) => setAdminSearchTerm(e.target.value)}
-              className="search-input"
-            />
+            <div className="accounts-search-container">
+              <input
+                type="text"
+                placeholder="Search admin accounts..."
+                value={adminSearchTerm}
+                onChange={(e) => setAdminSearchTerm(e.target.value)}
+                className="accounts-search-input"
+              />
+              <FontAwesomeIcon icon={faSearch} className="accounts-search-icon" />
+            </div>
           </div>
 
-          <div className="table-container">
-            <table className="accounts-table">
+          <div className="accounts-table-container">
+            <table className="accounts-table admin-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -293,17 +310,20 @@ const Accounts = () => {
       <div className="accounts-section">
         <div className="section-header">
           <h2>Customer Accounts ({filteredCustomerAccounts.length})</h2>
-          <input
-            type="text"
-            placeholder="Search customer accounts..."
-            value={customerSearchTerm}
-            onChange={(e) => setCustomerSearchTerm(e.target.value)}
-            className="search-input"
-          />
+          <div className="accounts-search-container">
+            <input
+              type="text"
+              placeholder="Search customer accounts..."
+              value={customerSearchTerm}
+              onChange={(e) => setCustomerSearchTerm(e.target.value)}
+              className="accounts-search-input"
+            />
+            <FontAwesomeIcon icon={faSearch} className="accounts-search-icon" />
+          </div>
         </div>
 
-        <div className="table-container">
-          <table className="accounts-table">
+        <div className="accounts-table-container">
+          <table className="accounts-table customer-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -341,6 +361,8 @@ const Accounts = () => {
           </div>
         </div>
       </div>
+      </div>
+    </div>
   );
 };
 

@@ -10,7 +10,10 @@
   flex-direction: column;
   margin-left: 250px;
   padding: 2rem;
+  transition: margin-left 0.25s ease;
 }
+
+.inventory-page.collapsed .inventory-main-content { margin-left: 64px; }
 
 .inventory-header {
   margin-bottom: 2rem;

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import Sidebar from '../../components/admin/Sidebar';
+import '../admin/AdminDashboard.css';
+import './admin-shared.css';
 import { FaSearch, FaPlay, FaFilter, FaChartLine, FaStore, FaClipboardList, FaTshirt } from 'react-icons/fa';
 import './Analytics.css';
 
 const Analytics = () => {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [analyticsData, setAnalyticsData] = useState({
     totalSales: [],
     salesByBranch: [],
@@ -121,6 +125,9 @@ const Analytics = () => {
   }
 
   return (
+    <div className={`admin-dashboard ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+      <Sidebar activePage={'analytics'} setActivePage={() => {}} collapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed(v => !v)} />
+      <div className="admin-main-content">
     <div className="analytics-page">
       {/* Header */}
       <div className="analytics-header">
@@ -395,6 +402,8 @@ const Analytics = () => {
             </div>
           </div>
         </div>
+      </div>
+    </div>
       </div>
     </div>
   );

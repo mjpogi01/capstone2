@@ -575,18 +575,19 @@ const Orders = () => {
 
       {/* Expanded Order Details */}
       {expandedOrder && (
-        <div className="order-details-modal">
+        <div className="order-details-modal" onClick={() => setExpandedOrder(null)}>
           {(() => {
             const order = orders.find(o => o.id === expandedOrder);
             if (!order) return null;
             
             return (
-              <div className="order-details-content">
+              <div className="order-details-content" onClick={(e) => e.stopPropagation()}>
                 <div className="order-details-header">
                   <h3>Order Details - {order.orderNumber}</h3>
                   <button 
                     className="close-details-btn"
                     onClick={() => setExpandedOrder(null)}
+                    aria-label="Close modal"
                   >
                     ×
                   </button>
