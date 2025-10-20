@@ -1,22 +1,52 @@
-const { Pool } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 // Supabase connection configuration
-const connectionString = process.env.DATABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const pool = new Pool({
-  connectionString: connectionString,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Helper function to execute raw SQL queries using Supabase
 async function query(text, params) {
   const start = Date.now();
-  const res = await pool.query(text, params);
-  const duration = Date.now() - start;
-  // eslint-disable-next-line no-console
-  console.log('executed query', { text, duration, rows: res.rowCount });
-  return res;
+  try {
+    // For raw SQL queries, we'll use Supabase's REST API with SQL execution
+    // This requires enabling SQL execution in Supabase dashboard
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey
+      },
+      body: JSON.stringify({
+        sql: text,
+        params: params || []
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    const duration = Date.now() - start;
+    
+    // eslint-disable-next-line no-console
+    console.log('executed query', { text, duration, rows: data?.length || 0 });
+    
+    // Return in PostgreSQL format for compatibility
+    return {
+      rows: data || [],
+      rowCount: data?.length || 0
+    };
+  } catch (error) {
+    console.error('Query execution error:', error);
+    throw error;
+  }
 }
 
 async function ensureUsersTable() {
@@ -198,4 +228,4 @@ async function ensureUsersTable() {
   `);
 }
 
-module.exports = { pool, query, ensureUsersTable };
+module.exports = { supabase, query, ensureUsersTable };

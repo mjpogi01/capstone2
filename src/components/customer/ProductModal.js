@@ -8,7 +8,7 @@ import orderService from '../../services/orderService';
 import { useAuth } from '../../contexts/AuthContext';
 import './ProductModal.css';
 
-const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null }) => {
+const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null, onAddToCart, onBuyNow }) => {
   const { addToCart, removeFromCart, cartItems, selectedItems, clearCart } = useCart();
   const { user } = useAuth();
   const { showOrderConfirmation, showError } = useNotification();
@@ -104,18 +104,6 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         return;
       }
 
-      if (!user) {
-        showError('Login Required', 'Please log in to add items to cart.');
-        return;
-      }
-
-      // If this is from cart, remove the existing item first
-      if (isFromCart && existingCartItemId) {
-        await removeFromCart(existingCartItemId);
-        // Add a small delay to ensure the removal is processed
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-
       // Calculate price based on size type
       const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
       
@@ -129,6 +117,25 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         price: finalPrice, // Use discounted price for kids
         isReplacement: isFromCart // Mark as replacement when coming from cart
       };
+
+      // Use callback if provided (for walk-in ordering), otherwise use context
+      if (onAddToCart) {
+        onAddToCart(product, cartOptions);
+        onClose();
+        return;
+      }
+
+      if (!user) {
+        showError('Login Required', 'Please log in to add items to cart.');
+        return;
+      }
+
+      // If this is from cart, remove the existing item first
+      if (isFromCart && existingCartItemId) {
+        await removeFromCart(existingCartItemId);
+        // Add a small delay to ensure the removal is processed
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
       
       await addToCart(product, cartOptions);
       
@@ -159,6 +166,23 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       // Calculate price based on size type
       const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
+      
+      const buyNowOptions = {
+        size: selectedSize,
+        quantity: isTeamOrder ? teamMembers.length : quantity,
+        isTeamOrder: isTeamOrder,
+        teamMembers: isTeamOrder ? teamMembers : null,
+        singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+        sizeType: sizeType,
+        price: finalPrice
+      };
+
+      // Use callback if provided (for walk-in ordering), otherwise use default flow
+      if (onBuyNow) {
+        onBuyNow(product, buyNowOptions);
+        onClose();
+        return;
+      }
       
       // Create a standalone order item for Buy Now (not added to cart)
       const buyNowItem = {

@@ -29,6 +29,11 @@ class WishlistService {
         .abortSignal(AbortSignal.timeout(10000));
 
       if (error) {
+        // If the wishlist table doesn't exist yet, return empty array gracefully
+        if (error.code === 'PGRST205') {
+          console.warn('Wishlist table missing; returning empty list');
+          return [];
+        }
         console.error('Supabase error:', error);
         throw new Error(`Database error: ${error.message}`);
       }
@@ -85,7 +90,7 @@ class WishlistService {
         .select('id')
         .eq('user_id', userId)
         .eq('product_id', product.id)
-        .single();
+        .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
         throw new Error(`Database error: ${checkError.message}`);
@@ -115,7 +120,7 @@ class WishlistService {
           }
         ])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Supabase error:', error);
@@ -175,7 +180,7 @@ class WishlistService {
         .select('id')
         .eq('user_id', userId)
         .eq('product_id', productId)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         console.error('Supabase error:', error);
