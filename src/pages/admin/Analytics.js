@@ -33,7 +33,8 @@ const Analytics = () => {
             topProducts: result.data.topProducts.map(product => ({
               product: product.product,
               percentage: Math.round((product.quantity / Math.max(...result.data.topProducts.map(p => p.quantity))) * 100)
-            }))
+            })),
+            summary: result.data.summary
           });
           return;
         }
@@ -69,8 +70,16 @@ const Analytics = () => {
           { branch: 'San Pascual', sales: 45000, color: '#15803d' }
         ],
         orderStatus: {
-          completed: 72,
-          pending: 28
+          completed: { count: 108, percentage: 72 },
+          processing: { count: 24, percentage: 16 },
+          pending: { count: 18, percentage: 12 },
+          cancelled: { count: 0, percentage: 0 },
+          total: 150
+        },
+        summary: {
+          totalRevenue: 250000,
+          totalOrders: 150,
+          averageOrderValue: 1666.67
         },
         topProducts: [
           { product: 'Jerseys', percentage: 98 },
@@ -136,6 +145,49 @@ const Analytics = () => {
           <button className="filter-btn">
             <FaFilter className="btn-icon" />
           </button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="analytics-summary">
+        <div className="summary-card">
+          <div className="summary-icon">
+            <FaClipboardList />
+          </div>
+          <div className="summary-content">
+            <h3>Total Orders</h3>
+            <p className="summary-value">{analyticsData.orderStatus?.total || analyticsData.summary?.totalOrders || 0}</p>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon completed">
+            <FaStore />
+          </div>
+          <div className="summary-content">
+            <h3>Completed</h3>
+            <p className="summary-value">{analyticsData.orderStatus?.completed?.count || 0}</p>
+            <p className="summary-percentage">({analyticsData.orderStatus?.completed?.percentage || 0}%)</p>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon processing">
+            <FaFilter />
+          </div>
+          <div className="summary-content">
+            <h3>Processing</h3>
+            <p className="summary-value">{analyticsData.orderStatus?.processing?.count || 0}</p>
+            <p className="summary-percentage">({analyticsData.orderStatus?.processing?.percentage || 0}%)</p>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon pending">
+            <FaChartLine />
+          </div>
+          <div className="summary-content">
+            <h3>Pending</h3>
+            <p className="summary-value">{analyticsData.orderStatus?.pending?.count || 0}</p>
+            <p className="summary-percentage">({analyticsData.orderStatus?.pending?.percentage || 0}%)</p>
+          </div>
         </div>
       </div>
 
@@ -278,7 +330,7 @@ const Analytics = () => {
                   fill="none"
                   stroke="#1e3a8a"
                   strokeWidth="20"
-                  strokeDasharray={`${2 * Math.PI * 80 * (analyticsData.orderStatus.completed / 100)} ${2 * Math.PI * 80}`}
+                  strokeDasharray={`${2 * Math.PI * 80 * ((analyticsData.orderStatus?.completed?.percentage || 0) / 100)} ${2 * Math.PI * 80}`}
                   strokeDashoffset="0"
                   transform="rotate(-90 100 100)"
                 />
@@ -289,12 +341,12 @@ const Analytics = () => {
                   fill="none"
                   stroke="#0d9488"
                   strokeWidth="20"
-                  strokeDasharray={`${2 * Math.PI * 80 * (analyticsData.orderStatus.pending / 100)} ${2 * Math.PI * 80}`}
-                  strokeDashoffset={`-${2 * Math.PI * 80 * (analyticsData.orderStatus.completed / 100)}`}
+                  strokeDasharray={`${2 * Math.PI * 80 * ((analyticsData.orderStatus?.pending?.percentage || 0) / 100)} ${2 * Math.PI * 80}`}
+                  strokeDashoffset={`-${2 * Math.PI * 80 * ((analyticsData.orderStatus?.completed?.percentage || 0) / 100)}`}
                   transform="rotate(-90 100 100)"
                 />
                 <text x="100" y="100" textAnchor="middle" className="donut-center-text">
-                  {analyticsData.orderStatus.completed}%
+                  {analyticsData.orderStatus?.completed?.percentage || 0}%
                 </text>
                 <text x="100" y="115" textAnchor="middle" className="donut-center-label">
                   Completed

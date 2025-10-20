@@ -38,6 +38,13 @@ router.get('/dashboard', async (req, res) => {
       GROUP BY status
     `);
 
+    // Get total orders count
+    const totalOrdersCount = await query(`
+      SELECT COUNT(*) as total_orders
+      FROM orders 
+      WHERE created_at >= NOW() - INTERVAL '30 days'
+    `);
+
     // Get top selling products
     const topProducts = await query(`
       SELECT 
@@ -90,7 +97,7 @@ router.get('/dashboard', async (req, res) => {
         sales: parseFloat(row.sales),
         color: getBranchColor(index)
       })),
-      orderStatus: processOrderStatus(orderStatus.rows),
+      orderStatus: processOrderStatus(orderStatus.rows, totalOrdersCount.rows[0]?.total_orders || 0),
       topProducts: topProducts.rows.map(row => ({
         product: row.product_name,
         quantity: parseInt(row.total_quantity),
@@ -266,18 +273,35 @@ function getBranchColor(index) {
   return colors[index % colors.length];
 }
 
-function processOrderStatus(statusRows) {
+function processOrderStatus(statusRows, totalOrders) {
   const statusMap = {};
   statusRows.forEach(row => {
     statusMap[row.status] = parseInt(row.count);
   });
   
-  const total = Object.values(statusMap).reduce((sum, count) => sum + count, 0);
+  const completed = statusMap.delivered || 0;
+  const processing = (statusMap.processing || 0) + (statusMap.confirmed || 0);
+  const pending = statusMap.pending || 0;
+  const cancelled = statusMap.cancelled || 0;
   
   return {
-    completed: total > 0 ? Math.round((statusMap.delivered || 0) / total * 100) : 0,
-    pending: total > 0 ? Math.round(((statusMap.pending || 0) + (statusMap.processing || 0) + (statusMap.confirmed || 0)) / total * 100) : 0,
-    cancelled: total > 0 ? Math.round((statusMap.cancelled || 0) / total * 100) : 0
+    completed: {
+      count: completed,
+      percentage: totalOrders > 0 ? Math.round((completed / totalOrders) * 100) : 0
+    },
+    processing: {
+      count: processing,
+      percentage: totalOrders > 0 ? Math.round((processing / totalOrders) * 100) : 0
+    },
+    pending: {
+      count: pending,
+      percentage: totalOrders > 0 ? Math.round((pending / totalOrders) * 100) : 0
+    },
+    cancelled: {
+      count: cancelled,
+      percentage: totalOrders > 0 ? Math.round((cancelled / totalOrders) * 100) : 0
+    },
+    total: totalOrders
   };
 }
 

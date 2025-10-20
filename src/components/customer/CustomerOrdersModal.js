@@ -239,7 +239,10 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
         <div className="customer-orders-modal-body">
           {loading && (
             <div className="customer-orders-loading">
-              <div className="loading-spinner">Loading your orders...</div>
+              <div className="loading-spinner-container">
+                <div className="loading-spinner-circle"></div>
+                <p className="loading-text">Loading your orders...</p>
+              </div>
             </div>
           )}
 

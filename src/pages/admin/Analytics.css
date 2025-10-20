@@ -99,6 +99,75 @@
   font-size: 0.875rem;
 }
 
+/* Analytics Summary */
+.analytics-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.summary-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.summary-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: white;
+  background: #3b82f6;
+}
+
+.summary-icon.completed {
+  background: #10b981;
+}
+
+.summary-icon.processing {
+  background: #f59e0b;
+}
+
+.summary-icon.pending {
+  background: #ef4444;
+}
+
+.summary-content h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.summary-percentage {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin: 0;
+}
+
 /* Analytics Grid */
 .analytics-grid {
   display: grid;
