@@ -10,23 +10,48 @@ import PopularProducts from '../../components/admin/PopularProducts';
 const OwnerDashboard = () => {
   const [activePage, setActivePage] = useState('home');
 
+  const renderContent = () => {
+    switch (activePage) {
+      case 'home':
+        return (
+          <div className="dashboard-content">
+            <MetricsCards />
+            <div className="dashboard-grid">
+              <div className="dashboard-left">
+                <EarningsChart />
+              </div>
+              <div className="dashboard-right">
+                <StocksTable />
+                <PopularProducts />
+              </div>
+            </div>
+            <RecentOrders />
+          </div>
+        );
+      default:
+        return (
+          <div className="dashboard-content">
+            <MetricsCards />
+            <div className="dashboard-grid">
+              <div className="dashboard-left">
+                <EarningsChart />
+              </div>
+              <div className="dashboard-right">
+                <StocksTable />
+                <PopularProducts />
+              </div>
+            </div>
+            <RecentOrders />
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="owner-dashboard">
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
       <div className="owner-main-content">
-        <div className="dashboard-content">
-          <MetricsCards />
-          <div className="dashboard-grid">
-            <div className="dashboard-left">
-              <EarningsChart />
-            </div>
-            <div className="dashboard-right">
-              <StocksTable />
-              <PopularProducts />
-            </div>
-          </div>
-          <RecentOrders />
-        </div>
+        {renderContent()}
       </div>
     </div>
   );

@@ -110,18 +110,30 @@ class OrderService {
 
   async updateOrderStatus(orderId, status) {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .update({ 
+      // Use backend API to trigger email automation
+      const response = await fetch(`http://localhost:4000/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
           status,
-          updated_at: new Date().toISOString()
+          skipEmail: false // Ensure email is sent
         })
-        .eq('id', orderId)
-        .select()
-        .single();
+      });
 
-      if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update order status');
+      }
+
+      const data = await response.json();
+      
+      // Log email status
+      if (data.emailSent) {
+        console.log('✅ Email notification sent successfully');
+      } else if (data.emailError) {
+        console.warn('⚠️ Email notification failed:', data.emailError);
       }
 
       return data;
@@ -133,14 +145,27 @@ class OrderService {
 
   async createOrder(orderData) {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .insert([orderData])
-        .select()
-        .single();
+      // Use backend API to trigger email automation
+      const response = await fetch('http://localhost:4000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData)
+      });
 
-      if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create order');
+      }
+
+      const data = await response.json();
+      
+      // Log email status
+      if (data.emailSent) {
+        console.log('✅ Order confirmation email sent successfully');
+      } else if (data.emailError) {
+        console.warn('⚠️ Order confirmation email failed:', data.emailError);
       }
 
       return data;
