@@ -136,7 +136,7 @@ router.patch('/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status, skipEmail = false } = req.body;
 
-    if (!status || !['pending', 'processing', 'completed', 'cancelled', 'delivered'].includes(status)) {
+    if (!status || !['pending', 'processing', 'completed', 'delivered', 'cancelled'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 

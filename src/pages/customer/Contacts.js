@@ -64,7 +64,7 @@ const Contacts = () => {
           marginBottom: '4rem',
           padding: '3rem 0'
         }}>
-          <h1 style={{
+          <h1 className="page-title" style={{
             fontSize: '2.5rem',
             fontWeight: 'bold',
             color: '#00bfff',

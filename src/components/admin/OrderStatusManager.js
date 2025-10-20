@@ -18,14 +18,36 @@ const OrderStatusManager = () => {
       setLoading(true);
       setError(null);
       
-      // This would typically fetch from your orders API
-      // For now, we'll use mock data
+      // Fetch from orders API
+      const response = await fetch('/api/orders');
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // Format orders for display
+      const formattedOrders = data.orders.map(order => ({
+        id: order.id,
+        orderNumber: order.order_number,
+        customerName: order.customer_name || 'Unknown Customer',
+        status: order.status,
+        createdAt: order.created_at,
+        items: order.order_items ? order.order_items.map(item => item.name || item.product_name) : []
+      }));
+      
+      setOrders(formattedOrders);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Failed to load orders');
+      
+      // Fallback to mock data
       const mockOrders = [
         {
           id: 1,
           orderNumber: 'ORD-001',
           customerName: 'John Doe',
-          status: 'in_store',
+          status: 'processing',
           createdAt: new Date().toISOString(),
           items: ['Basketball Jersey', 'Football Jersey']
         },
@@ -33,7 +55,7 @@ const OrderStatusManager = () => {
           id: 2,
           orderNumber: 'ORD-002',
           customerName: 'Jane Smith',
-          status: 'on_the_way',
+          status: 'completed',
           createdAt: new Date(Date.now() - 3600000).toISOString(),
           items: ['Volleyball Jersey']
         },
@@ -48,9 +70,6 @@ const OrderStatusManager = () => {
       ];
       
       setOrders(mockOrders);
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError('Failed to load orders');
     } finally {
       setLoading(false);
     }
@@ -61,10 +80,24 @@ const OrderStatusManager = () => {
       setUpdating(true);
       setError(null);
 
-      await orderTrackingService.updateOrderStatus(orderId, newStatus, {
-        updatedBy: 'Admin',
-        updateReason: 'Status change by administrator'
+      // Update order status via server API
+      const response = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
       // Update local state
       setOrders(prevOrders => 

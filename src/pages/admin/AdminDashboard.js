@@ -7,6 +7,7 @@ import StocksTable from '../../components/admin/StocksTable';
 import RecentOrders from '../../components/admin/RecentOrders';
 import PopularProducts from '../../components/admin/PopularProducts';
 import Orders from '../../components/admin/Orders';
+import Analytics from './Analytics';
 
 const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('home');
@@ -31,6 +32,8 @@ const AdminDashboard = () => {
         );
       case 'orders':
         return <Orders />;
+      case 'analytics':
+        return <Analytics />;
       default:
         return (
           <div className="dashboard-content">

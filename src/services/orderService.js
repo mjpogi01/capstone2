@@ -3,80 +3,60 @@ import { supabase } from '../lib/supabase';
 class OrderService {
   async getAllOrders(filters = {}) {
     try {
-      let query = supabase
-        .from('orders')
-        .select('*');
+      // Build query parameters
+      const params = new URLSearchParams();
+      
+      if (filters.dateSort) params.append('dateSort', filters.dateSort);
+      if (filters.priceSort) params.append('priceSort', filters.priceSort);
+      if (filters.quantitySort) params.append('quantitySort', filters.quantitySort);
+      if (filters.pickupBranch) params.append('pickupBranch', filters.pickupBranch);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.page) params.append('page', filters.page);
+      if (filters.limit) params.append('limit', filters.limit);
 
-      // Apply filters
-      if (filters.pickupBranch) {
-        query = query.eq('pickup_location', filters.pickupBranch);
+      const response = await fetch(`/api/orders?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      if (filters.status) {
-        query = query.eq('status', filters.status);
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      // Apply sorting
-      if (filters.dateSort === 'asc') {
-        query = query.order('created_at', { ascending: true });
-      } else if (filters.dateSort === 'desc') {
-        query = query.order('created_at', { ascending: false });
-      } else if (filters.priceSort === 'asc') {
-        query = query.order('total_amount', { ascending: true });
-      } else if (filters.priceSort === 'desc') {
-        query = query.order('total_amount', { ascending: false });
-      } else if (filters.quantitySort === 'asc') {
-        query = query.order('total_items', { ascending: true });
-      } else if (filters.quantitySort === 'desc') {
-        query = query.order('total_items', { ascending: false });
-      } else {
-        // Default sorting by date descending
-        query = query.order('created_at', { ascending: false });
-      }
-
-      const { data: orders, error } = await query;
-
-      if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
-      }
-
-      // For now, return orders without user data and handle it in the component
-      const ordersWithUsers = (orders || []).map(order => ({
-        ...order,
-        user: null // We'll handle user data display differently
-      }));
-
+      return data;
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      // Fallback to mock data if API fails
       return {
-        orders: ordersWithUsers || [],
+        orders: this.getMockOrders(),
         pagination: {
           page: 1,
           limit: 50,
-          total: ordersWithUsers?.length || 0,
+          total: 0,
           totalPages: 1
         }
       };
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      throw error;
     }
   }
 
   async getOrderById(orderId) {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-
-      if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
+      const response = await fetch(`/api/orders/${orderId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return {
-        ...data,
-        user: null
-      };
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data;
     } catch (error) {
       console.error('Error fetching order:', error);
       throw error;
@@ -200,6 +180,80 @@ class OrderService {
       orderNotes: order.order_notes,
       designFiles: order.design_files || []
     };
+  }
+
+  getMockOrders() {
+    return [
+      {
+        id: 1,
+        orderNumber: 'ORD-001',
+        customerName: 'John Doe',
+        customerEmail: 'john@example.com',
+        status: 'processing',
+        shippingMethod: 'pickup',
+        pickupLocation: 'Main Branch',
+        subtotalAmount: 1500.00,
+        shippingCost: 0.00,
+        totalAmount: 1500.00,
+        totalItems: 2,
+        orderDate: new Date().toISOString(),
+        orderItems: [
+          { name: 'Basketball Jersey', quantity: 1, price: 750.00 },
+          { name: 'Football Jersey', quantity: 1, price: 750.00 }
+        ],
+        deliveryAddress: null,
+        orderNotes: 'Please make sure the jerseys are high quality',
+        designFiles: []
+      },
+      {
+        id: 2,
+        orderNumber: 'ORD-002',
+        customerName: 'Jane Smith',
+        customerEmail: 'jane@example.com',
+        status: 'completed',
+        shippingMethod: 'delivery',
+        pickupLocation: 'Mall Branch',
+        subtotalAmount: 2000.00,
+        shippingCost: 100.00,
+        totalAmount: 2100.00,
+        totalItems: 3,
+        orderDate: new Date(Date.now() - 86400000).toISOString(),
+        orderItems: [
+          { name: 'Volleyball Jersey', quantity: 2, price: 800.00 },
+          { name: 'Soccer Jersey', quantity: 1, price: 400.00 }
+        ],
+        deliveryAddress: {
+          fullName: 'Jane Smith',
+          street: '123 Main St',
+          city: 'Batangas City',
+          province: 'Batangas',
+          postalCode: '4200'
+        },
+        orderNotes: 'Rush order needed',
+        designFiles: []
+      },
+      {
+        id: 3,
+        orderNumber: 'ORD-003',
+        customerName: 'Mike Johnson',
+        customerEmail: 'mike@example.com',
+        status: 'pending',
+        shippingMethod: 'pickup',
+        pickupLocation: 'Downtown Branch',
+        subtotalAmount: 3000.00,
+        shippingCost: 0.00,
+        totalAmount: 3000.00,
+        totalItems: 4,
+        orderDate: new Date(Date.now() - 172800000).toISOString(),
+        orderItems: [
+          { name: 'Basketball Jersey', quantity: 2, price: 1500.00 },
+          { name: 'Football Jersey', quantity: 2, price: 1500.00 }
+        ],
+        deliveryAddress: null,
+        orderNotes: 'Team uniforms for basketball tournament',
+        designFiles: []
+      }
+    ];
   }
 }
 

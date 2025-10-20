@@ -178,3 +178,17 @@ html {
 .responsive-margin {
   margin: clamp(0.5rem, 2vw, 1rem);
 }
+
+/* Global page title alignment for consistency across pages */
+.page-title {
+  display: block;
+  margin: 2.5rem auto 1rem auto;
+  text-align: center;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    margin: 2rem auto 0.75rem auto;
+  }
+}

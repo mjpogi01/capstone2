@@ -6,6 +6,8 @@ import EarningsChart from '../../components/admin/EarningsChart';
 import StocksTable from '../../components/admin/StocksTable';
 import RecentOrders from '../../components/admin/RecentOrders';
 import PopularProducts from '../../components/admin/PopularProducts';
+import Orders from '../../components/admin/Orders';
+import Analytics from '../admin/Analytics';
 
 const OwnerDashboard = () => {
   const [activePage, setActivePage] = useState('home');
@@ -28,6 +30,10 @@ const OwnerDashboard = () => {
             <RecentOrders />
           </div>
         );
+      case 'orders':
+        return <Orders />;
+      case 'analytics':
+        return <Analytics />;
       default:
         return (
           <div className="dashboard-content">

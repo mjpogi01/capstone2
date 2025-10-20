@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import CustomDesignFormModal from './CustomDesignFormModal';
 import './CustomDesign.css';
 
 const CustomDesign = () => {
@@ -13,6 +14,7 @@ const CustomDesign = () => {
   };
 
   return (
+    <>
     <section className="custom-design">
       <div className="container">
         {/* Basketball Player Image - Top Left */}
@@ -70,10 +72,14 @@ const CustomDesign = () => {
           <p className="custom-description">
             Fill out the form, upload your design, and let's bring your vision to life!
           </p>
-          <button className="upload-btn">UPLOAD YOUR DREAM DESIGN</button>
+          <button className="upload-btn" onClick={(e) => { e.preventDefault(); setClickedImage('button'); }}>
+            UPLOAD YOUR DREAM DESIGN
+          </button>
         </div>
       </div>
     </section>
+    <CustomDesignFormModal isOpen={!!clickedImage} onClose={() => setClickedImage(null)} />
+    </>
   );
 };
 

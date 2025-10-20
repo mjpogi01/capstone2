@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import orderTrackingService from '../../services/orderTrackingService';
+import SimpleOrderReview from './SimpleOrderReview';
 import './CustomerOrdersModal.css';
 
 const CustomerOrdersModal = ({ isOpen, onClose }) => {
@@ -238,7 +239,10 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
         <div className="customer-orders-modal-body">
           {loading && (
             <div className="customer-orders-loading">
-              <div className="loading-spinner">Loading your orders...</div>
+              <div className="loading-spinner-container">
+                <div className="loading-spinner-circle"></div>
+                <p className="loading-text">Loading your orders...</p>
+              </div>
             </div>
           )}
 
@@ -435,38 +439,19 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         )}
                       </div>
 
-                      {/* Review Section - Only for COD orders */}
-                      {order.shippingMethod === 'cod' && order.status.toLowerCase() === 'delivered' && (
-                        <div className="customer-order-review">
-                          <h4>Order Review</h4>
-                          {orderReviews[order.id] ? (
-                            <div className="existing-review">
-                              <div className="review-rating">
-                                {[...Array(5)].map((_, i) => (
-                                  <FaStar 
-                                    key={i} 
-                                    className={i < orderReviews[order.id].rating ? 'star-filled' : 'star-empty'} 
-                                  />
-                                ))}
-                              </div>
-                              <div className="review-comment">
-                                "{orderReviews[order.id].comment}"
-                              </div>
-                              <div className="review-date">
-                                Reviewed on {formatDate(orderReviews[order.id].created_at)}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="review-prompt">
-                              <p>How was your order experience?</p>
-                              <button 
-                                className="review-btn"
-                                onClick={() => openReviewModal(order)}
-                              >
-                                <FaStar /> Leave a Review
-                              </button>
-                            </div>
-                          )}
+                      {/* Simple Review Section - Only for delivered orders */}
+                      {order.status.toLowerCase() === 'delivered' && (
+                        <div className="simple-review-section">
+                          <SimpleOrderReview 
+                            orderId={order.id}
+                            orderNumber={order.orderNumber}
+                            onReviewSubmit={(review) => {
+                              setOrderReviews(prev => ({
+                                ...prev,
+                                [order.id]: review
+                              }));
+                            }}
+                          />
                         </div>
                       )}
 

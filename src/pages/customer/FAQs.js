@@ -50,7 +50,7 @@ const FAQs = () => {
       <div className="faqs-wrapper">
         {/* Hero Section */}
         <div className="faqs-hero">
-          <h1 className="faqs-title">
+          <h1 className="faqs-title page-title">
             FAQs
           </h1>
           <p className="faqs-subtitle">
