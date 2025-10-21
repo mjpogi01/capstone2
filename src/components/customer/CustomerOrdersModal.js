@@ -102,6 +102,13 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     switch (status.toLowerCase()) {
       case 'pending': return 'Your order is being reviewed';
       case 'confirmed': return 'Order confirmed, preparing items';
+      case 'layout': return 'Creating design layout';
+      case 'sizing': return 'Determining item sizes';
+      case 'printing': return 'Printing items';
+      case 'press': return 'Heat press application in progress';
+      case 'prod': return 'In final production stages';
+      case 'packing_completing': return 'Packing and final checks';
+      case 'picked_up_delivered': return 'Order has been picked up or delivered ✓';
       case 'processing': return 'Items are being prepared';
       case 'shipped': return 'Order is on the way';
       case 'delivered': return 'Order has been delivered';
@@ -194,10 +201,17 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
       case 'pending':
       case 'confirmed':
         return <FaMapMarkerAlt className="location-icon main-branch" />;
+      case 'layout':
+      case 'sizing':
+      case 'printing':
+      case 'press':
+      case 'prod':
+      case 'packing_completing':
       case 'processing':
         return <FaRoute className="location-icon processing" />;
       case 'shipped':
         return <FaTruck className="location-icon on-the-way" />;
+      case 'picked_up_delivered':
       case 'delivered':
         return <FaCheckCircle className="location-icon delivered" />;
       default:
@@ -210,10 +224,23 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
       case 'pending':
       case 'confirmed':
         return 'At Main Branch - Yohanns';
+      case 'layout':
+        return 'Creating Design Layout';
+      case 'sizing':
+        return 'Determining Sizes';
+      case 'printing':
+        return 'Printing in Progress';
+      case 'press':
+        return 'Heat Press Application';
+      case 'prod':
+        return 'Final Production Stage';
+      case 'packing_completing':
+        return 'Packing & Final Checks';
       case 'processing':
         return 'Being Prepared';
       case 'shipped':
         return `On the way to ${location || 'your location'}`;
+      case 'picked_up_delivered':
       case 'delivered':
         return 'Delivered Successfully';
       default:
@@ -398,8 +425,8 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         )}
                       </div>
 
-                      {/* Simple Review Section - Only for delivered orders */}
-                      {order.status.toLowerCase() === 'delivered' && (
+                      {/* Simple Review Section - Only for delivered/picked up orders */}
+                      {(order.status.toLowerCase() === 'delivered' || order.status.toLowerCase() === 'picked_up_delivered') && (
                         <div className="simple-review-section">
                           <SimpleOrderReview 
                             orderId={order.id}
