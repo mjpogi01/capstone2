@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FaTimes, FaHeart, FaShoppingCart, FaTrash } from 'react-icons/fa';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
@@ -10,22 +10,35 @@ const WishlistModal = () => {
     isWishlistOpen, 
     closeWishlist, 
     removeFromWishlist, 
+    reloadWishlist,
     isLoading, 
     error 
   } = useWishlist();
   
   const { addToCart } = useCart();
 
+  // Reload wishlist when modal opens
+  useEffect(() => {
+    if (isWishlistOpen) {
+      reloadWishlist();
+    }
+  }, [isWishlistOpen, reloadWishlist]);
+
   if (!isWishlistOpen) return null;
 
   const handleAddToCart = async (product) => {
     try {
+      // Add to cart - the CartContext will automatically remove from wishlist
       await addToCart(product, {
         size: 'M',
         quantity: 1,
         isTeamOrder: false
       });
-      // Optionally show success message
+      
+      // Reload wishlist to show the item has been removed
+      setTimeout(() => {
+        reloadWishlist();
+      }, 500);
     } catch (error) {
       console.error('Error adding to cart:', error);
     }
