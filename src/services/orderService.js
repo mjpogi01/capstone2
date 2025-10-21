@@ -65,8 +65,29 @@ class OrderService {
 
   async getUserOrders(userId, excludeCancelled = true) {
     try {
-      console.log('📦 [OrderService] Fetching orders for user_id:', userId);
+      console.log('📦 [OrderService] ========== FETCHING ORDERS ==========');
+      console.log('📦 [OrderService] Searching for user_id:', userId);
+      console.log('📦 [OrderService] User ID type:', typeof userId);
+      console.log('📦 [OrderService] Exclude cancelled:', excludeCancelled);
       
+      // First, let's see ALL orders to debug
+      const { data: allOrders } = await supabase
+        .from('orders')
+        .select('id, order_number, user_id, status, created_at')
+        .limit(10)
+        .order('created_at', { ascending: false });
+      
+      console.log('📦 [OrderService] Recent orders in database (last 10):');
+      if (allOrders && allOrders.length > 0) {
+        allOrders.forEach(order => {
+          console.log(`  - Order ${order.order_number}: user_id=${order.user_id} (type: ${typeof order.user_id}), status=${order.status}`);
+          console.log(`    Match? ${order.user_id === userId} (strict), ${order.user_id == userId} (loose)`);
+        });
+      } else {
+        console.log('  No orders found in database at all!');
+      }
+      
+      // Now fetch orders for this specific user
       let query = supabase
         .from('orders')
         .select('*')
@@ -84,11 +105,13 @@ class OrderService {
         throw new Error(`Supabase error: ${error.message}`);
       }
 
-      console.log('📦 [OrderService] Raw data from Supabase:', data);
-      console.log('📦 [OrderService] Found', data?.length || 0, 'orders');
+      console.log('📦 [OrderService] Orders for this user:', data?.length || 0);
+      if (data && data.length > 0) {
+        console.log('📦 [OrderService] User\'s orders:', data.map(o => o.order_number).join(', '));
+      }
       
       const formattedOrders = (data || []).map(order => this.formatOrderForDisplay(order));
-      console.log('📦 [OrderService] Formatted orders:', formattedOrders);
+      console.log('📦 [OrderService] ========== END FETCH ==========');
       
       return formattedOrders;
     } catch (error) {
