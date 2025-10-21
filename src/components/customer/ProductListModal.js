@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaShoppingCart, FaSearch, FaStar, FaStarHalfAlt, FaRegStar, FaFilter } from 'react-icons/fa';
-import { useCart } from '../../contexts/CartContext';
-import { useNotification } from '../../contexts/NotificationContext';
+import { FaTimes, FaSearch, FaFilter } from 'react-icons/fa';
+import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
+import { useWishlist } from '../../contexts/WishlistContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import productService from '../../services/productService';
 import ProductModal from './ProductModal';
 import './ProductListModal.css';
@@ -18,8 +20,9 @@ const ProductListModal = ({ isOpen, onClose }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showProductModal, setShowProductModal] = useState(false);
   
-  const { addToCart } = useCart();
-  const { showSuccess, showError } = useNotification();
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated } = useAuth();
+  const { openSignIn } = useModal();
   
   const productsPerPage = 12;
 
@@ -94,45 +97,21 @@ const ProductListModal = ({ isOpen, onClose }) => {
   };
 
   const handleProductClick = (product) => {
+    if (!isAuthenticated) {
+      openSignIn();
+      return;
+    }
     setSelectedProduct(product);
     setShowProductModal(true);
   };
 
-  const handleQuickAddToCart = (product, e) => {
+  const handleToggleWishlist = async (product, e) => {
     e.stopPropagation();
-    const cartItem = {
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image_url,
-      quantity: 1,
-      orderType: 'single',
-      orderDetails: {
-        surname: '',
-        number: '',
-        size: 'M'
-      }
-    };
-    addToCart(cartItem);
-    showSuccess('Product added to cart!');
-  };
-
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<FaStar key={`star-${i}`} className="star filled" />);
+    if (!isAuthenticated) {
+      openSignIn();
+      return;
     }
-    if (hasHalfStar) {
-      stars.push(<FaStarHalfAlt key="half-star" className="star half" />);
-    }
-    const emptyStars = 5 - stars.length;
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<FaRegStar key={`empty-${i}`} className="star empty" />);
-    }
-    return stars;
+    await toggleWishlist(product);
   };
 
   // Pagination
@@ -218,59 +197,45 @@ const ProductListModal = ({ isOpen, onClose }) => {
                     <div
                       key={product.id}
                       className="product-card"
-                      onClick={() => handleProductClick(product)}
                     >
-                      <div className="product-image-container">
-                        {product.image_url ? (
-                          <img src={product.image_url} alt={product.name} />
-                        ) : (
-                          <div className="no-image">No Image</div>
-                        )}
-                        {product.category && (
-                          <span className="product-category-tag">{product.category}</span>
-                        )}
-                      </div>
-
-                      <div className="product-info">
-                        <h3 className="product-title">{product.name}</h3>
-                        
-                        {product.description && (
-                          <p className="product-description">
-                            {product.description.length > 60
-                              ? `${product.description.substring(0, 60)}...`
-                              : product.description}
-                          </p>
-                        )}
-
-                        <div className="product-rating">
-                          {renderStars(product.rating || 4.5)}
-                          <span className="rating-count">
-                            ({product.review_count || product.sold_quantity || 0})
-                          </span>
+                      <div 
+                        className="product-clickable-area"
+                        onClick={() => handleProductClick(product)}
+                      >
+                        <div className="product-image">
+                          {product.main_image || product.image_url ? (
+                            <img 
+                              src={product.main_image || product.image_url} 
+                              alt={product.name}
+                              className="product-image-img"
+                            />
+                          ) : (
+                            <span className="product-emoji">🏀</span>
+                          )}
                         </div>
-
-                        <div className="product-footer">
+                        
+                        <div className="product-info">
+                          <div className="product-brand"></div>
+                          <p className="product-name">{product.name}</p>
                           <div className="product-price">
-                            ₱{parseFloat(product.price).toLocaleString('en-US', {
+                            ₱ {parseFloat(product.price).toLocaleString('en-US', {
                               minimumFractionDigits: 0,
                               maximumFractionDigits: 0
                             })}
                           </div>
-
-                          <button
-                            className="quick-add-btn"
-                            onClick={(e) => handleQuickAddToCart(product, e)}
-                          >
-                            <FaShoppingCart /> Add
-                          </button>
                         </div>
-
-                        {product.sold_quantity > 0 && (
-                          <div className="product-sold">
-                            {product.sold_quantity} sold
-                          </div>
-                        )}
                       </div>
+                      
+                      <button
+                        className="favorite-btn"
+                        onClick={(e) => handleToggleWishlist(product, e)}
+                      >
+                        {isInWishlist(product.id) ? (
+                          <AiFillHeart color="red" />
+                        ) : (
+                          <AiOutlineHeart />
+                        )}
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -331,11 +296,12 @@ const ProductListModal = ({ isOpen, onClose }) => {
       {/* Product Detail Modal */}
       {showProductModal && selectedProduct && (
         <ProductModal
-          product={selectedProduct}
+          isOpen={showProductModal}
           onClose={() => {
             setShowProductModal(false);
             setSelectedProduct(null);
           }}
+          product={selectedProduct}
         />
       )}
     </>
