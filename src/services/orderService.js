@@ -287,6 +287,49 @@ class OrderService {
       }
     ];
   }
+
+  // Fetch all orders with their reviews from completed deliveries
+  async getAllOrdersWithReviews() {
+    try {
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'picked_up_delivered');
+
+      if (error) {
+        console.error('Error fetching completed orders:', error);
+        return [];
+      }
+
+      // For each order, fetch the reviews
+      const ordersWithReviews = await Promise.all(
+        (orders || []).map(async (order) => {
+          try {
+            const { data: reviews } = await supabase
+              .from('order_reviews')
+              .select('*')
+              .eq('order_id', order.id);
+
+            return {
+              ...order,
+              reviews: reviews || []
+            };
+          } catch (err) {
+            console.error('Error fetching reviews for order', order.id, err);
+            return {
+              ...order,
+              reviews: []
+            };
+          }
+        })
+      );
+
+      return ordersWithReviews;
+    } catch (error) {
+      console.error('Error in getAllOrdersWithReviews:', error);
+      return [];
+    }
+  }
 }
 
 const orderService = new OrderService();
