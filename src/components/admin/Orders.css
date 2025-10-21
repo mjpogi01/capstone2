@@ -476,6 +476,39 @@
   font-size: 0.9rem;
 }
 
+.upload-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 20px 0 10px 0;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+}
+
+.design-upload-section {
+  margin-bottom: 20px;
+}
+
+.design-files-section {
+  margin: 20px 0;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+}
+
+.design-files-section .files-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.design-files-section h5 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
 .status-buttons {
   display: flex;
   gap: 15px;
@@ -518,6 +551,278 @@
 
 .status-update-btn.deliver-btn:hover {
   background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+/* New Status Management Styles */
+.current-status-display {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.status-info-card {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.status-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.status-value {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-value.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-value.status-confirmed {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-value.status-processing {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.status-value.status-completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-value.status-delivered {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.status-value.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-value.status-layout,
+.status-value.status-sizing,
+.status-value.status-printing,
+.status-value.status-press,
+.status-value.status-prod,
+.status-value.status-packing_completing {
+  background: #e7f3ff;
+  color: #004085;
+}
+
+.status-value.status-picked_up_delivered {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.production-stage-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+  text-transform: capitalize;
+}
+
+.status-update-btn.confirm-btn {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+}
+
+.status-update-btn.confirm-btn:hover {
+  background: linear-gradient(135deg, #138496, #117a8b);
+}
+
+.status-update-btn.cancel-btn {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.status-update-btn.cancel-btn:hover {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+}
+
+.status-update-btn.process-btn {
+  background: linear-gradient(135deg, #6610f2, #520dc2);
+  color: white;
+}
+
+.status-update-btn.process-btn:hover {
+  background: linear-gradient(135deg, #520dc2, #4709ac);
+}
+
+.status-update-btn.reprocess-btn {
+  background: linear-gradient(135deg, #fd7e14, #e8590c);
+  color: white;
+}
+
+.status-update-btn.reprocess-btn:hover {
+  background: linear-gradient(135deg, #e8590c, #dc5309);
+}
+
+.status-update-btn.reactivate-btn {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: white;
+}
+
+.status-update-btn.reactivate-btn:hover {
+  background: linear-gradient(135deg, #5a6268, #545b62);
+}
+
+.status-update-btn.reopen-btn {
+  background: linear-gradient(135deg, #ffc107, #ff9800);
+  color: white;
+}
+
+.status-update-btn.reopen-btn:hover {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+}
+
+.status-note {
+  width: 100%;
+  padding: 12px;
+  background: #e7f3ff;
+  border-left: 4px solid #007bff;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.status-note small {
+  color: #004085;
+  font-size: 0.875rem;
+}
+
+.status-complete-message,
+.status-cancelled-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 30px;
+  background: white;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.complete-icon {
+  font-size: 3rem;
+  color: #28a745;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #d4edda;
+  border-radius: 50%;
+}
+
+.cancelled-icon {
+  font-size: 3rem;
+  color: #dc3545;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8d7da;
+  border-radius: 50%;
+}
+
+.status-complete-message p,
+.status-cancelled-message p {
+  margin: 0;
+  color: #495057;
+  font-size: 1rem;
+}
+
+.status-flow-guide {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+}
+
+.status-flow-guide h5 {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.flow-steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.flow-step {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.813rem;
+  font-weight: 600;
+  background: #e9ecef;
+  color: #6c757d;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.flow-step.active {
+  background: #007bff;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.flow-step.completed {
+  background: #28a745;
+  color: white;
+}
+
+.flow-arrow {
+  color: #ced4da;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .current-status-display {
+    flex-direction: column;
+  }
+  
+  .status-info-card {
+    min-width: 100%;
+  }
+  
+  .flow-steps {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .flow-arrow {
+    transform: rotate(90deg);
+  }
+  
+  .flow-step {
+    text-align: center;
+  }
 }
 
 .no-status-update {
@@ -913,4 +1218,31 @@
 
 .download-btn:hover {
   background-color: #218838;
+}
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.remove-file-btn {
+  background-color: #dc3545;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-file-btn:hover {
+  background-color: #c82333;
+  transform: scale(1.05);
+}
+
+.remove-file-btn:active {
+  transform: scale(0.98);
 }

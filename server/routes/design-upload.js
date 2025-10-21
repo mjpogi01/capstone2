@@ -66,16 +66,16 @@ router.post('/:orderId', authenticateSupabaseToken, requireAdminOrOwner, upload.
       uploadedAt: new Date().toISOString()
     }));
 
-    // Update the order with design files and change status to processing
+    // Update the order with design files (status is managed by the workflow)
     console.log('🎨 Updating order in database...');
     console.log('🎨 Order ID:', orderId);
     console.log('🎨 Design files to save:', designFiles.length);
     
+    // Only update design files, not the status (status is managed by the workflow)
     const { data, error } = await supabase
       .from('orders')
       .update({
         design_files: designFiles,
-        status: 'processing',
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
@@ -154,8 +154,12 @@ router.get('/:orderId', authenticateSupabaseToken, requireAdminOrOwner, async (r
 // Delete a design file
 router.delete('/:orderId/:publicId', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
-    const { orderId, publicId } = req.params;
+    const { orderId } = req.params;
+    // Decode the publicId since it's URL-encoded to handle slashes
+    const publicId = decodeURIComponent(req.params.publicId);
     const cloudinary = require('../lib/cloudinary');
+    
+    console.log('🗑️ Deleting design file:', { orderId, publicId });
     
     // Delete from Cloudinary
     const result = await cloudinary.uploader.destroy(publicId);

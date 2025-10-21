@@ -122,8 +122,18 @@ router.patch('/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status, skipEmail = false } = req.body;
 
-    if (!status || !['pending', 'processing', 'completed', 'delivered', 'cancelled'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+    // Updated to support new production stage statuses
+    const validStatuses = [
+      'pending', 'confirmed', 'layout', 'sizing', 'printing', 
+      'press', 'prod', 'packing_completing', 'picked_up_delivered', 
+      'cancelled'
+    ];
+    
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        error: 'Invalid status',
+        validStatuses: validStatuses
+      });
     }
 
     // Get current order data before update

@@ -81,7 +81,10 @@ class DesignUploadService {
         throw new Error('User not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/design-upload/${orderId}/${publicId}`, {
+      // URL-encode the publicId to handle slashes and special characters
+      const encodedPublicId = encodeURIComponent(publicId);
+
+      const response = await fetch(`${API_BASE_URL}/api/design-upload/${orderId}/${encodedPublicId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
