@@ -150,14 +150,15 @@ class OrderTrackingService {
         .from('order_reviews')
         .select('*')
         .eq('order_id', orderId)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error) {
         console.warn('Order review not available:', error.message);
         return null;
       }
 
-      return data;
+      // Return first review if exists, otherwise null
+      return data && data.length > 0 ? data[0] : null;
     } catch (error) {
       console.error('Error fetching order review:', error);
       return null;
