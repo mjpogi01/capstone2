@@ -93,13 +93,21 @@ class EmailService {
   getStatusDisplayName(status) {
     const statusMap = {
       'pending': 'Pending Review',
+      'confirmed': 'Order Confirmed',
+      'layout': 'Layout Stage',
+      'sizing': 'Sizing Stage',
+      'printing': 'Printing Stage',
+      'press': 'Press Stage',
+      'prod': 'Production Stage',
+      'packing_completing': 'Packing & Completing',
+      'picked_up_delivered': 'Picked Up / Delivered',
+      'cancelled': 'Cancelled',
+      // Legacy statuses
       'processing': 'In Production',
       'completed': 'Ready for Pickup/Delivery',
       'delivered': 'Delivered',
-      'cancelled': 'Cancelled',
       'in_store': 'In Store Branch',
-      'on_the_way': 'On The Way',
-      'delivered': 'Delivered'
+      'on_the_way': 'On The Way'
     };
     return statusMap[status] || status;
   }
@@ -108,13 +116,21 @@ class EmailService {
   getStatusDescription(status) {
     const descriptions = {
       'pending': 'Your order is being reviewed and will be processed soon.',
+      'confirmed': 'Your order has been confirmed and is ready to enter production.',
+      'layout': 'Our design team is working on the layout for your custom items.',
+      'sizing': 'We are finalizing the sizing specifications for your order.',
+      'printing': 'Your designs are being printed. This is where the magic happens!',
+      'press': 'Your items are being pressed to ensure perfect quality and durability.',
+      'prod': 'Your order is in the final production stage. Almost ready!',
+      'packing_completing': 'Great news! Your order is being packed and will be ready soon.',
+      'picked_up_delivered': 'Your order has been picked up or delivered. Thank you for choosing Yohanns!',
+      'cancelled': 'Your order has been cancelled. If you have any questions, please contact our support team.',
+      // Legacy statuses
       'processing': 'Your order is currently in production. Our team is working on creating your custom items.',
       'completed': 'Great news! Your order is ready. You can now pick it up from your selected branch or we will deliver it to you.',
       'delivered': 'Your order has been successfully delivered. Thank you for choosing Yohanns!',
-      'cancelled': 'Your order has been cancelled. If you have any questions, please contact our support team.',
       'in_store': 'Your order is being prepared at our store branch and will be ready soon.',
-      'on_the_way': 'Your order is on its way to your location. You can track its progress in your account.',
-      'delivered': 'Your order has been successfully delivered to your address.'
+      'on_the_way': 'Your order is on its way to your location. You can track its progress in your account.'
     };
     return descriptions[status] || 'Your order status has been updated.';
   }
@@ -122,14 +138,22 @@ class EmailService {
   // Get status color
   getStatusColor(status) {
     const colors = {
-      'pending': '#f59e0b',
+      'pending': '#f59e0b',        // Orange
+      'confirmed': '#10b981',      // Green
+      'layout': '#3b82f6',         // Blue
+      'sizing': '#8b5cf6',         // Purple
+      'printing': '#ec4899',       // Pink
+      'press': '#f97316',          // Orange-Red
+      'prod': '#14b8a6',           // Teal
+      'packing_completing': '#22c55e', // Light Green
+      'picked_up_delivered': '#059669', // Dark Green
+      'cancelled': '#ef4444',      // Red
+      // Legacy statuses
       'processing': '#3b82f6',
       'completed': '#10b981',
       'delivered': '#059669',
-      'cancelled': '#ef4444',
       'in_store': '#3b82f6',
-      'on_the_way': '#f59e0b',
-      'delivered': '#059669'
+      'on_the_way': '#f59e0b'
     };
     return colors[status] || '#6b7280';
   }

@@ -14,6 +14,7 @@ const orderTrackingRouter = require('./routes/order-tracking');
 const designUploadRouter = require('./routes/design-upload');
 const emailRouter = require('./routes/email');
 const analyticsRouter = require('./routes/analytics');
+const productionWorkflowRouter = require('./routes/production-workflow');
 // Using Supabase instead of local database
 
 const app = express();
@@ -36,7 +37,8 @@ app.get('/', (_req, res) => {
       orderTracking: '/api/order-tracking',
       designUpload: '/api/design-upload',
       email: '/api/email',
-      analytics: '/api/analytics'
+      analytics: '/api/analytics',
+      productionWorkflow: '/api/production-workflow'
     }
   });
 });
@@ -57,6 +59,7 @@ app.use('/api/order-tracking', orderTrackingRouter);
 app.use('/api/design-upload', designUploadRouter);
 app.use('/api/email', emailRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/production-workflow', productionWorkflowRouter);
 
 const port = process.env.PORT || 4000;
 

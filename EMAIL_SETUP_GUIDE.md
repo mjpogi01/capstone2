@@ -214,3 +214,4 @@ If you encounter any issues with the email automation system:
 
 **Note**: This email automation system is designed to work seamlessly with the existing order management system. All emails are sent from a no-reply address to maintain professionalism and avoid reply loops.
 
+

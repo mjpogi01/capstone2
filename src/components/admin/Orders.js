@@ -147,12 +147,33 @@ const Orders = () => {
     }
   };
 
+  const getStatusDisplayName = (status) => {
+    const displayNames = {
+      'pending': 'Pending',
+      'confirmed': 'Confirmed',
+      'layout': 'Layout',
+      'sizing': 'Sizing',
+      'printing': 'Printing',
+      'press': 'Press',
+      'prod': 'Prod',
+      'packing_completing': 'Packing/Completing',
+      'picked_up_delivered': 'Picked Up/Delivered',
+      'cancelled': 'Cancelled'
+    };
+    return displayNames[status] || status.toUpperCase();
+  };
+
   const getStatusDescription = (status) => {
     switch (status) {
       case 'pending': return 'Awaiting design upload';
-      case 'processing': return 'In production';
-      case 'completed': return 'Ready for pickup';
-      case 'delivered': return 'Order delivered to customer';
+      case 'confirmed': return 'Design uploaded, ready to start';
+      case 'layout': return 'Working on layout design';
+      case 'sizing': return 'Determining sizes';
+      case 'printing': return 'Printing in progress';
+      case 'press': return 'Press operations';
+      case 'prod': return 'Production stage';
+      case 'packing_completing': return 'Packing and final checks';
+      case 'picked_up_delivered': return 'Order completed and delivered';
       case 'cancelled': return 'Order cancelled';
       default: return status;
     }
@@ -169,13 +190,12 @@ const Orders = () => {
       // Upload files to Cloudinary via backend
       const result = await designUploadService.uploadDesignFiles(orderId, files);
       
-      // Update local state with the new order data
+      // Update local state with the new design files (keep current status)
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId
             ? { 
                 ...order, 
-                status: 'processing',
                 designFiles: result.designFiles 
               }
             : order
@@ -186,14 +206,13 @@ const Orders = () => {
           order.id === orderId
             ? { 
                 ...order, 
-                status: 'processing',
                 designFiles: result.designFiles 
               }
             : order
         )
       );
       
-      alert(`Design files uploaded successfully! Order status updated to Processing.`);
+      alert(`Layout files uploaded successfully! You can now proceed to sizing.`);
     } catch (error) {
       console.error('Error uploading design files:', error);
       alert(`Failed to upload design files: ${error.message}`);
@@ -389,6 +408,43 @@ const Orders = () => {
         downloadAllBtn.textContent = '📁 Download All';
         downloadAllBtn.disabled = false;
       }
+    }
+  };
+
+  const handleRemoveDesignFile = async (orderId, file) => {
+    if (!window.confirm(`Are you sure you want to remove "${file.filename}"?`)) {
+      return;
+    }
+
+    try {
+      await designUploadService.deleteDesignFile(orderId, file.publicId);
+      
+      // Update local state to remove the deleted file
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? {
+                ...order,
+                designFiles: (order.designFiles || []).filter(f => f.publicId !== file.publicId)
+              }
+            : order
+        )
+      );
+      setFilteredOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? {
+                ...order,
+                designFiles: (order.designFiles || []).filter(f => f.publicId !== file.publicId)
+              }
+            : order
+        )
+      );
+
+      alert('File removed successfully!');
+    } catch (error) {
+      console.error('Error removing design file:', error);
+      alert(`Failed to remove file: ${error.message}`);
     }
   };
 
@@ -680,121 +736,289 @@ const Orders = () => {
                     </div>
                   )}
                   
-                  {order.status === 'pending' && (
-                    <div className="details-section">
-                      <h4>Design Upload</h4>
-                      <div className="design-upload-section">
-                        <p className="upload-description">
-                          Upload printable layout/design files for the manufacturing branch to process this order.
-                        </p>
-                        <div className="file-upload-area">
-                          <input
-                            type="file"
-                            id={`design-files-${order.id}`}
-                            multiple
-                            accept=".pdf,.ai,.psd,.png,.jpg,.jpeg"
-                            onChange={(e) => handleFileChange(order.id, e)}
-                            style={{ display: 'none' }}
-                          />
-                          <label 
-                            htmlFor={`design-files-${order.id}`}
-                            className="file-upload-label"
-                          >
-                            Choose Design Files
-                          </label>
-                          {designFiles[order.id] && designFiles[order.id].length > 0 && (
-                            <div className="selected-files">
-                              <p>Selected files:</p>
-                              <ul>
-                                {designFiles[order.id].map((file, index) => (
-                                  <li key={index}>{file.name}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          <button
-                            className="upload-design-btn"
-                            onClick={() => handleDesignFileUpload(order.id, designFiles[order.id])}
-                            disabled={!designFiles[order.id] || designFiles[order.id].length === 0 || uploadingDesign === order.id}
-                          >
-                            {uploadingDesign === order.id ? 'Uploading...' : 'Upload & Start Processing'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {order.status === 'processing' && order.designFiles && order.designFiles.length > 0 && (
-                    <div className="details-section">
-                      <h4>Design Files</h4>
-                      <div className="design-files-section">
-                        <div className="files-header">
-                          <p className="files-description">
-                            Design files uploaded for manufacturing. Click to download.
-                          </p>
-                          <button 
-                            className="download-all-btn"
-                            onClick={() => handleDownloadAll(order.designFiles)}
-                          >
-                            📁 Download All
-                          </button>
-                        </div>
-                        <div className="design-files-list">
-                          {order.designFiles.map((file, index) => (
-                            <div key={index} className="design-file-item">
-                              <div className="file-info">
-                                <span className="file-icon">
-                                  {designUploadService.getFileTypeIcon(file.filename)}
-                                </span>
-                                <div className="file-details">
-                                  <span className="file-name">{file.filename}</span>
-                                  <span className="file-date">
-                                    Uploaded: {new Date(file.uploadedAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </div>
-                              <button 
-                                className="download-btn"
-                                onClick={() => handleDownloadFile(file)}
-                              >
-                                Download
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Status Update Section */}
                   <div className="details-section">
                     <h4>Order Status Management</h4>
                     <div className="status-update-section">
+                      <div className="current-status-display">
+                        <div className="status-info-card">
+                          <span className="status-label">Current Status:</span>
+                          <span className={`status-value status-${order.status}`}>
+                            {getStatusDisplayName(order.status)}
+                          </span>
+                        </div>
+                      </div>
+                      
                       <p className="status-description">
-                        Update the order status as it progresses through the fulfillment process.
+                        Update the order status as it progresses through fulfillment.
                       </p>
+
+                      {/* Design Upload Section (for Layout Stage Only) */}
+                      {order.status === 'layout' && (
+                        <div className="design-upload-section">
+                          <h5 className="upload-section-title">
+                            📐 Upload Final Layout Files
+                          </h5>
+                          <p className="upload-description">
+                            Upload the final layout/design files to proceed to sizing stage.
+                          </p>
+                          <div className="file-upload-area">
+                            <input
+                              type="file"
+                              id={`design-files-${order.id}`}
+                              multiple
+                              accept=".pdf,.ai,.psd,.png,.jpg,.jpeg"
+                              onChange={(e) => handleFileChange(order.id, e)}
+                              style={{ display: 'none' }}
+                            />
+                            <label 
+                              htmlFor={`design-files-${order.id}`}
+                              className="file-upload-label"
+                            >
+                              Choose Design Files
+                            </label>
+                            {designFiles[order.id] && designFiles[order.id].length > 0 && (
+                              <div className="selected-files">
+                                <p>Selected files:</p>
+                                <ul>
+                                  {designFiles[order.id].map((file, index) => (
+                                    <li key={index}>{file.name}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <button
+                              className="upload-design-btn"
+                              onClick={() => handleDesignFileUpload(order.id, designFiles[order.id])}
+                              disabled={!designFiles[order.id] || designFiles[order.id].length === 0 || uploadingDesign === order.id}
+                            >
+                              {uploadingDesign === order.id ? 'Uploading...' : 'Upload Layout Files'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* View Design Files (for all production stages) */}
+                      {['confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(order.status) && order.designFiles && order.designFiles.length > 0 && (
+                        <div className="design-files-section">
+                          <div className="files-header">
+                            <h5>📁 Design Files</h5>
+                            <button 
+                              className="download-all-btn"
+                              onClick={() => handleDownloadAll(order.designFiles)}
+                            >
+                              Download All
+                            </button>
+                          </div>
+                          <div className="design-files-list">
+                            {order.designFiles.map((file, index) => (
+                              <div key={index} className="design-file-item">
+                                <div className="file-info">
+                                  <span className="file-icon">
+                                    {designUploadService.getFileTypeIcon(file.filename)}
+                                  </span>
+                                  <div className="file-details">
+                                    <span className="file-name">{file.filename}</span>
+                                    <span className="file-date">
+                                      Uploaded: {new Date(file.uploadedAt).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="file-actions">
+                                  <button 
+                                    className="download-btn"
+                                    onClick={() => handleDownloadFile(file)}
+                                  >
+                                    Download
+                                  </button>
+                                  {order.status === 'layout' && (
+                                    <button 
+                                      className="remove-file-btn"
+                                      onClick={() => handleRemoveDesignFile(order.id, file)}
+                                      title="Remove this file"
+                                    >
+                                      ✕ Remove
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="status-buttons">
-                        {order.status === 'processing' && (
+                        {/* Pending Orders */}
+                        {order.status === 'pending' && (
+                          <>
+                            <button 
+                              className="status-update-btn confirm-btn"
+                              onClick={() => handleStatusUpdate(order.id, 'confirmed')}
+                            >
+                              ✓ Confirm Order
+                            </button>
+                            <button 
+                              className="status-update-btn cancel-btn"
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to cancel this order?')) {
+                                  handleStatusUpdate(order.id, 'cancelled');
+                                }
+                              }}
+                            >
+                              ✕ Cancel Order
+                            </button>
+                          </>
+                        )}
+                        
+                        {/* Confirmed - Start Layout */}
+                        {order.status === 'confirmed' && (
+                          <button 
+                            className="status-update-btn process-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'layout')}
+                          >
+                            🎨 Start Layout
+                          </button>
+                        )}
+                        
+                        {/* Layout - Move to Sizing (requires design files) */}
+                        {order.status === 'layout' && (
+                          <>
+                            <button 
+                              className="status-update-btn process-btn"
+                              onClick={() => {
+                                if (!order.designFiles || order.designFiles.length === 0) {
+                                  alert('⚠️ Please upload design files before moving to Sizing stage.');
+                                  return;
+                                }
+                                handleStatusUpdate(order.id, 'sizing');
+                              }}
+                            >
+                              📏 Move to Sizing
+                            </button>
+                            {(!order.designFiles || order.designFiles.length === 0) && (
+                              <div className="status-note">
+                                <small>💡 Upload design files above before proceeding to sizing</small>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        
+                        {/* Sizing - Move to Printing */}
+                        {order.status === 'sizing' && (
+                          <button 
+                            className="status-update-btn process-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'printing')}
+                          >
+                            🖨️ Move to Printing
+                          </button>
+                        )}
+                        
+                        {/* Printing - Move to Press */}
+                        {order.status === 'printing' && (
+                          <button 
+                            className="status-update-btn process-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'press')}
+                          >
+                            ⚙️ Move to Press
+                          </button>
+                        )}
+                        
+                        {/* Press - Move to Prod */}
+                        {order.status === 'press' && (
+                          <button 
+                            className="status-update-btn process-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'prod')}
+                          >
+                            🏭 Move to Prod
+                          </button>
+                        )}
+                        
+                        {/* Prod - Move to Packing */}
+                        {order.status === 'prod' && (
+                          <button 
+                            className="status-update-btn process-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'packing_completing')}
+                          >
+                            📦 Move to Packing/Completing
+                          </button>
+                        )}
+                        
+                        {/* Packing - Mark as Picked Up/Delivered */}
+                        {order.status === 'packing_completing' && (
                           <button 
                             className="status-update-btn complete-btn"
-                            onClick={() => handleStatusUpdate(order.id, 'completed')}
+                            onClick={() => handleStatusUpdate(order.id, 'picked_up_delivered')}
                           >
-                            ✅ Mark as Completed
+                            ✅ Mark as Picked Up/Delivered
                           </button>
                         )}
-                        {order.status === 'completed' && (
+                        
+                        {/* Picked Up/Delivered - Final Status */}
+                        {order.status === 'picked_up_delivered' && (
+                          <div className="status-complete-message">
+                            <span className="complete-icon">✓</span>
+                            <p>This order has been completed and delivered.</p>
+                          </div>
+                        )}
+                        
+                        {/* Cancelled Orders */}
+                        {order.status === 'cancelled' && (
+                          <div className="status-cancelled-message">
+                            <span className="cancelled-icon">✕</span>
+                            <p>This order has been cancelled.</p>
+                            <button 
+                              className="status-update-btn reactivate-btn"
+                              onClick={() => {
+                                if (window.confirm('Reactivate this cancelled order?')) {
+                                  handleStatusUpdate(order.id, 'pending');
+                                }
+                              }}
+                            >
+                              🔄 Reactivate Order
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Go Back Option (for any production stage) */}
+                        {['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(order.status) && (
                           <button 
-                            className="status-update-btn deliver-btn"
-                            onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                            className="status-update-btn reopen-btn"
+                            onClick={() => {
+                              const stages = ['confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'];
+                              const currentIndex = stages.indexOf(order.status);
+                              if (currentIndex > 0) {
+                                const prevStage = stages[currentIndex - 1];
+                                if (window.confirm(`Go back to ${getStatusDisplayName(prevStage)}?`)) {
+                                  handleStatusUpdate(order.id, prevStage);
+                                }
+                              }
+                            }}
                           >
-                            🚚 Mark as Delivered
+                            ↩️ Go Back One Stage
                           </button>
                         )}
-                        {order.status !== 'processing' && order.status !== 'completed' && order.status !== 'delivered' && (
-                          <p className="no-status-update">
-                            No status updates available for this order.
-                          </p>
-                        )}
+                      </div>
+                      
+                      {/* Order Status Flow Guide */}
+                      <div className="status-flow-guide">
+                        <h5>Order Status Flow:</h5>
+                        <div className="flow-steps">
+                          {['pending', 'confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing', 'picked_up_delivered'].map((stage, index, arr) => {
+                            const stageIndex = arr.indexOf(order.status);
+                            const currentStageIndex = arr.indexOf(stage);
+                            const isActive = order.status === stage;
+                            const isCompleted = stageIndex > currentStageIndex && stageIndex >= 0;
+                            
+                            return (
+                              <React.Fragment key={stage}>
+                                <span className={`flow-step ${isActive ? 'active' : isCompleted ? 'completed' : ''}`}>
+                                  {getStatusDisplayName(stage)}
+                                </span>
+                                {index < arr.length - 1 && <span className="flow-arrow">→</span>}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
