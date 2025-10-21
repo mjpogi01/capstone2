@@ -1,11 +1,23 @@
+/* ===========================================
+   MODERN SAAS EARNINGS CHART - YOHANNS SPORTSWEAR
+   Clean, balanced, responsive design
+   =========================================== */
+
 .earnings-chart {
-  background: white;
-  border-radius: 12px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
   height: 400px;
   display: flex;
   flex-direction: column;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.earnings-chart:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-color: #d1d5db;
 }
 
 .chart-header {
@@ -13,29 +25,39 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .chart-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #111827;
   margin: 0;
+  letter-spacing: -0.025em;
 }
 
 .chart-controls {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .year-select,
 .location-select {
   padding: 0.5rem 0.75rem;
   border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: white;
-  font-size: 0.9rem;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.875rem;
   color: #374151;
   cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.year-select:hover,
+.location-select:hover {
+  border-color: #9ca3af;
 }
 
 .year-select:focus,
@@ -49,6 +71,7 @@
   flex: 1;
   display: flex;
   position: relative;
+  min-height: 0;
 }
 
 .chart-y-axis {
@@ -60,13 +83,14 @@
 }
 
 .y-axis-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #6b7280;
   text-align: right;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  font-weight: 500;
 }
 
 .chart-area {
@@ -74,6 +98,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .chart-svg {
@@ -83,7 +108,7 @@
 }
 
 .data-point {
-  transition: r 0.2s ease;
+  transition: all 0.2s ease;
   cursor: pointer;
 }
 
@@ -95,18 +120,47 @@
 .chart-x-axis {
   display: flex;
   justify-content: space-between;
-  padding-top: 0.5rem;
+  padding-top: 0.75rem;
   margin-top: 0.5rem;
+  border-top: 1px solid #f3f4f6;
 }
 
 .x-axis-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #6b7280;
   text-align: center;
   flex: 1;
+  font-weight: 500;
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .earnings-chart {
+    height: 350px;
+    padding: 1.25rem;
+  }
+  
+  .chart-header {
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.875rem;
+  }
+  
+  .chart-title {
+    font-size: 1.125rem;
+  }
+  
+  .chart-controls {
+    gap: 0.5rem;
+  }
+  
+  .year-select,
+  .location-select {
+    min-width: 100px;
+    font-size: 0.8125rem;
+    padding: 0.4375rem 0.625rem;
+  }
+}
+
 @media (max-width: 768px) {
   .earnings-chart {
     height: 300px;
@@ -117,6 +171,7 @@
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
+    margin-bottom: 1rem;
   }
   
   .chart-controls {
@@ -127,9 +182,70 @@
   .year-select,
   .location-select {
     flex: 1;
+    min-width: auto;
   }
   
   .chart-svg {
     height: 150px;
+  }
+  
+  .chart-title {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .earnings-chart {
+    height: 280px;
+    padding: 0.875rem;
+  }
+  
+  .chart-header {
+    padding-bottom: 0.75rem;
+  }
+  
+  .chart-controls {
+    gap: 0.5rem;
+  }
+  
+  .year-select,
+  .location-select {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .chart-svg {
+    height: 140px;
+  }
+  
+  .y-axis-label,
+  .x-axis-label {
+    font-size: 0.6875rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .earnings-chart {
+    border-color: #000000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .chart-header {
+    border-bottom-color: #000000;
+  }
+  
+  .chart-title {
+    color: #000000;
+  }
+  
+  .year-select,
+  .location-select {
+    border-color: #000000;
+  }
+  
+  .y-axis-label,
+  .x-axis-label {
+    color: #000000;
   }
 }

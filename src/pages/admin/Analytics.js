@@ -6,7 +6,6 @@ import { FaSearch, FaPlay, FaFilter, FaChartLine, FaStore, FaClipboardList, FaTs
 import './Analytics.css';
 
 const Analytics = () => {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [analyticsData, setAnalyticsData] = useState({
     totalSales: [],
     salesByBranch: [],
@@ -102,8 +101,11 @@ const Analytics = () => {
   }
 
   return (
-    <div className={`admin-dashboard ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-      <Sidebar activePage={'analytics'} setActivePage={() => {}} collapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed(v => !v)} />
+    <div className="admin-dashboard">
+      <Sidebar 
+        activePage={'analytics'} 
+        setActivePage={() => {}} 
+      />
       <div className="admin-main-content">
     <div className="analytics-page">
       {/* Header */}

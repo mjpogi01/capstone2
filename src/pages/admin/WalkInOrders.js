@@ -4,7 +4,6 @@ import {
   FaSearch, 
   FaShoppingCart, 
   FaTimes, 
-  FaSort, 
   FaPlus, 
   FaEdit, 
   FaTrash,
@@ -18,14 +17,11 @@ import {
   FaTag,
   FaGift,
   FaSpinner,
-  FaArrowUp,
-  FaArrowDown,
-  FaExpand,
-  FaCartPlus,
-  FaTh,
-  FaThList,
   FaArrowLeft,
-  FaFilter
+  FaFilter,
+  FaLock,
+  FaSun,
+  FaMoon
 } from 'react-icons/fa';
 import ProductModal from '../../components/customer/ProductModal';
 import CheckoutModal from '../../components/customer/CheckoutModal';
@@ -33,7 +29,6 @@ import productService from '../../services/productService';
 import orderService from '../../services/orderService';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
-import '../../components/admin/WalkInOrdering.css';
 import './WalkInOrders.css';
 
 const WalkInOrders = () => {
@@ -47,15 +42,16 @@ const WalkInOrders = () => {
   const [cartItems, setCartItems] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [showFilters, setShowFilters] = useState(true);
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [showSearchInput, setShowSearchInput] = useState(false);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
-  const [selectedSize, setSelectedSize] = useState('all');
+  const [isAdminMode, setIsAdminMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showCartDropdown, setShowCartDropdown] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [editQuantity, setEditQuantity] = useState(1);
+  const [editSize, setEditSize] = useState('');
   const { showOrderConfirmation, showError } = useNotification();
   const { user } = useAuth();
 
@@ -84,12 +80,14 @@ const WalkInOrders = () => {
   const filterProducts = useCallback(() => {
     let filtered = products;
 
+    // Category filter
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(product => 
         product.category.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
+    // Search filter
     if (searchTerm.trim()) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -105,6 +103,7 @@ const WalkInOrders = () => {
       filtered = filtered.filter(product => parseFloat(product.price) <= parseFloat(priceRange.max));
     }
 
+    // Sort products
     filtered.sort((a, b) => {
       let aValue, bValue;
       switch (sortBy) {
@@ -144,18 +143,6 @@ const WalkInOrders = () => {
   }, [filterProducts]);
 
   const handleProductClick = (product) => {
-    setSelectedProduct(product);
-    setShowProductModal(true);
-  };
-
-  const handleEditItem = (item) => {
-    const product = {
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      main_image: item.image,
-      category: 'jerseys'
-    };
     setSelectedProduct(product);
     setShowProductModal(true);
   };
@@ -209,6 +196,50 @@ const WalkInOrders = () => {
 
   const removeFromCart = (uniqueId) => {
     setCartItems(prev => prev.filter(item => item.uniqueId !== uniqueId));
+  };
+
+  const startEditingItem = (item) => {
+    setEditingItem(item.uniqueId);
+    setEditQuantity(item.quantity);
+    setEditSize(item.size || 'M');
+  };
+
+  const cancelEditing = () => {
+    setEditingItem(null);
+    setEditQuantity(1);
+    setEditSize('');
+  };
+
+  const saveItemChanges = (uniqueId) => {
+    if (editQuantity < 1) {
+      showError('Invalid Quantity', 'Quantity must be at least 1');
+      return;
+    }
+
+    setCartItems(prev => prev.map(item => 
+      item.uniqueId === uniqueId 
+        ? { 
+            ...item, 
+            quantity: editQuantity, 
+            size: editSize,
+            price: item.price // Keep original price
+          }
+        : item
+    ));
+    
+    setEditingItem(null);
+    setEditQuantity(1);
+    setEditSize('');
+  };
+
+  const updateQuantity = (uniqueId, newQuantity) => {
+    if (newQuantity < 1) return;
+    
+    setCartItems(prev => prev.map(item => 
+      item.uniqueId === uniqueId 
+        ? { ...item, quantity: newQuantity }
+        : item
+    ));
   };
 
   const handlePlaceOrder = async (orderData) => {
@@ -287,103 +318,244 @@ const WalkInOrders = () => {
   };
 
   return (
-    <div className="walkin-orders-page">
-      <div className="walkin-ordering-container full-page">
-        {/* Enhanced Header */}
-        <div className="walkin-header">
-          <div className="header-left">
-            <div className="header-title">
+    <div className={`walkin-orders-page ${isDarkMode ? 'dark-mode' : ''}`}>
+      <div className="walkin-ordering-container">
+        {/* Modern Navigation Bar */}
+        <header className="modern-navbar">
+          <div className="navbar-left">
               <button 
-                className="back-btn"
+              className="back-button"
                 onClick={() => navigate('/admin/orders')}
                 title="Back to Orders"
               >
                 <FaArrowLeft />
               </button>
-              <FaShoppingCart className="title-icon" />
-              <h1>Walk-in Ordering</h1>
-              <div className="title-badge">
-                <FaUser className="badge-icon" />
-                <span>Admin Mode</span>
+            <div className="brand-section">
+              <div className="brand-logo">
+                <span>WO</span>
+              </div>
+              <h1 className="brand-title">Walk-in Ordering</h1>
               </div>
             </div>
-            <div className="header-stats">
-              <div className="stat-item">
-                <FaStore className="stat-icon" />
-                <span>{products.length} Products</span>
-              </div>
-              <div className="stat-item">
-                <FaShoppingBag className="stat-icon" />
-                <span>{getTotalItems()} in Cart</span>
-              </div>
+
+          <div className="navbar-center">
+            <div className="search-container">
+              <FaSearch className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
             </div>
           </div>
           
-           <div className="header-actions">
+          <div className="navbar-right">
              <button 
-               className={`action-btn search-btn ${showSearchInput ? 'active' : ''}`}
-               onClick={() => setShowSearchInput(!showSearchInput)}
-               title="Search"
+              className={`admin-mode-toggle ${isAdminMode ? 'active' : ''}`}
+              onClick={() => setIsAdminMode(!isAdminMode)}
              >
-               <FaSearch />
+              <FaUser />
+              <span>Admin Mode</span>
              </button>
              
-             <div className="filter-dropdown-container">
                <button 
-                 className={`action-btn filters-btn ${showFilterDropdown ? 'active' : ''}`}
-                 onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                 title="Filters"
-               >
-                 <FaFilter />
+              className="theme-toggle"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDarkMode ? <FaSun /> : <FaMoon />}
                </button>
                
-               {showFilterDropdown && (
-                 <div className="filter-dropdown">
-                   <div className="filter-dropdown-header">
-                     <h3>Filter Products</h3>
+            <div className="cart-summary" onClick={() => setShowCartDropdown(!showCartDropdown)}>
+              <div className="cart-icon">
+                <FaShoppingCart />
+                <span className="cart-count">{getTotalItems()}</span>
+              </div>
+              <div className="cart-info">
+                <div className="cart-total">₱{getTotalPrice().toFixed(2)}</div>
+                <div className="cart-items-text">{getTotalItems()} items</div>
+              </div>
+              
+              {/* Cart Dropdown */}
+              {showCartDropdown && (
+                <div className="cart-dropdown">
+                  <div className="cart-dropdown-header">
+                    <h4>Shopping Cart</h4>
                      <button 
-                       className="close-dropdown-btn"
-                       onClick={() => setShowFilterDropdown(false)}
+                      className="close-cart-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowCartDropdown(false);
+                      }}
                      >
                        <FaTimes />
                      </button>
                    </div>
                    
-                   <div className="filter-dropdown-content">
-                     {/* Sort By */}
-                     <div className="filter-group">
-                       <label className="filter-label">Sort By</label>
+                  <div className="cart-dropdown-items">
+                    {cartItems.length === 0 ? (
+                      <div className="empty-cart-dropdown">
+                        <FaLock className="empty-cart-icon" />
+                        <p>Your cart is empty</p>
+                      </div>
+                    ) : (
+                      <div className="cart-items-list">
+                        {cartItems.map((item) => (
+                          <div key={item.uniqueId} className="cart-dropdown-item">
+                            <img 
+                              src={item.image || '/image_highlights/image.png'} 
+                              alt={item.name}
+                              className="cart-dropdown-image"
+                              onError={(e) => {
+                                e.target.src = '/image_highlights/image.png';
+                              }}
+                            />
+                            
+                            <div className="cart-dropdown-details">
+                              <div className="cart-dropdown-name">{item.name}</div>
+                              <div className="cart-dropdown-price">₱{parseFloat(item.price).toFixed(2)}</div>
+                              
+                              {editingItem === item.uniqueId ? (
+                                <div className="cart-edit-controls">
+                                  <div className="edit-quantity-controls">
+                                    <label>Qty:</label>
+                                    <div className="quantity-input-group">
+                                      <button 
+                                        className="quantity-btn"
+                                        onClick={() => setEditQuantity(Math.max(1, editQuantity - 1))}
+                                      >
+                                        -
+                                      </button>
+                                      <input
+                                        type="number"
+                                        value={editQuantity}
+                                        onChange={(e) => setEditQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                        className="quantity-input"
+                                        min="1"
+                                      />
+                                      <button 
+                                        className="quantity-btn"
+                                        onClick={() => setEditQuantity(editQuantity + 1)}
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="edit-size-controls">
+                                    <label>Size:</label>
                        <select 
-                         value={sortBy} 
-                         onChange={(e) => setSortBy(e.target.value)}
-                         className="filter-select"
-                       >
-                         <option value="name">Name</option>
-                         <option value="price">Price</option>
-                         <option value="category">Category</option>
+                                      value={editSize}
+                                      onChange={(e) => setEditSize(e.target.value)}
+                                      className="size-select"
+                                    >
+                                      <option value="XS">XS</option>
+                                      <option value="S">S</option>
+                                      <option value="M">M</option>
+                                      <option value="L">L</option>
+                                      <option value="XL">XL</option>
+                                      <option value="XXL">XXL</option>
                        </select>
                      </div>
                      
-                     {/* Sort Order */}
-                     <div className="filter-group">
-                       <label className="filter-label">Sort Order</label>
-                       <div className="sort-order-buttons">
+                                  <div className="edit-actions">
+                                    <button 
+                                      className="save-btn"
+                                      onClick={() => saveItemChanges(item.uniqueId)}
+                                    >
+                                      <FaEdit />
+                                    </button>
+                                    <button 
+                                      className="cancel-btn"
+                                      onClick={cancelEditing}
+                                    >
+                                      <FaTimes />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="cart-item-info">
+                                  <div className="cart-dropdown-quantity">Qty: {item.quantity}</div>
+                                  <div className="cart-dropdown-size">Size: {item.size || 'M'}</div>
+                                  <div className="cart-item-actions">
                          <button 
-                           className={`sort-order-option ${sortOrder === 'asc' ? 'active' : ''}`}
-                           onClick={() => setSortOrder('asc')}
+                                      className="edit-item-btn"
+                                      onClick={() => startEditingItem(item)}
+                                      title="Edit item"
                          >
-                           <FaArrowUp /> Ascending
+                                      <FaEdit />
                          </button>
                          <button 
-                           className={`sort-order-option ${sortOrder === 'desc' ? 'active' : ''}`}
-                           onClick={() => setSortOrder('desc')}
-                         >
-                           <FaArrowDown /> Descending
+                                      className="cart-dropdown-remove"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeFromCart(item.uniqueId);
+                                      }}
+                                      title="Remove item"
+                                    >
+                                      <FaTimes />
                          </button>
                        </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {cartItems.length > 0 && (
+                    <div className="cart-dropdown-footer">
+                      <div className="cart-dropdown-summary">
+                        <div className="summary-row">
+                          <span>Subtotal:</span>
+                          <span>₱{getTotalPrice().toFixed(2)}</span>
+                        </div>
+                        <div className="summary-row total">
+                          <span>Total:</span>
+                          <span>₱{getTotalPrice().toFixed(2)}</span>
+                        </div>
+                      </div>
+                      
+                      <button 
+                        className="checkout-btn-dropdown"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowCartDropdown(false);
+                          setShowCheckout(true);
+                        }}
+                      >
+                        <FaCreditCard />
+                        Proceed to Checkout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Filter Bar */}
+        <div className="filter-bar">
+          <div className="filter-group">
+            <label className="filter-label">Category</label>
+            <select 
+              value={selectedCategory} 
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="filter-select"
+            >
+              {categories.map(category => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
                      </div>
                      
-                     {/* Price Range */}
                      <div className="filter-group">
                        <label className="filter-label">Price Range</label>
                        <div className="price-range-inputs">
@@ -405,115 +577,52 @@ const WalkInOrders = () => {
                        </div>
                      </div>
                      
-                     {/* View Mode */}
                      <div className="filter-group">
-                       <label className="filter-label">View Mode</label>
-                       <div className="view-mode-buttons">
-                         <button 
-                           className={`view-mode-option ${viewMode === 'grid' ? 'active' : ''}`}
-                           onClick={() => setViewMode('grid')}
-                         >
-                           <FaTh /> Grid
-                         </button>
-                         <button 
-                           className={`view-mode-option ${viewMode === 'list' ? 'active' : ''}`}
-                           onClick={() => setViewMode('list')}
-                         >
-                           <FaThList /> List
-                         </button>
-                       </div>
+            <label className="filter-label">Sort By</label>
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value)}
+              className="filter-select"
+            >
+              <option value="name">Name</option>
+              <option value="price">Price</option>
+              <option value="category">Category</option>
+            </select>
                      </div>
                      
-                     {/* Reset Filters */}
-                     <div className="filter-actions">
-                       <button 
-                         className="reset-filters-btn"
-                         onClick={() => {
-                           setSortBy('name');
-                           setSortOrder('asc');
-                           setPriceRange({ min: '', max: '' });
-                           setSelectedCategory('all');
-                         }}
-                       >
-                         Reset Filters
-                       </button>
-                     </div>
-                   </div>
-                 </div>
-               )}
-             </div>
+          <div className="filter-group">
+            <label className="filter-label">Order</label>
+            <select 
+              value={sortOrder} 
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="filter-select"
+            >
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
            </div>
         </div>
 
-        {/* Search Input Slide */}
-        {showSearchInput && (
-          <div className="search-slide-container">
-            <div className="search-slide-content">
-              <FaSearch className="search-slide-icon" />
-              <input
-                type="text"
-                placeholder="Search products by name or category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-slide-input"
-                autoFocus
-              />
-              {searchTerm && (
-                <button 
-                  className="clear-search-slide-btn"
-                  onClick={() => setSearchTerm('')}
-                >
-                  <FaTimes />
-                </button>
-              )}
+        {/* Main Content Area - Full Width */}
+        <div className="main-content-full">
+          <div className="products-section-full">
+            <div className="products-header">
+              <h2>Products ({filteredProducts.length})</h2>
             </div>
-          </div>
-        )}
 
-        <div className="walkin-content">
-          {/* Enhanced Search and Filters */}
-          {showFilters && (
-            <div className="walkin-filters">
-              <div className="category-filters">
-                {categories.map(category => {
-                  const IconComponent = category.icon;
-                  return (
-                    <button
-                      key={category.value}
-                      className={`category-btn ${selectedCategory === category.value ? 'active' : ''}`}
-                      onClick={() => setSelectedCategory(category.value)}
-                      style={{ '--category-color': category.color }}
-                    >
-                      <IconComponent className="category-icon" />
-                      <span>{category.label}</span>
-                      {selectedCategory === category.value && (
-                        <div className="category-count">
-                          {filteredProducts.filter(p => p.category.toLowerCase() === category.value.toLowerCase()).length}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="walkin-main">
-            {/* Enhanced Products Section */}
-            <div className="walkin-products">
               {loading ? (
-                <div className="walkin-loading">
+              <div className="loading-state">
                   <FaSpinner className="spinner" />
                   <span>Loading products...</span>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="walkin-no-products">
-                  <FaSearch className="no-products-icon" />
+              <div className="empty-state">
+                <FaSearch className="empty-icon" />
                   <h3>No products found</h3>
                   <p>Try adjusting your search or filter criteria</p>
                 </div>
               ) : (
-                <div className={`walkin-products-${viewMode}`}>
+              <div className="products-grid-full">
                   {filteredProducts.map(product => {
                     const CategoryIcon = getCategoryIcon(product.category);
                     const categoryColor = getCategoryColor(product.category);
@@ -521,43 +630,30 @@ const WalkInOrders = () => {
                     return (
                       <div 
                         key={product.id} 
-                        className={`walkin-product-card ${viewMode}`}
+                      className="product-card"
                         onClick={() => handleProductClick(product)}
                       >
-                        <div className="product-card-header">
-                          <div className="product-badges">
-                            <div 
-                              className="category-badge"
-                              style={{ backgroundColor: categoryColor }}
-                            >
-                              <CategoryIcon className="badge-icon" />
-                              <span>{product.category}</span>
-                            </div>
-                            {product.price < 500 && (
-                              <div className="sale-badge">
-                                <FaTag />
-                                <span>Sale</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="walkin-product-image">
+                      <div className="product-image-container">
                           <img 
                             src={product.main_image || '/image_highlights/image.png'} 
                             alt={product.name}
+                          className="product-image"
                             onError={(e) => {
                               e.target.src = '/image_highlights/image.png';
                             }}
                           />
+                        <div className="product-category-tag" style={{ backgroundColor: categoryColor }}>
+                          <CategoryIcon />
+                          <span>{product.category}</span>
+                        </div>
                           <div className="product-overlay">
                             <button 
                               className="overlay-btn quick-add-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                quickAddToCart(product);
+                              handleProductClick(product);
                               }}
-                              title="Quick Add to Cart"
+                            title="Add to Cart"
                             >
                               <FaPlus />
                             </button>
@@ -574,17 +670,29 @@ const WalkInOrders = () => {
                           </div>
                         </div>
                         
-                        <div className="walkin-product-info">
-                          <h3 className="walkin-product-name">{product.name}</h3>
-                          <p className="walkin-product-category">
-                            <CategoryIcon className="category-icon" />
-                            {product.category}
-                          </p>
-                          <div className="product-price-section">
-                            <p className="walkin-product-price">₱{parseFloat(product.price).toFixed(2)}</p>
-                            {product.price < 500 && (
-                              <span className="original-price">₱{parseFloat(product.price * 1.2).toFixed(2)}</span>
-                            )}
+                      <div className="product-card-content">
+                        <h3 className="product-name">{product.name}</h3>
+                        <div className="product-price">₱{parseFloat(product.price).toFixed(2)}</div>
+                        <div className="product-actions">
+                          <button 
+                            className="add-to-cart-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProductClick(product);
+                            }}
+                          >
+                            <FaShoppingCart />
+                            Add to Cart
+                          </button>
+                          <button 
+                            className="quick-view-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProductClick(product);
+                            }}
+                          >
+                            <FaEye />
+                          </button>
                           </div>
                         </div>
                       </div>
@@ -592,160 +700,6 @@ const WalkInOrders = () => {
                   })}
                 </div>
               )}
-            </div>
-
-            {/* Enhanced Cart Sidebar */}
-            <div className="walkin-cart">
-              <div className="cart-header">
-                <div className="cart-title">
-                  <FaShoppingCart className="cart-icon" />
-                  <h3>Shopping Cart</h3>
-                </div>
-                <div className="cart-stats">
-                  <span className="cart-total">₱{getTotalPrice().toFixed(2)}</span>
-                  <span className="cart-items-count">{getTotalItems()} items</span>
-                </div>
-              </div>
-              
-              <div className="cart-items">
-                {cartItems.length === 0 ? (
-                  <div className="empty-cart">
-                    <FaShoppingBag className="empty-cart-icon" />
-                    <h4>Your cart is empty</h4>
-                    <p>Add some products to get started</p>
-                  </div>
-                ) : (
-                  <div className="cart-items-list">
-                    {cartItems.map((item, index) => (
-                      <div key={item.uniqueId} className="cart-item-card">
-                        <div className="item-image">
-                          <img 
-                            src={item.image || '/image_highlights/image.png'} 
-                            alt={item.name}
-                            onError={(e) => {
-                              e.target.src = '/image_highlights/image.png';
-                            }}
-                          />
-                        </div>
-                        
-                        <div className="item-details">
-                          <div className="item-header">
-                            <div className="item-name">{item.name}</div>
-                            <button 
-                              className="remove-btn"
-                              onClick={() => removeFromCart(item.uniqueId)}
-                              title="Remove item"
-                            >
-                              <FaTimes />
-                            </button>
-                          </div>
-                          
-                          <div className="compact-order-container">
-                            <div 
-                              className="compact-order-header"
-                              onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
-                            >
-                              <span className="order-type-text">
-                                {item.isTeamOrder ? 'Team Order' : 'Single Order'}
-                              </span>
-                              <span className="dropdown-arrow">
-                                {expandedOrderIndex === index ? '▲' : '▼'}
-                              </span>
-                            </div>
-                            
-                            {expandedOrderIndex === index && (
-                              <div className="compact-order-details">
-                                {item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 ? (
-                                  <div className="compact-team-details">
-                                    <div className="team-name-header">
-                                      <span className="compact-detail team-name-detail">
-                                        Team: {item.teamMembers[0]?.teamName || 'N/A'}
-                                      </span>
-                                    </div>
-                                    <div className="team-divider"></div>
-                                    {item.teamMembers.map((member, memberIndex) => (
-                                      <div key={memberIndex} className="compact-member">
-                                        <span className="compact-detail surname-detail">
-                                          Surname: {member.surname || 'N/A'}
-                                        </span>
-                                        <span className="compact-detail">
-                                          Jersey: {member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}
-                                        </span>
-                                        <span className="compact-detail">
-                                          Size: {member.size || 'N/A'} ({item.sizeType || 'Adult'})
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="compact-single-details">
-                                    <span className="compact-detail team-name-detail">
-                                      Team: {item.singleOrderDetails?.teamName || 'N/A'}
-                                    </span>
-                                    <span className="compact-detail surname-detail">
-                                      Surname: {item.singleOrderDetails?.surname || 'N/A'}
-                                    </span>
-                                    <span className="compact-detail">
-                                      Jersey: {item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}
-                                    </span>
-                                    <span className="compact-detail">
-                                      Size: {item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="quantity-section">
-                            <span className="quantity-label">Quantity: {item.quantity}</span>
-                          </div>
-                          
-                          <div className="price-section">
-                            <div className="item-price">₱{parseFloat(item.price).toFixed(2)}</div>
-                            <div className="item-total">Total: ₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
-                          </div>
-                          
-                          <div className="item-actions">
-                            <button 
-                              onClick={() => handleEditItem(item)}
-                              className="edit-btn"
-                              title="Edit item"
-                            >
-                              <FaEdit />
-                              Edit
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              {cartItems.length > 0 && (
-                <div className="cart-footer">
-                  <div className="cart-summary">
-                    <div className="summary-row">
-                      <span>Subtotal:</span>
-                      <span>₱{getTotalPrice().toFixed(2)}</span>
-                    </div>
-                    <div className="summary-row total">
-                      <span>Total:</span>
-                      <span>₱{getTotalPrice().toFixed(2)}</span>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    className="checkout-btn"
-                    onClick={() => setShowCheckout(true)}
-                  >
-                    <FaCreditCard />
-                    Proceed to Checkout
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -771,4 +725,3 @@ const WalkInOrders = () => {
 };
 
 export default WalkInOrders;
-

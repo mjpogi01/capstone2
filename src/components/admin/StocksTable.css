@@ -1,9 +1,21 @@
+/* ===========================================
+   MODERN SAAS STOCKS TABLE - YOHANNS SPORTSWEAR
+   Clean, balanced, responsive design
+   =========================================== */
+
 .stocks-table {
-  background: white;
-  border-radius: 12px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
   height: fit-content;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stocks-table:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-color: #d1d5db;
 }
 
 .table-header {
@@ -11,37 +23,42 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .table-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #111827;
   margin: 0;
+  letter-spacing: -0.025em;
 }
 
 .filter-btn {
-  background: none;
-  border: none;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   color: #6b7280;
   cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-  width: 24px;
-  height: 24px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.filter-btn svg {
-  width: 100%;
-  height: 100%;
-}
-
 .filter-btn:hover {
   background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.filter-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .table-content {
@@ -59,11 +76,11 @@
 }
 
 .header-cell {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: #6b7280;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .table-row {
@@ -72,14 +89,15 @@
   gap: 1rem;
   padding: 0.75rem 0;
   border-bottom: 1px solid #f3f4f6;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .table-row:hover {
-  background: #f9fafb;
-  border-radius: 6px;
+  background: #f8fafc;
+  border-radius: 8px;
   margin: 0 -0.5rem;
   padding: 0.75rem 0.5rem;
+  transform: translateY(-1px);
 }
 
 .table-cell {
@@ -88,7 +106,7 @@
 }
 
 .item-cell {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #374151;
   font-weight: 500;
 }
@@ -99,24 +117,52 @@
 
 .status-badge {
   padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
 }
 
 .status-badge.green {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
+  background: #ecfdf5;
+  color: #16a34a;
+  border-color: #dcfce7;
 }
 
 .status-badge.red {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .stocks-table {
+    padding: 1.25rem;
+  }
+  
+  .table-header {
+    margin-bottom: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+  
+  .table-title {
+    font-size: 1.125rem;
+  }
+  
+  .filter-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .filter-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
 @media (max-width: 768px) {
   .stocks-table {
     padding: 1rem;
@@ -130,5 +176,98 @@
   
   .status-cell {
     justify-content: flex-start;
+  }
+  
+  .table-title {
+    font-size: 1rem;
+  }
+  
+  .item-cell {
+    font-size: 0.8125rem;
+  }
+  
+  .status-badge {
+    font-size: 0.6875rem;
+    padding: 0.1875rem 0.625rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stocks-table {
+    padding: 0.875rem;
+  }
+  
+  .table-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  
+  .table-title {
+    font-size: 0.9375rem;
+  }
+  
+  .filter-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0.375rem;
+  }
+  
+  .filter-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .header-cell {
+    font-size: 0.6875rem;
+  }
+  
+  .item-cell {
+    font-size: 0.75rem;
+  }
+  
+  .status-badge {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.5rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .stocks-table {
+    border-color: #000000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .table-header {
+    border-bottom-color: #000000;
+  }
+  
+  .table-title {
+    color: #000000;
+  }
+  
+  .filter-btn {
+    border-color: #000000;
+    color: #000000;
+  }
+  
+  .header-cell {
+    color: #000000;
+  }
+  
+  .item-cell {
+    color: #000000;
+  }
+  
+  .status-badge.green {
+    background: #ffffff;
+    color: #000000;
+    border-color: #000000;
+  }
+  
+  .status-badge.red {
+    background: #ffffff;
+    color: #000000;
+    border-color: #000000;
   }
 }
