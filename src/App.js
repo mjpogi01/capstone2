@@ -14,6 +14,7 @@ import OwnerDashboard from './pages/owner/OwnerDashboard';
 import Inventory from './pages/admin/Inventory';
 import Accounts from './pages/admin/Accounts';
 import Orders from './pages/admin/Orders';
+import WalkInOrders from './pages/admin/WalkInOrders';
 import Analytics from './pages/admin/Analytics';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleRedirect from './components/RoleRedirect';
@@ -27,14 +28,13 @@ import NotificationContainer from './components/NotificationContainer';
 
 const AppContent = () => {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/inventory');
   const isOwnerRoute = location.pathname.startsWith('/owner');
-  const isInventoryRoute = location.pathname.startsWith('/inventory');
 
   return (
     <>
       <RoleRedirect />
-      {!isAdminRoute && !isOwnerRoute && !isInventoryRoute && <Header />}
+      {!isAdminRoute && !isOwnerRoute && <Header />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
@@ -99,10 +99,26 @@ const AppContent = () => {
           } 
         />
         <Route 
+          path="/admin/walk-in-orders"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <WalkInOrders />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/owner/orders" 
           element={
             <ProtectedRoute requireOwner={true}>
               <Orders />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/owner/walk-in-orders"
+          element={
+            <ProtectedRoute requireOwner={true}>
+              <WalkInOrders />
             </ProtectedRoute>
           } 
         />
@@ -123,7 +139,7 @@ const AppContent = () => {
           } 
         />
       </Routes>
-      {!isAdminRoute && !isOwnerRoute && !isInventoryRoute && <Footer />}
+      {!isAdminRoute && !isOwnerRoute && <Footer />}
     </>
   );
 };

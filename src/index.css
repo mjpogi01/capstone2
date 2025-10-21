@@ -1,6 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
 
+/* CSS Variables for automatic color contrast */
+:root {
+  /* Text colors that adapt to background */
+  --text-primary: #ffffff;
+  --text-primary-dark: #000000;
+  --text-secondary: #b0b0b0;
+  --text-contrast-light: #1a1a1a;  /* For light backgrounds */
+  --text-contrast-dark: #ffffff;    /* For dark backgrounds */
+  
+  /* Color scheme for light mode */
+  color-scheme: light dark;
+}
+
+/* Automatic color adjustment for light backgrounds */
+@media (prefers-color-scheme: light) {
+  :root {
+    --text-primary: #1a1a1a;
+  }
+}
+
 * {
   margin: 0;
   padding: 0;

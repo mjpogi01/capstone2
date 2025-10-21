@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Orders.css';
 import './FloatingButton.css';
 import orderService from '../../services/orderService';
 import designUploadService from '../../services/designUploadService';
-import WalkInOrdering from './WalkInOrdering';
 import { FaShoppingCart } from 'react-icons/fa';
 
 const Orders = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [uploadingDesign, setUploadingDesign] = useState(null);
   const [designFiles, setDesignFiles] = useState({});
-  const [showWalkInOrdering, setShowWalkInOrdering] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -610,11 +610,11 @@ const Orders = () => {
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Phone:</span>
-                      <span className="detail-value">{order.deliveryAddress.phone}</span>
+                      <span className="detail-value">{order.deliveryAddress?.phone || 'N/A'}</span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Address:</span>
-                      <span className="detail-value">{order.deliveryAddress.address}</span>
+                      <span className="detail-value">{order.deliveryAddress?.address || 'N/A'}</span>
                     </div>
                   </div>
                   
@@ -808,19 +808,12 @@ const Orders = () => {
       {/* Floating Walk-in Order Button */}
       <button 
         className="floating-walkin-btn"
-        onClick={() => setShowWalkInOrdering(true)}
+        onClick={() => navigate('/admin/walk-in-orders')}
         title="Walk-in Order"
       >
         <FaShoppingCart />
         <span className="btn-text">Walk-in Order</span>
       </button>
-
-      {/* Walk-in Ordering Modal */}
-      {showWalkInOrdering && (
-        <WalkInOrdering 
-          onClose={() => setShowWalkInOrdering(false)} 
-        />
-      )}
     </div>
   );
 };

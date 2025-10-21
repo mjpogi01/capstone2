@@ -114,8 +114,10 @@
 /* Table Styles */
 .inventory-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.9rem;
+  table-layout: auto;
 }
 
 .inventory-table thead {
@@ -132,6 +134,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-right: 1px solid #e5e7eb;
+  white-space: nowrap;
 }
 
 .inventory-table th:last-child {
@@ -155,6 +158,8 @@
   padding: 1rem;
   vertical-align: middle;
   border-right: 1px solid #e5e7eb;
+  min-height: 80px;
+  height: auto;
 }
 
 .inventory-table td:last-child {
@@ -163,7 +168,9 @@
 
 /* Product Image Cell */
 .product-image-cell {
-  width: 80px;
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
   text-align: center;
 }
 
@@ -193,36 +200,47 @@
 
 /* Product Name Cell */
 .product-name-cell {
-  min-width: 200px;
-  max-width: 250px;
-  vertical-align: middle;
+  width: 250px;
+  min-width: 250px;
+  max-width: 300px;
+  padding-right: 2rem !important;
+  white-space: normal;
 }
 
 .product-name {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-contrast-light, #111827);
   font-size: 0.95rem;
   line-height: 1.4;
-  display: flex;
-  align-items: center;
-  height: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  display: block;
+  filter: contrast(1.1);
 }
 
 /* Product Price Cell */
 .product-price-cell {
-  width: 100px;
-  text-align: right;
+  width: 130px;
+  min-width: 130px;
+  text-align: left;
+  padding-left: 1.5rem !important;
+  white-space: nowrap;
 }
 
 .product-price {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #059669;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 /* Product Stock Cell */
 .product-stock-cell {
   width: 80px;
+  min-width: 80px;
+  max-width: 80px;
   text-align: center;
 }
 
@@ -234,6 +252,7 @@
   font-weight: 600;
   text-align: center;
   min-width: 30px;
+  white-space: nowrap;
 }
 
 .stock-badge.in-stock {
@@ -254,6 +273,8 @@
 /* Product Sold Cell */
 .product-sold-cell {
   width: 80px;
+  min-width: 80px;
+  max-width: 80px;
   text-align: center;
 }
 
@@ -267,31 +288,39 @@
   min-width: 30px;
   background: #e0e7ff;
   color: #3730a3;
+  white-space: nowrap;
 }
 
 /* Product Category Cell */
 .product-category-cell {
   width: 120px;
+  min-width: 120px;
+  max-width: 150px;
 }
 
 .product-category {
   color: #6b7280;
   font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Product Description Cell */
 .product-description-cell {
-  max-width: 200px;
-  min-width: 150px;
+  width: auto;
+  min-width: 180px;
+  max-width: 300px;
 }
 
 .product-description {
   color: #6b7280;
   font-size: 0.85rem;
-  line-height: 1.4;
+  line-height: 1.5;
+  word-wrap: break-word;
+  white-space: normal;
+  max-height: none;
 }
 
 .no-description {
@@ -302,13 +331,20 @@
 /* Product Actions Cell */
 .product-actions-cell {
   width: 100px;
+  min-width: 100px;
+  max-width: 100px;
   text-align: center;
+  vertical-align: middle;
 }
 
 .product-actions {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
+  align-items: center;
+  white-space: nowrap;
+  margin: 0 auto;
+  width: fit-content;
 }
 
 .edit-btn, .delete-btn {

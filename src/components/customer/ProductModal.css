@@ -208,14 +208,14 @@
 
 .modal-product-title {
   font-size: 2rem !important;
-  color: #00bfff !important;
+  color: var(--text-primary, #ffffff) !important;
   margin: 0 0 15px 0 !important;
   font-weight: 900 !important;
   text-transform: uppercase !important;
   letter-spacing: 2px !important;
   font-family: 'Arial Black', sans-serif !important;
-  text-shadow: 0 2px 8px rgba(0, 191, 255, 0.4) !important;
   line-height: 1.1 !important;
+  filter: contrast(1.2);
 }
 
 .modal-product-price {

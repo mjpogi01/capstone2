@@ -170,12 +170,13 @@
 }
 
 .product-categories .product-name {
-  color: #00bfff !important;
+  color: var(--text-primary, #ffffff) !important;
   font-size: 1rem;
   font-weight: 500;
   margin-bottom: 1rem;
   line-height: 1.4;
   min-height: 2.8rem;
+  filter: contrast(1.2);
 }
 
 .product-categories .product-price {

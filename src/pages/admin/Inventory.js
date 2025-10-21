@@ -162,6 +162,31 @@ const Inventory = () => {
     }
   };
 
+  // Format description with line breaks for better readability
+  const formatDescription = (description) => {
+    if (!description) return '<span class="no-description">No description</span>';
+    
+    const maxLineLength = 50;
+    const words = description.split(' ');
+    let lines = [];
+    let currentLine = '';
+    
+    words.forEach(word => {
+      if ((currentLine + word).length > maxLineLength && currentLine.length > 0) {
+        lines.push(currentLine.trim());
+        currentLine = word + ' ';
+      } else {
+        currentLine += word + ' ';
+      }
+    });
+    
+    if (currentLine.trim()) {
+      lines.push(currentLine.trim());
+    }
+    
+    return lines.join('<br>');
+  };
+
   return (
     <div className={`inventory-page ${collapsed ? 'collapsed' : ''}`}>
       <Sidebar activePage={activePage} setActivePage={setActivePage} collapsed={collapsed} onToggleCollapse={() => setCollapsed(v => !v)} />
@@ -293,15 +318,10 @@ const Inventory = () => {
                           <div className="product-category">{product.category}</div>
                         </td>
                         <td className="product-description-cell">
-                          <div className="product-description">
-                            {product.description ? (
-                              product.description.length > 50 
-                                ? `${product.description.substring(0, 50)}...` 
-                                : product.description
-                            ) : (
-                              <span className="no-description">No description</span>
-                            )}
-                          </div>
+                          <div 
+                            className="product-description"
+                            dangerouslySetInnerHTML={{ __html: formatDescription(product.description) }}
+                          />
                         </td>
                         <td className="product-actions-cell">
                           <div className="product-actions">

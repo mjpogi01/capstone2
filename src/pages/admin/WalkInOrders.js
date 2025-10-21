@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaSearch, 
   FaShoppingCart, 
@@ -23,17 +24,20 @@ import {
   FaCartPlus,
   FaTh,
   FaThList,
+  FaArrowLeft,
   FaFilter
 } from 'react-icons/fa';
-import ProductModal from '../customer/ProductModal';
-import CheckoutModal from '../customer/CheckoutModal';
+import ProductModal from '../../components/customer/ProductModal';
+import CheckoutModal from '../../components/customer/CheckoutModal';
 import productService from '../../services/productService';
 import orderService from '../../services/orderService';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
-import './WalkInOrdering.css';
+import '../../components/admin/WalkInOrdering.css';
+import './WalkInOrders.css';
 
-const WalkInOrdering = ({ onClose }) => {
+const WalkInOrders = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,10 +48,14 @@ const WalkInOrdering = ({ onClose }) => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
-  const [sortBy, setSortBy] = useState('name'); // 'name', 'price', 'category'
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [viewMode, setViewMode] = useState('grid');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [showFilters, setShowFilters] = useState(true);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [selectedSize, setSelectedSize] = useState('all');
   const { showOrderConfirmation, showError } = useNotification();
   const { user } = useAuth();
 
@@ -75,16 +83,13 @@ const WalkInOrdering = ({ onClose }) => {
 
   const filterProducts = useCallback(() => {
     let filtered = products;
-    console.log('🔍 Filtering products:', { products: products.length, selectedCategory, searchTerm });
 
-    // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(product => 
         product.category.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
-    // Filter by search term
     if (searchTerm.trim()) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,7 +97,14 @@ const WalkInOrdering = ({ onClose }) => {
       );
     }
 
-    // Sort products
+    // Price range filter
+    if (priceRange.min !== '') {
+      filtered = filtered.filter(product => parseFloat(product.price) >= parseFloat(priceRange.min));
+    }
+    if (priceRange.max !== '') {
+      filtered = filtered.filter(product => parseFloat(product.price) <= parseFloat(priceRange.max));
+    }
+
     filtered.sort((a, b) => {
       let aValue, bValue;
       switch (sortBy) {
@@ -120,9 +132,8 @@ const WalkInOrdering = ({ onClose }) => {
       }
     });
 
-    console.log('🔍 Filtered products:', filtered.length);
     setFilteredProducts(filtered);
-  }, [products, selectedCategory, searchTerm, sortBy, sortOrder]);
+  }, [products, selectedCategory, searchTerm, sortBy, sortOrder, priceRange]);
 
   useEffect(() => {
     loadProducts();
@@ -228,7 +239,7 @@ const WalkInOrdering = ({ onClose }) => {
       
       setCartItems([]);
       setShowCheckout(false);
-      onClose();
+      navigate('/admin/orders');
       
     } catch (error) {
       console.error('Error creating walk-in order:', error);
@@ -276,12 +287,19 @@ const WalkInOrdering = ({ onClose }) => {
   };
 
   return (
-    <div className="walkin-ordering-overlay">
-      <div className="walkin-ordering-container">
+    <div className="walkin-orders-page">
+      <div className="walkin-ordering-container full-page">
         {/* Enhanced Header */}
         <div className="walkin-header">
           <div className="header-left">
             <div className="header-title">
+              <button 
+                className="back-btn"
+                onClick={() => navigate('/admin/orders')}
+                title="Back to Orders"
+              >
+                <FaArrowLeft />
+              </button>
               <FaShoppingCart className="title-icon" />
               <h1>Walk-in Ordering</h1>
               <div className="title-badge">
@@ -302,18 +320,155 @@ const WalkInOrdering = ({ onClose }) => {
           </div>
           
            <div className="header-actions">
-            <button 
-              className={`action-btn filters-btn ${showFilters ? 'active' : ''}`}
-              onClick={() => setShowFilters(!showFilters)}
-              title="Toggle Filters"
-            >
-              <FaFilter />
-            </button>
-            <button className="action-btn close-btn" onClick={onClose}>
-              <FaTimes />
-            </button>
-          </div>
+             <button 
+               className={`action-btn search-btn ${showSearchInput ? 'active' : ''}`}
+               onClick={() => setShowSearchInput(!showSearchInput)}
+               title="Search"
+             >
+               <FaSearch />
+             </button>
+             
+             <div className="filter-dropdown-container">
+               <button 
+                 className={`action-btn filters-btn ${showFilterDropdown ? 'active' : ''}`}
+                 onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                 title="Filters"
+               >
+                 <FaFilter />
+               </button>
+               
+               {showFilterDropdown && (
+                 <div className="filter-dropdown">
+                   <div className="filter-dropdown-header">
+                     <h3>Filter Products</h3>
+                     <button 
+                       className="close-dropdown-btn"
+                       onClick={() => setShowFilterDropdown(false)}
+                     >
+                       <FaTimes />
+                     </button>
+                   </div>
+                   
+                   <div className="filter-dropdown-content">
+                     {/* Sort By */}
+                     <div className="filter-group">
+                       <label className="filter-label">Sort By</label>
+                       <select 
+                         value={sortBy} 
+                         onChange={(e) => setSortBy(e.target.value)}
+                         className="filter-select"
+                       >
+                         <option value="name">Name</option>
+                         <option value="price">Price</option>
+                         <option value="category">Category</option>
+                       </select>
+                     </div>
+                     
+                     {/* Sort Order */}
+                     <div className="filter-group">
+                       <label className="filter-label">Sort Order</label>
+                       <div className="sort-order-buttons">
+                         <button 
+                           className={`sort-order-option ${sortOrder === 'asc' ? 'active' : ''}`}
+                           onClick={() => setSortOrder('asc')}
+                         >
+                           <FaArrowUp /> Ascending
+                         </button>
+                         <button 
+                           className={`sort-order-option ${sortOrder === 'desc' ? 'active' : ''}`}
+                           onClick={() => setSortOrder('desc')}
+                         >
+                           <FaArrowDown /> Descending
+                         </button>
+                       </div>
+                     </div>
+                     
+                     {/* Price Range */}
+                     <div className="filter-group">
+                       <label className="filter-label">Price Range</label>
+                       <div className="price-range-inputs">
+                         <input
+                           type="number"
+                           placeholder="Min"
+                           value={priceRange.min}
+                           onChange={(e) => setPriceRange({...priceRange, min: e.target.value})}
+                           className="price-input"
+                         />
+                         <span className="price-separator">-</span>
+                         <input
+                           type="number"
+                           placeholder="Max"
+                           value={priceRange.max}
+                           onChange={(e) => setPriceRange({...priceRange, max: e.target.value})}
+                           className="price-input"
+                         />
+                       </div>
+                     </div>
+                     
+                     {/* View Mode */}
+                     <div className="filter-group">
+                       <label className="filter-label">View Mode</label>
+                       <div className="view-mode-buttons">
+                         <button 
+                           className={`view-mode-option ${viewMode === 'grid' ? 'active' : ''}`}
+                           onClick={() => setViewMode('grid')}
+                         >
+                           <FaTh /> Grid
+                         </button>
+                         <button 
+                           className={`view-mode-option ${viewMode === 'list' ? 'active' : ''}`}
+                           onClick={() => setViewMode('list')}
+                         >
+                           <FaThList /> List
+                         </button>
+                       </div>
+                     </div>
+                     
+                     {/* Reset Filters */}
+                     <div className="filter-actions">
+                       <button 
+                         className="reset-filters-btn"
+                         onClick={() => {
+                           setSortBy('name');
+                           setSortOrder('asc');
+                           setPriceRange({ min: '', max: '' });
+                           setSelectedCategory('all');
+                         }}
+                       >
+                         Reset Filters
+                       </button>
+                     </div>
+                   </div>
+                 </div>
+               )}
+             </div>
+           </div>
         </div>
+
+        {/* Search Input Slide */}
+        {showSearchInput && (
+          <div className="search-slide-container">
+            <div className="search-slide-content">
+              <FaSearch className="search-slide-icon" />
+              <input
+                type="text"
+                placeholder="Search products by name or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-slide-input"
+                autoFocus
+              />
+              {searchTerm && (
+                <button 
+                  className="clear-search-slide-btn"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <FaTimes />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="walkin-content">
           {/* Enhanced Search and Filters */}
@@ -339,23 +494,6 @@ const WalkInOrdering = ({ onClose }) => {
                     </button>
                   );
                 })}
-                
-                <div className="search-wrapper">
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Search products by name or category..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  <button 
-                    className="search-action-button"
-                    onClick={() => {}}
-                    title="Search"
-                  >
-                    <FaSearch />
-                  </button>
-                </div>
               </div>
             </div>
           )}
@@ -632,4 +770,5 @@ const WalkInOrdering = ({ onClose }) => {
   );
 };
 
-export default WalkInOrdering;
+export default WalkInOrders;
+

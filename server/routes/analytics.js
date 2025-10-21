@@ -1,116 +1,168 @@
 const express = require('express');
-const { query } = require('../lib/db');
+const { supabase } = require('../lib/db');
 const router = express.Router();
 
 // Get analytics dashboard data
 router.get('/dashboard', async (req, res) => {
   try {
-    // Get total sales over time (last 12 months)
-    const salesOverTime = await query(`
-      SELECT 
-        DATE_TRUNC('month', created_at) as month,
-        SUM(total_amount) as sales
-      FROM orders 
-      WHERE created_at >= NOW() - INTERVAL '12 months'
-      AND status != 'cancelled'
-      GROUP BY DATE_TRUNC('month', created_at)
-      ORDER BY month ASC
-    `);
+    console.log('📊 Fetching analytics data...');
+    
+    // Get all orders
+    const { data: allOrders, error: ordersError } = await supabase
+      .from('orders')
+      .select('*')
+      .neq('status', 'cancelled');
 
-    // Get sales by branch
-    const salesByBranch = await query(`
-      SELECT 
-        branch_name,
-        SUM(total_amount) as sales
-      FROM orders 
-      WHERE status != 'cancelled'
-      GROUP BY branch_name
-      ORDER BY sales DESC
-    `);
+    if (ordersError) {
+      console.error('❌ Error fetching orders:', ordersError);
+      throw ordersError;
+    }
 
-    // Get order status distribution
-    const orderStatus = await query(`
-      SELECT 
-        status,
-        COUNT(*) as count
-      FROM orders 
-      WHERE created_at >= NOW() - INTERVAL '30 days'
-      GROUP BY status
-    `);
+    console.log(`✅ Fetched ${allOrders ? allOrders.length : 0} orders from database`);
 
-    // Get total orders count
-    const totalOrdersCount = await query(`
-      SELECT COUNT(*) as total_orders
-      FROM orders 
-      WHERE created_at >= NOW() - INTERVAL '30 days'
-    `);
+    // Get orders from last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const recentOrders = allOrders.filter(order => 
+      new Date(order.created_at) >= thirtyDaysAgo
+    );
 
-    // Get top selling products
-    const topProducts = await query(`
-      SELECT 
-        p.name as product_name,
-        SUM(oi.quantity) as total_quantity,
-        COUNT(DISTINCT o.id) as order_count
-      FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
-      JOIN orders o ON oi.order_id = o.id
-      WHERE o.created_at >= NOW() - INTERVAL '30 days'
-      AND o.status != 'cancelled'
-      GROUP BY p.id, p.name
-      ORDER BY total_quantity DESC
-      LIMIT 10
-    `);
+    // Calculate sales over time (last 12 months)
+    const salesByMonth = {};
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-    // Get total revenue
-    const totalRevenue = await query(`
-      SELECT 
-        SUM(total_amount) as total_revenue,
-        COUNT(*) as total_orders
-      FROM orders 
-      WHERE status != 'cancelled'
-      AND created_at >= NOW() - INTERVAL '30 days'
-    `);
+    allOrders
+      .filter(order => new Date(order.created_at) >= twelveMonthsAgo)
+      .forEach(order => {
+        const month = new Date(order.created_at).toLocaleDateString('en-US', { month: 'short' });
+        if (!salesByMonth[month]) {
+          salesByMonth[month] = 0;
+        }
+        salesByMonth[month] += parseFloat(order.total_amount || 0);
+      });
 
-    // Get recent orders
-    const recentOrders = await query(`
-      SELECT 
-        o.id,
-        o.order_number,
-        o.total_amount,
-        o.status,
-        o.created_at,
-        u.email as customer_email
-      FROM orders o
-      LEFT JOIN auth.users u ON o.user_id = u.id
-      ORDER BY o.created_at DESC
-      LIMIT 10
-    `);
+    // Calculate sales by branch
+    const salesByBranch = {};
+    allOrders.forEach(order => {
+      const branch = order.pickup_location || 'Online Orders';
+      if (!salesByBranch[branch]) {
+        salesByBranch[branch] = 0;
+      }
+      salesByBranch[branch] += parseFloat(order.total_amount || 0);
+    });
+
+    // Calculate order status distribution
+    const statusCounts = {
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      cancelled: 0
+    };
+
+    recentOrders.forEach(order => {
+      const status = order.status || 'pending';
+      if (statusCounts.hasOwnProperty(status)) {
+        statusCounts[status]++;
+      } else if (status === 'delivered') {
+        statusCounts.completed++;
+      } else if (status === 'confirmed') {
+        statusCounts.processing++;
+      }
+    });
+
+    // Calculate top selling products
+    const productSales = {};
+    recentOrders.forEach(order => {
+      if (order.order_items && Array.isArray(order.order_items)) {
+        order.order_items.forEach(item => {
+          const productName = item.name || 'Unknown';
+          if (!productSales[productName]) {
+            productSales[productName] = {
+              quantity: 0,
+              orders: new Set()
+            };
+          }
+          productSales[productName].quantity += parseInt(item.quantity || 0);
+          productSales[productName].orders.add(order.id);
+        });
+      }
+    });
+
+    // Calculate total revenue
+    const totalRevenue = recentOrders.reduce((sum, order) => 
+      sum + parseFloat(order.total_amount || 0), 0
+    );
+
+    const totalOrders = recentOrders.length;
+
+    // Convert sales by month to array format
+    const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const salesOverTimeArray = monthOrder.map(month => ({
+      month,
+      sales: salesByMonth[month] || 0
+    }));
+
+    // Convert sales by branch to array format
+    const salesByBranchArray = Object.entries(salesByBranch)
+      .map(([branch, sales], index) => ({
+        branch,
+        sales,
+        color: getBranchColor(index)
+      }))
+      .sort((a, b) => b.sales - a.sales);
+
+    // Convert product sales to array format
+    const topProductsArray = Object.entries(productSales)
+      .map(([product, data]) => ({
+        product,
+        quantity: data.quantity,
+        orders: data.orders.size
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 10);
+
+    // Calculate order status percentages
+    const orderStatusData = {
+      completed: {
+        count: statusCounts.completed,
+        percentage: totalOrders > 0 ? Math.round((statusCounts.completed / totalOrders) * 100) : 0
+      },
+      processing: {
+        count: statusCounts.processing,
+        percentage: totalOrders > 0 ? Math.round((statusCounts.processing / totalOrders) * 100) : 0
+      },
+      pending: {
+        count: statusCounts.pending,
+        percentage: totalOrders > 0 ? Math.round((statusCounts.pending / totalOrders) * 100) : 0
+      },
+      cancelled: {
+        count: statusCounts.cancelled,
+        percentage: totalOrders > 0 ? Math.round((statusCounts.cancelled / totalOrders) * 100) : 0
+      },
+      total: totalOrders
+    };
 
     // Process data for frontend
     const processedData = {
-      salesOverTime: salesOverTime.rows.map(row => ({
-        month: new Date(row.month).toLocaleDateString('en-US', { month: 'short' }),
-        sales: parseFloat(row.sales)
-      })),
-      salesByBranch: salesByBranch.rows.map((row, index) => ({
-        branch: row.branch_name,
-        sales: parseFloat(row.sales),
-        color: getBranchColor(index)
-      })),
-      orderStatus: processOrderStatus(orderStatus.rows, totalOrdersCount.rows[0]?.total_orders || 0),
-      topProducts: topProducts.rows.map(row => ({
-        product: row.product_name,
-        quantity: parseInt(row.total_quantity),
-        orders: parseInt(row.order_count)
-      })),
+      salesOverTime: salesOverTimeArray,
+      salesByBranch: salesByBranchArray,
+      orderStatus: orderStatusData,
+      topProducts: topProductsArray,
       summary: {
-        totalRevenue: parseFloat(totalRevenue.rows[0]?.total_revenue || 0),
-        totalOrders: parseInt(totalRevenue.rows[0]?.total_orders || 0),
-        averageOrderValue: totalRevenue.rows[0]?.total_orders > 0 
-          ? parseFloat(totalRevenue.rows[0].total_revenue) / parseInt(totalRevenue.rows[0].total_orders)
-          : 0
+        totalRevenue: totalRevenue,
+        totalOrders: totalOrders,
+        averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0
       },
-      recentOrders: recentOrders.rows
+      recentOrders: recentOrders.slice(0, 10).map(order => ({
+        id: order.id,
+        order_number: order.order_number,
+        total_amount: order.total_amount,
+        status: order.status,
+        created_at: order.created_at,
+        user_id: order.user_id
+      }))
     };
 
     res.json({
@@ -130,26 +182,44 @@ router.get('/dashboard', async (req, res) => {
 router.get('/sales-trends', async (req, res) => {
   try {
     const { period = '30' } = req.query;
+    const daysAgo = parseInt(period);
     
-    const trends = await query(`
-      SELECT 
-        DATE_TRUNC('day', created_at) as date,
-        SUM(total_amount) as daily_sales,
-        COUNT(*) as daily_orders
-      FROM orders 
-      WHERE created_at >= NOW() - INTERVAL '${parseInt(period)} days'
-      AND status != 'cancelled'
-      GROUP BY DATE_TRUNC('day', created_at)
-      ORDER BY date ASC
-    `);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysAgo);
+
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .neq('status', 'cancelled')
+      .gte('created_at', startDate.toISOString());
+
+    if (error) throw error;
+
+    // Group by day
+    const dailyData = {};
+    orders.forEach(order => {
+      const date = new Date(order.created_at).toISOString().split('T')[0];
+      if (!dailyData[date]) {
+        dailyData[date] = {
+          sales: 0,
+          orders: 0
+        };
+      }
+      dailyData[date].sales += parseFloat(order.total_amount || 0);
+      dailyData[date].orders += 1;
+    });
+
+    const trends = Object.entries(dailyData)
+      .map(([date, data]) => ({
+        date,
+        sales: data.sales,
+        orders: data.orders
+      }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     res.json({
       success: true,
-      data: trends.rows.map(row => ({
-        date: row.date,
-        sales: parseFloat(row.daily_sales),
-        orders: parseInt(row.daily_orders)
-      }))
+      data: trends
     });
   } catch (error) {
     console.error('Error fetching sales trends:', error);
@@ -163,35 +233,64 @@ router.get('/sales-trends', async (req, res) => {
 // Get product performance
 router.get('/product-performance', async (req, res) => {
   try {
-    const productPerformance = await query(`
-      SELECT 
-        p.id,
-        p.name,
-        p.price,
-        SUM(oi.quantity) as total_sold,
-        SUM(oi.quantity * oi.price) as total_revenue,
-        COUNT(DISTINCT o.id) as order_count,
-        AVG(oi.quantity) as avg_quantity_per_order
-      FROM products p
-      JOIN order_items oi ON p.id = oi.product_id
-      JOIN orders o ON oi.order_id = o.id
-      WHERE o.created_at >= NOW() - INTERVAL '30 days'
-      AND o.status != 'cancelled'
-      GROUP BY p.id, p.name, p.price
-      ORDER BY total_sold DESC
-    `);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .neq('status', 'cancelled')
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    if (error) throw error;
+
+    // Process product performance
+    const productStats = {};
+    orders.forEach(order => {
+      if (order.order_items && Array.isArray(order.order_items)) {
+        order.order_items.forEach(item => {
+          const name = item.name || 'Unknown';
+          const category = item.category || 'Unknown';
+          const key = `${name}-${category}`;
+          
+          if (!productStats[key]) {
+            productStats[key] = {
+              name,
+              category,
+              totalSold: 0,
+              totalRevenue: 0,
+              orders: new Set(),
+              quantities: []
+            };
+          }
+          
+          const quantity = parseInt(item.quantity || 0);
+          const price = parseFloat(item.price || 0);
+          
+          productStats[key].totalSold += quantity;
+          productStats[key].totalRevenue += quantity * price;
+          productStats[key].orders.add(order.id);
+          productStats[key].quantities.push(quantity);
+        });
+      }
+    });
+
+    const performance = Object.values(productStats)
+      .map(stat => ({
+        name: stat.name,
+        category: stat.category,
+        totalSold: stat.totalSold,
+        totalRevenue: stat.totalRevenue,
+        orderCount: stat.orders.size,
+        avgQuantityPerOrder: stat.quantities.length > 0 
+          ? stat.quantities.reduce((a, b) => a + b, 0) / stat.quantities.length 
+          : 0
+      }))
+      .sort((a, b) => b.totalSold - a.totalSold);
 
     res.json({
       success: true,
-      data: productPerformance.rows.map(row => ({
-        id: row.id,
-        name: row.name,
-        price: parseFloat(row.price),
-        totalSold: parseInt(row.total_sold),
-        totalRevenue: parseFloat(row.total_revenue),
-        orderCount: parseInt(row.order_count),
-        avgQuantityPerOrder: parseFloat(row.avg_quantity_per_order)
-      }))
+      data: performance
     });
   } catch (error) {
     console.error('Error fetching product performance:', error);
@@ -205,54 +304,72 @@ router.get('/product-performance', async (req, res) => {
 // Get customer analytics
 router.get('/customer-analytics', async (req, res) => {
   try {
-    const customerData = await query(`
-      SELECT 
-        COUNT(DISTINCT user_id) as total_customers,
-        COUNT(DISTINCT CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN user_id END) as new_customers,
-        AVG(order_count) as avg_orders_per_customer,
-        AVG(total_spent) as avg_spent_per_customer
-      FROM (
-        SELECT 
-          user_id,
-          COUNT(*) as order_count,
-          SUM(total_amount) as total_spent
-        FROM orders 
-        WHERE status != 'cancelled'
-        GROUP BY user_id
-      ) customer_stats
-    `);
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .neq('status', 'cancelled');
 
-    const topCustomers = await query(`
-      SELECT 
-        u.email,
-        u.user_metadata->>'full_name' as full_name,
-        COUNT(o.id) as order_count,
-        SUM(o.total_amount) as total_spent,
-        MAX(o.created_at) as last_order_date
-      FROM orders o
-      LEFT JOIN auth.users u ON o.user_id = u.id
-      WHERE o.status != 'cancelled'
-      GROUP BY u.id, u.email, u.user_metadata->>'full_name'
-      ORDER BY total_spent DESC
-      LIMIT 10
-    `);
+    if (error) throw error;
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Calculate customer statistics
+    const customerStats = {};
+    let newCustomers = new Set();
+
+    orders.forEach(order => {
+      const userId = order.user_id;
+      if (!customerStats[userId]) {
+        customerStats[userId] = {
+          orderCount: 0,
+          totalSpent: 0,
+          lastOrderDate: null
+        };
+      }
+      
+      customerStats[userId].orderCount += 1;
+      customerStats[userId].totalSpent += parseFloat(order.total_amount || 0);
+      
+      const orderDate = new Date(order.created_at);
+      if (!customerStats[userId].lastOrderDate || orderDate > customerStats[userId].lastOrderDate) {
+        customerStats[userId].lastOrderDate = orderDate;
+      }
+      
+      if (orderDate >= thirtyDaysAgo) {
+        newCustomers.add(userId);
+      }
+    });
+
+    const totalCustomers = Object.keys(customerStats).length;
+    const avgOrdersPerCustomer = totalCustomers > 0 
+      ? Object.values(customerStats).reduce((sum, c) => sum + c.orderCount, 0) / totalCustomers 
+      : 0;
+    const avgSpentPerCustomer = totalCustomers > 0 
+      ? Object.values(customerStats).reduce((sum, c) => sum + c.totalSpent, 0) / totalCustomers 
+      : 0;
+
+    // Get top 10 customers
+    const topCustomers = Object.entries(customerStats)
+      .map(([userId, stats]) => ({
+        userId,
+        orderCount: stats.orderCount,
+        totalSpent: stats.totalSpent,
+        lastOrderDate: stats.lastOrderDate
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10);
 
     res.json({
       success: true,
       data: {
         summary: {
-          totalCustomers: parseInt(customerData.rows[0]?.total_customers || 0),
-          newCustomers: parseInt(customerData.rows[0]?.new_customers || 0),
-          avgOrdersPerCustomer: parseFloat(customerData.rows[0]?.avg_orders_per_customer || 0),
-          avgSpentPerCustomer: parseFloat(customerData.rows[0]?.avg_spent_per_customer || 0)
+          totalCustomers,
+          newCustomers: newCustomers.size,
+          avgOrdersPerCustomer: parseFloat(avgOrdersPerCustomer.toFixed(2)),
+          avgSpentPerCustomer: parseFloat(avgSpentPerCustomer.toFixed(2))
         },
-        topCustomers: topCustomers.rows.map(row => ({
-          email: row.email,
-          fullName: row.full_name,
-          orderCount: parseInt(row.order_count),
-          totalSpent: parseFloat(row.total_spent),
-          lastOrderDate: row.last_order_date
-        }))
+        topCustomers
       }
     });
   } catch (error) {
@@ -273,36 +390,5 @@ function getBranchColor(index) {
   return colors[index % colors.length];
 }
 
-function processOrderStatus(statusRows, totalOrders) {
-  const statusMap = {};
-  statusRows.forEach(row => {
-    statusMap[row.status] = parseInt(row.count);
-  });
-  
-  const completed = statusMap.delivered || 0;
-  const processing = (statusMap.processing || 0) + (statusMap.confirmed || 0);
-  const pending = statusMap.pending || 0;
-  const cancelled = statusMap.cancelled || 0;
-  
-  return {
-    completed: {
-      count: completed,
-      percentage: totalOrders > 0 ? Math.round((completed / totalOrders) * 100) : 0
-    },
-    processing: {
-      count: processing,
-      percentage: totalOrders > 0 ? Math.round((processing / totalOrders) * 100) : 0
-    },
-    pending: {
-      count: pending,
-      percentage: totalOrders > 0 ? Math.round((pending / totalOrders) * 100) : 0
-    },
-    cancelled: {
-      count: cancelled,
-      percentage: totalOrders > 0 ? Math.round((cancelled / totalOrders) * 100) : 0
-    },
-    total: totalOrders
-  };
-}
 
 module.exports = router;

@@ -26,77 +26,54 @@ const Analytics = () => {
       
       // Try to fetch real data from API
       try {
-        const response = await fetch('/api/analytics/dashboard');
+        const response = await fetch('http://localhost:4000/api/analytics/dashboard');
         const result = await response.json();
         
-        if (result.success) {
+        console.log('Analytics API Response:', result);
+        
+        if (result.success && result.data) {
+          const hasData = result.data.summary.totalOrders > 0;
+          
           setAnalyticsData({
-            totalSales: result.data.salesOverTime,
-            salesByBranch: result.data.salesByBranch,
-            orderStatus: result.data.orderStatus,
-            topProducts: result.data.topProducts.map(product => ({
-              product: product.product,
-              percentage: Math.round((product.quantity / Math.max(...result.data.topProducts.map(p => p.quantity))) * 100)
-            })),
-            summary: result.data.summary
+            totalSales: result.data.salesOverTime || [],
+            salesByBranch: result.data.salesByBranch || [],
+            orderStatus: result.data.orderStatus || {},
+            topProducts: hasData && result.data.topProducts.length > 0 
+              ? result.data.topProducts.map(product => ({
+                  product: product.product,
+                  percentage: Math.round((product.quantity / Math.max(...result.data.topProducts.map(p => p.quantity))) * 100)
+                }))
+              : [],
+            summary: result.data.summary,
+            hasData
           });
+          setLoading(false);
           return;
         }
       } catch (apiError) {
-        console.log('API not available, using mock data');
+        console.error('API error:', apiError);
+        // Don't use mock data, show empty state instead
+        setAnalyticsData({
+          totalSales: [],
+          salesByBranch: [],
+          orderStatus: {
+            completed: { count: 0, percentage: 0 },
+            processing: { count: 0, percentage: 0 },
+            pending: { count: 0, percentage: 0 },
+            cancelled: { count: 0, percentage: 0 },
+            total: 0
+          },
+          topProducts: [],
+          summary: {
+            totalRevenue: 0,
+            totalOrders: 0,
+            averageOrderValue: 0
+          },
+          hasData: false
+        });
+        setLoading(false);
+        return;
       }
-      
-      // Fallback to mock data based on the image
-      const mockData = {
-        totalSales: [
-          { month: 'Jan', sales: 20000 },
-          { month: 'Feb', sales: 18000 },
-          { month: 'Mar', sales: 25000 },
-          { month: 'Apr', sales: 30000 },
-          { month: 'May', sales: 40000 },
-          { month: 'Jun', sales: 35000 },
-          { month: 'Jul', sales: 32000 },
-          { month: 'Aug', sales: 38000 },
-          { month: 'Sep', sales: 42000 },
-          { month: 'Oct', sales: 45000 },
-          { month: 'Nov', sales: 48000 },
-          { month: 'Dec', sales: 52000 }
-        ],
-        salesByBranch: [
-          { branch: 'Batangas City', sales: 40000, color: '#1e3a8a' },
-          { branch: 'Bauan', sales: 35000, color: '#0d9488' },
-          { branch: 'Calaca', sales: 28000, color: '#166534' },
-          { branch: 'Calapan', sales: 22000, color: '#0284c7' },
-          { branch: 'Lemery', sales: 20000, color: '#0f766e' },
-          { branch: 'Muzon', sales: 18000, color: '#0369a1' },
-          { branch: 'Pinamalayan', sales: 19000, color: '#7c3aed' },
-          { branch: 'Rosario', sales: 20000, color: '#64748b' },
-          { branch: 'San Pascual', sales: 45000, color: '#15803d' }
-        ],
-        orderStatus: {
-          completed: { count: 108, percentage: 72 },
-          processing: { count: 24, percentage: 16 },
-          pending: { count: 18, percentage: 12 },
-          cancelled: { count: 0, percentage: 0 },
-          total: 150
-        },
-        summary: {
-          totalRevenue: 250000,
-          totalOrders: 150,
-          averageOrderValue: 1666.67
-        },
-        topProducts: [
-          { product: 'Jerseys', percentage: 98 },
-          { product: 'Uniforms', percentage: 91 },
-          { product: 'T-Shirts', percentage: 88 },
-          { product: 'Long Sleeves', percentage: 65 },
-          { product: 'Banner', percentage: 33 },
-          { product: 'Tarpulins', percentage: 30 },
-          { product: 'Others', percentage: 31 }
-        ]
-      };
-
-      setAnalyticsData(mockData);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {
@@ -207,6 +184,7 @@ const Analytics = () => {
             <h3>Total Sales Over Time</h3>
           </div>
           <div className="chart-container">
+            {analyticsData.totalSales && analyticsData.totalSales.length > 0 && analyticsData.totalSales.some(item => item.sales > 0) ? (
             <div className="line-chart">
               <svg viewBox="0 0 400 200" className="chart-svg">
                 {/* Grid lines */}
@@ -278,6 +256,11 @@ const Analytics = () => {
                 </defs>
               </svg>
             </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>No sales data available</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -288,6 +271,7 @@ const Analytics = () => {
             <h3>Sales By Branch</h3>
           </div>
           <div className="chart-container">
+            {analyticsData.salesByBranch && analyticsData.salesByBranch.length > 0 ? (
             <div className="bar-chart">
               {analyticsData.salesByBranch.map((branch, index) => {
                 const maxSales = getMaxValue(analyticsData.salesByBranch, 'sales');
@@ -310,6 +294,11 @@ const Analytics = () => {
                 );
               })}
             </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>No branch data available</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -320,6 +309,7 @@ const Analytics = () => {
             <h3>Pending vs. Completed Orders</h3>
           </div>
           <div className="chart-container">
+            {analyticsData.orderStatus && analyticsData.orderStatus.total > 0 ? (
             <div className="donut-chart">
               <svg viewBox="0 0 200 200" className="chart-svg">
                 <circle
@@ -371,6 +361,11 @@ const Analytics = () => {
                 </div>
               </div>
             </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>No order data available</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -381,6 +376,7 @@ const Analytics = () => {
             <h3>Top Selling Products</h3>
           </div>
           <div className="chart-container">
+            {analyticsData.topProducts && analyticsData.topProducts.length > 0 ? (
             <div className="bar-chart">
               {analyticsData.topProducts.map((product, index) => (
                 <div key={index} className="bar-item">
@@ -400,6 +396,11 @@ const Analytics = () => {
                 </div>
               ))}
             </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>No product data available</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
