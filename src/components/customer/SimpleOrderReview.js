@@ -17,13 +17,7 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
   const [existingReview, setExistingReview] = useState(null);
   const [loadingReview, setLoadingReview] = useState(true);
 
-  // Check if user already reviewed this order
-  useEffect(() => {
-    if (orderId && user) {
-      checkExistingReview();
-    }
-  }, [orderId, user]);
-
+  // Define checkExistingReview first (before useEffect that calls it)
   const checkExistingReview = async () => {
     try {
       setLoadingReview(true);
@@ -36,6 +30,13 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
       setLoadingReview(false);
     }
   };
+
+  // Check if user already reviewed this order
+  useEffect(() => {
+    if (orderId && user) {
+      checkExistingReview();
+    }
+  }, [orderId, user, checkExistingReview]);
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();

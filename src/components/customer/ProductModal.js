@@ -43,25 +43,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     }
   }, [buyNowItem]);
 
-  // Reset form when modal opens with existing cart data
-  useEffect(() => {
-    if (isOpen && existingCartItemData) {
-      setSelectedSize(existingCartItemData.size || 'M');
-      setQuantity(existingCartItemData.quantity || 1);
-      setIsTeamOrder(existingCartItemData.isTeamOrder || false);
-      setTeamMembers(existingCartItemData.teamMembers || []);
-      setTeamName(existingCartItemData.teamMembers?.[0]?.teamName || '');
-      setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
-    }
-  }, [isOpen, existingCartItemData]);
-
-  // Load reviews for the product
-  useEffect(() => {
-    if (isOpen && product?.id) {
-      loadProductReviews();
-    }
-  }, [isOpen, product?.id, loadProductReviews]);
-
+  // Define loadProductReviews first (before useEffect that calls it)
   const loadProductReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
@@ -91,6 +73,25 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setReviewsLoading(false);
     }
   }, []);
+
+  // Reset form when modal opens with existing cart data
+  useEffect(() => {
+    if (isOpen && existingCartItemData) {
+      setSelectedSize(existingCartItemData.size || 'M');
+      setQuantity(existingCartItemData.quantity || 1);
+      setIsTeamOrder(existingCartItemData.isTeamOrder || false);
+      setTeamMembers(existingCartItemData.teamMembers || []);
+      setTeamName(existingCartItemData.teamMembers?.[0]?.teamName || '');
+      setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
+    }
+  }, [isOpen, existingCartItemData]);
+
+  // Load reviews for the product
+  useEffect(() => {
+    if (isOpen && product?.id) {
+      loadProductReviews();
+    }
+  }, [isOpen, product?.id, loadProductReviews]);
 
   if (!isOpen || !product) return null;
 
