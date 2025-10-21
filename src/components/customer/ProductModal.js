@@ -47,17 +47,13 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const loadProductReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
-      // Fetch all reviews for completed orders
-      const allOrders = await orderService.getAllOrdersWithReviews();
+      // Fetch reviews specifically for this product
+      const productReviews = await orderService.getProductReviews(product.id);
       
-      // Flatten all reviews from all orders
-      const allReviews = allOrders.flatMap(order => order.reviews || []);
-      
-      console.log('📦 Loaded all reviews:', allReviews.length);
-      console.log('📦 Sample reviews:', allReviews.slice(0, 3));
+      console.log('📦 Loaded reviews for product', product.id, ':', productReviews.length, 'reviews');
       
       // Format reviews to display properly
-      const formattedReviews = allReviews.map(review => ({
+      const formattedReviews = productReviews.map(review => ({
         id: review.id,
         user: review.user_id || 'Anonymous',
         rating: review.rating || 0,
@@ -72,7 +68,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     } finally {
       setReviewsLoading(false);
     }
-  }, []);
+  }, [product?.id]);
 
   // Reset form when modal opens with existing cart data
   useEffect(() => {

@@ -288,6 +288,53 @@ class OrderService {
     ];
   }
 
+  // Fetch reviews for a specific product
+  async getProductReviews(productId) {
+    try {
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'picked_up_delivered');
+
+      if (error) {
+        console.error('Error fetching completed orders:', error);
+        return [];
+      }
+
+      // For each order, fetch the reviews and filter by product
+      const allProductReviews = [];
+      
+      await Promise.all(
+        (orders || []).map(async (order) => {
+          try {
+            // Check if this order contains the product we're looking for
+            const orderItems = order.order_items || [];
+            const hasProduct = orderItems.some(item => item.product_id === productId);
+            
+            if (hasProduct) {
+              // Fetch reviews for this order
+              const { data: reviews } = await supabase
+                .from('order_reviews')
+                .select('*')
+                .eq('order_id', order.id);
+
+              if (reviews && reviews.length > 0) {
+                allProductReviews.push(...reviews);
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching reviews for order', order.id, err);
+          }
+        })
+      );
+
+      return allProductReviews;
+    } catch (error) {
+      console.error('Error in getProductReviews:', error);
+      return [];
+    }
+  }
+
   // Fetch all orders with their reviews from completed deliveries
   async getAllOrdersWithReviews() {
     try {
