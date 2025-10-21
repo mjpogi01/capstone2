@@ -70,7 +70,6 @@ const Orders = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-<<<<<<< HEAD
         // Pass pagination parameters to API if filters are active
         const hasFilters = filters.pickupBranch || filters.status;
         const response = await orderService.getAllOrders({
@@ -81,24 +80,20 @@ const Orders = () => {
         console.log('📦 [Orders Component] API Response:', response);
         console.log('📦 [Orders Component] Total orders returned:', response.orders?.length);
         console.log('📦 [Orders Component] Pagination info:', response.pagination);
-        const formattedOrders = response.orders.map(order => orderService.formatOrderForDisplay(order));
-        console.log('📦 [Orders Component] Formatted orders:', formattedOrders.length);
-        setOrders(formattedOrders);
-        setFilteredOrders(formattedOrders);
-        if (response.pagination) {
-          setPagination(response.pagination);
-=======
-        const response = await orderService.getAllOrders();
+        
         // Add null check for response.orders
         if (response && response.orders && Array.isArray(response.orders)) {
           const formattedOrders = response.orders.map(order => orderService.formatOrderForDisplay(order));
+          console.log('📦 [Orders Component] Formatted orders:', formattedOrders.length);
           setOrders(formattedOrders);
           setFilteredOrders(formattedOrders);
+          if (response.pagination) {
+            setPagination(response.pagination);
+          }
         } else {
           console.warn('No orders data received or invalid format:', response);
           setOrders([]);
           setFilteredOrders([]);
->>>>>>> 44b24ec (UI improvements: dark blue checkout theme, wishlist styling, order details visibility, and various fixes)
         }
       } catch (error) {
         console.error('Error fetching orders:', error);
