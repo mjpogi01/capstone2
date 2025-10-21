@@ -1,7 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaTimes, FaHeart, FaShoppingCart, FaTrash } from 'react-icons/fa';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
+import { useNotification } from '../../contexts/NotificationContext';
+import ProductModal from './ProductModal';
 import './WishlistModal.css';
 
 const WishlistModal = () => {
@@ -16,6 +18,9 @@ const WishlistModal = () => {
   } = useWishlist();
   
   const { addToCart } = useCart();
+  const { showSuccess } = useNotification();
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   // Reload wishlist when modal opens
   useEffect(() => {
@@ -26,14 +31,22 @@ const WishlistModal = () => {
 
   if (!isWishlistOpen) return null;
 
-  const handleAddToCart = async (product) => {
+  const handleAddToCart = (product) => {
+    // Open ProductModal for the user to configure product details
+    setSelectedProduct(product);
+    setIsProductModalOpen(true);
+  };
+
+  const handleConfirmAddToCart = async (product, cartOptions) => {
     try {
-      // Add to cart - the CartContext will automatically remove from wishlist
-      await addToCart(product, {
-        size: 'M',
-        quantity: 1,
-        isTeamOrder: false
-      });
+      // Add to cart with the configured options
+      await addToCart(product, cartOptions);
+      
+      // Close the ProductModal
+      setIsProductModalOpen(false);
+      setSelectedProduct(null);
+      
+      showSuccess('Added to Cart', `${product.name} has been added to your cart!`);
       
       // Reload wishlist to show the item has been removed
       setTimeout(() => {
@@ -47,6 +60,7 @@ const WishlistModal = () => {
   const handleRemoveFromWishlist = async (productId) => {
     try {
       await removeFromWishlist(productId);
+      reloadWishlist();
     } catch (error) {
       console.error('Error removing from wishlist:', error);
     }
@@ -135,6 +149,14 @@ const WishlistModal = () => {
           </div>
         )}
       </div>
+      {selectedProduct && (
+        <ProductModal
+          isOpen={isProductModalOpen}
+          onClose={() => setIsProductModalOpen(false)}
+          product={selectedProduct}
+          onConfirm={handleConfirmAddToCart}
+        />
+      )}
     </div>
   );
 };

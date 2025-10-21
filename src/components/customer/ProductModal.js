@@ -8,7 +8,7 @@ import orderService from '../../services/orderService';
 import { useAuth } from '../../contexts/AuthContext';
 import './ProductModal.css';
 
-const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null, onAddToCart, onBuyNow }) => {
+const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null, onAddToCart, onBuyNow, onConfirm }) => {
   // Always call hooks, but only use CartContext when in customer mode (no callbacks provided)
   const isAdminMode = !!(onAddToCart && onBuyNow);
   const cartContext = useCart();
@@ -128,6 +128,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         price: finalPrice, // Use discounted price for kids
         isReplacement: isFromCart // Mark as replacement when coming from cart
       };
+
+      // Use onConfirm callback if provided (for wishlist), otherwise continue with regular flow
+      if (onConfirm) {
+        onConfirm(product, cartOptions);
+        return;
+      }
 
       // Use callback if provided (for walk-in ordering), otherwise use context
       if (onAddToCart) {
