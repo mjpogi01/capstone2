@@ -32,8 +32,15 @@ const WishlistModal = () => {
   if (!isWishlistOpen) return null;
 
   const handleAddToCart = (product) => {
+    // Normalize the product data to match ProductModal expectations
+    // Wishlist items use 'image' field, but ProductModal expects 'main_image'
+    const normalizedProduct = {
+      ...product,
+      main_image: product.image || product.main_image || '/images/placeholder-jersey.png'
+    };
+    
     // Open ProductModal for the user to configure product details
-    setSelectedProduct(product);
+    setSelectedProduct(normalizedProduct);
     setIsProductModalOpen(true);
   };
 
