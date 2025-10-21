@@ -9,7 +9,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import './ProductModal.css';
 
 const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null, onAddToCart, onBuyNow }) => {
-  const { addToCart, removeFromCart, cartItems, selectedItems, clearCart } = useCart();
+  // Always call hooks, but only use CartContext when in customer mode (no callbacks provided)
+  const isAdminMode = !!(onAddToCart && onBuyNow);
+  const cartContext = useCart();
+  const { addToCart: contextAddToCart, removeFromCart: contextRemoveFromCart, cartItems, selectedItems, clearCart } = cartContext;
+  
+  // Use context functions only when NOT in admin mode
+  const addToCart = isAdminMode ? null : contextAddToCart;
+  const removeFromCart = isAdminMode ? null : contextRemoveFromCart;
+  
   const { user } = useAuth();
   const { showOrderConfirmation, showError } = useNotification();
   const [selectedSize, setSelectedSize] = useState(existingCartItemData?.size || 'M');

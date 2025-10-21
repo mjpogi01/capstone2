@@ -150,6 +150,8 @@ const WalkInOrdering = ({ onClose }) => {
   };
 
   const handleAddToCart = (product, options) => {
+    console.log('🛒 [Walk-in] Adding to walk-in cart:', product.name);
+    
     const existingItemIndex = cartItems.findIndex(
       item => item.id === product.id && item.size === options.size
     );
@@ -165,19 +167,23 @@ const WalkInOrdering = ({ onClose }) => {
       teamMembers: options.teamMembers || null,
       singleOrderDetails: options.singleOrderDetails || null,
       sizeType: options.sizeType || 'adult',
-      uniqueId: `walkin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      uniqueId: `walkin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` // Unique prefix for walk-in items
     };
 
     if (existingItemIndex >= 0) {
       const updatedItems = [...cartItems];
       updatedItems[existingItemIndex] = cartItem;
       setCartItems(updatedItems);
+      console.log('🛒 [Walk-in] Updated existing item in walk-in cart');
     } else {
       setCartItems([...cartItems, cartItem]);
+      console.log('🛒 [Walk-in] Added new item to walk-in cart. Total items:', cartItems.length + 1);
     }
   };
 
   const handleBuyNow = (product, options) => {
+    console.log('🛒 [Walk-in] Buy Now for walk-in order:', product.name);
+    
     const buyNowItem = {
       id: product.id,
       name: product.name,
@@ -189,15 +195,21 @@ const WalkInOrdering = ({ onClose }) => {
       teamMembers: options.teamMembers || null,
       singleOrderDetails: options.singleOrderDetails || null,
       sizeType: options.sizeType || 'adult',
-      uniqueId: `walkin-buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      uniqueId: `walkin-buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique prefix for walk-in
       isBuyNow: true
     };
     setCartItems([buyNowItem]);
     setShowCheckout(true);
+    console.log('🛒 [Walk-in] Opening checkout for walk-in Buy Now order');
   };
 
   const removeFromCart = (uniqueId) => {
-    setCartItems(prev => prev.filter(item => item.uniqueId !== uniqueId));
+    console.log('🛒 [Walk-in] Removing item from walk-in cart:', uniqueId);
+    setCartItems(prev => {
+      const filtered = prev.filter(item => item.uniqueId !== uniqueId);
+      console.log('🛒 [Walk-in] Items remaining in walk-in cart:', filtered.length);
+      return filtered;
+    });
   };
 
   const handlePlaceOrder = async (orderData) => {
@@ -495,7 +507,7 @@ const WalkInOrdering = ({ onClose }) => {
                             <div className="item-name">{item.name}</div>
                             <button 
                               className="remove-btn"
-                              onClick={() => removeFromCart(item.uniqueId)}
+                              onClick={() => removeFromCart(item.uniqueId || item.id)}
                               title="Remove item"
                             >
                               <FaTimes />

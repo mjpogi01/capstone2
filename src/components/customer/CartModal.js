@@ -193,7 +193,7 @@ const CartModal = () => {
                           <div className="item-name">{item.name}</div>
                           <button 
                             className="remove-btn-top"
-                            onClick={() => removeFromCart(item.uniqueId)}
+                            onClick={() => removeFromCart(item.uniqueId || item.id)}
                             title="Remove item"
                           >
                             <FaTrash />
