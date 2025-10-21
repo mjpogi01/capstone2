@@ -17,7 +17,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [orderTracking, setOrderTracking] = useState({});
   const [orderReviews, setOrderReviews] = useState({});
-  const [deliveryProof, setDeliveryProof] = useState({});
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedOrderForReview, setSelectedOrderForReview] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
@@ -57,7 +56,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const loadOrderDetails = async (userOrders) => {
     const trackingData = {};
     const reviewsData = {};
-    const proofData = {};
 
     for (const order of userOrders) {
       try {
@@ -68,10 +66,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
         // Load review data
         const review = await orderTrackingService.getOrderReview(order.id);
         reviewsData[order.id] = review;
-
-        // Load delivery proof
-        const proof = await orderTrackingService.getDeliveryProof(order.id);
-        proofData[order.id] = proof;
       } catch (error) {
         console.error(`Error loading details for order ${order.id}:`, error);
       }
@@ -79,7 +73,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
 
     setOrderTracking(trackingData);
     setOrderReviews(reviewsData);
-    setDeliveryProof(proofData);
   };
 
   const formatDate = (dateString) => {
@@ -383,46 +376,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                           )}
                         </div>
                       </div>
-
-                      {/* Delivery Proof Section - Only for COD orders */}
-                      {order.shippingMethod === 'cod' && deliveryProof[order.id] && (
-                        <div className="customer-order-delivery-proof">
-                          <h4>Delivery Proof</h4>
-                          <div className="delivery-proof-info">
-                            <div className="delivery-person">
-                              <strong>Delivered by:</strong> {deliveryProof[order.id].delivery_person_name}
-                            </div>
-                            {deliveryProof[order.id].delivery_person_contact && (
-                              <div className="delivery-contact">
-                                <strong>Contact:</strong> {deliveryProof[order.id].delivery_person_contact}
-                              </div>
-                            )}
-                            {deliveryProof[order.id].proof_images && deliveryProof[order.id].proof_images.length > 0 && (
-                              <div className="proof-images">
-                                <strong>Proof Images:</strong>
-                                <div className="proof-images-grid">
-                                  {deliveryProof[order.id].proof_images.map((image, index) => (
-                                    <img 
-                                      key={index} 
-                                      src={image} 
-                                      alt={`Delivery proof ${index + 1}`}
-                                      className="proof-image"
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {deliveryProof[order.id].delivery_notes && (
-                              <div className="delivery-notes">
-                                <strong>Notes:</strong> {deliveryProof[order.id].delivery_notes}
-                              </div>
-                            )}
-                            <div className="delivery-time">
-                              <strong>Delivered at:</strong> {formatDate(deliveryProof[order.id].delivered_at)}
-                            </div>
-                          </div>
-                        </div>
-                      )}
 
                       <div className="customer-order-summary">
                         <h4>Order Summary</h4>
