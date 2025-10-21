@@ -29,19 +29,25 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   }, [isOpen, user]);
 
   const loadUserOrders = async () => {
-    if (!user) return;
+    if (!user) {
+      console.warn('📦 No user logged in, cannot load orders');
+      return;
+    }
     
+    console.log('📦 Loading orders for user:', user.id, user.email);
     setLoading(true);
     setError(null);
     try {
       // getUserOrders now excludes cancelled orders by default
       const userOrders = await orderService.getUserOrders(user.id);
+      console.log('📦 Fetched user orders:', userOrders.length, 'orders');
+      console.log('📦 Orders:', userOrders);
       setOrders(userOrders);
       
       // Load tracking, reviews, and delivery proof for each order
       await loadOrderDetails(userOrders);
     } catch (err) {
-      console.error('Error loading user orders:', err);
+      console.error('❌ Error loading user orders:', err);
       setError('Failed to load orders. Please try again.');
     } finally {
       setLoading(false);

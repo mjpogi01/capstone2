@@ -65,6 +65,8 @@ class OrderService {
 
   async getUserOrders(userId, excludeCancelled = true) {
     try {
+      console.log('📦 [OrderService] Fetching orders for user_id:', userId);
+      
       let query = supabase
         .from('orders')
         .select('*')
@@ -78,12 +80,19 @@ class OrderService {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
+        console.error('❌ [OrderService] Supabase error:', error);
         throw new Error(`Supabase error: ${error.message}`);
       }
 
-      return (data || []).map(order => this.formatOrderForDisplay(order));
+      console.log('📦 [OrderService] Raw data from Supabase:', data);
+      console.log('📦 [OrderService] Found', data?.length || 0, 'orders');
+      
+      const formattedOrders = (data || []).map(order => this.formatOrderForDisplay(order));
+      console.log('📦 [OrderService] Formatted orders:', formattedOrders);
+      
+      return formattedOrders;
     } catch (error) {
-      console.error('Error fetching user orders:', error);
+      console.error('❌ [OrderService] Error fetching user orders:', error);
       throw error;
     }
   }
