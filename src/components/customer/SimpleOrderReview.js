@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { FaStar, FaTimes } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaStar, FaTimes, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import orderTrackingService from '../../services/orderTrackingService';
 import './SimpleOrderReview.css';
 
 const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
@@ -13,6 +14,28 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
     comment: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [existingReview, setExistingReview] = useState(null);
+  const [loadingReview, setLoadingReview] = useState(true);
+
+  // Check if user already reviewed this order
+  useEffect(() => {
+    if (orderId && user) {
+      checkExistingReview();
+    }
+  }, [orderId, user]);
+
+  const checkExistingReview = async () => {
+    try {
+      setLoadingReview(true);
+      const review = await orderTrackingService.getOrderReview(orderId);
+      setExistingReview(review);
+    } catch (error) {
+      console.error('Error checking existing review:', error);
+      setExistingReview(null);
+    } finally {
+      setLoadingReview(false);
+    }
+  };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
@@ -85,13 +108,24 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
     <>
       {/* Simple Write Review Button */}
       <div className="simple-review-section">
-        <button 
-          className="write-review-btn"
-          onClick={() => setShowReviewPopup(true)}
-        >
-          <FaStar className="review-icon" />
-          Write a Review
-        </button>
+        {loadingReview ? (
+          <button className="write-review-btn" disabled>
+            Loading...
+          </button>
+        ) : existingReview ? (
+          <div className="existing-review-badge">
+            <FaCheck className="check-icon" />
+            <span>You already reviewed this order</span>
+          </div>
+        ) : (
+          <button 
+            className="write-review-btn"
+            onClick={() => setShowReviewPopup(true)}
+          >
+            <FaStar className="review-icon" />
+            Write a Review
+          </button>
+        )}
       </div>
 
       {/* Review Popup Modal */}

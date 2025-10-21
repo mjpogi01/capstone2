@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import { useCart } from '../../contexts/CartContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
-import orderTrackingService from '../../services/orderTrackingService';
 import { useAuth } from '../../contexts/AuthContext';
 import './ProductModal.css';
 
@@ -61,9 +60,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     if (isOpen && product?.id) {
       loadProductReviews();
     }
-  }, [isOpen, product?.id]);
+  }, [isOpen, product?.id, loadProductReviews]);
 
-  const loadProductReviews = async () => {
+  const loadProductReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
       // Fetch all reviews for completed orders
@@ -91,7 +90,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, []);
 
   if (!isOpen || !product) return null;
 
