@@ -15,8 +15,13 @@ router.get('/', async (req, res) => {
       pickupBranch,
       status,
       page = 1,
-      limit = 50
+      limit = 150  // Changed from 50 to 150
     } = req.query;
+
+    console.log(`📦 [Orders API] Fetching orders - page: ${page}, limit: ${limit}, branch: ${pickupBranch}, status: ${status}`);
+
+    // Check if any filter is applied
+    const hasFilters = pickupBranch || status;
 
     // Build Supabase query
     let query = supabase
@@ -63,16 +68,26 @@ router.get('/', async (req, res) => {
     }
     
     const { count: totalCount } = await countQuery;
+    console.log(`📦 [Orders API] Total count from DB: ${totalCount}`);
 
-    // Apply pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    query = query.range(offset, offset + parseInt(limit) - 1);
+    // Apply pagination ONLY if filters are applied, otherwise fetch all
+    if (hasFilters) {
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+      query = query.range(offset, offset + parseInt(limit) - 1);
+      console.log(`📦 [Orders API] Filters applied - using pagination (offset: ${offset}, limit: ${limit})`);
+    } else {
+      // Fetch ALL orders when no filter - use large limit
+      query = query.limit(10000);
+      console.log(`📦 [Orders API] No filters - fetching all orders (up to 10000)`);
+    }
 
     const { data: orders, error } = await query;
 
     if (error) {
       throw new Error(`Supabase error: ${error.message}`);
     }
+
+    console.log(`📦 [Orders API] Returning ${orders?.length} orders, total: ${totalCount}`);
 
     // Transform data to match expected format
     const transformedOrders = (orders || []).map(order => ({

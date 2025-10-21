@@ -10,8 +10,9 @@ router.get('/dashboard', async (req, res) => {
     // Get all orders
     const { data: allOrders, error: ordersError } = await supabase
       .from('orders')
-      .select('*')
-      .neq('status', 'cancelled');
+      .select('*', { count: 'exact' })
+      .neq('status', 'cancelled')
+      .limit(10000);  // Fetch up to 10,000 orders
 
     if (ordersError) {
       console.error('❌ Error fetching orders:', ordersError);
@@ -19,6 +20,10 @@ router.get('/dashboard', async (req, res) => {
     }
 
     console.log(`✅ Fetched ${allOrders ? allOrders.length : 0} orders from database`);
+    console.log(`📊 [DEBUG] allOrders type: ${Array.isArray(allOrders) ? 'Array' : typeof allOrders}`);
+    console.log(`📊 [DEBUG] allOrders is null? ${allOrders === null}`);
+    console.log(`📊 [DEBUG] allOrders length: ${allOrders?.length}`);
+    console.log(`📊 [DEBUG] First 3 orders:`, allOrders?.slice(0, 3));
 
     // Get orders from last 30 days
     const thirtyDaysAgo = new Date();
@@ -98,7 +103,12 @@ router.get('/dashboard', async (req, res) => {
       sum + parseFloat(order.total_amount || 0), 0
     );
 
-    const totalOrders = recentOrders.length;
+    // For metrics, use ALL orders (not just recent)
+    const totalOrders = allOrders.length;
+    console.log(`📊 [DEBUG] totalOrders: ${totalOrders}`);
+    
+    // For recent charts and analysis, use recentOrders (last 30 days)
+    const recentOrdersCount = recentOrders.length;
 
     // Convert sales by month to array format
     const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -147,8 +157,13 @@ router.get('/dashboard', async (req, res) => {
       total: totalOrders
     };
 
-    // Calculate unique customers
+    // Calculate unique customers from ALL orders
     const uniqueCustomers = new Set(allOrders.map(order => order.user_id)).size;
+    
+    // Calculate total revenue from ALL orders
+    const allOrdersRevenue = allOrders.reduce((sum, order) => 
+      sum + parseFloat(order.total_amount || 0), 0
+    );
 
     // Process data for frontend
     const processedData = {
@@ -157,10 +172,10 @@ router.get('/dashboard', async (req, res) => {
       orderStatus: orderStatusData,
       topProducts: topProductsArray,
       summary: {
-        totalRevenue: totalRevenue,
+        totalRevenue: allOrdersRevenue,
         totalOrders: totalOrders,
         totalCustomers: uniqueCustomers,
-        averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0
+        averageOrderValue: totalOrders > 0 ? allOrdersRevenue / totalOrders : 0
       },
       recentOrders: recentOrders.slice(0, 10).map(order => ({
         id: order.id,
@@ -171,6 +186,12 @@ router.get('/dashboard', async (req, res) => {
         user_id: order.user_id
       }))
     };
+
+    console.log(`📊 [DEBUG] FINAL RESPONSE DATA:`, {
+      totalOrders: processedData.summary.totalOrders,
+      totalRevenue: processedData.summary.totalRevenue,
+      totalCustomers: processedData.summary.totalCustomers
+    });
 
     res.json({
       success: true,

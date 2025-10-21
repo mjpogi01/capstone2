@@ -21,6 +21,9 @@ class OrderService {
       }
 
       const data = await response.json();
+      console.log('📦 [OrderService.getAllOrders] Backend response:', data);
+      console.log('📦 [OrderService.getAllOrders] Orders returned:', data.orders?.length);
+      console.log('📦 [OrderService.getAllOrders] Pagination:', data.pagination);
       
       if (data.error) {
         throw new Error(data.error);

@@ -36,7 +36,7 @@ const MetricsCards = () => {
       setLoading(true);
       
       // Fetch analytics data from API
-      const response = await fetch('/api/analytics/dashboard');
+      const response = await fetch('http://localhost:4000/api/analytics/dashboard');
       const result = await response.json();
       
       if (result.success && result.data) {

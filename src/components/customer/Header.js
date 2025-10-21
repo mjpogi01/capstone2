@@ -37,7 +37,7 @@ const Header = () => {
   // Load orders count when user changes
   useEffect(() => {
     const loadOrdersCount = async () => {
-      if (!user) {
+      if (!user || isAdmin || isOwner) {
         setOrdersCount(0);
         return;
       }
@@ -52,12 +52,12 @@ const Header = () => {
     };
 
     loadOrdersCount();
-  }, [user]);
+  }, [user, isAdmin, isOwner]);
 
   // Listen for order placed events to refresh orders count
   useEffect(() => {
     const handleOrderPlaced = async () => {
-      if (user) {
+      if (user && !isAdmin && !isOwner) {
         try {
           const userOrders = await orderService.getUserOrders(user.id);
           setOrdersCount(userOrders.length);
@@ -68,7 +68,7 @@ const Header = () => {
     };
 
     const handleOrderCancelled = async () => {
-      if (user) {
+      if (user && !isAdmin && !isOwner) {
         try {
           const userOrders = await orderService.getUserOrders(user.id);
           setOrdersCount(userOrders.length);
@@ -84,7 +84,7 @@ const Header = () => {
       window.removeEventListener('orderPlaced', handleOrderPlaced);
       window.removeEventListener('orderCancelled', handleOrderCancelled);
     };
-  }, [user]);
+  }, [user, isAdmin, isOwner]);
 
   // SAVED FILTER DROPDOWN CONTENTS FOR LATER USE:
   // const filterOptions = [

@@ -30,7 +30,9 @@ import {
   FaBan,
   FaRedo,
   FaArrowLeft,
-  FaArrowRight
+  FaArrowRight,
+  FaChevronLeft,
+  FaChevronRight
 } from 'react-icons/fa';
 import './Orders.css';
 import './FloatingButton.css';
@@ -48,6 +50,14 @@ const Orders = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'orderDate', direction: 'desc' });
   const [showFilters, setShowFilters] = useState(false);
   
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 150,
+    total: 0,
+    totalPages: 1
+  });
+  
   // Filter states
   const [filters, setFilters] = useState({
     pickupBranch: '',
@@ -60,10 +70,23 @@ const Orders = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await orderService.getAllOrders();
+        // Pass pagination parameters to API if filters are active
+        const hasFilters = filters.pickupBranch || filters.status;
+        const response = await orderService.getAllOrders({
+          ...filters,
+          page: hasFilters ? pagination.page : 1,
+          limit: hasFilters ? pagination.limit : undefined
+        });
+        console.log('📦 [Orders Component] API Response:', response);
+        console.log('📦 [Orders Component] Total orders returned:', response.orders?.length);
+        console.log('📦 [Orders Component] Pagination info:', response.pagination);
         const formattedOrders = response.orders.map(order => orderService.formatOrderForDisplay(order));
+        console.log('📦 [Orders Component] Formatted orders:', formattedOrders.length);
         setOrders(formattedOrders);
         setFilteredOrders(formattedOrders);
+        if (response.pagination) {
+          setPagination(response.pagination);
+        }
       } catch (error) {
         console.error('Error fetching orders:', error);
         setOrders([]);
@@ -74,7 +97,7 @@ const Orders = () => {
     };
 
     fetchOrders();
-  }, []);
+  }, [filters.pickupBranch, filters.status, pagination.page]);
 
   // Apply filters and sorting
   useEffect(() => {
@@ -143,6 +166,11 @@ const Orders = () => {
     setFilters(prev => ({
       ...prev,
       [filterName]: value
+    }));
+    // Reset to page 1 when filters change
+    setPagination(prev => ({
+      ...prev,
+      page: 1
     }));
   };
 
@@ -605,6 +633,63 @@ const Orders = () => {
         </div>
       </div>
 
+      {/* Pagination Controls */}
+      {(filters.pickupBranch || filters.status) && pagination.totalPages > 1 && (
+        <div className="pagination-controls">
+          <div className="pagination-info">
+            Showing page {pagination.page} of {pagination.totalPages} ({pagination.total} total orders)
+          </div>
+          <div className="pagination-buttons">
+            <button
+              className="pagination-btn prev-btn"
+              onClick={() => setPagination(prev => ({...prev, page: Math.max(1, prev.page - 1)}))}
+              disabled={pagination.page === 1}
+            >
+              <FaChevronLeft /> Previous
+            </button>
+            
+            <div className="page-numbers">
+              {Array.from({length: Math.min(5, pagination.totalPages)}, (_, i) => {
+                let pageNum;
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.page <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.page >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.page - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    className={`page-number ${pagination.page === pageNum ? 'active' : ''}`}
+                    onClick={() => setPagination(prev => ({...prev, page: pageNum}))}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              className="pagination-btn next-btn"
+              onClick={() => setPagination(prev => ({...prev, page: Math.min(pagination.totalPages, prev.page + 1)}))}
+              disabled={pagination.page === pagination.totalPages}
+            >
+              Next <FaChevronRight />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Show all orders count when no filters */}
+      {!filters.pickupBranch && !filters.status && (
+        <div className="orders-count-info">
+          Showing all {filteredOrders.length} orders
+        </div>
+      )}
+
       {/* Expanded Order Details Modal */}
       {expandedOrder && (
         <div className="order-details-modal" onClick={() => setExpandedOrder(null)}>
@@ -995,9 +1080,8 @@ const Orders = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
         </div>
       )}
 
