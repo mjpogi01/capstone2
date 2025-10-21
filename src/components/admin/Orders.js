@@ -633,6 +633,63 @@ const Orders = () => {
         </div>
       </div>
 
+      {/* Pagination Controls - shown only when filters are applied */}
+      {(filters.pickupBranch || filters.status) && pagination.totalPages > 1 && (
+        <div className="pagination-controls">
+          <div className="pagination-info">
+            Showing page {pagination.page} of {pagination.totalPages} ({pagination.total} total orders)
+          </div>
+          <div className="pagination-buttons">
+            <button
+              className="pagination-btn prev-btn"
+              onClick={() => setPagination(prev => ({...prev, page: Math.max(1, prev.page - 1)}))}
+              disabled={pagination.page === 1}
+            >
+              <FaChevronLeft /> Previous
+            </button>
+            
+            <div className="page-numbers">
+              {Array.from({length: Math.min(5, pagination.totalPages)}, (_, i) => {
+                let pageNum;
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.page <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.page >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.page - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    className={`page-number ${pagination.page === pageNum ? 'active' : ''}`}
+                    onClick={() => setPagination(prev => ({...prev, page: pageNum}))}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              className="pagination-btn next-btn"
+              onClick={() => setPagination(prev => ({...prev, page: Math.min(pagination.totalPages, prev.page + 1)}))}
+              disabled={pagination.page === pagination.totalPages}
+            >
+              Next <FaChevronRight />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Show all orders count when no filters are applied */}
+      {!filters.pickupBranch && !filters.status && (
+        <div className="orders-count-info">
+          Showing all {filteredOrders.length} orders
+        </div>
+      )}
+
       {/* Expanded Order Details Modal */}
       {expandedOrder && (
         <div className="order-details-modal" onClick={() => setExpandedOrder(null)}>
