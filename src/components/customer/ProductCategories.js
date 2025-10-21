@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ProductCategories.css';
+import Loading from '../Loading';
+import ErrorState from '../ErrorState';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProductModal from './ProductModal'; // Add this import
@@ -169,16 +171,9 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
       {/* Products */}
       <div className="products-container">
         {loading ? (
-          <div className="loading-container">
-            <div className="loading-spinner">Loading products...</div>
-          </div>
+          <Loading message="Loading products..." />
         ) : error ? (
-          <div className="error-container">
-            <p className="error-message">{error}</p>
-            <button onClick={() => window.location.reload()} className="retry-btn">
-              Retry
-            </button>
-          </div>
+          <ErrorState message={error} onRetry={() => window.location.reload()} />
         ) : (
           <div className="products-grid">
             {displayedProducts.map(product => (

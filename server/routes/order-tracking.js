@@ -112,7 +112,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get order review
+// Get order review (with orderId parameter - must come before catch-all)
 router.get('/review/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -132,6 +132,14 @@ router.get('/review/:orderId', async (req, res) => {
     console.error('Error fetching order review:', error);
     res.status(500).json({ error: 'Failed to fetch order review' });
   }
+});
+
+// Get order review (catch-all without orderId - must come after parameterized route)
+router.get('/review', async (req, res) => {
+  res.status(400).json({ 
+    error: 'Order ID is required. Use GET /api/order-tracking/review/:orderId instead.',
+    hint: 'To submit a review, use POST /api/order-tracking/review'
+  });
 });
 
 // Add order review (Universal - works for ALL orders)

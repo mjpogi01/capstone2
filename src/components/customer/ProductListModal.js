@@ -7,6 +7,8 @@ import { useModal } from '../../contexts/ModalContext';
 import productService from '../../services/productService';
 import ProductModal from './ProductModal';
 import './ProductListModal.css';
+import Loading from '../Loading';
+import ErrorState from '../ErrorState';
 
 const ProductListModal = ({ isOpen, onClose }) => {
   const [products, setProducts] = useState([]);
@@ -177,15 +179,9 @@ const ProductListModal = ({ isOpen, onClose }) => {
           {/* Product Grid */}
           <div className="product-list-content">
             {loading ? (
-              <div className="loading-state">
-                <div className="spinner"></div>
-                <p>Loading products...</p>
-              </div>
+              <Loading message="Loading products..." />
             ) : error ? (
-              <div className="error-state">
-                <p>{error}</p>
-                <button onClick={fetchProducts}>Retry</button>
-              </div>
+              <ErrorState message={error} onRetry={fetchProducts} />
             ) : filteredProducts.length === 0 ? (
               <div className="empty-state">
                 <p>No products found</p>

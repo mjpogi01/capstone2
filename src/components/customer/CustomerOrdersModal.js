@@ -6,6 +6,8 @@ import orderService from '../../services/orderService';
 import orderTrackingService from '../../services/orderTrackingService';
 import SimpleOrderReview from './SimpleOrderReview';
 import './CustomerOrdersModal.css';
+import Loading from '../Loading';
+import ErrorState from '../ErrorState';
 
 const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
@@ -263,22 +265,10 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
         </div>
 
         <div className="customer-orders-modal-body">
-          {loading && (
-            <div className="customer-orders-loading">
-              <div className="loading-spinner-container">
-                <div className="loading-spinner-circle"></div>
-                <p className="loading-text">Loading your orders...</p>
-              </div>
-            </div>
-          )}
+          {loading && <Loading message="Loading your orders..." />}
 
           {error && (
-            <div className="customer-orders-error">
-              <p>{error}</p>
-              <button onClick={loadUserOrders} className="retry-btn">
-                Try Again
-              </button>
-            </div>
+            <ErrorState message={error} onRetry={loadUserOrders} retryLabel="Try Again" />
           )}
 
           {!loading && !error && orders.length === 0 && (

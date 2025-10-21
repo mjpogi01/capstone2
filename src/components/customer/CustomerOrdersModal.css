@@ -214,7 +214,7 @@
 }
 
 .customer-order-total {
-  color: #00ff88;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 16px;
 }
@@ -439,11 +439,15 @@
 .summary-row.total {
   font-weight: 600;
   font-size: 16px;
-  color: #00ff88;
+  color: #ffffff !important;
   border-bottom: none;
   border-top: 2px solid #00bfff;
   margin-top: 8px;
   padding-top: 12px;
+}
+
+.summary-row.total span {
+  color: #ffffff !important;
 }
 
 .order-notes {

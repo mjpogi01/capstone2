@@ -50,6 +50,13 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   useEffect(() => {
     if (isOpen) {
       checkUserAddress();
+      // Scroll modal to top when it opens to ensure order details are visible
+      setTimeout(() => {
+        const modalElement = document.querySelector('.checkout-modal');
+        if (modalElement) {
+          modalElement.scrollTop = 0;
+        }
+      }, 100);
     }
   }, [isOpen]);
 
@@ -540,7 +547,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           )}
         </div>
 
-        {/* Products Ordered Section */}
+        {/* Products Ordered Section - ORDER DETAILS */}
         <div className="checkout-section products-section">
           <div className="section-header">
             <FaUsers className="section-icon" />
@@ -569,77 +576,77 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                           }}
                         />
                       </div>
-                    <div className="item-details">
-                      <div className="item-name">{item.name}</div>
-                      <div 
-                        className="item-type clickable"
-                        onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
-                      >
-                        {item.category === 'team' ? 'Team Order' : 'Single Order'}
-                        <span className="dropdown-arrow">
-                          {expandedOrderIndex === index ? '▲' : '▼'}
-                        </span>
-                      </div>
-                      {expandedOrderIndex === index && (
-                        <div className="order-details-dropdown">
-                          {item.category === 'team' && item.teamMembers && item.teamMembers.length > 0 ? (
-                            <div className="team-details">
-                              <div className="team-name-header">
-                                <div className="detail-row">
-                                  <span className="detail-label">Team:</span>
-                                  <span className="detail-value team-name-detail">{item.teamMembers[0]?.teamName || 'N/A'}</span>
-                                </div>
-                              </div>
-                              <div className="team-divider"></div>
-                              <div className="team-members-list">
-                                {item.teamMembers.map((member, memberIndex) => (
-                                  <div key={memberIndex} className="member-details">
-                                    <div className="detail-row">
-                                      <span className="detail-label">Surname:</span>
-                                      <span className="detail-value surname-detail">{member.surname || 'N/A'}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                      <span className="detail-label">Jersey No:</span>
-                                      <span className="detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                      <span className="detail-label">Size:</span>
-                                      <span className="detail-value">{member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="single-order-details">
-                              <div className="member-details">
-                                <div className="detail-row">
-                                  <span className="detail-label">Team:</span>
-                                  <span className="detail-value team-name-detail">{item.singleOrderDetails?.teamName || 'N/A'}</span>
-                                </div>
-                                <div className="detail-row">
-                                  <span className="detail-label">Surname:</span>
-                                  <span className="detail-value surname-detail">{item.singleOrderDetails?.surname || item.surname || 'N/A'}</span>
-                                </div>
-                                <div className="detail-row">
-                                  <span className="detail-label">Jersey No:</span>
-                                  <span className="detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || item.jerseyNo || item.jerseyNumber || 'N/A'}</span>
-                                </div>
-                                <div className="detail-row">
-                                  <span className="detail-label">Size:</span>
-                                  <span className="detail-value">{item.singleOrderDetails?.size || item.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                      <div className="item-details">
+                        <div className="item-name">{item.name}</div>
+                        <div 
+                          className="item-type clickable"
+                          onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                        >
+                          {item.category === 'team' ? 'Team Order' : 'Single Order'}
+                          <span className="dropdown-arrow">
+                            {expandedOrderIndex === index ? '▲' : '▼'}
+                          </span>
                         </div>
-                      )}
+                        {expandedOrderIndex === index && (
+                          <div className="order-details-dropdown">
+                            {item.category === 'team' && item.teamMembers && item.teamMembers.length > 0 ? (
+                              <div className="team-details">
+                                <div className="team-name-header">
+                                  <div className="detail-row">
+                                    <span className="detail-label">Team:</span>
+                                    <span className="detail-value team-name-detail">{item.teamMembers[0]?.teamName || 'N/A'}</span>
+                                  </div>
+                                </div>
+                                <div className="team-divider"></div>
+                                <div className="team-members-list">
+                                  {item.teamMembers.map((member, memberIndex) => (
+                                    <div key={memberIndex} className="member-details">
+                                      <div className="detail-row">
+                                        <span className="detail-label">Surname:</span>
+                                        <span className="detail-value surname-detail">{member.surname || 'N/A'}</span>
+                                      </div>
+                                      <div className="detail-row">
+                                        <span className="detail-label">Jersey No:</span>
+                                        <span className="detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                      </div>
+                                      <div className="detail-row">
+                                        <span className="detail-label">Size:</span>
+                                        <span className="detail-value">{member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="single-order-details">
+                                <div className="member-details">
+                                  <div className="detail-row">
+                                    <span className="detail-label">Team:</span>
+                                    <span className="detail-value team-name-detail">{item.singleOrderDetails?.teamName || 'N/A'}</span>
+                                  </div>
+                                  <div className="detail-row">
+                                    <span className="detail-label">Surname:</span>
+                                    <span className="detail-value surname-detail">{item.singleOrderDetails?.surname || item.surname || 'N/A'}</span>
+                                  </div>
+                                  <div className="detail-row">
+                                    <span className="detail-label">Jersey No:</span>
+                                    <span className="detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || item.jerseyNo || item.jerseyNumber || 'N/A'}</span>
+                                  </div>
+                                  <div className="detail-row">
+                                    <span className="detail-label">Size:</span>
+                                    <span className="detail-value">{item.singleOrderDetails?.size || item.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="price-cell">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                <div className="quantity-cell">{item.quantity}</div>
-                <div className="total-cell">₱{(parseFloat(item.price) * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                  <div className="price-cell">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                  <div className="quantity-cell">{item.quantity}</div>
+                  <div className="total-cell">₱{(parseFloat(item.price) * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                 </div>
               );
             })}
