@@ -169,8 +169,7 @@ router.post('/review', async (req, res) => {
         order_id: orderId,
         user_id: userId,
         rating: rating,
-        comment: comment,
-        review_type: reviewType
+        comment: comment
       })
       .select()
       .single();
