@@ -354,7 +354,7 @@
 
 .item-price {
   font-weight: 700;
-  color: #ffd700;
+  color: #ffd700 !important;
   font-size: 1.3rem;
   text-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
 }
@@ -686,6 +686,7 @@
 
   .item-price {
     font-size: 1.1rem;
+    color: #ffd700 !important;
   }
   
   .item-total {
