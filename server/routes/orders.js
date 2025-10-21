@@ -50,11 +50,25 @@ router.get('/', async (req, res) => {
       query = query.order('created_at', { ascending: false });
     }
 
+    // Get total count BEFORE applying range
+    const countQuery = supabase
+      .from('orders')
+      .select('*', { count: 'exact' });
+    
+    if (pickupBranch) {
+      countQuery.eq('pickup_location', pickupBranch);
+    }
+    if (status) {
+      countQuery.eq('status', status);
+    }
+    
+    const { count: totalCount } = await countQuery;
+
     // Apply pagination
     const offset = (parseInt(page) - 1) * parseInt(limit);
     query = query.range(offset, offset + parseInt(limit) - 1);
 
-    const { data: orders, error, count } = await query;
+    const { data: orders, error } = await query;
 
     if (error) {
       throw new Error(`Supabase error: ${error.message}`);
@@ -72,8 +86,8 @@ router.get('/', async (req, res) => {
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / parseInt(limit))
+        total: totalCount || 0,
+        totalPages: Math.ceil((totalCount || 0) / parseInt(limit))
       }
     });
 
