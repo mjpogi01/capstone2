@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../lib/db');
+const { supabase } = require('../lib/db');
 const router = express.Router();
 
 // Get order tracking history
@@ -7,13 +7,17 @@ router.get('/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    const trackingData = await query(`
-      SELECT * FROM order_tracking 
-      WHERE order_id = $1 
-      ORDER BY timestamp ASC
-    `, [orderId]);
+    const trackingData = await supabase
+      .from('order_tracking')
+      .select('*')
+      .eq('order_id', orderId)
+      .order('timestamp', { ascending: true });
 
-    res.json(trackingData.rows);
+    if (trackingData.error) {
+      throw trackingData.error;
+    }
+
+    res.json(trackingData.data);
   } catch (error) {
     console.error('Error fetching order tracking:', error);
     res.status(500).json({ error: 'Failed to fetch order tracking' });
@@ -62,11 +66,12 @@ router.post('/', async (req, res) => {
     }
     
     // Check if order exists
-    const orderCheck = await query(`
-      SELECT id, shipping_method FROM orders WHERE id = $1
-    `, [orderId]);
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, shipping_method')
+      .eq('id', orderId);
 
-    if (orderCheck.rows.length === 0) {
+    if (orderError || order.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
@@ -84,13 +89,23 @@ router.post('/', async (req, res) => {
       ...metadata
     };
     
-    const result = await query(`
-      INSERT INTO order_tracking (order_id, status, location, description, metadata)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `, [orderId, status, finalLocation, finalDescription, JSON.stringify(finalMetadata)]);
+    const { data: trackingData, error: trackingError } = await supabase
+      .from('order_tracking')
+      .insert([{
+        order_id: orderId,
+        status: status,
+        location: finalLocation,
+        description: finalDescription,
+        metadata: JSON.stringify(finalMetadata)
+      }])
+      .select()
+      .single();
 
-    res.json(result.rows[0]);
+    if (trackingError) {
+      throw trackingError;
+    }
+
+    res.json(trackingData);
   } catch (error) {
     console.error('Error adding tracking update:', error);
     res.status(500).json({ error: 'Failed to add tracking update' });
@@ -102,16 +117,17 @@ router.get('/review/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    const reviewData = await query(`
-      SELECT * FROM order_reviews 
-      WHERE order_id = $1
-    `, [orderId]);
+    const { data: reviewData, error: reviewError } = await supabase
+      .from('order_reviews')
+      .select('*')
+      .eq('order_id', orderId)
+      .single();
 
-    if (reviewData.rows.length === 0) {
+    if (reviewError || !reviewData) {
       return res.status(404).json({ error: 'Review not found' });
     }
 
-    res.json(reviewData.rows[0]);
+    res.json(reviewData);
   } catch (error) {
     console.error('Error fetching order review:', error);
     res.status(500).json({ error: 'Failed to fetch order review' });
@@ -129,16 +145,16 @@ router.post('/review', async (req, res) => {
     }
 
     // Check if order exists (any order type)
-    const orderCheck = await query(`
-      SELECT id, status, shipping_method FROM orders WHERE id = $1
-    `, [orderId]);
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, status, shipping_method')
+      .eq('id', orderId)
+      .single();
 
-    if (orderCheck.rows.length === 0) {
+    if (orderError || !order) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    const order = orderCheck.rows[0];
-    
     // Allow reviews for all order types and statuses
     // Only restrict if order is cancelled or refunded
     if (order.status === 'cancelled' || order.status === 'refunded') {
@@ -147,22 +163,26 @@ router.post('/review', async (req, res) => {
       });
     }
     
-    const result = await query(`
-      INSERT INTO order_reviews (order_id, user_id, rating, comment, review_type)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (order_id, user_id) 
-      DO UPDATE SET 
-        rating = EXCLUDED.rating, 
-        comment = EXCLUDED.comment, 
-        review_type = EXCLUDED.review_type,
-        updated_at = NOW()
-      RETURNING *
-    `, [orderId, userId, rating, comment, reviewType]);
+    const { data: reviewData, error: reviewError } = await supabase
+      .from('order_reviews')
+      .upsert({
+        order_id: orderId,
+        user_id: userId,
+        rating: rating,
+        comment: comment,
+        review_type: reviewType
+      })
+      .select()
+      .single();
+
+    if (reviewError) {
+      throw reviewError;
+    }
 
     res.json({
       success: true,
       message: 'Review submitted successfully',
-      review: result.rows[0]
+      review: reviewData
     });
   } catch (error) {
     console.error('Error adding order review:', error);
@@ -175,16 +195,17 @@ router.get('/delivery-proof/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    const proofData = await query(`
-      SELECT * FROM delivery_proof 
-      WHERE order_id = $1
-    `, [orderId]);
+    const { data: proofData, error: proofError } = await supabase
+      .from('delivery_proof')
+      .select('*')
+      .eq('order_id', orderId)
+      .single();
 
-    if (proofData.rows.length === 0) {
+    if (proofError || !proofData) {
       return res.status(404).json({ error: 'Delivery proof not found' });
     }
 
-    res.json(proofData.rows[0]);
+    res.json(proofData);
   } catch (error) {
     console.error('Error fetching delivery proof:', error);
     res.status(500).json({ error: 'Failed to fetch delivery proof' });
@@ -203,27 +224,39 @@ router.post('/delivery-proof', async (req, res) => {
     } = req.body;
     
     // Check if order is COD before allowing delivery proof
-    const orderCheck = await query(`
-      SELECT shipping_method FROM orders WHERE id = $1
-    `, [orderId]);
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('shipping_method')
+      .eq('id', orderId)
+      .single();
 
-    if (orderCheck.rows.length === 0) {
+    if (orderError || !order) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    if (orderCheck.rows[0].shipping_method !== 'cod') {
+    if (order.shipping_method !== 'cod') {
       return res.status(400).json({ 
         error: 'Delivery proof is only available for Cash on Delivery (COD) orders' 
       });
     }
     
-    const result = await query(`
-      INSERT INTO delivery_proof (order_id, delivery_person_name, delivery_person_contact, proof_images, delivery_notes)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `, [orderId, deliveryPersonName, deliveryPersonContact, proofImages, deliveryNotes]);
+    const { data: proofData, error: proofError } = await supabase
+      .from('delivery_proof')
+      .insert([{
+        order_id: orderId,
+        delivery_person_name: deliveryPersonName,
+        delivery_person_contact: deliveryPersonContact,
+        proof_images: proofImages,
+        delivery_notes: deliveryNotes
+      }])
+      .select()
+      .single();
 
-    res.json(result.rows[0]);
+    if (proofError) {
+      throw proofError;
+    }
+
+    res.json(proofData);
   } catch (error) {
     console.error('Error adding delivery proof:', error);
     res.status(500).json({ error: 'Failed to add delivery proof' });
@@ -236,18 +269,18 @@ router.put('/delivery-proof/:proofId/verify', async (req, res) => {
     const { proofId } = req.params;
     const { verifiedBy } = req.body;
     
-    const result = await query(`
-      UPDATE delivery_proof 
-      SET verified_by = $1, verified_at = NOW()
-      WHERE id = $2
-      RETURNING *
-    `, [verifiedBy, proofId]);
+    const { data: updatedProof, error: updateError } = await supabase
+      .from('delivery_proof')
+      .update({ verified_by: verifiedBy, verified_at: supabase.rpc('now') })
+      .eq('id', proofId)
+      .select()
+      .single();
 
-    if (result.rows.length === 0) {
+    if (updateError || !updatedProof) {
       return res.status(404).json({ error: 'Delivery proof not found' });
     }
 
-    res.json(result.rows[0]);
+    res.json(updatedProof);
   } catch (error) {
     console.error('Error verifying delivery proof:', error);
     res.status(500).json({ error: 'Failed to verify delivery proof' });
@@ -268,11 +301,13 @@ router.put('/status/:orderId', async (req, res) => {
     }
     
     // Check if order exists
-    const orderCheck = await query(`
-      SELECT id FROM orders WHERE id = $1
-    `, [orderId]);
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('id', orderId)
+      .single();
 
-    if (orderCheck.rows.length === 0) {
+    if (orderError || !order) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
@@ -285,25 +320,29 @@ router.put('/status/:orderId', async (req, res) => {
       color: statusInfo.color,
       updatedBy: req.user?.id || 'admin',
       updateReason: 'Status update by administrator',
-      timestamp: new Date().toISOString()
+      timestamp: supabase.rpc('now')
     };
     
-    const result = await query(`
-      INSERT INTO order_tracking (order_id, status, location, description, metadata)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `, [
-      orderId, 
-      status, 
-      statusInfo.location, 
-      statusInfo.description, 
-      JSON.stringify(metadata)
-    ]);
+    const { data: trackingData, error: trackingError } = await supabase
+      .from('order_tracking')
+      .insert([{
+        order_id: orderId,
+        status: status,
+        location: statusInfo.location,
+        description: statusInfo.description,
+        metadata: JSON.stringify(metadata)
+      }])
+      .select()
+      .single();
+
+    if (trackingError) {
+      throw trackingError;
+    }
 
     res.json({
       success: true,
       message: `Order status updated to ${statusInfo.location}`,
-      tracking: result.rows[0]
+      tracking: trackingData
     });
   } catch (error) {
     console.error('Error updating order status:', error);
@@ -316,18 +355,18 @@ router.get('/status/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    const result = await query(`
-      SELECT * FROM order_tracking 
-      WHERE order_id = $1 
-      ORDER BY timestamp DESC 
-      LIMIT 1
-    `, [orderId]);
+    const { data: result, error: resultError } = await supabase
+      .from('order_tracking')
+      .select('*')
+      .eq('order_id', orderId)
+      .order('timestamp', { ascending: false })
+      .limit(1);
 
-    if (result.rows.length === 0) {
+    if (resultError || result.length === 0) {
       return res.status(404).json({ error: 'No tracking information found for this order' });
     }
 
-    res.json(result.rows[0]);
+    res.json(result[0]);
   } catch (error) {
     console.error('Error fetching current order status:', error);
     res.status(500).json({ error: 'Failed to fetch current order status' });
@@ -339,21 +378,24 @@ router.get('/reviews/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    const result = await query(`
-      SELECT 
+    const { data: result, error: resultError } = await supabase
+      .from('order_reviews')
+      .select(`
         r.*,
         u.email as user_email,
         u.user_metadata->>'full_name' as user_name
-      FROM order_reviews r
-      LEFT JOIN auth.users u ON r.user_id = u.id
-      WHERE r.order_id = $1
-      ORDER BY r.created_at DESC
-    `, [orderId]);
+      `)
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: false });
+
+    if (resultError) {
+      throw resultError;
+    }
 
     res.json({
       success: true,
-      reviews: result.rows,
-      total: result.rows.length
+      reviews: result,
+      total: result.length
     });
   } catch (error) {
     console.error('Error fetching order reviews:', error);
@@ -366,22 +408,25 @@ router.get('/user-reviews/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    const result = await query(`
-      SELECT 
+    const { data: result, error: resultError } = await supabase
+      .from('order_reviews')
+      .select(`
         r.*,
         o.order_number,
         o.total_amount,
         o.status as order_status
-      FROM order_reviews r
-      JOIN orders o ON r.order_id = o.id
-      WHERE r.user_id = $1
-      ORDER BY r.created_at DESC
-    `, [userId]);
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (resultError) {
+      throw resultError;
+    }
 
     res.json({
       success: true,
-      reviews: result.rows,
-      total: result.rows.length
+      reviews: result,
+      total: result.length
     });
   } catch (error) {
     console.error('Error fetching user reviews:', error);
@@ -394,32 +439,37 @@ router.get('/review-stats/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    const result = await query(`
-      SELECT 
-        COUNT(*) as total_reviews,
-        AVG(rating) as average_rating,
-        COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star,
-        COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
-        COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
-        COUNT(CASE WHEN rating = 2 THEN 1 END) as two_star,
-        COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
-      FROM order_reviews 
-      WHERE order_id = $1
-    `, [orderId]);
+    const { data: stats, error: statsError } = await supabase
+      .from('order_reviews')
+      .select(`
+        count(*) as total_reviews,
+        avg(rating) as average_rating,
+        count(case when rating = 5 then 1 end) as five_star,
+        count(case when rating = 4 then 1 end) as four_star,
+        count(case when rating = 3 then 1 end) as three_star,
+        count(case when rating = 2 then 1 end) as two_star,
+        count(case when rating = 1 then 1 end) as one_star
+      `)
+      .eq('order_id', orderId)
+      .single();
 
-    const stats = result.rows[0];
+    if (statsError) {
+      throw statsError;
+    }
+
+    const statsData = stats;
     
     res.json({
       success: true,
       statistics: {
-        totalReviews: parseInt(stats.total_reviews),
-        averageRating: parseFloat(stats.average_rating || 0).toFixed(1),
+        totalReviews: parseInt(statsData.total_reviews),
+        averageRating: parseFloat(statsData.average_rating || 0).toFixed(1),
         ratingDistribution: {
-          fiveStar: parseInt(stats.five_star),
-          fourStar: parseInt(stats.four_star),
-          threeStar: parseInt(stats.three_star),
-          twoStar: parseInt(stats.two_star),
-          oneStar: parseInt(stats.one_star)
+          fiveStar: parseInt(statsData.five_star),
+          fourStar: parseInt(statsData.four_star),
+          threeStar: parseInt(statsData.three_star),
+          twoStar: parseInt(statsData.two_star),
+          oneStar: parseInt(statsData.one_star)
         }
       }
     });
@@ -433,16 +483,10 @@ router.get('/review-stats/:orderId', async (req, res) => {
 router.post('/migrate-reviews', async (req, res) => {
   try {
     // Add review_type column if it doesn't exist
-    await query(`
-      ALTER TABLE order_reviews 
-      ADD COLUMN IF NOT EXISTS review_type VARCHAR(50) DEFAULT 'general'
-    `);
+    await supabase.rpc('add_review_type_column');
 
     // Add index for better performance
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_order_reviews_type 
-      ON order_reviews(review_type)
-    `);
+    await supabase.rpc('create_review_type_index');
 
     res.json({
       success: true,
