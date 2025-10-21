@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
@@ -9,7 +9,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import './ProductModal.css';
 
 const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null, onAddToCart, onBuyNow }) => {
-  const { addToCart, removeFromCart, cartItems, selectedItems, clearCart } = useCart();
+  // Always call hooks, but only use CartContext when in customer mode (no callbacks provided)
+  const isAdminMode = !!(onAddToCart && onBuyNow);
+  const cartContext = useCart();
+  const { addToCart: contextAddToCart, removeFromCart: contextRemoveFromCart, cartItems, selectedItems, clearCart } = cartContext;
+  
+  // Use context functions only when NOT in admin mode
+  const addToCart = isAdminMode ? null : contextAddToCart;
+  const removeFromCart = isAdminMode ? null : contextRemoveFromCart;
+  
   const { user } = useAuth();
   const { showOrderConfirmation, showError } = useNotification();
   const [selectedSize, setSelectedSize] = useState(existingCartItemData?.size || 'M');
@@ -25,6 +33,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [showCheckout, setShowCheckout] = useState(false);
   const [buyNowItem, setBuyNowItem] = useState(null);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Debug: Monitor Buy Now item changes
   useEffect(() => {
@@ -32,6 +42,37 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       console.log('🛒 ProductModal: Buy Now item set:', buyNowItem.name);
     }
   }, [buyNowItem]);
+
+  // Define loadProductReviews first (before useEffect that calls it)
+  const loadProductReviews = useCallback(async () => {
+    setReviewsLoading(true);
+    try {
+      // Fetch all reviews for completed orders
+      const allOrders = await orderService.getAllOrdersWithReviews();
+      
+      // Flatten all reviews from all orders
+      const allReviews = allOrders.flatMap(order => order.reviews || []);
+      
+      console.log('📦 Loaded all reviews:', allReviews.length);
+      console.log('📦 Sample reviews:', allReviews.slice(0, 3));
+      
+      // Format reviews to display properly
+      const formattedReviews = allReviews.map(review => ({
+        id: review.id,
+        user: review.user_id || 'Anonymous',
+        rating: review.rating || 0,
+        comment: review.comment || '',
+        date: new Date(review.created_at).toLocaleDateString()
+      }));
+      
+      setReviews(formattedReviews);
+    } catch (error) {
+      console.error('Error loading product reviews:', error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
 
   // Reset form when modal opens with existing cart data
   useEffect(() => {
@@ -45,52 +86,22 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     }
   }, [isOpen, existingCartItemData]);
 
+  // Load reviews for the product
+  useEffect(() => {
+    if (isOpen && product?.id) {
+      loadProductReviews();
+    }
+  }, [isOpen, product?.id, loadProductReviews]);
+
   if (!isOpen || !product) return null;
 
   const adultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   const kidsSizes = ['2XS', 'XS', 'S', 'M', 'L', 'XL'];
   const sizes = sizeType === 'adult' ? adultSizes : kidsSizes;
 
-  // Mock reviews data
-  const reviews = [
-    {
-      id: 1,
-      user: "John D.",
-      rating: 5,
-      comment: "Excellent quality! The jersey fits perfectly and the material is very comfortable.",
-      date: "2024-01-15"
-    },
-    {
-      id: 2,
-      user: "Maria S.",
-      rating: 4,
-      comment: "Great product, fast shipping. Would definitely order again.",
-      date: "2024-01-10"
-    },
-    {
-      id: 3,
-      user: "Carlos M.",
-      rating: 5,
-      comment: "Amazing design and quality. Perfect for basketball games!",
-      date: "2024-01-08"
-    },
-    {
-      id: 4,
-      user: "Sarah L.",
-      rating: 5,
-      comment: "Love the fit and quality. Great value for money!",
-      date: "2024-01-05"
-    },
-    {
-      id: 5,
-      user: "Mike R.",
-      rating: 4,
-      comment: "Good quality, but took a bit longer to arrive than expected.",
-      date: "2024-01-03"
-    }
-  ];
-
-  const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
+    : 0;
 
   const handleAddToCart = async () => {
     if (isAddingToCart) return; // Prevent multiple clicks
@@ -611,18 +622,24 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
               {isReviewsExpanded && (
                 <div className="modal-reviews-content">
-                  {reviews.map(review => (
-                    <div key={review.id} className="modal-review-item">
-                      <div className="modal-review-header">
-                        <span className="modal-review-user">{review.user}</span>
-                        <div className="modal-review-rating">
-                          {renderStars(review.rating)}
+                  {reviewsLoading ? (
+                    <p>Loading reviews...</p>
+                  ) : reviews.length === 0 ? (
+                    <p>No reviews yet for this product. Be the first to leave one!</p>
+                  ) : (
+                    reviews.map(review => (
+                      <div key={review.id} className="modal-review-item">
+                        <div className="modal-review-header">
+                          <span className="modal-review-user">{review.user}</span>
+                          <div className="modal-review-rating">
+                            {renderStars(review.rating)}
+                          </div>
                         </div>
+                        <p className="modal-review-comment">{review.comment}</p>
+                        <span className="modal-review-date">{review.date}</span>
                       </div>
-                      <p className="modal-review-comment">{review.comment}</p>
-                      <span className="modal-review-date">{review.date}</span>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </div>

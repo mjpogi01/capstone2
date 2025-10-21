@@ -33,6 +33,40 @@
   font-size: 1.1rem;
 }
 
+/* Existing Review Badge */
+.existing-review-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.2), rgba(0, 153, 204, 0.2));
+  border: 2px solid #00bfff;
+  border-radius: 8px;
+  color: #00bfff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.2);
+}
+
+.existing-review-badge .check-icon {
+  font-size: 1.2rem;
+  animation: checkAnimation 0.5s ease-out;
+}
+
+@keyframes checkAnimation {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* Review Popup Modal */
 .review-popup-overlay {
   position: fixed;

@@ -116,8 +116,13 @@ const CartModal = () => {
       // Show success notification
       showOrderConfirmation(createdOrder.order_number, orderData.totalAmount);
       
-      // Clear the entire cart after successful checkout
-      await clearCart();
+      // Remove only the checked out items from cart
+      const checkedOutItemIds = orderData.items.map(item => item.uniqueId || item.id);
+      console.log('🛒 Removing checked out items from cart:', checkedOutItemIds);
+      
+      for (const itemId of checkedOutItemIds) {
+        await removeFromCart(itemId);
+      }
       
       // Trigger a custom event to refresh orders count in header
       window.dispatchEvent(new CustomEvent('orderPlaced'));
@@ -193,7 +198,7 @@ const CartModal = () => {
                           <div className="item-name">{item.name}</div>
                           <button 
                             className="remove-btn-top"
-                            onClick={() => removeFromCart(item.uniqueId)}
+                            onClick={() => removeFromCart(item.uniqueId || item.id)}
                             title="Remove item"
                           >
                             <FaTrash />

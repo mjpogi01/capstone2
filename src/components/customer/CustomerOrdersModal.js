@@ -17,7 +17,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [orderTracking, setOrderTracking] = useState({});
   const [orderReviews, setOrderReviews] = useState({});
-  const [deliveryProof, setDeliveryProof] = useState({});
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedOrderForReview, setSelectedOrderForReview] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
@@ -29,19 +28,25 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   }, [isOpen, user]);
 
   const loadUserOrders = async () => {
-    if (!user) return;
+    if (!user) {
+      console.warn('📦 No user logged in, cannot load orders');
+      return;
+    }
     
+    console.log('📦 Loading orders for user:', user.id, user.email);
     setLoading(true);
     setError(null);
     try {
       // getUserOrders now excludes cancelled orders by default
       const userOrders = await orderService.getUserOrders(user.id);
+      console.log('📦 Fetched user orders:', userOrders.length, 'orders');
+      console.log('📦 Orders:', userOrders);
       setOrders(userOrders);
       
       // Load tracking, reviews, and delivery proof for each order
       await loadOrderDetails(userOrders);
     } catch (err) {
-      console.error('Error loading user orders:', err);
+      console.error('❌ Error loading user orders:', err);
       setError('Failed to load orders. Please try again.');
     } finally {
       setLoading(false);
@@ -51,7 +56,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const loadOrderDetails = async (userOrders) => {
     const trackingData = {};
     const reviewsData = {};
-    const proofData = {};
 
     for (const order of userOrders) {
       try {
@@ -62,10 +66,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
         // Load review data
         const review = await orderTrackingService.getOrderReview(order.id);
         reviewsData[order.id] = review;
-
-        // Load delivery proof
-        const proof = await orderTrackingService.getDeliveryProof(order.id);
-        proofData[order.id] = proof;
       } catch (error) {
         console.error(`Error loading details for order ${order.id}:`, error);
       }
@@ -73,7 +73,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
 
     setOrderTracking(trackingData);
     setOrderReviews(reviewsData);
-    setDeliveryProof(proofData);
   };
 
   const formatDate = (dateString) => {
@@ -103,6 +102,13 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     switch (status.toLowerCase()) {
       case 'pending': return 'Your order is being reviewed';
       case 'confirmed': return 'Order confirmed, preparing items';
+      case 'layout': return 'Creating design layout';
+      case 'sizing': return 'Determining item sizes';
+      case 'printing': return 'Printing items';
+      case 'press': return 'Heat press application in progress';
+      case 'prod': return 'In final production stages';
+      case 'packing_completing': return 'Packing and final checks';
+      case 'picked_up_delivered': return 'Order has been picked up or delivered ✓';
       case 'processing': return 'Items are being prepared';
       case 'shipped': return 'Order is on the way';
       case 'delivered': return 'Order has been delivered';
@@ -195,10 +201,17 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
       case 'pending':
       case 'confirmed':
         return <FaMapMarkerAlt className="location-icon main-branch" />;
+      case 'layout':
+      case 'sizing':
+      case 'printing':
+      case 'press':
+      case 'prod':
+      case 'packing_completing':
       case 'processing':
         return <FaRoute className="location-icon processing" />;
       case 'shipped':
         return <FaTruck className="location-icon on-the-way" />;
+      case 'picked_up_delivered':
       case 'delivered':
         return <FaCheckCircle className="location-icon delivered" />;
       default:
@@ -211,10 +224,23 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
       case 'pending':
       case 'confirmed':
         return 'At Main Branch - Yohanns';
+      case 'layout':
+        return 'Creating Design Layout';
+      case 'sizing':
+        return 'Determining Sizes';
+      case 'printing':
+        return 'Printing in Progress';
+      case 'press':
+        return 'Heat Press Application';
+      case 'prod':
+        return 'Final Production Stage';
+      case 'packing_completing':
+        return 'Packing & Final Checks';
       case 'processing':
         return 'Being Prepared';
       case 'shipped':
         return `On the way to ${location || 'your location'}`;
+      case 'picked_up_delivered':
       case 'delivered':
         return 'Delivered Successfully';
       default:
@@ -378,46 +404,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         </div>
                       </div>
 
-                      {/* Delivery Proof Section - Only for COD orders */}
-                      {order.shippingMethod === 'cod' && deliveryProof[order.id] && (
-                        <div className="customer-order-delivery-proof">
-                          <h4>Delivery Proof</h4>
-                          <div className="delivery-proof-info">
-                            <div className="delivery-person">
-                              <strong>Delivered by:</strong> {deliveryProof[order.id].delivery_person_name}
-                            </div>
-                            {deliveryProof[order.id].delivery_person_contact && (
-                              <div className="delivery-contact">
-                                <strong>Contact:</strong> {deliveryProof[order.id].delivery_person_contact}
-                              </div>
-                            )}
-                            {deliveryProof[order.id].proof_images && deliveryProof[order.id].proof_images.length > 0 && (
-                              <div className="proof-images">
-                                <strong>Proof Images:</strong>
-                                <div className="proof-images-grid">
-                                  {deliveryProof[order.id].proof_images.map((image, index) => (
-                                    <img 
-                                      key={index} 
-                                      src={image} 
-                                      alt={`Delivery proof ${index + 1}`}
-                                      className="proof-image"
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {deliveryProof[order.id].delivery_notes && (
-                              <div className="delivery-notes">
-                                <strong>Notes:</strong> {deliveryProof[order.id].delivery_notes}
-                              </div>
-                            )}
-                            <div className="delivery-time">
-                              <strong>Delivered at:</strong> {formatDate(deliveryProof[order.id].delivered_at)}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
                       <div className="customer-order-summary">
                         <h4>Order Summary</h4>
                         <div className="summary-row">
@@ -439,8 +425,8 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         )}
                       </div>
 
-                      {/* Simple Review Section - Only for delivered orders */}
-                      {order.status.toLowerCase() === 'delivered' && (
+                      {/* Simple Review Section - Only for delivered/picked up orders */}
+                      {(order.status.toLowerCase() === 'delivered' || order.status.toLowerCase() === 'picked_up_delivered') && (
                         <div className="simple-review-section">
                           <SimpleOrderReview 
                             orderId={order.id}

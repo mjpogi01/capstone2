@@ -25,13 +25,16 @@ class OrderTrackingService {
         .order('timestamp', { ascending: true });
 
       if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
+        // Return empty array instead of throwing for missing data
+        console.warn('Order tracking not available:', error.message);
+        return [];
       }
 
       return data || [];
     } catch (error) {
       console.error('Error fetching order tracking:', error);
-      throw error;
+      // Return empty array instead of throwing
+      return [];
     }
   }
 
@@ -47,13 +50,14 @@ class OrderTrackingService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        throw new Error(`Supabase error: ${error.message}`);
+        console.warn('Current order status not available:', error.message);
+        return null;
       }
 
       return data || null;
     } catch (error) {
       console.error('Error fetching current order status:', error);
-      throw error;
+      return null;
     }
   }
 
@@ -146,16 +150,18 @@ class OrderTrackingService {
         .from('order_reviews')
         .select('*')
         .eq('order_id', orderId)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw new Error(`Supabase error: ${error.message}`);
+      if (error) {
+        console.warn('Order review not available:', error.message);
+        return null;
       }
 
-      return data;
+      // Return first review if exists, otherwise null
+      return data && data.length > 0 ? data[0] : null;
     } catch (error) {
       console.error('Error fetching order review:', error);
-      throw error;
+      return null;
     }
   }
 
@@ -180,76 +186,6 @@ class OrderTrackingService {
       return data;
     } catch (error) {
       console.error('Error adding order review:', error);
-      throw error;
-    }
-  }
-
-  // Get delivery proof
-  async getDeliveryProof(orderId) {
-    try {
-      const { data, error } = await supabase
-        .from('delivery_proof')
-        .select('*')
-        .eq('order_id', orderId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw new Error(`Supabase error: ${error.message}`);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error fetching delivery proof:', error);
-      throw error;
-    }
-  }
-
-  // Add delivery proof
-  async addDeliveryProof(orderId, deliveryPersonName, deliveryPersonContact, proofImages, deliveryNotes) {
-    try {
-      const { data, error } = await supabase
-        .from('delivery_proof')
-        .insert([{
-          order_id: orderId,
-          delivery_person_name: deliveryPersonName,
-          delivery_person_contact: deliveryPersonContact,
-          proof_images: proofImages,
-          delivery_notes: deliveryNotes
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error adding delivery proof:', error);
-      throw error;
-    }
-  }
-
-  // Verify delivery proof (admin function)
-  async verifyDeliveryProof(proofId, verifiedBy) {
-    try {
-      const { data, error } = await supabase
-        .from('delivery_proof')
-        .update({
-          verified_by: verifiedBy,
-          verified_at: new Date().toISOString()
-        })
-        .eq('id', proofId)
-        .select()
-        .single();
-
-      if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error verifying delivery proof:', error);
       throw error;
     }
   }

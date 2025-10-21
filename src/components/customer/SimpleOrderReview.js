@@ -1,29 +1,65 @@
-import React, { useState } from 'react';
-import { FaStar, FaTimes } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaStar, FaTimes, FaCheck } from 'react-icons/fa';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
+import orderTrackingService from '../../services/orderTrackingService';
 import './SimpleOrderReview.css';
 
 const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
+  const { user } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [newReview, setNewReview] = useState({
     rating: 5,
     comment: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [existingReview, setExistingReview] = useState(null);
+  const [loadingReview, setLoadingReview] = useState(true);
+
+  // Define checkExistingReview first (before useEffect that calls it)
+  const checkExistingReview = useCallback(async () => {
+    try {
+      setLoadingReview(true);
+      const review = await orderTrackingService.getOrderReview(orderId);
+      setExistingReview(review);
+    } catch (error) {
+      console.error('Error checking existing review:', error);
+      setExistingReview(null);
+    } finally {
+      setLoadingReview(false);
+    }
+  }, [orderId]);
+
+  // Check if user already reviewed this order
+  useEffect(() => {
+    if (orderId && user) {
+      checkExistingReview();
+    }
+  }, [orderId, user, checkExistingReview]);
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!newReview.comment.trim()) return;
+    if (!newReview.comment.trim()) {
+      showError('Review Error', 'Please enter a comment');
+      return;
+    }
+
+    if (!user) {
+      showError('Auth Error', 'You must be logged in to submit a review');
+      return;
+    }
 
     setSubmitting(true);
     try {
-      const response = await fetch('/api/order-tracking/review', {
+      const response = await fetch('http://localhost:4000/api/order-tracking/review', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           orderId,
-          userId: 'current-user-id', // Replace with actual user ID
+          userId: user.id,
           rating: newReview.rating,
           comment: newReview.comment,
           reviewType: 'general'
@@ -37,13 +73,19 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
         setNewReview({ rating: 5, comment: '' });
         setShowReviewPopup(false);
         
+        // Show success message
+        showSuccess('Review Submitted', 'Thank you for your review!');
+        
         // Notify parent component
         if (onReviewSubmit) {
           onReviewSubmit(data.review);
         }
+      } else {
+        showError('Review Error', data.error || 'Failed to submit review');
       }
     } catch (error) {
       console.error('Error submitting review:', error);
+      showError('Review Error', 'Failed to submit review. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -67,13 +109,24 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
     <>
       {/* Simple Write Review Button */}
       <div className="simple-review-section">
-        <button 
-          className="write-review-btn"
-          onClick={() => setShowReviewPopup(true)}
-        >
-          <FaStar className="review-icon" />
-          Write a Review
-        </button>
+        {loadingReview ? (
+          <button className="write-review-btn" disabled>
+            Loading...
+          </button>
+        ) : existingReview ? (
+          <div className="existing-review-badge">
+            <FaCheck className="check-icon" />
+            <span>You already reviewed this order</span>
+          </div>
+        ) : (
+          <button 
+            className="write-review-btn"
+            onClick={() => setShowReviewPopup(true)}
+          >
+            <FaStar className="review-icon" />
+            Write a Review
+          </button>
+        )}
       </div>
 
       {/* Review Popup Modal */}

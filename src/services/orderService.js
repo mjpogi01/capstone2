@@ -65,6 +65,29 @@ class OrderService {
 
   async getUserOrders(userId, excludeCancelled = true) {
     try {
+      console.log('📦 [OrderService] ========== FETCHING ORDERS ==========');
+      console.log('📦 [OrderService] Searching for user_id:', userId);
+      console.log('📦 [OrderService] User ID type:', typeof userId);
+      console.log('📦 [OrderService] Exclude cancelled:', excludeCancelled);
+      
+      // First, let's see ALL orders to debug
+      const { data: allOrders } = await supabase
+        .from('orders')
+        .select('id, order_number, user_id, status, created_at')
+        .limit(10)
+        .order('created_at', { ascending: false });
+      
+      console.log('📦 [OrderService] Recent orders in database (last 10):');
+      if (allOrders && allOrders.length > 0) {
+        allOrders.forEach(order => {
+          console.log(`  - Order ${order.order_number}: user_id=${order.user_id} (type: ${typeof order.user_id}), status=${order.status}`);
+          console.log(`    Match? ${order.user_id === userId} (strict), ${order.user_id == userId} (loose)`);
+        });
+      } else {
+        console.log('  No orders found in database at all!');
+      }
+      
+      // Now fetch orders for this specific user
       let query = supabase
         .from('orders')
         .select('*')
@@ -78,12 +101,21 @@ class OrderService {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
+        console.error('❌ [OrderService] Supabase error:', error);
         throw new Error(`Supabase error: ${error.message}`);
       }
 
-      return (data || []).map(order => this.formatOrderForDisplay(order));
+      console.log('📦 [OrderService] Orders for this user:', data?.length || 0);
+      if (data && data.length > 0) {
+        console.log('📦 [OrderService] User\'s orders:', data.map(o => o.order_number).join(', '));
+      }
+      
+      const formattedOrders = (data || []).map(order => this.formatOrderForDisplay(order));
+      console.log('📦 [OrderService] ========== END FETCH ==========');
+      
+      return formattedOrders;
     } catch (error) {
-      console.error('Error fetching user orders:', error);
+      console.error('❌ [OrderService] Error fetching user orders:', error);
       throw error;
     }
   }
@@ -254,6 +286,49 @@ class OrderService {
         designFiles: []
       }
     ];
+  }
+
+  // Fetch all orders with their reviews from completed deliveries
+  async getAllOrdersWithReviews() {
+    try {
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'picked_up_delivered');
+
+      if (error) {
+        console.error('Error fetching completed orders:', error);
+        return [];
+      }
+
+      // For each order, fetch the reviews
+      const ordersWithReviews = await Promise.all(
+        (orders || []).map(async (order) => {
+          try {
+            const { data: reviews } = await supabase
+              .from('order_reviews')
+              .select('*')
+              .eq('order_id', order.id);
+
+            return {
+              ...order,
+              reviews: reviews || []
+            };
+          } catch (err) {
+            console.error('Error fetching reviews for order', order.id, err);
+            return {
+              ...order,
+              reviews: []
+            };
+          }
+        })
+      );
+
+      return ordersWithReviews;
+    } catch (error) {
+      console.error('Error in getAllOrdersWithReviews:', error);
+      return [];
+    }
   }
 }
 

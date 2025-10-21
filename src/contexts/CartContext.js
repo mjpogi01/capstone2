@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
 import cartService from '../services/cartService';
+import wishlistService from '../services/wishlistService';
 
 const CartContext = createContext();
 
@@ -132,6 +133,15 @@ export const CartProvider = ({ children }) => {
 
         return updatedItems;
       });
+
+      // Remove from wishlist when added to cart
+      try {
+        await wishlistService.removeFromWishlist(user.id, product.id);
+        console.log('✅ Item removed from wishlist after adding to cart:', product.name);
+      } catch (wishlistError) {
+        // Silently fail if item wasn't in wishlist or removal failed
+        console.log('ℹ️ Item was not in wishlist or removal failed:', wishlistError.message);
+      }
 
       // Show success notification
       showCartUpdate('added', product.name);
