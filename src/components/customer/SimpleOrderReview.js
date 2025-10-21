@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaStar, FaTimes, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -18,7 +18,7 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
   const [loadingReview, setLoadingReview] = useState(true);
 
   // Define checkExistingReview first (before useEffect that calls it)
-  const checkExistingReview = async () => {
+  const checkExistingReview = useCallback(async () => {
     try {
       setLoadingReview(true);
       const review = await orderTrackingService.getOrderReview(orderId);
@@ -29,7 +29,7 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
     } finally {
       setLoadingReview(false);
     }
-  };
+  }, [orderId]);
 
   // Check if user already reviewed this order
   useEffect(() => {
