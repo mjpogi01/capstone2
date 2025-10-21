@@ -192,7 +192,7 @@
 .item-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #ffffff !important;
   margin: 0;
   line-height: 1.3;
   flex: 1;
@@ -624,6 +624,7 @@
 
   .item-name {
     font-size: 1rem;
+    color: #ffffff !important;
   }
 
   .cart-footer {
@@ -680,6 +681,7 @@
 
   .item-name {
     font-size: 0.95rem;
+    color: #ffffff !important;
   }
 
   .item-price {
