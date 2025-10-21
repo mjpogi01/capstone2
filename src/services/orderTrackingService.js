@@ -25,13 +25,16 @@ class OrderTrackingService {
         .order('timestamp', { ascending: true });
 
       if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
+        // Return empty array instead of throwing for missing data
+        console.warn('Order tracking not available:', error.message);
+        return [];
       }
 
       return data || [];
     } catch (error) {
       console.error('Error fetching order tracking:', error);
-      throw error;
+      // Return empty array instead of throwing
+      return [];
     }
   }
 
@@ -47,13 +50,14 @@ class OrderTrackingService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        throw new Error(`Supabase error: ${error.message}`);
+        console.warn('Current order status not available:', error.message);
+        return null;
       }
 
       return data || null;
     } catch (error) {
       console.error('Error fetching current order status:', error);
-      throw error;
+      return null;
     }
   }
 
@@ -149,13 +153,14 @@ class OrderTrackingService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw new Error(`Supabase error: ${error.message}`);
+        console.warn('Order review not available:', error.message);
+        return null;
       }
 
       return data;
     } catch (error) {
       console.error('Error fetching order review:', error);
-      throw error;
+      return null;
     }
   }
 
@@ -194,13 +199,14 @@ class OrderTrackingService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw new Error(`Supabase error: ${error.message}`);
+        console.warn('Delivery proof not available:', error.message);
+        return null;
       }
 
       return data;
     } catch (error) {
       console.error('Error fetching delivery proof:', error);
-      throw error;
+      return null;
     }
   }
 
