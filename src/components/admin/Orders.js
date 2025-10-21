@@ -1,10 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  FaShoppingCart, 
+  FaEye, 
+  FaSort, 
+  FaFilter, 
+  FaChevronDown, 
+  FaChevronUp,
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaBox,
+  FaDollarSign,
+  FaCalendarAlt,
+  FaClock,
+  FaCheck,
+  FaTimes,
+  FaUpload,
+  FaDownload,
+  FaTrash,
+  FaFileAlt,
+  FaPalette,
+  FaRuler,
+  FaPrint,
+  FaCog,
+  FaIndustry,
+  FaShippingFast,
+  FaBan,
+  FaRedo,
+  FaArrowLeft,
+  FaArrowRight
+} from 'react-icons/fa';
 import './Orders.css';
 import './FloatingButton.css';
 import orderService from '../../services/orderService';
 import designUploadService from '../../services/designUploadService';
-import { FaShoppingCart } from 'react-icons/fa';
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -14,14 +45,14 @@ const Orders = () => {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [uploadingDesign, setUploadingDesign] = useState(null);
   const [designFiles, setDesignFiles] = useState({});
+  const [sortConfig, setSortConfig] = useState({ key: 'orderDate', direction: 'desc' });
+  const [showFilters, setShowFilters] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
-    dateSort: 'desc', // 'asc' or 'desc'
-    priceSort: 'desc', // 'asc' or 'desc'
-    quantitySort: 'desc', // 'asc' or 'desc'
     pickupBranch: '',
-    status: ''
+    status: '',
+    searchTerm: ''
   });
 
   // Fetch orders from API
@@ -47,67 +78,66 @@ const Orders = () => {
 
   // Apply filters and sorting
   useEffect(() => {
-    const applyFilters = async () => {
-      try {
-        // Check if any filters are applied
-        const hasFilters = Object.values(filters).some(value => value !== '' && value !== 'desc');
-        
-        if (hasFilters) {
-          // Use API with filters
-          const response = await orderService.getAllOrders(filters);
-          const formattedOrders = response.orders.map(order => orderService.formatOrderForDisplay(order));
-          setFilteredOrders(formattedOrders);
-        } else {
-          // No filters, use all orders with sorting
-          let sorted = [...orders];
-          
-          // Apply sorting
-          sorted.sort((a, b) => {
-            // Date sorting (primary)
-            if (filters.dateSort === 'asc') {
-              return new Date(a.orderDate) - new Date(b.orderDate);
-            } else {
-              return new Date(b.orderDate) - new Date(a.orderDate);
-            }
-          });
-          
-          setFilteredOrders(sorted);
-        }
-      } catch (error) {
-        console.error('Error applying filters:', error);
-        // Fallback to client-side filtering and sorting
-        let filtered = [...orders];
+    let filtered = [...orders];
 
-        // Pickup branch filter
-        if (filters.pickupBranch) {
-          filtered = filtered.filter(order => 
-            order.pickupLocation === filters.pickupBranch
-          );
-        }
+    // Search filter
+    if (filters.searchTerm) {
+      filtered = filtered.filter(order => 
+        order.orderNumber.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        order.customerName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        order.customerEmail.toLowerCase().includes(filters.searchTerm.toLowerCase())
+      );
+    }
 
-        // Status filter
-        if (filters.status) {
-          filtered = filtered.filter(order => 
-            order.status === filters.status
-          );
-        }
+    // Pickup branch filter
+    if (filters.pickupBranch) {
+      filtered = filtered.filter(order => 
+        order.pickupLocation === filters.pickupBranch
+      );
+    }
 
-        // Apply sorting
-        filtered.sort((a, b) => {
-          // Date sorting (primary)
-          if (filters.dateSort === 'asc') {
-            return new Date(a.orderDate) - new Date(b.orderDate);
-          } else {
-            return new Date(b.orderDate) - new Date(a.orderDate);
-          }
-        });
+    // Status filter
+    if (filters.status) {
+      filtered = filtered.filter(order => 
+        order.status === filters.status
+      );
+    }
 
-        setFilteredOrders(filtered);
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      
+      if (sortConfig.key === 'orderDate') {
+        return sortConfig.direction === 'asc' 
+          ? new Date(aValue) - new Date(bValue)
+          : new Date(bValue) - new Date(aValue);
       }
-    };
+      
+      if (sortConfig.key === 'totalAmount') {
+        return sortConfig.direction === 'asc' 
+          ? (aValue || 0) - (bValue || 0)
+          : (bValue || 0) - (aValue || 0);
+      }
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      return 0;
+    });
 
-    applyFilters();
-  }, [orders, filters]);
+    setFilteredOrders(filtered);
+  }, [orders, filters, sortConfig]);
+
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prev => ({
@@ -118,65 +148,82 @@ const Orders = () => {
 
   const clearFilters = () => {
     setFilters({
-      dateSort: 'desc',
-      priceSort: 'desc',
-      quantitySort: 'desc',
       pickupBranch: '',
-      status: ''
+      status: '',
+      searchTerm: ''
     });
+    setSortConfig({ key: 'orderDate', direction: 'desc' });
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: '2-digit'
+      }),
+      time: date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+    };
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed': return 'blue';
-      case 'processing': return 'orange';
+      case 'picked_up_delivered': return 'green';
+      case 'packing_completing': return 'blue';
+      case 'prod': return 'blue';
+      case 'press': return 'blue';
+      case 'printing': return 'blue';
+      case 'sizing': return 'blue';
+      case 'layout': return 'blue';
+      case 'confirmed': return 'blue';
       case 'pending': return 'red';
       case 'cancelled': return 'gray';
-      case 'delivered': return 'green';
       default: return 'gray';
     }
   };
 
   const getStatusDisplayName = (status) => {
     const displayNames = {
-      'pending': 'Pending',
-      'confirmed': 'Confirmed',
-      'layout': 'Layout',
-      'sizing': 'Sizing',
-      'printing': 'Printing',
-      'press': 'Press',
-      'prod': 'Prod',
-      'packing_completing': 'Packing/Completing',
-      'picked_up_delivered': 'Picked Up/Delivered',
-      'cancelled': 'Cancelled'
+      'pending': 'PENDING',
+      'confirmed': 'CONFIRMED',
+      'layout': 'LAYOUT',
+      'sizing': 'SIZING',
+      'printing': 'PRINTING',
+      'press': 'PRESS',
+      'prod': 'PROD',
+      'packing_completing': 'PACKING',
+      'picked_up_delivered': 'DELIVERED',
+      'cancelled': 'CANCELLED'
     };
     return displayNames[status] || status.toUpperCase();
   };
 
   const getStatusDescription = (status) => {
     switch (status) {
-      case 'pending': return 'Awaiting design upload';
-      case 'confirmed': return 'Design uploaded, ready to start';
-      case 'layout': return 'Working on layout design';
-      case 'sizing': return 'Determining sizes';
-      case 'printing': return 'Printing in progress';
+      case 'pending': return 'Awaiting confirmation';
+      case 'confirmed': return 'Design upload ready';
+      case 'layout': return 'Layout in progress';
+      case 'sizing': return 'Sizing stage';
+      case 'printing': return 'Printing stage';
       case 'press': return 'Press operations';
       case 'prod': return 'Production stage';
-      case 'packing_completing': return 'Packing and final checks';
-      case 'picked_up_delivered': return 'Order completed and delivered';
+      case 'packing_completing': return 'Packing stage';
+      case 'picked_up_delivered': return 'Order completed';
       case 'cancelled': return 'Order cancelled';
       default: return status;
     }
+  };
+
+  const truncateOrderNumber = (orderNumber) => {
+    if (orderNumber.length > 12) {
+      return orderNumber.substring(0, 8) + '...' + orderNumber.substring(orderNumber.length - 4);
+    }
+    return orderNumber;
   };
 
   const toggleOrderExpansion = (orderId) => {
@@ -187,10 +234,8 @@ const Orders = () => {
     try {
       setUploadingDesign(orderId);
       
-      // Upload files to Cloudinary via backend
       const result = await designUploadService.uploadDesignFiles(orderId, files);
       
-      // Update local state with the new design files (keep current status)
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId
@@ -233,7 +278,6 @@ const Orders = () => {
     try {
       await orderService.updateOrderStatus(orderId, newStatus);
       
-      // Update local state
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId
@@ -256,77 +300,20 @@ const Orders = () => {
     }
   };
 
-  // Cross-platform file manager opener
-  const openFileManager = () => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-    
-    if (isMobile) {
-      // For mobile devices, show a message instead of trying to open file manager
-      alert('Files downloaded successfully! Check your Downloads folder or file manager app.');
-      return;
-    }
-    
-    // Simple approach - just show a success message
-    // File manager opening can be unreliable across different browsers and systems
-    alert('Files downloaded successfully! Check your Downloads folder.');
-    
-    // Optional: Try to open file manager (may not work in all browsers)
-    try {
-      if (userAgent.includes('windows')) {
-        // Windows - try to open Downloads folder
-        window.open('file:///C:/Users/' + (navigator.userAgent.includes('Windows') ? 'User' : 'User') + '/Downloads', '_blank');
-      } else if (userAgent.includes('mac')) {
-        // macOS - try to open Downloads folder
-        window.open('file:///Users/' + (navigator.userAgent.includes('Mac') ? 'User' : 'User') + '/Downloads', '_blank');
-      } else {
-        // Fallback for other systems
-        window.open('file:///' + (navigator.userAgent.includes('Mac') ? '~/Downloads' : '~/Downloads'), '_blank');
-      }
-    } catch (error) {
-      // Silently fail - the alert message is sufficient
-      console.log('File manager opening not supported in this browser.');
-    }
-  };
-
-  // Download individual file with original filename
   const handleDownloadFile = async (file) => {
     try {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-      
-      if (isMobile) {
-        // For mobile devices, open in new tab for better compatibility
-        window.open(file.url, '_blank');
-        setTimeout(() => {
-          alert('File opened in new tab. Long press to download or save to device.');
-        }, 500);
-        return;
-      }
-      
-      // For desktop: Fetch and download with original filename
-      console.log('Starting download for:', file.filename);
-      
       const response = await fetch(file.url);
       const blob = await response.blob();
       
-      // Create download link with original filename
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = file.filename; // Use original filename
+      link.download = file.filename;
       link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      console.log('Download triggered successfully');
-      
-      // Open file manager after download
-      setTimeout(() => {
-        openFileManager();
-      }, 1000);
       
     } catch (error) {
       console.error('Error downloading file:', error);
@@ -334,40 +321,11 @@ const Orders = () => {
     }
   };
 
-  // Download all files as a zip
   const handleDownloadAll = async (files) => {
     try {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-      
-      // Show loading state
-      const downloadAllBtn = document.querySelector('.download-all-btn');
-      downloadAllBtn.textContent = '⏳ Downloading...';
-      downloadAllBtn.disabled = true;
-
-      if (isMobile) {
-        // For mobile devices, download files individually
-        alert('Mobile download: Files will be downloaded individually. Please wait...');
-        
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          setTimeout(() => {
-            window.open(file.url, '_blank');
-          }, i * 1000); // Stagger downloads to avoid overwhelming the device
-        }
-        
-        setTimeout(() => {
-          alert('All files opened in new tabs. Long press each tab to download or save to device.');
-        }, files.length * 1000 + 1000);
-        
-        return;
-      }
-
-      // Create a zip file using JSZip (desktop only)
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
-      // Download each file and add to zip
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
@@ -379,10 +337,8 @@ const Orders = () => {
         }
       }
 
-      // Generate zip file
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       
-      // Download the zip file
       const url = window.URL.createObjectURL(zipBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -393,21 +349,9 @@ const Orders = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      // Open file manager after download
-      setTimeout(() => {
-        openFileManager();
-      }, 1000);
-
     } catch (error) {
       console.error('Error creating zip file:', error);
       alert('Failed to create zip file. Please try downloading files individually.');
-    } finally {
-      // Reset button state
-      const downloadAllBtn = document.querySelector('.download-all-btn');
-      if (downloadAllBtn) {
-        downloadAllBtn.textContent = '📁 Download All';
-        downloadAllBtn.disabled = false;
-      }
     }
   };
 
@@ -419,7 +363,6 @@ const Orders = () => {
     try {
       await designUploadService.deleteDesignFile(orderId, file.publicId);
       
-      // Update local state to remove the deleted file
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId
@@ -460,7 +403,11 @@ const Orders = () => {
     'BAUAN'
   ];
 
-  const statuses = ['pending', 'processing', 'completed', 'cancelled'];
+  const statuses = [
+    'pending', 'confirmed', 'layout', 'sizing', 
+    'printing', 'press', 'prod', 'packing_completing', 
+    'picked_up_delivered', 'cancelled'
+  ];
 
   if (loading) {
     return (
@@ -472,8 +419,9 @@ const Orders = () => {
 
   return (
     <div className="orders-container">
+      {/* Header */}
       <div className="orders-header">
-        <h1>Orders Management</h1>
+        <h1>Order Management</h1>
         <div className="orders-stats">
           <div className="stat-card">
             <span className="stat-number">{filteredOrders.length}</span>
@@ -481,15 +429,15 @@ const Orders = () => {
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {filteredOrders.filter(o => o.status === 'completed').length}
+              {filteredOrders.filter(o => o.status === 'picked_up_delivered').length}
             </span>
-            <span className="stat-label">Completed</span>
+            <span className="stat-label">Delivered</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {filteredOrders.filter(o => o.status === 'processing').length}
+              {filteredOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length}
             </span>
-            <span className="stat-label">Processing</span>
+            <span className="stat-label">In Progress</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
@@ -500,140 +448,164 @@ const Orders = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="filters-section">
-        <div className="filters-header">
-          <h3>Filters</h3>
-          <button className="clear-filters-btn" onClick={clearFilters}>
-            Clear All
-          </button>
+      {/* Compact Filters */}
+      <div className="compact-filters">
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Search orders..."
+            value={filters.searchTerm}
+            onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+            className="search-input"
+          />
         </div>
         
-        <div className="filters-grid">
-          <div className="filter-group">
-            <label>Sort by Date</label>
-            <select
-              value={filters.dateSort}
-              onChange={(e) => handleFilterChange('dateSort', e.target.value)}
-            >
-              <option value="desc">Newest First</option>
-              <option value="asc">Oldest First</option>
-            </select>
+        <button 
+          className="filter-toggle-btn"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <FaFilter />
+          Filters
+          {showFilters ? <FaChevronUp /> : <FaChevronDown />}
+        </button>
+        
+        {showFilters && (
+          <div className="filter-dropdown">
+            <div className="filter-group">
+              <label>Branch</label>
+              <select
+                value={filters.pickupBranch}
+                onChange={(e) => handleFilterChange('pickupBranch', e.target.value)}
+              >
+                <option value="">All Branches</option>
+                {branches.map(branch => (
+                  <option key={branch} value={branch}>{branch}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="filter-group">
+              <label>Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                {statuses.map(status => (
+                  <option key={status} value={status}>
+                    {getStatusDisplayName(status)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <button className="clear-filters-btn" onClick={clearFilters}>
+              Clear All
+            </button>
           </div>
-          
-          <div className="filter-group">
-            <label>Sort by Price</label>
-            <select
-              value={filters.priceSort}
-              onChange={(e) => handleFilterChange('priceSort', e.target.value)}
-            >
-              <option value="desc">Highest First</option>
-              <option value="asc">Lowest First</option>
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label>Sort by Quantity</label>
-            <select
-              value={filters.quantitySort}
-              onChange={(e) => handleFilterChange('quantitySort', e.target.value)}
-            >
-              <option value="desc">Most Items First</option>
-              <option value="asc">Least Items First</option>
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label>Pickup Branch</label>
-            <select
-              value={filters.pickupBranch}
-              onChange={(e) => handleFilterChange('pickupBranch', e.target.value)}
-            >
-              <option value="">All Branches</option>
-              {branches.map(branch => (
-                <option key={branch} value={branch}>{branch}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label>Status</label>
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              {statuses.map(status => (
-                <option key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Orders Table */}
-      <div className="orders-table-container">
+      {/* Compact Orders Table */}
+      <div className="compact-orders-table">
         <div className="table-header">
-          <div className="header-cell">Order #</div>
-          <div className="header-cell">Customer</div>
+          <div 
+            className="header-cell sortable" 
+            onClick={() => handleSort('orderNumber')}
+          >
+            Order #
+            <FaSort className={`sort-icon ${sortConfig.key === 'orderNumber' ? 'active' : ''}`} />
+          </div>
+          <div 
+            className="header-cell sortable" 
+            onClick={() => handleSort('customerName')}
+          >
+            Customer
+            <FaSort className={`sort-icon ${sortConfig.key === 'customerName' ? 'active' : ''}`} />
+          </div>
           <div className="header-cell">Items</div>
-          <div className="header-cell">Total</div>
-          <div className="header-cell">Date</div>
+          <div 
+            className="header-cell sortable" 
+            onClick={() => handleSort('totalAmount')}
+          >
+            Total
+            <FaSort className={`sort-icon ${sortConfig.key === 'totalAmount' ? 'active' : ''}`} />
+          </div>
+          <div 
+            className="header-cell sortable" 
+            onClick={() => handleSort('orderDate')}
+          >
+            Date
+            <FaSort className={`sort-icon ${sortConfig.key === 'orderDate' ? 'active' : ''}`} />
+          </div>
           <div className="header-cell">Status</div>
           <div className="header-cell">Actions</div>
         </div>
         
-        {filteredOrders.map((order) => (
-          <div key={order.id} className="table-row">
-            <div className="table-cell order-number">
-              {order.orderNumber}
-            </div>
-            
-            <div className="table-cell customer-info">
-              <div className="customer-name">{order.customerName}</div>
-              <div className="customer-email">{order.customerEmail}</div>
-            </div>
-            
-            <div className="table-cell items-info">
-              <div className="items-count">{order.totalItems} items</div>
-              <div className="shipping-method">
-                {order.shippingMethod === 'pickup' ? 'Pickup' : 'COD'}
-                {order.pickupLocation && ` - ${order.pickupLocation}`}
+        <div className="table-body">
+          {filteredOrders.map((order, index) => {
+            const dateInfo = formatDate(order.orderDate);
+            return (
+              <div key={order.id} className={`table-row ${index % 2 === 0 ? 'even' : 'odd'}`}>
+                <div className="table-cell order-number">
+                  <span 
+                    className="order-number-text"
+                    title={order.orderNumber}
+                  >
+                    {truncateOrderNumber(order.orderNumber)}
+                  </span>
+                </div>
+                
+                <div className="table-cell customer-info">
+                  <div className="customer-name">{order.customerName}</div>
+                  <div className="customer-secondary">N/A</div>
+                </div>
+                
+                <div className="table-cell items-info">
+                  <div className="items-count">{order.totalItems} item{order.totalItems !== 1 ? 's' : ''}</div>
+                  <div className="delivery-method">
+                    {order.shippingMethod === 'pickup' ? 'Pickup' : 'COD'}
+                    {order.pickupLocation && ` - ${order.pickupLocation}`}
+                  </div>
+                </div>
+                
+                <div className="table-cell total-amount">
+                  <span className="total-price">₱{(order.totalAmount || 0).toFixed(2)}</span>
+                </div>
+                
+                <div className="table-cell order-date">
+                  <div className="date-info">
+                    <div className="date-text">{dateInfo.date}</div>
+                    <div className="time-text">{dateInfo.time}</div>
+                  </div>
+                </div>
+                
+                <div className="table-cell status-cell">
+                  <div 
+                    className={`status-badge ${getStatusColor(order.status)}`}
+                    title={getStatusDescription(order.status)}
+                  >
+                    {getStatusDisplayName(order.status)}
+                  </div>
+                </div>
+                
+                <div className="table-cell actions">
+                  <button 
+                    className="view-details-btn"
+                    onClick={() => toggleOrderExpansion(order.id)}
+                    title="View Details"
+                  >
+                    <FaEye />
+                    View Details
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            <div className="table-cell total-amount">
-              ₱{(order.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </div>
-            
-            <div className="table-cell order-date">
-              {formatDate(order.orderDate)}
-            </div>
-            
-            <div className="table-cell status-cell">
-              <span className={`status-badge ${getStatusColor(order.status)}`}>
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-              </span>
-              <div className="status-description">
-                {getStatusDescription(order.status)}
-              </div>
-            </div>
-            
-            <div className="table-cell actions">
-              <button 
-                className="view-details-btn"
-                onClick={() => toggleOrderExpansion(order.id)}
-              >
-                {expandedOrder === order.id ? 'Hide' : 'View'} Details
-              </button>
-            </div>
-          </div>
-        ))}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Expanded Order Details */}
+      {/* Expanded Order Details Modal */}
       {expandedOrder && (
         <div className="order-details-modal" onClick={() => setExpandedOrder(null)}>
           {(() => {
@@ -655,27 +627,27 @@ const Orders = () => {
                 
                 <div className="order-details-body">
                   <div className="details-section">
-                    <h4>Customer Information</h4>
+                    <h4><FaUser className="section-icon" />Customer Information</h4>
                     <div className="detail-row">
-                      <span className="detail-label">Name:</span>
+                      <span className="detail-label"><FaUser className="detail-icon" />Name:</span>
                       <span className="detail-value">{order.customerName}</span>
                     </div>
                     <div className="detail-row">
-                      <span className="detail-label">Email:</span>
+                      <span className="detail-label"><FaEnvelope className="detail-icon" />Email:</span>
                       <span className="detail-value">{order.customerEmail}</span>
                     </div>
                     <div className="detail-row">
-                      <span className="detail-label">Phone:</span>
+                      <span className="detail-label"><FaPhone className="detail-icon" />Phone:</span>
                       <span className="detail-value">{order.deliveryAddress?.phone || 'N/A'}</span>
                     </div>
                     <div className="detail-row">
-                      <span className="detail-label">Address:</span>
+                      <span className="detail-label"><FaMapMarkerAlt className="detail-icon" />Address:</span>
                       <span className="detail-value">{order.deliveryAddress?.address || 'N/A'}</span>
                     </div>
                   </div>
                   
                   <div className="details-section">
-                    <h4>Order Items</h4>
+                    <h4><FaBox className="section-icon" />Order Items</h4>
                     {order.orderItems.map((item, index) => (
                       <div key={index} className="order-item">
                         <div className="item-header">
@@ -714,31 +686,31 @@ const Orders = () => {
                   </div>
                   
                   <div className="details-section">
-                    <h4>Order Summary</h4>
+                    <h4><FaDollarSign className="section-icon" />Order Summary</h4>
                     <div className="summary-row">
-                      <span>Subtotal:</span>
-                      <span>₱{(order.subtotalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                      <span><FaDollarSign className="summary-icon" />Subtotal:</span>
+                      <span>₱{(order.subtotalAmount || 0).toFixed(2)}</span>
                     </div>
                     <div className="summary-row">
-                      <span>Shipping:</span>
-                      <span>₱{(order.shippingCost || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                      <span><FaShippingFast className="summary-icon" />Shipping:</span>
+                      <span>₱{(order.shippingCost || 0).toFixed(2)}</span>
                     </div>
                     <div className="summary-row total">
-                      <span>Total:</span>
-                      <span>₱{(order.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                      <span><FaDollarSign className="summary-icon" />Total:</span>
+                      <span>₱{(order.totalAmount || 0).toFixed(2)}</span>
                     </div>
                   </div>
                   
                   {order.orderNotes && (
                     <div className="details-section">
-                      <h4>Order Notes</h4>
+                      <h4><FaFileAlt className="section-icon" />Order Notes</h4>
                       <div className="order-notes">{order.orderNotes}</div>
                     </div>
                   )}
                   
                   {/* Status Update Section */}
                   <div className="details-section">
-                    <h4>Order Status Management</h4>
+                    <h4><FaCog className="section-icon" />Order Status Management</h4>
                     <div className="status-update-section">
                       <div className="current-status-display">
                         <div className="status-info-card">
@@ -757,7 +729,7 @@ const Orders = () => {
                       {order.status === 'layout' && (
                         <div className="design-upload-section">
                           <h5 className="upload-section-title">
-                            📐 Upload Final Layout Files
+                            <FaPalette className="upload-icon" /> Upload Final Layout Files
                           </h5>
                           <p className="upload-description">
                             Upload the final layout/design files to proceed to sizing stage.
@@ -802,12 +774,12 @@ const Orders = () => {
                       {['confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(order.status) && order.designFiles && order.designFiles.length > 0 && (
                         <div className="design-files-section">
                           <div className="files-header">
-                            <h5>📁 Design Files</h5>
+                            <h5><FaFileAlt className="files-icon" /> Design Files</h5>
                             <button 
                               className="download-all-btn"
                               onClick={() => handleDownloadAll(order.designFiles)}
                             >
-                              Download All
+                              <FaDownload className="download-icon" /> Download All
                             </button>
                           </div>
                           <div className="design-files-list">
@@ -829,7 +801,7 @@ const Orders = () => {
                                     className="download-btn"
                                     onClick={() => handleDownloadFile(file)}
                                   >
-                                    Download
+                                    <FaDownload className="action-icon" /> Download
                                   </button>
                                   {order.status === 'layout' && (
                                     <button 
@@ -837,7 +809,7 @@ const Orders = () => {
                                       onClick={() => handleRemoveDesignFile(order.id, file)}
                                       title="Remove this file"
                                     >
-                                      ✕ Remove
+                                      <FaTrash className="action-icon" /> Remove
                                     </button>
                                   )}
                                 </div>
@@ -855,7 +827,7 @@ const Orders = () => {
                               className="status-update-btn confirm-btn"
                               onClick={() => handleStatusUpdate(order.id, 'confirmed')}
                             >
-                              ✓ Confirm Order
+                              <FaCheck className="status-icon" /> Confirm Order
                             </button>
                             <button 
                               className="status-update-btn cancel-btn"
@@ -865,7 +837,7 @@ const Orders = () => {
                                 }
                               }}
                             >
-                              ✕ Cancel Order
+                              <FaTimes className="status-icon" /> Cancel Order
                             </button>
                           </>
                         )}
@@ -876,7 +848,7 @@ const Orders = () => {
                             className="status-update-btn process-btn"
                             onClick={() => handleStatusUpdate(order.id, 'layout')}
                           >
-                            🎨 Start Layout
+                            <FaPalette className="status-icon" /> Start Layout
                           </button>
                         )}
                         
@@ -893,11 +865,11 @@ const Orders = () => {
                                 handleStatusUpdate(order.id, 'sizing');
                               }}
                             >
-                              📏 Move to Sizing
+                              <FaRuler className="status-icon" /> Move to Sizing
                             </button>
                             {(!order.designFiles || order.designFiles.length === 0) && (
                               <div className="status-note">
-                                <small>💡 Upload design files above before proceeding to sizing</small>
+                                <small><FaUpload className="note-icon" /> Upload design files above before proceeding to sizing</small>
                               </div>
                             )}
                           </>
@@ -909,7 +881,7 @@ const Orders = () => {
                             className="status-update-btn process-btn"
                             onClick={() => handleStatusUpdate(order.id, 'printing')}
                           >
-                            🖨️ Move to Printing
+                            <FaPrint className="status-icon" /> Move to Printing
                           </button>
                         )}
                         
@@ -919,7 +891,7 @@ const Orders = () => {
                             className="status-update-btn process-btn"
                             onClick={() => handleStatusUpdate(order.id, 'press')}
                           >
-                            ⚙️ Move to Press
+                            <FaCog className="status-icon" /> Move to Press
                           </button>
                         )}
                         
@@ -929,7 +901,7 @@ const Orders = () => {
                             className="status-update-btn process-btn"
                             onClick={() => handleStatusUpdate(order.id, 'prod')}
                           >
-                            🏭 Move to Prod
+                            <FaIndustry className="status-icon" /> Move to Prod
                           </button>
                         )}
                         
@@ -939,7 +911,7 @@ const Orders = () => {
                             className="status-update-btn process-btn"
                             onClick={() => handleStatusUpdate(order.id, 'packing_completing')}
                           >
-                            📦 Move to Packing/Completing
+                            <FaBox className="status-icon" /> Move to Packing/Completing
                           </button>
                         )}
                         
@@ -949,14 +921,14 @@ const Orders = () => {
                             className="status-update-btn complete-btn"
                             onClick={() => handleStatusUpdate(order.id, 'picked_up_delivered')}
                           >
-                            ✅ Mark as Picked Up/Delivered
+                            <FaCheck className="status-icon" /> Mark as Picked Up/Delivered
                           </button>
                         )}
                         
                         {/* Picked Up/Delivered - Final Status */}
                         {order.status === 'picked_up_delivered' && (
                           <div className="status-complete-message">
-                            <span className="complete-icon">✓</span>
+                            <span className="complete-icon"><FaCheck /></span>
                             <p>This order has been completed and delivered.</p>
                           </div>
                         )}
@@ -964,7 +936,7 @@ const Orders = () => {
                         {/* Cancelled Orders */}
                         {order.status === 'cancelled' && (
                           <div className="status-cancelled-message">
-                            <span className="cancelled-icon">✕</span>
+                            <span className="cancelled-icon"><FaTimes /></span>
                             <p>This order has been cancelled.</p>
                             <button 
                               className="status-update-btn reactivate-btn"
@@ -974,7 +946,7 @@ const Orders = () => {
                                 }
                               }}
                             >
-                              🔄 Reactivate Order
+                              <FaRedo className="status-icon" /> Reactivate Order
                             </button>
                           </div>
                         )}
@@ -994,14 +966,14 @@ const Orders = () => {
                               }
                             }}
                           >
-                            ↩️ Go Back One Stage
+                            <FaArrowLeft className="status-icon" /> Go Back One Stage
                           </button>
                         )}
                       </div>
                       
                       {/* Order Status Flow Guide */}
                       <div className="status-flow-guide">
-                        <h5>Order Status Flow:</h5>
+                        <h5><FaArrowRight className="flow-icon" /> Order Status Flow:</h5>
                         <div className="flow-steps">
                           {['pending', 'confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing', 'picked_up_delivered'].map((stage, index, arr) => {
                             const stageIndex = arr.indexOf(order.status);
@@ -1014,7 +986,7 @@ const Orders = () => {
                                 <span className={`flow-step ${isActive ? 'active' : isCompleted ? 'completed' : ''}`}>
                                   {getStatusDisplayName(stage)}
                                 </span>
-                                {index < arr.length - 1 && <span className="flow-arrow">→</span>}
+                                {index < arr.length - 1 && <span className="flow-arrow"><FaArrowRight /></span>}
                               </React.Fragment>
                             );
                           })}

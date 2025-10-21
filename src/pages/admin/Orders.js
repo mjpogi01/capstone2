@@ -4,15 +4,11 @@ import '../admin/AdminDashboard.css';
 import Orders from '../../components/admin/Orders';
 
 const OrdersPage = () => {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
   return (
-    <div className={`admin-dashboard ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+    <div className="admin-dashboard">
       <Sidebar
         activePage={'orders'}
         setActivePage={() => {}}
-        collapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(v => !v)}
       />
       <div className="admin-main-content">
         <Orders />

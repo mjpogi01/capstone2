@@ -6,12 +6,9 @@
 
 .admin-main-content {
   flex: 1;
-  margin-left: 250px;
-  padding: 2rem;
-  transition: margin-left 0.25s ease;
+  margin-left: 280px;
+  padding: 1.5rem 2rem;
 }
-
-.admin-dashboard.collapsed .admin-main-content { margin-left: 64px; }
 
 .dashboard-content {
   max-width: 1200px;
@@ -20,32 +17,35 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-  margin: 2rem 0;
+  grid-template-columns: 7fr 3fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+  align-items: start;
 }
 
 .dashboard-left {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
+  min-height: 0;
 }
 
 .dashboard-right {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
+  min-height: 0;
 }
 
 /* Tablet styles */
 @media (max-width: 1024px) {
   .admin-main-content {
-    margin-left: 220px;
-    padding: 1.5rem;
+    margin-left: 0;
+    padding: 1rem 1.5rem;
   }
   
   .dashboard-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
   }
   
@@ -58,28 +58,11 @@
 @media (max-width: 768px) {
   .admin-main-content {
     margin-left: 0;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
   }
   
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
-    margin: 1.5rem 0;
-  }
-  
-  .dashboard-left,
-  .dashboard-right {
-    gap: 1.5rem;
-  }
-}
-
-/* Small mobile styles */
-@media (max-width: 480px) {
-  .admin-main-content {
-    padding: 0.75rem;
-  }
-  
-  .dashboard-grid {
     gap: 1rem;
     margin: 1rem 0;
   }
@@ -90,10 +73,10 @@
   }
 }
 
-/* Extra small mobile styles */
-@media (max-width: 360px) {
+/* Small mobile styles */
+@media (max-width: 480px) {
   .admin-main-content {
-    padding: 0.5rem;
+    padding: 0.5rem 0.75rem;
   }
   
   .dashboard-grid {
@@ -107,6 +90,19 @@
   }
 }
 
-
-
-
+/* Extra small mobile styles */
+@media (max-width: 360px) {
+  .admin-main-content {
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .dashboard-grid {
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+  }
+  
+  .dashboard-left,
+  .dashboard-right {
+    gap: 0.5rem;
+  }
+}

@@ -4,10 +4,11 @@ import './admin-shared.css';
 import Sidebar from '../../components/admin/Sidebar';
 import AddProductModal from '../../components/admin/AddProductModal';
 import { supabase } from '../../lib/supabase';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEdit, faTrash, faPlus, faImage } from '@fortawesome/free-solid-svg-icons';
 
 const Inventory = () => {
   const [activePage, setActivePage] = useState('inventory');
-  const [collapsed, setCollapsed] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [products, setProducts] = useState([]);
@@ -162,35 +163,13 @@ const Inventory = () => {
     }
   };
 
-  // Format description with line breaks for better readability
-  const formatDescription = (description) => {
-    if (!description) return '<span class="no-description">No description</span>';
-    
-    const maxLineLength = 50;
-    const words = description.split(' ');
-    let lines = [];
-    let currentLine = '';
-    
-    words.forEach(word => {
-      if ((currentLine + word).length > maxLineLength && currentLine.length > 0) {
-        lines.push(currentLine.trim());
-        currentLine = word + ' ';
-      } else {
-        currentLine += word + ' ';
-      }
-    });
-    
-    if (currentLine.trim()) {
-      lines.push(currentLine.trim());
-    }
-    
-    return lines.join('<br>');
-  };
-
   return (
-    <div className={`inventory-page ${collapsed ? 'collapsed' : ''}`}>
-      <Sidebar activePage={activePage} setActivePage={setActivePage} collapsed={collapsed} onToggleCollapse={() => setCollapsed(v => !v)} />
-      <div className="inventory-main-content">
+    <div className="admin-dashboard">
+      <Sidebar 
+        activePage={activePage} 
+        setActivePage={setActivePage} 
+      />
+      <div className="admin-main-content">
         <div className="inventory-header">
           <h1>Inventory Management</h1>
           <p>Manage your product inventory</p>
@@ -273,78 +252,162 @@ const Inventory = () => {
                     </div>
                   </div>
 
-                  <table key={refreshKey} className="inventory-table">
-                    <thead>
-                      <tr>
-                        <th>Image</th>
-                        <th>Product Name</th>
-                        <th>Price</th>
-                        <th>Stock</th>
-                        <th>Sold</th>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredProducts.map((product) => (
-                      <tr key={`${product.id}-${product.updated_at || Date.now()}`} className="product-row">
-                        <td className="product-image-cell">
+                  {/* Desktop Table */}
+                  <div className="desktop-table">
+                    <table key={refreshKey} className="inventory-table">
+                      <thead>
+                        <tr>
+                          <th>Image</th>
+                          <th>Product Name</th>
+                          <th>Price</th>
+                          <th>Stock</th>
+                          <th>Sold</th>
+                          <th>Category</th>
+                          <th>Description</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredProducts.map((product) => (
+                        <tr key={`${product.id}-${product.updated_at || Date.now()}`} className="product-row">
+                          <td className="product-image-cell">
+                            <div className="product-image">
+                              {product.main_image ? (
+                                <img src={product.main_image} alt={product.name} />
+                              ) : (
+                                <div className="no-image">
+                                  <FontAwesomeIcon icon={faImage} />
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="inventory-product-name-cell">
+                            <div className="inventory-product-name">{product.name}</div>
+                          </td>
+                          <td className="inventory-product-price-cell">
+                            <div className="inventory-product-price">₱{product.price}</div>
+                          </td>
+                          <td className="product-stock-cell">
+                            <div className={`stock-badge ${product.stock_quantity > 10 ? 'in-stock' : product.stock_quantity > 0 ? 'low-stock' : 'out-of-stock'}`}>
+                              {product.stock_quantity}
+                            </div>
+                          </td>
+                          <td className="product-sold-cell">
+                            <div className="sold-badge">
+                              {product.sold_quantity || 0}
+                            </div>
+                          </td>
+                          <td className="product-category-cell">
+                            <div className="product-category">{product.category}</div>
+                          </td>
+                          <td className="product-description-cell">
+                            <div className="product-description">
+                              {product.description ? (
+                                product.description.length > 50 
+                                  ? `${product.description.substring(0, 50)}...` 
+                                  : product.description
+                              ) : (
+                                <span className="no-description">No description</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="product-actions-cell">
+                            <div className="product-actions">
+                              <button 
+                                className="edit-btn"
+                                onClick={() => handleEditProduct(product)}
+                                title="Edit Product"
+                                aria-label="Edit Product"
+                              >
+                                <FontAwesomeIcon icon={faEdit} />
+                              </button>
+                              <button 
+                                className="delete-btn"
+                                onClick={() => handleDeleteProduct(product.id)}
+                                title="Delete Product"
+                                aria-label="Delete Product"
+                              >
+                                <FontAwesomeIcon icon={faTrash} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                  </div>
+
+                  {/* Mobile Card Layout */}
+                  <div className="mobile-cards">
+                    {filteredProducts.map((product) => (
+                      <div key={`mobile-${product.id}-${product.updated_at || Date.now()}`} className="product-card">
+                        <div className="inventory-card-header">
                           <div className="product-image">
                             {product.main_image ? (
                               <img src={product.main_image} alt={product.name} />
                             ) : (
-                              <div className="no-image">No Image</div>
+                              <div className="no-image">
+                                <FontAwesomeIcon icon={faImage} />
+                              </div>
                             )}
                           </div>
-                        </td>
-                        <td className="product-name-cell">
-                          <div className="product-name">{product.name}</div>
-                        </td>
-                        <td className="product-price-cell">
-                          <div className="product-price">₱{product.price}</div>
-                        </td>
-                        <td className="product-stock-cell">
-                          <div className={`stock-badge ${product.stock_quantity > 10 ? 'in-stock' : product.stock_quantity > 0 ? 'low-stock' : 'out-of-stock'}`}>
-                            {product.stock_quantity}
+                          <div className="product-info">
+                            <h3 className="inventory-product-name">{product.name}</h3>
+                            <div className="product-category">{product.category}</div>
                           </div>
-                        </td>
-                        <td className="product-sold-cell">
-                          <div className="sold-badge">
-                            {product.sold_quantity || 0}
+                          <div className="inventory-product-price">₱{product.price}</div>
+                        </div>
+                        
+                        <div className="card-body">
+                          <div className="product-description">
+                            {product.description ? (
+                              product.description.length > 100 
+                                ? `${product.description.substring(0, 100)}...` 
+                                : product.description
+                            ) : (
+                              <span className="no-description">No description</span>
+                            )}
                           </div>
-                        </td>
-                        <td className="product-category-cell">
-                          <div className="product-category">{product.category}</div>
-                        </td>
-                        <td className="product-description-cell">
-                          <div 
-                            className="product-description"
-                            dangerouslySetInnerHTML={{ __html: formatDescription(product.description) }}
-                          />
-                        </td>
-                        <td className="product-actions-cell">
-                          <div className="product-actions">
-                            <button 
-                              className="edit-btn"
-                              onClick={() => handleEditProduct(product)}
-                              title="Edit Product"
-                            >
-                              <span>✏️</span>
-                            </button>
-                            <button 
-                              className="delete-btn"
-                              onClick={() => handleDeleteProduct(product.id)}
-                              title="Delete Product"
-                            >
-                              <span>🗑️</span>
-                            </button>
+                          
+                          <div className="card-stats">
+                            <div className="stat-item">
+                              <span className="stat-label">Stock</span>
+                              <div className={`stock-badge ${product.stock_quantity > 10 ? 'in-stock' : product.stock_quantity > 0 ? 'low-stock' : 'out-of-stock'}`}>
+                                {product.stock_quantity}
+                              </div>
+                            </div>
+                            <div className="stat-item">
+                              <span className="stat-label">Sold</span>
+                              <div className="sold-badge">
+                                {product.sold_quantity || 0}
+                              </div>
+                            </div>
                           </div>
-                        </td>
-                      </tr>
-                      ))}
-                  </tbody>
-                </table>
+                        </div>
+                        
+                        <div className="card-actions">
+                          <button 
+                            className="edit-btn"
+                            onClick={() => handleEditProduct(product)}
+                            title="Edit Product"
+                            aria-label="Edit Product"
+                          >
+                            <FontAwesomeIcon icon={faEdit} />
+                            <span>Edit</span>
+                          </button>
+                          <button 
+                            className="delete-btn"
+                            onClick={() => handleDeleteProduct(product.id)}
+                            title="Delete Product"
+                            aria-label="Delete Product"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </>
               )}
             </div>
@@ -357,7 +420,7 @@ const Inventory = () => {
         className="floating-add-btn"
         onClick={() => setShowAddModal(true)}
       >
-        <span>+</span>
+        <FontAwesomeIcon icon={faPlus} />
         Add Product
       </button>
 

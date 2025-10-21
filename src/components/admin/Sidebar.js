@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHouse, faChartLine, faClipboardList, faBoxesStacked, faUsers } from '@fortawesome/free-solid-svg-icons';
+import { faHouse, faChartLine, faClipboardList, faBoxesStacked, faUsers, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Sidebar = ({ activePage, setActivePage }) => {
   const { logout, user } = useAuth();
@@ -32,15 +32,15 @@ const Sidebar = ({ activePage, setActivePage }) => {
       <div className="sidebar-header">
         <div className="logo">
           <Link to="/">
-            <img 
-              src={logo} 
-              alt="YOHANNS Sportswear House" 
+            <img
+              src={logo}
+              alt="YOHANNS Sportswear House"
               className="logo-image"
             />
           </Link>
         </div>
       </div>
-      
+
       <nav className="sidebar-nav">
         {menuItems.map((item) => (
           <Link
@@ -56,15 +56,16 @@ const Sidebar = ({ activePage, setActivePage }) => {
           </Link>
         ))}
       </nav>
-      
+
       <div className="sidebar-footer">
-        <button className="logout-btn" onClick={handleLogout}>
+        <button
+          className="logout-btn"
+          onClick={handleLogout}
+        >
           <div className="logout-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-            </svg>
+            <FontAwesomeIcon icon={faSignOutAlt} />
           </div>
-          <span>Logout</span>
+          <span className="logout-label">Logout</span>
         </button>
       </div>
     </div>

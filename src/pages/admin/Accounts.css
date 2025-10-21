@@ -1,129 +1,701 @@
-.accounts-page { display: flex; min-height: 100vh; background: #f5f5f5; }
-.accounts-main-content { flex: 1; display: flex; flex-direction: column; margin-left: 250px; padding: 2rem; transition: margin-left 0.25s ease; }
-.admin-dashboard.collapsed .accounts-main-content { margin-left: 64px; }
-.accounts-content { display: flex; flex-direction: column; gap: 2rem; max-width: 1200px; margin: 0 auto; }
+/* ===========================================
+   ACCOUNT MANAGEMENT - MODERN CLEAN DESIGN
+   Yohanns Sportswear House
+   =========================================== */
 
-/* Accounts Header */
+/* ===========================================
+   GLOBAL STYLES & TYPOGRAPHY
+   =========================================== */
+
+.admin-dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.admin-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 280px;
+  padding: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+}
+
+.accounts-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ===========================================
+   HEADER SECTION
+   =========================================== */
+
 .accounts-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 2.5rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .accounts-header h1 {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  color: #0f172a;
+  color: #1e293b;
   margin: 0;
   letter-spacing: -0.025em;
 }
 
-/* Account Cards */
-.accounts-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06); overflow: hidden; }
+/* ===========================================
+   REFRESH BUTTON - MODERN FLOATING STYLE
+   =========================================== */
 
-.accounts-card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
-.accounts-card-header h2 { font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0; letter-spacing: 0.2px; }
+.refresh-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: inherit;
+}
 
-.accounts-actions { display: flex; align-items: center; gap: 1rem; }
-.action-buttons { display: flex; align-items: center; gap: 0.5rem; }
+.refresh-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
 
-.refresh-btn { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; padding: 0.6rem 0.9rem; cursor: pointer; font-size: 0.9rem; transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.25s ease; display: inline-flex; align-items: center; gap: 0.5rem; color: #111827; }
-.refresh-btn:hover { background: #eef2f7; border-color: #cbd5e1; }
-.refresh-btn:active { transform: scale(0.98); }
+.refresh-btn:active {
+  transform: translateY(-1px);
+}
 
-/* Search - Accounts Specific */
+.refresh-btn svg {
+  font-size: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.refresh-btn:hover svg {
+  transform: rotate(180deg);
+}
+
+/* ===========================================
+   ACCOUNT SECTIONS - CARD STYLE
+   =========================================== */
+
+.accounts-section {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  margin-bottom: 2rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.accounts-section:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.section-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  letter-spacing: -0.025em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-header h2 svg {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+/* ===========================================
+   SEARCH CONTAINERS - MINIMAL LINE DESIGN
+   =========================================== */
+
 .accounts-search-container { 
   position: relative; 
   display: flex; 
   align-items: center; 
   background: transparent;
   border: none;
-  border-bottom: 2px solid #d1d5db;
+  border-bottom: 1px solid #e2e8f0;
   border-radius: 0;
-  padding: 0.6rem 0;
-  width: 280px;
-  transition: border-bottom-color 0.2s ease;
+  padding: 0.5rem 0;
+  width: 200px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .accounts-search-container:focus-within {
   border-bottom-color: #3b82f6;
+  border-bottom-width: 2px;
 }
 
 .accounts-search-input { 
   border: none; 
   outline: none;
-  font-size: 0.95rem; 
+  font-size: 0.75rem;
   flex: 1;
   background: transparent;
   padding: 0;
   margin-left: 0.5rem;
+  color: #374151;
+  font-family: inherit;
 }
 
 .accounts-search-input::placeholder {
   color: #9ca3af;
+  font-weight: 400;
 }
 
 .accounts-search-icon { 
   color: #6b7280; 
-  width: 16px; 
-  height: 16px; 
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
+  transition: color 0.2s ease;
 }
 
-/* Table Container */
-.accounts-table-container { overflow-x: auto; background: #fff; border-top: 1px solid #e5e7eb; }
+.accounts-search-container:focus-within .accounts-search-icon {
+  color: #3b82f6;
+}
 
-.accounts-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-.accounts-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
-.accounts-table th { padding: 0.9rem 1rem; text-align: left; font-weight: 600; color: #334155; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.78rem; border-right: 1px solid #e5e7eb; }
-.accounts-table th:last-child { border-right: none; }
-.accounts-table tbody tr { border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s ease; }
-.accounts-table tbody tr:hover { background: #f9fbff; }
-.accounts-table td { padding: 0.9rem 1rem; color: #334155; border-right: 1px solid #e5e7eb; vertical-align: middle; }
-.accounts-table td:last-child { border-right: none; }
+/* ===========================================
+   TABLE CONTAINERS - MODERN DESIGN
+   =========================================== */
 
-/* Action Buttons */
-.action-buttons { display: flex; gap: 0.5rem; }
-.edit-btn, .delete-btn { padding: 0.45rem 0.85rem; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease; }
-.edit-btn { background: #3b82f6; color: white; }
-.edit-btn:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25); }
-.delete-btn { background: #ef4444; color: white; }
-.delete-btn:hover { background: #dc2626; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25); }
+.accounts-table-container {
+  overflow-x: auto;
+  background: white;
+}
 
-/* States */
-.loading-cell, .no-data-cell { text-align: center; padding: 2rem; color: #6b7280; font-style: italic; }
-.loading-cell { color: #3b82f6; }
+.accounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  table-layout: fixed;
+}
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .accounts-main-content { margin-left: 0; padding: 1rem; }
+.accounts-table thead {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.accounts-table th {
+  padding: 1.5rem 1.25rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-right: 1px solid #e2e8f0;
+}
+
+.accounts-table th:last-child {
+  border-right: none;
+}
+
+.accounts-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Alternating row backgrounds */
+.accounts-table tbody tr:nth-child(even) {
+  background-color: #fafbfc;
+}
+
+.accounts-table tbody tr:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.accounts-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.accounts-table td {
+  padding: 1.5rem 1.25rem;
+  color: #374151;
+  border-right: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.accounts-table td:last-child {
+  border-right: none;
+}
+
+/* ===========================================
+   ROLE BADGES - MODERN SAAS STYLING
+   =========================================== */
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  font-family: inherit;
+}
+
+.role-badge.owner {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role-badge.admin {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.role-badge.customer {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.role-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ===========================================
+   ACTION BUTTONS - MINIMALISTIC PILL STYLE
+   =========================================== */
+
+/* ===========================================
+   DELETE BUTTONS - MINIMAL SAAS STYLE
+   =========================================== */
+
+.delete-btn {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: inherit;
+  min-width: 80px;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.delete-btn:active {
+  transform: translateY(0);
+  background: #fee2e2;
+}
+
+.delete-btn svg {
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+/* ===========================================
+   LOADING & EMPTY STATES
+   =========================================== */
+
+.loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  font-size: 1.125rem;
+  color: #64748b;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin: 2rem 0;
+}
+
+.no-data {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #64748b;
+  font-style: italic;
+  background: #f8fafc;
+  border-radius: 12px;
+  margin: 1rem;
+}
+
+/* ===========================================
+   RESPONSIVE DESIGN
+   =========================================== */
+
+/* Large Desktop (1400px+) */
+@media (min-width: 1400px) {
+  .admin-main-content {
+    padding: 3rem;
+  }
+  
+  .accounts-header {
+    padding: 2.5rem;
+  }
+  
+  .accounts-header h1 {
+    font-size: 2.75rem;
+  }
+}
+
+/* Desktop (1200px - 1399px) */
+@media (max-width: 1399px) {
+  .admin-main-content {
+    padding: 2rem;
+  }
+}
+
+/* Large Laptop (1024px - 1199px) */
+@media (max-width: 1199px) {
+  .admin-main-content {
+    margin-left: 220px;
+    padding: 0.75rem;
+  }
+  
+  .accounts-header h1 {
+    font-size: 2.25rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .accounts-search-container {
+    width: 100%;
+    max-width: 250px;
+    padding: 0.4rem 0;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) {
+  .admin-main-content {
+    margin-left: 0;
+    padding: 0.5rem;
+  }
+  
   .accounts-header {
     flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
+    gap: 1.5rem;
+    align-items: stretch;
+    padding: 1.5rem;
   }
-  .accounts-card-header { flex-direction: column; gap: 1rem; align-items: stretch; }
-  .accounts-actions { justify-content: space-between; }
-  .accounts-search-container { width: 200px; }
+  
+  .accounts-header h1 {
+    font-size: 2rem;
+  }
+  
+  .section-header {
+    padding: 0.875rem;
+  }
+  
+  .section-header h2 {
+    font-size: 1.375rem;
+  }
+  
+  .section-header h2 svg {
+    font-size: 1.125rem;
+  }
+  
+  .accounts-table {
+    font-size: 0.8rem;
+  }
+  
+  .accounts-table th,
+  .accounts-table td {
+    padding: 1.25rem 0.75rem;
+  }
+  
+  .accounts-search-container {
+    width: 100%;
+    padding: 0.35rem 0;
+  }
 }
 
-@media (max-width: 768px) {
-  .accounts-main-content { padding: 0.5rem; }
-  .accounts-header {
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
+/* Mobile Large (481px - 767px) */
+@media (max-width: 767px) {
+  .admin-main-content {
+    padding: 1rem;
   }
+  
+  .accounts-header {
+    padding: 1.25rem;
+  }
+  
+  .accounts-header h1 {
+    font-size: 1.875rem;
+  }
+  
+  .section-header {
+    padding: 0.75rem;
+  }
+  
+  .section-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .section-header h2 svg {
+    font-size: 1rem;
+  }
+  
+  .accounts-table {
+    font-size: 0.75rem;
+  }
+  
+  .accounts-table th,
+  .accounts-table td {
+    padding: 1rem 0.5rem;
+  }
+  
+  .refresh-btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.8rem;
+  }
+  
+  .delete-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    min-width: 70px;
+  }
+  
+  .delete-btn svg {
+    font-size: 0.75rem;
+  }
+}
+
+/* Mobile Small (320px - 480px) */
+@media (max-width: 480px) {
+  .admin-main-content {
+    padding: 0.75rem;
+  }
+  
+  .accounts-header {
+    padding: 1rem;
+  }
+  
   .accounts-header h1 {
     font-size: 1.75rem;
   }
-  .accounts-card-header { padding: 1rem; }
-  .accounts-card-header h2 { font-size: 1.25rem; }
-  .accounts-actions { flex-direction: column; gap: 0.75rem; }
-  .accounts-search-container { width: 100%; }
-  .add-account-btn { width: 100%; justify-content: center; }
-  .action-buttons { flex-direction: column; gap: 0.25rem; }
-  .edit-btn, .delete-btn { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+  
+  .section-header {
+    padding: 0.625rem;
+  }
+  
+  .section-header h2 {
+    font-size: 1.125rem;
+  }
+  
+  .section-header h2 svg {
+    font-size: 0.875rem;
+  }
+  
+  .accounts-table {
+    font-size: 0.7rem;
+  }
+  
+  .accounts-table th,
+  .accounts-table td {
+    padding: 0.875rem 0.375rem;
+  }
+  
+  .refresh-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+  
+  .delete-btn {
+    padding: 0.375rem 0.6rem;
+    font-size: 0.65rem;
+    min-width: 65px;
+  }
+  
+  .delete-btn svg {
+    font-size: 0.7rem;
+  }
+  
+  .accounts-search-container {
+    padding: 0.3rem 0;
+  }
+  
+  .accounts-search-input {
+    font-size: 0.7rem;
+  }
+}
+
+/* Extra Small Mobile (below 320px) */
+@media (max-width: 319px) {
+  .admin-main-content {
+    padding: 0.5rem;
+  }
+  
+  .accounts-header {
+    padding: 0.875rem;
+  }
+  
+  .accounts-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .section-header {
+    padding: 0.5rem;
+  }
+  
+  .section-header h2 {
+    font-size: 1rem;
+  }
+  
+  .section-header h2 svg {
+    font-size: 0.75rem;
+  }
+  
+  .accounts-table {
+    font-size: 0.65rem;
+  }
+  
+  .accounts-table th,
+  .accounts-table td {
+    padding: 0.75rem 0.25rem;
+  }
+  
+  .refresh-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.7rem;
+  }
+  
+  .delete-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.6rem;
+    min-width: 60px;
+  }
+  
+  .delete-btn svg {
+    font-size: 0.65rem;
+  }
+  
+  .accounts-search-container {
+    padding: 0.25rem 0;
+  }
+  
+  .accounts-search-input {
+    font-size: 0.65rem;
+  }
+}
+
+/* ===========================================
+   ACCESSIBILITY & FOCUS STATES
+   =========================================== */
+
+.refresh-btn:focus,
+.delete-btn:focus,
+.accounts-search-input:focus {
+  outline: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .accounts-table tbody tr:nth-child(even) {
+    background-color: #f0f0f0;
+  }
+  
+  .accounts-table tbody tr:hover {
+    background: #e0e0e0;
+  }
+  
+  .role-badge.owner {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #856404;
+  }
+  
+  .role-badge.admin {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #155724;
+  }
+  
+  .role-badge.customer {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #721c24;
+  }
+  
+  .delete-btn {
+    border: 2px solid #ef4444;
+    background: #fef2f2;
+  }
+  
+  .delete-btn:hover {
+    background: #fee2e2;
+    border-color: #dc2626;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .accounts-section,
+  .refresh-btn,
+  .delete-btn,
+  .accounts-table tbody tr,
+  .role-badge {
+    transition: none;
+  }
+  
+  .accounts-section:hover,
+  .accounts-table tbody tr:hover,
+  .refresh-btn:hover,
+  .delete-btn:hover {
+    transform: none;
+  }
+  
+  .refresh-btn:hover svg {
+    transform: none;
+  }
 }

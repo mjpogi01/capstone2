@@ -208,7 +208,7 @@
 
 .modal-product-title {
   font-size: 2rem !important;
-  color: var(--text-primary, #ffffff) !important;
+  color: #ffffff !important;
   margin: 0 0 15px 0 !important;
   font-weight: 900 !important;
   text-transform: uppercase !important;

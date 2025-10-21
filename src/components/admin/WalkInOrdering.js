@@ -278,40 +278,53 @@ const WalkInOrdering = ({ onClose }) => {
   return (
     <div className="walkin-ordering-overlay">
       <div className="walkin-ordering-container">
-        {/* Enhanced Header */}
+        {/* Modern Header */}
         <div className="walkin-header">
+          {/* Left Section: Title and Stats */}
           <div className="header-left">
-            <div className="header-title">
-              <FaShoppingCart className="title-icon" />
-              <h1>Walk-in Ordering</h1>
-              <div className="title-badge">
-                <FaUser className="badge-icon" />
-                <span>Admin Mode</span>
+            <div className="header-title-section">
+              <div className="title-group">
+                <FaShoppingCart className="title-icon" />
+                <h1>Walk-in Ordering</h1>
+                <div className="title-badge">
+                  <FaUser className="badge-icon" />
+                  <span>Admin Mode</span>
+                </div>
               </div>
-            </div>
-            <div className="header-stats">
-              <div className="stat-item">
-                <FaStore className="stat-icon" />
-                <span>{products.length} Products</span>
-              </div>
-              <div className="stat-item">
-                <FaShoppingBag className="stat-icon" />
-                <span>{getTotalItems()} in Cart</span>
+              <div className="header-stats">
+                <div className="stat-item">
+                  <FaStore className="stat-icon" />
+                  <span>{products.length} Products</span>
+                </div>
+                <div className="stat-item">
+                  <FaShoppingBag className="stat-icon" />
+                  <span>{getTotalItems()} in Cart</span>
+                </div>
               </div>
             </div>
           </div>
           
-           <div className="header-actions">
-            <button 
-              className={`action-btn filters-btn ${showFilters ? 'active' : ''}`}
-              onClick={() => setShowFilters(!showFilters)}
-              title="Toggle Filters"
-            >
-              <FaFilter />
-            </button>
-            <button className="action-btn close-btn" onClick={onClose}>
-              <FaTimes />
-            </button>
+          {/* Right Section: Action Buttons */}
+          <div className="header-actions">
+            <div className="action-buttons-group">
+              <button 
+                className={`action-btn search-btn`}
+                onClick={() => setShowFilters(!showFilters)}
+                title="Search Products"
+              >
+                <FaSearch />
+              </button>
+              <button 
+                className={`action-btn filters-btn ${showFilters ? 'active' : ''}`}
+                onClick={() => setShowFilters(!showFilters)}
+                title="Toggle Filters"
+              >
+                <FaFilter />
+              </button>
+              <button className="action-btn close-btn" onClick={onClose} title="Close">
+                <FaTimes />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -319,43 +332,21 @@ const WalkInOrdering = ({ onClose }) => {
           {/* Enhanced Search and Filters */}
           {showFilters && (
             <div className="walkin-filters">
-              <div className="category-filters">
-                {categories.map(category => {
-                  const IconComponent = category.icon;
-                  return (
-                    <button
-                      key={category.value}
-                      className={`category-btn ${selectedCategory === category.value ? 'active' : ''}`}
-                      onClick={() => setSelectedCategory(category.value)}
-                      style={{ '--category-color': category.color }}
-                    >
-                      <IconComponent className="category-icon" />
-                      <span>{category.label}</span>
-                      {selectedCategory === category.value && (
-                        <div className="category-count">
-                          {filteredProducts.filter(p => p.category.toLowerCase() === category.value.toLowerCase()).length}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-                
-                <div className="search-wrapper">
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Search products by name or category..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  <button 
-                    className="search-action-button"
-                    onClick={() => {}}
-                    title="Search"
-                  >
-                    <FaSearch />
-                  </button>
-                </div>
+              <div className="search-wrapper">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search products by name or category..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <button 
+                  className="search-action-button"
+                  onClick={() => {}}
+                  title="Search"
+                >
+                  <FaSearch />
+                </button>
               </div>
             </div>
           )}

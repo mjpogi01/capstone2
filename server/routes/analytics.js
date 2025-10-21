@@ -65,10 +65,13 @@ router.get('/dashboard', async (req, res) => {
       const status = order.status || 'pending';
       if (statusCounts.hasOwnProperty(status)) {
         statusCounts[status]++;
-      } else if (status === 'delivered') {
+      } else if (status === 'delivered' || status === 'picked_up_delivered') {
         statusCounts.completed++;
-      } else if (status === 'confirmed') {
+      } else if (status === 'confirmed' || status === 'layout' || status === 'packing_completing') {
         statusCounts.processing++;
+      } else {
+        // For any other status, count as pending
+        statusCounts.pending++;
       }
     });
 
@@ -144,6 +147,9 @@ router.get('/dashboard', async (req, res) => {
       total: totalOrders
     };
 
+    // Calculate unique customers
+    const uniqueCustomers = new Set(allOrders.map(order => order.user_id)).size;
+
     // Process data for frontend
     const processedData = {
       salesOverTime: salesOverTimeArray,
@@ -153,6 +159,7 @@ router.get('/dashboard', async (req, res) => {
       summary: {
         totalRevenue: totalRevenue,
         totalOrders: totalOrders,
+        totalCustomers: uniqueCustomers,
         averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0
       },
       recentOrders: recentOrders.slice(0, 10).map(order => ({

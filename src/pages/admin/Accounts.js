@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faRotateRight } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faRotateRight, faTrash, faUsers, faUserShield } from '@fortawesome/free-solid-svg-icons';
 import Sidebar from '../../components/admin/Sidebar';
 import '../admin/AdminDashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -219,8 +219,11 @@ const Accounts = () => {
 
   if (loading) {
     return (
-      <div className={`admin-dashboard`}>
-        <Sidebar activePage={'accounts'} setActivePage={() => {}} />
+      <div className="admin-dashboard">
+        <Sidebar 
+          activePage={'accounts'} 
+          setActivePage={() => {}} 
+        />
         <div className="admin-main-content">
           <div className="accounts-container">
             <div className="loading">Loading accounts...</div>
@@ -231,8 +234,11 @@ const Accounts = () => {
   }
 
   return (
-    <div className={`admin-dashboard`}>
-      <Sidebar activePage={'accounts'} setActivePage={() => {}} />
+    <div className="admin-dashboard">
+      <Sidebar 
+        activePage={'accounts'} 
+        setActivePage={() => {}} 
+      />
       <div className="admin-main-content">
     <div className="accounts-container">
       <div className="accounts-header">
@@ -247,7 +253,10 @@ const Accounts = () => {
       {isOwner && (
         <div className="accounts-section">
           <div className="section-header">
-            <h2>Admin Accounts ({filteredAdminAccounts.length})</h2>
+            <h2>
+              <FontAwesomeIcon icon={faUserShield} />
+              Admin Accounts ({filteredAdminAccounts.length})
+            </h2>
             <div className="accounts-search-container">
               <input
                 type="text"
@@ -293,7 +302,10 @@ const Accounts = () => {
                         <button
                           onClick={() => handleDeleteAdmin(admin.id)}
                           className="delete-btn"
+                          title="Delete Admin Account"
+                          aria-label="Delete Admin Account"
                         >
+                          <FontAwesomeIcon icon={faTrash} />
                           Delete
                         </button>
                       </td>
@@ -309,7 +321,10 @@ const Accounts = () => {
       {/* Customer Accounts Section */}
       <div className="accounts-section">
         <div className="section-header">
-          <h2>Customer Accounts ({filteredCustomerAccounts.length})</h2>
+          <h2>
+            <FontAwesomeIcon icon={faUsers} />
+            Customer Accounts ({filteredCustomerAccounts.length})
+          </h2>
           <div className="accounts-search-container">
             <input
               type="text"
@@ -349,7 +364,10 @@ const Accounts = () => {
                       <button
                         onClick={() => handleDeleteCustomer(customer.id)}
                         className="delete-btn"
+                        title="Delete Customer Account"
+                        aria-label="Delete Customer Account"
                       >
+                        <FontAwesomeIcon icon={faTrash} />
                         Delete
                       </button>
                     </td>

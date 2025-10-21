@@ -12,7 +12,6 @@ import Analytics from './Analytics';
 
 const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('home');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const renderContent = () => {
     switch (activePage) {
@@ -56,12 +55,10 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className={`admin-dashboard ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+    <div className="admin-dashboard">
       <Sidebar 
         activePage={activePage} 
         setActivePage={setActivePage}
-        collapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(v => !v)}
       />
       <div className="admin-main-content">
         {renderContent()}
