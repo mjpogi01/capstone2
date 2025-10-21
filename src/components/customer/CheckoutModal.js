@@ -56,15 +56,15 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   if (!isOpen) return null;
 
   const locations = [
-    'MAIN (SAN PASCUAL)',
-    'MUZON',
-    'ROSARIO',
     'BATANGAS CITY',
-    'PINAMALAYAN',
-    'CALACA',
-    'LEMERY',
+    'BAUAN',
+    'SAN PASCUAL (MAIN BRANCH)',
     'CALAPAN',
-    'BAUAN'
+    'PINAMALAYAN',
+    'MUZON',
+    'LEMERY',
+    'ROSARIO',
+    'CALACA'
   ];
 
   const subtotalAmount = cartItems.reduce((total, item) => {
@@ -637,9 +637,9 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                     </div>
                   </div>
                 </div>
-                <div className="price-cell">₱{parseFloat(item.price).toFixed(2)}</div>
+                <div className="price-cell">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                 <div className="quantity-cell">{item.quantity}</div>
-                <div className="total-cell">₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
+                <div className="total-cell">₱{(parseFloat(item.price) * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                 </div>
               );
             })}
@@ -671,31 +671,6 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                   </div>
                 </label>
                 
-                {shippingMethod === 'pickup' && (
-                  <div className="location-selector">
-                    <div className="location-dropdown" onClick={() => setShowLocationDropdown(!showLocationDropdown)}>
-                      <span className="location-text">{selectedLocation}</span>
-                      <FaChevronDown className="dropdown-arrow" />
-                    </div>
-                    {showLocationDropdown && (
-                      <div className="location-options">
-                        {locations.map((location, index) => (
-                          <div
-                            key={index}
-                            className="location-option"
-                            onClick={() => {
-                              setSelectedLocation(location);
-                              setShowLocationDropdown(false);
-                            }}
-                          >
-                            {location}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                
                 <label className="shipping-option">
                   <input
                     type="radio"
@@ -710,6 +685,31 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                     <div className="option-subtitle">₱50.00</div>
                   </div>
                 </label>
+                
+                {/* Location selector shown for both pickup and COD */}
+                <div className="location-selector">
+                  <label className="location-label">Select Branch Location:</label>
+                  <div className="location-dropdown" onClick={() => setShowLocationDropdown(!showLocationDropdown)}>
+                    <span className="location-text">{selectedLocation}</span>
+                    <FaChevronDown className="dropdown-arrow" />
+                  </div>
+                  {showLocationDropdown && (
+                    <div className="location-options">
+                      {locations.map((location, index) => (
+                        <div
+                          key={index}
+                          className="location-option"
+                          onClick={() => {
+                            setSelectedLocation(location);
+                            setShowLocationDropdown(false);
+                          }}
+                        >
+                          {location}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -733,15 +733,15 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           <div className="order-summary">
             <div className="summary-row">
               <span>Merchandise Subtotal:</span>
-              <span>₱{subtotalAmount.toFixed(2)}</span>
+              <span>₱{subtotalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             </div>
             <div className="summary-row">
               <span>Shipping Subtotal:</span>
-              <span>₱{shippingCost.toFixed(2)}</span>
+              <span>₱{shippingCost.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             </div>
             <div className="summary-row total-row">
               <span>Total Payment ({totalItems} items):</span>
-              <span>₱{totalAmount.toFixed(2)}</span>
+              <span>₱{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             </div>
           </div>
           

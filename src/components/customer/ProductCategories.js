@@ -202,7 +202,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
                   <div className="product-info">
                     <div className="product-brand"></div>
                     <p className="product-name">{product.name}</p>
-                    <div className="product-price">₱ {parseFloat(product.price).toFixed(2)}</div>
+                    <div className="product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                   </div>
                 </ProtectedAction>
                 <button

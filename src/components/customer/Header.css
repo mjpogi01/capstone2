@@ -46,17 +46,46 @@
   font-family: 'Orbitron', monospace;
   text-transform: uppercase;
   letter-spacing: 1px;
+  border: none !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .nav-link:hover {
   color: #ff6b6b;
   text-shadow: 0 0 10px #ff6b6b;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.nav-link:focus,
+.nav-link:focus-visible,
+.nav-link:active,
+.nav-link:visited {
+  border: none !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .nav-link.active {
   color: #ff6b6b;
   text-shadow: 0 0 15px #ff6b6b;
   font-weight: 700;
+  border: none !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .nav-link.active::after {

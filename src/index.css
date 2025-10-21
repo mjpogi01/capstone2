@@ -43,6 +43,67 @@ code {
     monospace;
 }
 
+/* Global button border removal */
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.btn,
+a.btn {
+  border: none !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+button:hover,
+button:focus,
+button:active,
+button:focus-visible,
+input[type="button"]:hover,
+input[type="button"]:focus,
+input[type="button"]:active,
+input[type="submit"]:hover,
+input[type="submit"]:focus,
+input[type="submit"]:active,
+input[type="reset"]:hover,
+input[type="reset"]:focus,
+input[type="reset"]:active,
+.btn:hover,
+.btn:focus,
+.btn:active,
+a.btn:hover,
+a.btn:focus,
+a.btn:active {
+  border: none !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Global price and number fonts */
+.item-price,
+.product-price,
+.modal-product-price,
+.total-price,
+.item-total,
+.cart-total,
+.total-amount,
+.walkin-product-price,
+.customer-order-total,
+.total-summary,
+.summary-row,
+.order-summary,
+.checkout-total,
+[class*="price"],
+[class*="total"] {
+  font-family: 'Oswald', sans-serif !important;
+}
+
 /* Ensure proper rendering on all devices */
 html {
   scroll-behavior: smooth;

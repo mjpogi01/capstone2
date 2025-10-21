@@ -274,17 +274,19 @@
 
 .modal-switch-container {
   display: flex;
-  background: #1a1a2e;
-  border: 2px solid #333;
+  gap: 10px;
+  background: transparent;
+  border: none;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
 .modal-switch-option {
   flex: 1;
-  background: transparent;
-  border: none;
+  background: #1a1a2e;
+  border: 2px solid #333;
+  border-radius: 8px;
   padding: 12px 16px;
   color: #ccc;
   font-size: 0.9rem;
@@ -311,6 +313,7 @@
   color: #000;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(0, 191, 255, 0.3);
+  border: 2px solid #00bfff;
 }
 
 .modal-switch-text {
@@ -373,13 +376,13 @@
 }
 
 .modal-member-inputs {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 2fr 1fr 100px 50px;
+  gap: 10px;
+  align-items: stretch;
 }
 
 .modal-member-input {
-  flex: 1;
   background: #2a2a3e;
   border: 2px solid #555;
   border-radius: 6px;
@@ -387,6 +390,8 @@
   color: #fff;
   font-size: 0.9rem;
   transition: all 0.3s ease;
+  width: 100%;
+  height: 100%;
 }
 
 .modal-member-input:focus {
@@ -400,7 +405,7 @@
 }
 
 .modal-member-input.number-input {
-  flex: 0.5;
+  /* No need for flex override with grid */
 }
 
 .modal-member-select {
@@ -412,7 +417,8 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 60px;
+  width: 100%;
+  height: 100%;
 }
 
 .modal-member-select:focus {

@@ -5,10 +5,12 @@ import slide1b from '../../images/Slide/1b.png';
 import slide1c from '../../images/Slide/1c.png';
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
+import ProductListModal from './ProductListModal';
 
 const Hero = () => {
 	const slides = [slide1a, slide1b, slide1c];
 	const [current, setCurrent] = useState(0);
+	const [showProductList, setShowProductList] = useState(false);
 	const { openSignIn } = useModal();
 
 	useEffect(() => {
@@ -37,9 +39,8 @@ const Hero = () => {
 					<div className="hero-buttons">
 						<ProtectedAction
 							onAuthenticated={() => {
-								// Navigate to shop or products page
-								console.log("User is authenticated, proceeding to shop");
-								// You can add navigation logic here
+								// Open the product list modal
+								setShowProductList(true);
 							}}
 							onUnauthenticated={() => {
 								// Show sign in modal
@@ -56,6 +57,12 @@ const Hero = () => {
 					<img src={slides[current]} alt={`Slide ${current + 1}`} className="hero-photo" />
 				</div>
 			</div>
+
+			{/* Product List Modal */}
+			<ProductListModal 
+				isOpen={showProductList} 
+				onClose={() => setShowProductList(false)} 
+			/>
 		</section>
 	);
 };

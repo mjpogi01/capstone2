@@ -605,7 +605,7 @@ const Orders = () => {
             </div>
             
             <div className="table-cell total-amount">
-              ₱{(order.totalAmount || 0).toFixed(2)}
+              ₱{(order.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </div>
             
             <div className="table-cell order-date">
@@ -682,7 +682,7 @@ const Orders = () => {
                           <img src={item.image} alt={item.name} className="item-image" />
                           <div className="item-info">
                             <div className="item-name">{item.name}</div>
-                            <div className="item-price">₱{(item.price || 0).toFixed(2)} × {item.quantity}</div>
+                            <div className="item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} × {item.quantity}</div>
                           </div>
                         </div>
                         
@@ -717,15 +717,15 @@ const Orders = () => {
                     <h4>Order Summary</h4>
                     <div className="summary-row">
                       <span>Subtotal:</span>
-                      <span>₱{(order.subtotalAmount || 0).toFixed(2)}</span>
+                      <span>₱{(order.subtotalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     </div>
                     <div className="summary-row">
                       <span>Shipping:</span>
-                      <span>₱{(order.shippingCost || 0).toFixed(2)}</span>
+                      <span>₱{(order.shippingCost || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     </div>
                     <div className="summary-row total">
                       <span>Total:</span>
-                      <span>₱{(order.totalAmount || 0).toFixed(2)}</span>
+                      <span>₱{(order.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     </div>
                   </div>
                   

@@ -84,7 +84,7 @@ const WishlistModal = () => {
                   <div className="wishlist-item-details">
                     <h3 className="wishlist-item-name">{item.name}</h3>
                     <p className="wishlist-item-category">{item.category}</p>
-                    <p className="wishlist-item-price">₱ {item.price.toFixed(2)}</p>
+                    <p className="wishlist-item-price">₱ {parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                     <p className="wishlist-item-date">
                       Added on {new Date(item.addedAt).toLocaleDateString()}
                     </p>

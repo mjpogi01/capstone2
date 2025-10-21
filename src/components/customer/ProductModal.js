@@ -348,11 +348,11 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 <div className="modal-product-price">
                   {sizeType === 'kids' ? (
                     <>
-                      <span className="discounted-price">₱ {(parseFloat(product.price) - 200).toFixed(2)}</span>
-                      <span className="original-price">₱ {parseFloat(product.price).toFixed(2)}</span>
+                      <span className="discounted-price">₱ {(parseFloat(product.price) - 200).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                      <span className="original-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     </>
                   ) : (
-                    `₱ ${parseFloat(product.price).toFixed(2)}`
+                    `₱ ${parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                   )}
                 </div>
               </div>

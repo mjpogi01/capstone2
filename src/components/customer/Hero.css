@@ -6,6 +6,9 @@
   padding: 0.5rem 0 1rem;
   position: relative;
   overflow: hidden;
+  border: none;
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .hero::before {

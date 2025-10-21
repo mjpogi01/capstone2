@@ -443,9 +443,9 @@ const WalkInOrdering = ({ onClose }) => {
                             {product.category}
                           </p>
                           <div className="product-price-section">
-                            <p className="walkin-product-price">₱{parseFloat(product.price).toFixed(2)}</p>
+                            <p className="walkin-product-price">₱{parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                             {product.price < 500 && (
-                              <span className="original-price">₱{parseFloat(product.price * 1.2).toFixed(2)}</span>
+                              <span className="original-price">₱{parseFloat(product.price * 1.2).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                             )}
                           </div>
                         </div>

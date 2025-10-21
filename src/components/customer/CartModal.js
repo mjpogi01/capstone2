@@ -256,7 +256,7 @@ const CartModal = () => {
                         </div>
                         
                         <div className="price-section">
-                          <div className="item-price">₱{parseFloat(item.price).toFixed(2)}</div>
+                          <div className="item-price">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                         </div>
                       </div>
                     </div>
@@ -275,7 +275,7 @@ const CartModal = () => {
                           </div>
                           
                           <div className="total-summary">
-                            <span>Total ({getCartItemCount()} Item): ₱{getCartTotal().toFixed(2)}</span>
+                            <span>Total ({getCartItemCount()} Item): ₱{getCartTotal().toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                           </div>
                           
                           <button 

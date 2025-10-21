@@ -276,7 +276,7 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         <FaCalendarAlt /> {formatDate(order.orderDate)}
                       </div>
                       <div className="customer-order-total">
-                        Total: ₱{order.totalAmount.toFixed(2)}
+                        Total: ₱{parseFloat(order.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div className="customer-order-status">
@@ -310,7 +310,7 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                   )}
                                 </div>
                               </div>
-                              <div className="item-price">₱{(item.price * item.quantity).toFixed(2)}</div>
+                              <div className="item-price">₱{(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                             </div>
                           ))}
                         </div>
@@ -422,15 +422,15 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         <h4>Order Summary</h4>
                         <div className="summary-row">
                           <span>Subtotal:</span>
-                          <span>₱{order.subtotalAmount.toFixed(2)}</span>
+                          <span>₱{parseFloat(order.subtotalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                         </div>
                         <div className="summary-row">
                           <span>Shipping:</span>
-                          <span>₱{order.shippingCost.toFixed(2)}</span>
+                          <span>₱{parseFloat(order.shippingCost).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                         </div>
                         <div className="summary-row total">
                           <span>Total:</span>
-                          <span>₱{order.totalAmount.toFixed(2)}</span>
+                          <span>₱{parseFloat(order.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                         </div>
                         {order.orderNotes && (
                           <div className="order-notes">
@@ -494,7 +494,7 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
             <div className="review-modal-body">
               <div className="review-order-info">
                 <h4>Order #{selectedOrderForReview.orderNumber}</h4>
-                <p>Total: ₱{selectedOrderForReview.totalAmount.toFixed(2)}</p>
+                <p>Total: ₱{parseFloat(selectedOrderForReview.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
               </div>
               
               <div className="review-rating-input">
