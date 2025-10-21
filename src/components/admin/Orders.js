@@ -197,7 +197,7 @@ const Orders = () => {
       'press': 'PRESS',
       'prod': 'PROD',
       'packing_completing': 'PACKING',
-      'picked_up_delivered': 'DELIVERED',
+      'picked_up_delivered': 'PICKED UP/DELIVERED',
       'cancelled': 'CANCELLED'
     };
     return displayNames[status] || status.toUpperCase();
@@ -213,9 +213,9 @@ const Orders = () => {
       case 'press': return 'Press operations';
       case 'prod': return 'Production stage';
       case 'packing_completing': return 'Packing stage';
-      case 'picked_up_delivered': return 'Order completed';
+      case 'picked_up_delivered': return 'Order picked up or delivered';
       case 'cancelled': return 'Order cancelled';
-      default: return status;
+      default: return 'Unknown status';
     }
   };
 
