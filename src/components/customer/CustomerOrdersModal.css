@@ -367,7 +367,7 @@
 
 .item-name {
   font-weight: 600;
-  color: #ffffff;
+  color: #000000 !important;
   margin-bottom: 4px;
   font-size: 15px;
 }
