@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FaTimes, FaHeart, FaShoppingCart, FaTrash } from 'react-icons/fa';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes, faTrash, faShoppingCart, faHeart } from '@fortawesome/free-solid-svg-icons';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -33,7 +34,6 @@ const WishlistModal = () => {
 
   const handleAddToCart = (product) => {
     // Normalize the product data to match ProductModal expectations
-    // Wishlist items use 'image' field, but ProductModal expects 'main_image'
     const normalizedProduct = {
       ...product,
       main_image: product.image || product.main_image || '/images/placeholder-jersey.png'
@@ -74,38 +74,37 @@ const WishlistModal = () => {
   };
 
   return (
-    <div className="wishlist-modal-overlay" onClick={closeWishlist}>
-      <div className="wishlist-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="wishlist-header">
-          <h2 className="wishlist-title">
-            My Wishlist
-          </h2>
-          <button className="wishlist-close-btn" onClick={closeWishlist}>
-            <FaTimes />
+    <div className="mywishlist-overlay-clean" onClick={closeWishlist}>
+      <div className="mywishlist-container-clean" onClick={(e) => e.stopPropagation()}>
+        <div className="mywishlist-header-clean">
+          <h2>MY WISHLIST</h2>
+          <button className="mywishlist-close-btn-clean" onClick={closeWishlist} title="Close">
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
 
-        <div className="wishlist-content">
+        <div className="mywishlist-content-clean">
           {isLoading ? (
-            <div className="wishlist-loading">
-              <div className="loading-spinner"></div>
+            <div className="mywishlist-loading-state">
+              <div className="mywishlist-loading-spinner"></div>
               <p>Loading your wishlist...</p>
             </div>
           ) : error ? (
-            <div className="wishlist-error">
-              <p>Error loading wishlist: {error}</p>
+            <div className="mywishlist-error-state">
+              <p>Error: {error}</p>
+              <button onClick={() => window.location.reload()}>Retry</button>
             </div>
           ) : wishlistItems.length === 0 ? (
-            <div className="wishlist-empty">
-              <FaHeart className="empty-heart-icon" />
+            <div className="mywishlist-empty-state">
+              <FontAwesomeIcon icon={faHeart} className="mywishlist-empty-icon" />
               <h3>Your wishlist is empty</h3>
-              <p>Start adding items you love to your wishlist!</p>
+              <p>Save items you love to your wishlist!</p>
             </div>
           ) : (
-            <div className="wishlist-items">
+            <div className="mywishlist-items-list-clean">
               {wishlistItems.map((item) => (
-                <div key={item.id} className="wishlist-item">
-                  <div className="wishlist-item-image">
+                <div key={item.id} className="mywishlist-item-box">
+                  <div className="mywishlist-product-image-wrapper">
                     <img 
                       src={item.image || '/images/placeholder-jersey.png'} 
                       alt={item.name}
@@ -115,31 +114,41 @@ const WishlistModal = () => {
                     />
                   </div>
                   
-                  <div className="wishlist-item-details">
-                    <h3 className="wishlist-item-name">{item.name}</h3>
-                    <p className="wishlist-item-category">{item.category}</p>
-                    <p className="wishlist-item-price">₱ {parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                    <p className="wishlist-item-date">
-                      Added on {new Date(item.addedAt).toLocaleDateString()}
-                    </p>
-                  </div>
+                  <div className="mywishlist-product-info-section">
+                    <div className="mywishlist-product-header-line">
+                      <h3 className="mywishlist-product-name">{item.name}</h3>
+                      <button 
+                        className="mywishlist-remove-btn-clean"
+                        onClick={() => handleRemoveFromWishlist(item.id)}
+                        title="Remove from Wishlist"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </div>
+                    
+                    <div className="mywishlist-detail-line">
+                      <span className="mywishlist-detail-label">Category:</span>
+                      <span className="mywishlist-detail-value">{item.category || 'N/A'}</span>
+                    </div>
+                    
+                    <div className="mywishlist-detail-line">
+                      <span className="mywishlist-detail-label">Added:</span>
+                      <span className="mywishlist-detail-value">
+                        {item.addedAt ? new Date(item.addedAt).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                    
+                    <div className="mywishlist-price-display">
+                      <span className="mywishlist-item-price">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                    </div>
 
-                  <div className="wishlist-item-actions">
                     <button 
-                      className="add-to-cart-btn"
+                      className="mywishlist-add-to-cart-btn"
                       onClick={() => handleAddToCart(item)}
                       title="Add to Cart"
                     >
-                      <FaShoppingCart />
-                      Add to Cart
-                    </button>
-                    
-                    <button 
-                      className="remove-from-wishlist-btn"
-                      onClick={() => handleRemoveFromWishlist(item.id)}
-                      title="Remove from Wishlist"
-                    >
-                      <FaTrash />
+                      <FontAwesomeIcon icon={faShoppingCart} />
+                      <span>Add to Cart</span>
                     </button>
                   </div>
                 </div>
@@ -149,13 +158,14 @@ const WishlistModal = () => {
         </div>
 
         {wishlistItems.length > 0 && (
-          <div className="wishlist-footer">
-            <p className="wishlist-count">
-              {wishlistItems.length} item{wishlistItems.length !== 1 ? 's' : ''} in your wishlist
+          <div className="mywishlist-footer-section">
+            <p className="mywishlist-count">
+              {wishlistItems.length} item{wishlistItems.length !== 1 ? 's' : ''} in wishlist
             </p>
           </div>
         )}
       </div>
+
       {selectedProduct && (
         <ProductModal
           isOpen={isProductModalOpen}

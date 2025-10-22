@@ -115,6 +115,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         return;
       }
 
+      console.log('🛒 handleAddToCart called for product:', product.name, 'ID:', product.id);
+
       // Calculate price based on size type
       const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
       
@@ -129,14 +131,18 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         isReplacement: isFromCart // Mark as replacement when coming from cart
       };
 
+      console.log('🛒 Cart options:', cartOptions);
+
       // Use onConfirm callback if provided (for wishlist), otherwise continue with regular flow
       if (onConfirm) {
+        console.log('🛒 Using onConfirm callback');
         onConfirm(product, cartOptions);
         return;
       }
 
       // Use callback if provided (for walk-in ordering), otherwise use context
       if (onAddToCart) {
+        console.log('🛒 Using onAddToCart callback');
         onAddToCart(product, cartOptions);
         onClose();
         return;
@@ -147,20 +153,25 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         return;
       }
 
+      console.log('🛒 Adding to cart for user:', user.id);
+
       // If this is from cart, remove the existing item first
       if (isFromCart && existingCartItemId) {
+        console.log('🛒 Removing existing cart item:', existingCartItemId);
         await removeFromCart(existingCartItemId);
         // Add a small delay to ensure the removal is processed
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       
+      console.log('🛒 Calling addToCart context function');
       await addToCart(product, cartOptions);
       
+      console.log('✅ Item added to cart successfully');
       // The notification is already handled by CartContext
       // Close the modal after adding to cart
       onClose();
     } catch (error) {
-      console.error('Error updating cart:', error);
+      console.error('❌ Error updating cart:', error);
       
       // Show specific error message based on error type
       if (error.message.includes('Invalid product data')) {

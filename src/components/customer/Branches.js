@@ -189,25 +189,25 @@ const Branches = () => {
   };
 
   return (
-    <section id="branches" className="branches-section">
-      <div className="branches-container">
-        <h1 className="neon-text branches-heading">Our Branches</h1>
-        <p className="branches-description">Find the nearest Yohann's Sportswear House branch on the map.</p>
-        <div className="branches-layout">
-          <div className="branch-list">
+    <section id="branches" className="yohanns-branches-section">
+      <div className="yohanns-branches-container">
+        <h1 className="neon-text yohanns-branches-heading">Our Branches</h1>
+        <p className="yohanns-branches-description">Find the nearest Yohann's Sportswear House branch on the map.</p>
+        <div className="yohanns-branches-layout">
+          <div className="yohanns-branch-list">
             {branches.map((branch) => (
               <div 
                 key={branch.id} 
-                className={`branch-item ${activeId === branch.id ? 'active' : ''}`}
+                className={`yohanns-branch-item ${activeId === branch.id ? 'yohanns-branch-item-active' : ''}`}
                 onClick={() => focusBranch(branch)}
               >
-                <div className="branch-name">{branch.name}</div>
-                <div className="branch-address">{branch.address}</div>
+                <div className="yohanns-branch-name">{branch.name}</div>
+                <div className="yohanns-branch-address">{branch.address}</div>
                 {activeId === branch.id ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
                     disabled={isRouting}
-                    className="directions-button"
+                    className="yohanns-directions-button"
                     style={{ marginTop: '8px' }}
                   >
                     {isRouting ? 'Getting Directions...' : 'Get Directions'}
@@ -219,7 +219,7 @@ const Branches = () => {
 
           <MapContainer
             whenCreated={(map) => { mapRef.current = map; }}
-            className="map-container"
+            className="yohanns-map-container"
             center={branches[0].position}
             zoom={12}
             scrollWheelZoom={true}
@@ -250,20 +250,20 @@ const Branches = () => {
                     position={branch.position}
                     onClose={() => setActiveId(null)}
                   >
-                    <div className="info-window">
-                      <div className="info-window-title">{branch.name}</div>
-                      <div className="info-window-address">{branch.address}</div>
-                      <div className="info-window-badge">
+                    <div className="yohanns-info-window">
+                      <div className="yohanns-info-window-title">{branch.name}</div>
+                      <div className="yohanns-info-window-address">{branch.address}</div>
+                      <div className="yohanns-info-window-badge">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
                           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                           <circle cx="12" cy="10" r="3"/>
                         </svg>
-                        <span className="info-window-badge-text">Yohann's Sportswear House</span>
+                        <span className="yohanns-info-window-badge-text">Yohann's Sportswear House</span>
                       </div>
                       <button
                         onClick={() => getDirectionsTo(branch)}
                         disabled={isRouting}
-                        className="directions-button"
+                        className="yohanns-directions-button"
                       >
                         {isRouting ? 'Getting Directions...' : 'Get Directions'}
                       </button>

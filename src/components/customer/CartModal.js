@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FaTimes, FaTrash, FaMinus, FaPlus, FaShoppingBag } from 'react-icons/fa';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes, faTrash, faMinus, faPlus, faShoppingBag, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -144,46 +145,46 @@ const CartModal = () => {
 
   return (
     <>
-      <div className="cart-modal-overlay" onClick={closeCart}>
-        <div className="cart-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="cart-header">
+      <div className="mycart-overlay-clean" onClick={closeCart}>
+        <div className="mycart-container-clean" onClick={(e) => e.stopPropagation()}>
+          <div className="mycart-header-clean">
             <h2>MY CART</h2>
-            <button className="close-btn" onClick={closeCart}>
-              <FaTimes />
+            <button className="mycart-close-btn-clean" onClick={closeCart}>
+              <FontAwesomeIcon icon={faTimes} />
             </button>
           </div>
 
-                  <div className="cart-content">
-                    {isLoading ? (
-                      <div className="loading-cart">
-                        <div className="loading-spinner"></div>
-                        <p>Loading cart...</p>
-                      </div>
-                    ) : error ? (
-                      <div className="error-cart">
-                        <p>Error: {error}</p>
-                        <button onClick={() => window.location.reload()}>Retry</button>
-                      </div>
-                    ) : cartItems.length === 0 ? (
-                      <div className="empty-cart">
-                        <FaShoppingBag className="empty-cart-icon" />
-                        <h3>Your cart is empty</h3>
-                        <p>Add some items to get started!</p>
-                      </div>
-                    ) : (
+          <div className="mycart-content-clean">
+            {isLoading ? (
+              <div className="mycart-loading-state">
+                <div className="mycart-loading-spinner"></div>
+                <p>Loading cart...</p>
+              </div>
+            ) : error ? (
+              <div className="mycart-error-state">
+                <p>Error: {error}</p>
+                <button onClick={() => window.location.reload()}>Retry</button>
+              </div>
+            ) : cartItems.length === 0 ? (
+              <div className="mycart-empty-state">
+                <FontAwesomeIcon icon={faShoppingBag} className="mycart-empty-icon" />
+                <h3>Your cart is empty</h3>
+                <p>Add some items to get started!</p>
+              </div>
+            ) : (
               <>
-                        <div className="cart-items-list">
-                          {cartItems.map((item, index) => (
-                            <div key={item.uniqueId || item.id} className="cart-item-card">
-                              <div className="item-checkbox">
-                                <input 
-                                  type="checkbox" 
-                                  checked={isItemSelected(item.uniqueId || item.id)}
-                                  onChange={() => toggleItemSelection(item.uniqueId || item.id)}
-                                />
-                              </div>
-                      
-                      <div className="item-image">
+                <div className="mycart-items-list-clean">
+                  {cartItems.map((item, index) => (
+                    <div key={item.uniqueId || item.id} className="mycart-item-box">
+                      <div className="mycart-checkbox-wrapper">
+                        <input 
+                          type="checkbox" 
+                          checked={isItemSelected(item.uniqueId || item.id)}
+                          onChange={() => toggleItemSelection(item.uniqueId || item.id)}
+                        />
+                      </div>
+                
+                      <div className="mycart-product-image-wrapper">
                         <img 
                           src={item.image} 
                           alt={item.name}
@@ -193,104 +194,135 @@ const CartModal = () => {
                         />
                       </div>
                       
-                      <div className="item-details">
-                        <div className="item-header">
-                          <div className="item-name">{item.name}</div>
+                      <div className="mycart-product-info-section">
+                        <div className="mycart-product-header-line">
+                          <h3 className="mycart-product-name">{item.name}</h3>
                           <button 
-                            className="remove-btn-top"
+                            className="mycart-remove-btn-clean"
                             onClick={() => removeFromCart(item.uniqueId || item.id)}
                             title="Remove item"
                           >
-                            <FaTrash />
+                            <FontAwesomeIcon icon={faTrash} />
                           </button>
                         </div>
                         
-                        <div className="compact-order-container">
+                        <div className="mycart-order-type-container">
                           <div 
-                            className="compact-order-header"
+                            className={`mycart-order-type-header ${expandedOrderIndex === index ? 'expanded' : ''}`}
                             onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
                           >
-                            <span className="order-type-text">{item.isTeamOrder ? 'Team Order' : 'Single Order'}</span>
-                            <span className="dropdown-arrow">
-                              {expandedOrderIndex === index ? '▲' : '▼'}
+                            <span className="mycart-order-type-label">
+                              {item.isTeamOrder ? 'Team Order' : 'Single Order'}
+                            </span>
+                            <span className="mycart-dropdown-arrow">
+                              <FontAwesomeIcon icon={faChevronDown} />
                             </span>
                           </div>
                           
                           {expandedOrderIndex === index && (
-                            <div className="compact-order-details">
+                            <div className="mycart-order-details-section">
                               {item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 ? (
-                                <div className="compact-team-details">
-                                  <div className="team-name-header">
-                                    <span className="compact-detail team-name-detail">Team: {item.teamMembers[0]?.teamName || 'N/A'}</span>
+                                <div>
+                                  <div className="mycart-detail-line">
+                                    <span className="mycart-detail-label">Team:</span>
+                                    <span className="mycart-detail-value">{item.teamMembers[0]?.teamName || 'N/A'}</span>
                                   </div>
-                                  <div className="team-divider"></div>
-                                  {item.teamMembers.map((member, memberIndex) => (
-                                    <div key={memberIndex} className="compact-member">
-                                      <span className="compact-detail surname-detail">Surname: {member.surname || 'N/A'}</span>
-                                      <span className="compact-detail">Jersey: {member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
-                                      <span className="compact-detail">Size: {member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
-                                    </div>
-                                  ))}
+                                  <div className="mycart-team-members-list">
+                                    {item.teamMembers.map((member, memberIndex) => (
+                                      <div key={memberIndex} className="mycart-team-member-item">
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Surname:</span>
+                                          <span className="mycart-detail-value">{member.surname || 'N/A'}</span>
+                                        </div>
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Jersey:</span>
+                                          <span className="mycart-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                        </div>
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Size:</span>
+                                          <span className="mycart-detail-value">{member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               ) : (
-                                <div className="compact-single-details">
-                                  <span className="compact-detail team-name-detail">Team: {item.singleOrderDetails?.teamName || 'N/A'}</span>
-                                  <span className="compact-detail surname-detail">Surname: {item.singleOrderDetails?.surname || 'N/A'}</span>
-                                  <span className="compact-detail">Jersey: {item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
-                                  <span className="compact-detail">Size: {item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                <div>
+                                  <div className="mycart-detail-line">
+                                    <span className="mycart-detail-label">Team:</span>
+                                    <span className="mycart-detail-value">{item.singleOrderDetails?.teamName || 'N/A'}</span>
+                                  </div>
+                                  <div className="mycart-detail-line">
+                                    <span className="mycart-detail-label">Surname:</span>
+                                    <span className="mycart-detail-value">{item.singleOrderDetails?.surname || 'N/A'}</span>
+                                  </div>
+                                  <div className="mycart-detail-line">
+                                    <span className="mycart-detail-label">Jersey:</span>
+                                    <span className="mycart-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
+                                  </div>
+                                  <div className="mycart-detail-line">
+                                    <span className="mycart-detail-label">Size:</span>
+                                    <span className="mycart-detail-value">{item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                  </div>
                                 </div>
                               )}
                             </div>
                           )}
                         </div>
                         
-                        <div className="quantity-selector">
+                        <div className="mycart-quantity-controls">
                           <button 
-                            className="quantity-btn"
+                            className="mycart-quantity-btn"
                             onClick={() => handleQuantityChange(item.uniqueId || item.id, item.quantity - 1, item.isTeamOrder)}
+                            disabled={item.quantity <= 1}
+                            title={item.quantity <= 1 ? "Minimum quantity reached" : "Decrease quantity"}
+                            aria-label={`Decrease quantity of ${item.name}`}
                           >
-                            <FaMinus />
+                            <FontAwesomeIcon icon={faMinus} />
                           </button>
-                          <span className="quantity">{item.quantity}</span>
+                          <span className="mycart-quantity-display" aria-live="polite">{item.quantity}</span>
                           <button 
-                            className="quantity-btn"
+                            className="mycart-quantity-btn"
                             onClick={() => handleQuantityChange(item.uniqueId || item.id, item.quantity + 1, item.isTeamOrder)}
+                            title="Increase quantity"
+                            aria-label={`Increase quantity of ${item.name}`}
                           >
-                            <FaPlus />
+                            <FontAwesomeIcon icon={faPlus} />
                           </button>
                         </div>
                         
-                        <div className="price-section">
-                          <div className="item-price">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                        <div className="mycart-price-display">
+                          <span className="mycart-item-price">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                        <div className="cart-footer">
-                          <div className="select-all">
-                            <input 
-                              type="checkbox" 
-                              id="select-all" 
-                              checked={isAllSelected()}
-                              onChange={() => isAllSelected() ? deselectAllItems() : selectAllItems()}
-                            />
-                            <label htmlFor="select-all">Select All ({cartItems.length})</label>
-                          </div>
-                          
-                          <div className="total-summary">
-                            <span>Total ({getCartItemCount()} Item): ₱{getCartTotal().toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                          </div>
-                          
-                          <button 
-                            className="checkout-btn" 
-                            onClick={handleCheckout}
-                            disabled={selectedItems.size === 0}
-                          >
-                            CHECK OUT ({selectedItems.size} items)
-                          </button>
-                        </div>
+                <div className="mycart-footer-section">
+                  <div className="mycart-select-all-row">
+                    <input 
+                      type="checkbox" 
+                      id="select-all" 
+                      checked={isAllSelected()}
+                      onChange={() => isAllSelected() ? deselectAllItems() : selectAllItems()}
+                    />
+                    <label htmlFor="select-all">Select All ({cartItems.length})</label>
+                  </div>
+                  
+                  <div className="mycart-total-section">
+                    <span className="mycart-total-label">Total ({getCartItemCount()} Item):</span>
+                    <span className="mycart-total-amount">₱{getCartTotal().toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                  </div>
+                  
+                  <button 
+                    className="mycart-checkout-btn-clean" 
+                    onClick={handleCheckout}
+                    disabled={selectedItems.size === 0}
+                  >
+                    CHECK OUT ({selectedItems.size} items)
+                  </button>
+                </div>
               </>
             )}
           </div>
