@@ -1,31 +1,48 @@
+/* ===== SPORTSWEAR E-COMMERCE REDESIGN - MINIMALIST ===== */
+/* Pure Black Background with Electric Blue and Yellow Accents */
+/* Unique class names with 'sportswear-*' prefix to avoid CSS conflicts */
 
+* {
+  --sportswear-primary-dark: #000000;
+  --sportswear-accent-cyan: #00BFFF;
+  --sportswear-accent-yellow: #FFD700;
+  --sportswear-neon-blue: #00D4FF;
+  --sportswear-text-white: #FFFFFF;
+  --sportswear-border-cyan: rgba(0, 191, 255, 0.3);
+  --sportswear-glow-cyan: rgba(0, 191, 255, 0.6);
+  --sportswear-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+/* ===== MAIN CONTAINER ===== */
 .product-categories {
-  background: #0a0a0a;
-  padding: 3rem 0;
+  background: #000000;
+  padding: 4rem 0;
   min-height: 60vh;
   margin-top: -1px;
   border: none;
-  border-top: none;
+  position: relative;
+  overflow: hidden;
 }
 
-/* ===== Category Navigation Wrapper ===== */
-.category-nav-wrapper {
+/* ===== CATEGORY NAVIGATION WRAPPER ===== */
+.sportswear-category-nav-wrapper {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2rem;
-  max-width: 100%;
-  width: 100%;
+  margin-bottom: 3rem;
+  max-width: 1000px;
+  border: 1px solid rgba(255, 255, 255, 0.253);
+  border-radius: 50px;
   margin-left: auto;
   margin-right: auto;
   background: transparent;
   overflow: visible;
+  z-index: 1;
   padding: 0 1rem;
 }
 
-.category-nav {
+.sportswear-category-nav {
   display: flex;
   gap: 1.5rem;
   overflow-x: auto;
@@ -33,624 +50,600 @@
   white-space: nowrap;
   scrollbar-width: none;  
   scroll-behavior: smooth;
-  padding: 0.5rem 3rem;
+  flex: 1;
+  padding: 1rem 1rem;
   justify-content: flex-start;
-  background: transparent;
-  align-items: center;
-  min-height: 60px;
-  width: fit-content;
-  margin: 0 auto;
+  background: transparent;       
   max-width: 100%;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
-.category-nav::-webkit-scrollbar {
+.sportswear-category-nav::-webkit-scrollbar {
   display: none;          
 }
 
-/* ===== Scroll Buttons ===== */
-.scroll-btn {
-  background: rgba(0, 0, 0, 0.7);
-  border: none;
-  color: white;
-  font-size: 1.2rem;
+/* ===== SCROLL BUTTONS ===== */
+.sportswear-scroll-btn {
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.2), rgba(0, 191, 255, 0.1));
+  border: 3px solid var(--sportswear-accent-cyan);
+  color: var(--sportswear-accent-cyan);
+  font-size: 1.5rem;
   cursor: pointer;
-  padding: 0.6rem;
+  padding: 1rem;
   border-radius: 50%;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: 2;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 10px rgba(0, 191, 255, 0.6);
+  transition: var(--sportswear-transition);
+  box-shadow: 0 0 8px rgba(0, 191, 255, 0.4);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  font-weight: bold;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-.scroll-btn:hover {
-  background: #00bfff;
-  color: black;
-  box-shadow: 0 0 15px rgba(0, 191, 255, 1);
+.sportswear-scroll-btn:hover {
+  background: linear-gradient(135deg, var(--sportswear-accent-cyan), rgba(0, 212, 255, 0.3));
+  border-color: var(--sportswear-neon-blue);
+  color: var(--sportswear-text-white);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-50%) scale(1.15);
 }
 
-.scroll-btn.left {
-  left: 0.5rem;
+.sportswear-scroll-btn.left {
+  left: -60px;
 }
 
-.scroll-btn.right {
-  right: 0.5rem;
+.sportswear-scroll-btn.right {
+  right: -60px;
 }
 
-.category-btn {
+/* ===== CATEGORY BUTTONS ===== */
+.sportswear-category-btn {
   flex: 0 0 auto;
-  background: #00bfff !important;
-  color: #000000 !important;
-  border: none !important;
-  outline: none !important;
-  outline-width: 0 !important;
-  outline-offset: 0 !important;
-  padding: 0.75rem 2rem;
-  font-size: 0.9rem;
-  font-weight: 600;
+  background: transparent;
+  color: var(--sportswear-accent-cyan);
+  border: 2px solid var(--sportswear-accent-cyan);
+  padding: 0.6rem 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--sportswear-transition);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  border-radius: 25px;
-  font-family: 'Orbitron', monospace;
+  letter-spacing: 1.5px;
+  border-radius: 30px;
+  font-family: 'Orbitron', 'Courier New', monospace;
   min-width: fit-content;
   text-align: center;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: none !important;
   overflow: hidden;
   position: relative;
-  z-index: 1;
-  -webkit-tap-highlight-color: transparent !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.category-btn::before,
-.category-btn::after {
-  display: none !important;
-}
-
-.category-btn:hover {
-  background: #00d4ff !important;
-  color: #000000 !important;
-  border: none !important;
-  outline: none !important;
-  outline-width: 0 !important;
-  outline-offset: 0 !important;
-  outline-color: transparent !important;
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.6) !important;
-  transform: translateY(-2px);
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-.category-btn:focus,
-.category-btn:focus-visible,
-.category-btn:active,
-.category-btn:focus-within {
-  border: none !important;
-  outline: none !important;
-  outline-width: 0 !important;
-  outline-offset: 0 !important;
-  outline-color: transparent !important;
-  box-shadow: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-.category-btn.active {
-  background: #ffd700 !important;
+.sportswear-category-btn:hover {
   color: #000;
-  border: none !important;
-  outline: none !important;
-  outline-width: 0 !important;
-  outline-offset: 0 !important;
-  outline-color: transparent !important;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6) !important;
-  font-weight: 700;
-  -webkit-tap-highlight-color: transparent !important;
+  border-color: var(--sportswear-neon-blue);
+  background: var(--sportswear-accent-cyan);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
 }
 
-.products-container {
+.sportswear-category-btn.active {
+  background: var(--sportswear-accent-yellow);
+  color: #000;
+  border-color: var(--sportswear-accent-yellow);
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== PRODUCTS CONTAINER ===== */
+.sportswear-products-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
-.products-grid {
+/* ===== PRODUCTS GRID ===== */
+.sportswear-products-grid {
   display: grid;
-  grid-template-columns: repeat(3, 280px);
-  gap: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2.5rem;
   margin-bottom: 3rem;
-  justify-content: center;
   width: 100%;
   max-width: 100%;
+  padding: 0 2rem;
 }
 
-.product-card {
-  background: rgba(0, 191, 255, 0.05);
-  border: 1px solid rgba(0, 191, 255, 0.2);
-  border-radius: 12px;
+/* Ensure 4 columns on desktop */
+@media (min-width: 1200px) {
+  .sportswear-products-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+@media (min-width: 1000px) and (max-width: 1199px) {
+  .sportswear-products-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+/* ===== PRODUCT CARD ===== */
+.sportswear-product-card {
+  background: #000000;
+  border: 2px solid rgba(0, 191, 255, 0.3);
+  border-radius: 16px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: var(--sportswear-transition);
   position: relative;
   width: 100%;
-  max-width: 280px;
-  height: 450px;
+  height: 400px;
   display: flex;
   flex-direction: column;
-  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.product-clickable-area {
-  cursor: pointer;
+.sportswear-product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  border-color: rgba(0, 191, 255, 0.6);
+  background: rgba(0, 191, 255, 0.02);
+}
+
+/* ===== PRODUCT IMAGE SECTION ===== */
+.sportswear-product-image-wrapper {
+  position: relative;
+  height: 200px;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
   display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  flex: 1;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-bottom: 2px solid rgba(0, 191, 255, 0.2);
+  flex-shrink: 0;
 }
 
-.product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
+.sportswear-product-image {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 191, 255, 0.25);
+  transition: var(--sportswear-transition);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sportswear-product-card:hover .sportswear-product-image {
+  transform: scale(1.08);
   border-color: rgba(0, 191, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.product-categories .product-image {
-  height: 300px !important;
-  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  position: relative !important;
-  border-bottom: 1px solid rgba(0, 191, 255, 0.2) !important;
-  overflow: hidden !important;
-  padding: 10px !important;
-  width: 100% !important;
-  flex-shrink: 0 !important;
+.sportswear-product-emoji {
+  font-size: 5rem;
+  filter: none;
 }
 
-.product-emoji {
-  font-size: 4rem;
-  filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.5));
-}
-
-.product-info {
-  padding: 1.5rem;
+/* ===== PRODUCT INFO ===== */
+.sportswear-product-info {
+  padding: 1.2rem;
   position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 0.6rem;
 }
 
-.product-brand {
-  color: #ffffff;
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-family: 'Orbitron', monospace;
-}
-
-.product-categories .product-name {
-  color: #ffffff !important;
-  font-size: 1rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-  line-height: 1.4;
-  min-height: 2.8rem;
-  filter: contrast(1.2);
-}
-
-.product-categories .product-price {
-  color: #EFE312 !important;
-  font-size: 1.2rem;
+.sportswear-product-name {
+  color: var(--sportswear-text-white);
+  font-size: 16px;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  line-height: 1.3;
+  min-height: 2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
   font-family: 'Oswald', sans-serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-wrap: break-word;
 }
 
-.favorite-btn {
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  background: none !important;
-  background-color: transparent !important;
-  border: none !important;
-  font-size: 1.8rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: rgb(167, 16, 16);
-  padding: 0 !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  outline: none !important;
-  box-shadow: none !important;
-  width: auto !important;
-  height: auto !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  line-height: 1 !important;
+.sportswear-product-price {
+  color: var(--sportswear-accent-yellow);
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.8px;
+  margin-bottom: 0.3rem;
 }
 
-.favorite-btn svg {
-  width: 1.8rem !important;
-  height: 1.8rem !important;
-  display: block !important;
-  stroke-width: 0.5 !important;
-}
-
-.favorite-btn:hover {
-  transform: scale(1.2);
-  filter: drop-shadow(0 0 6px rgba(255, 107, 107, 0.8));
-  background: none !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-}
-
-.favorite-btn:focus,
-.favorite-btn:active {
-  outline: none !important;
-  border: none !important;
-  background: none !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-}
-
-.favorite-btn::before,
-.favorite-btn::after {
-  display: none !important;
-}
-
-.view-all-section {
-  text-align: center;
-}
-
-.view-all-btn {
-  background: #00bfff;
+/* ===== ADD TO CART / VIEW DETAILS BUTTON ===== */
+.sportswear-action-btn {
+  background: var(--sportswear-accent-cyan);
   color: #000;
   border: none;
-  padding: 1rem 2.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: 0.9rem 1.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--sportswear-transition);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  border-radius: 4px;
-  box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+  letter-spacing: 1.2px;
+  border-radius: 8px;
+  font-family: 'Orbitron', monospace;
+  box-shadow: 0 6px 18px rgba(0, 191, 255, 0.3);
+  margin-top: auto;
+  width: 100%;
+  text-align: center;
+  display: none;
+}
+
+.sportswear-action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.5);
+  background: var(--sportswear-neon-blue);
+}
+
+/* ===== OLD FAVORITE BUTTON (MOVED TO ACTION BUTTONS) ===== */
+.sportswear-favorite-btn {
+  display: none;
+}
+
+/* ===== ACTION BUTTONS CONTAINER ===== */
+.sportswear-action-buttons {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: auto;
+  width: 100%;
+}
+
+/* ===== ADD TO CART BUTTON ===== */
+.sportswear-add-to-cart-btn {
+  flex: 1;
+  background: linear-gradient(135deg, var(--sportswear-accent-cyan), var(--sportswear-neon-blue));
+  color: #000;
+  border: 2px solid var(--sportswear-accent-cyan);
+  padding: 0.55rem 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--sportswear-transition);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-radius: 6px;
+  font-family: 'Orbitron', monospace;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sportswear-add-to-cart-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, var(--sportswear-neon-blue), #00FFFF);
+}
+
+.sportswear-add-to-cart-btn:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.sportswear-add-to-cart-btn svg {
+  font-size: 0.8rem;
+}
+
+/* ===== ADD TO FAVORITES BUTTON ===== */
+.sportswear-add-to-favorites-btn {
+  flex: 0 0 auto;
+  background: rgba(255, 107, 107, 0.15);
+  color: rgb(255, 107, 107);
+  border: 2px solid rgba(255, 107, 107, 0.4);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--sportswear-transition);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  width: 42px;
+  height: auto;
+  min-height: 38px;
+}
+
+.sportswear-add-to-favorites-btn:hover {
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgb(255, 107, 107);
+  background: rgba(255, 107, 107, 0.3);
+  color: rgb(255, 150, 150);
+}
+
+.sportswear-add-to-favorites-btn:active {
+  transform: translateY(-1px) scale(0.96);
+}
+
+.sportswear-add-to-favorites-btn svg {
+  font-size: 1rem;
+}
+
+/* ===== VIEW ALL SECTION ===== */
+.sportswear-view-all-section {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.sportswear-view-all-btn {
+  background: var(--sportswear-accent-cyan);
+  color: #000;
+  border: 2px solid var(--sportswear-accent-cyan);
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--sportswear-transition);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   font-family: 'Orbitron', monospace;
 }
 
-.view-all-btn:hover {
-  background: #0099cc;
+.sportswear-view-all-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  background: var(--sportswear-neon-blue);
+}
+
+.sportswear-view-all-btn.show-less {
+  background: rgb(201, 45, 45);
+  color: white;
+  border-color: var(--sportswear-accent-yellow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sportswear-view-all-btn.show-less:hover {
+  background: var(--sportswear-accent-yellow);
+  color: #000;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== LOADING & ERROR STATES ===== */
+.sportswear-loading-container,
+.sportswear-error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  padding: 3rem 2rem;
+}
+
+.sportswear-loading-spinner {
+  font-size: 1.2rem;
+  color: var(--sportswear-accent-cyan);
+  animation: sportswear-pulse 1.5s ease-in-out infinite;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+
+.sportswear-error-container {
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sportswear-error-message {
+  color: #ff6b6b;
+    font-size: 1.1rem;
+  text-align: center;
+  font-weight: 600;
+  }
+  
+.sportswear-retry-btn {
+  background: var(--sportswear-accent-cyan);
+  color: #000;
+  border: none;
+    padding: 0.9rem 2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: var(--sportswear-transition);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sportswear-retry-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.view-all-btn.show-less {
-  background: #666;
-  color: #fff;
-  box-shadow: 0 0 20px rgba(102, 102, 102, 0.3);
+/* ===== ANIMATIONS ===== */
+@keyframes sportswear-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
-.view-all-btn.show-less:hover {
-  background: #555;
-  box-shadow: 0 0 30px rgba(102, 102, 102, 0.5);
-}
-
-/* Tablet styles */
+/* ===== TABLET RESPONSIVE (1024px and below) ===== */
 @media (max-width: 1024px) {
   .product-categories {
-    padding: 2.5rem 0;
+    padding: 3rem 0;
   }
   
-  .category-nav {
-    gap: 0.75rem;
-    padding: 0 2rem;
+  .sportswear-category-nav {
+    gap: 1.2rem;
+    padding: 1rem 2rem;
   }
   
-  .category-btn {
-    padding: 0.6rem 1.25rem;
+  .sportswear-category-btn {
+    padding: 0.65rem 1.5rem;
     font-size: 0.85rem;
   }
   
-  .products-grid {
+  .sportswear-products-container {
+    padding: 1.5rem;
+  }
+  
+  .sportswear-products-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.75rem;
-  }
-  
-  .products-container {
-    padding: 0 1.5rem;
-  }
-  
-  .product-categories .product-image {
-    height: 320px !important;
-    padding: 9px !important;
+    gap: 1.8rem;
   }
 }
 
-/* Mobile styles */
+/* ===== MOBILE RESPONSIVE (768px and below) ===== */
 @media (max-width: 768px) {
   .product-categories {
     padding: 2rem 0;
   }
   
-  .category-nav {
-    gap: 0.5rem;
-    padding: 0 1rem;
+  .sportswear-category-nav {
+    gap: 1rem;
+    padding: 1rem 1.5rem;
   }
-  
-  .category-btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
+
+  .sportswear-category-btn {
+    padding: 0.55rem 1.2rem;
+    font-size: 0.75rem;
   }
-  
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
+
+  .sportswear-products-container {
+    padding: 1rem;
+  }
+
+  .sportswear-products-grid {
+    grid-template-columns: 1fr;
     gap: 1.5rem;
-  }
-  
-  .products-container {
     padding: 0 1rem;
   }
   
-  .product-categories .product-image {
-    height: 280px !important;
-    padding: 8px !important;
+  .sportswear-product-name {
+    font-size: 11px;
   }
-  
-  .product-info {
-    padding: 1.25rem;
-  }
-  
-  .product-name {
-    font-size: 0.95rem;
-    min-height: 2.6rem;
-  }
-  
-  .product-price {
-    font-size: 1.1rem;
-  }
-  
-  .view-all-btn {
-    padding: 0.9rem 2rem;
-    font-size: 0.95rem;
+
+  .sportswear-product-price {
+    font-size: 1rem;
   }
 }
 
-/* Small mobile styles */
+/* ===== EXTRA SMALL DEVICES (480px and below) ===== */
 @media (max-width: 480px) {
   .product-categories {
     padding: 1.5rem 0;
   }
   
-  .category-nav {
-    gap: 0.4rem;
-    padding: 0 0.75rem;
+  .sportswear-category-nav {
+    gap: 0.8rem;
+    padding: 0.8rem 1rem;
   }
-  
-  .category-btn {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.75rem;
+
+  .sportswear-category-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
   }
-  
-  .products-grid {
-    grid-template-columns: repeat(1, 1fr);
-    gap: 1.25rem;
+
+  .sportswear-products-container {
+    padding: 0.8rem;
   }
-  
-  .products-container {
-    padding: 0 0.75rem;
-  }
-  
-  .product-categories .product-image {
-    height: 240px !important;
-    padding: 6px !important;
-  }
-  
-  .product-info {
-    padding: 1rem;
-  }
-  
-  .product-name {
-    font-size: 0.9rem;
-    min-height: 2.4rem;
-  }
-  
-  .product-price {
-    font-size: 1rem;
-  }
-  
-  .product-brand {
-    font-size: 0.8rem;
-  }
-  
-  .view-all-btn {
-    padding: 0.8rem 1.5rem;
-    font-size: 0.9rem;
-  }
-  
-  .favorite-btn {
-    font-size: 1.6rem;
+
+  .sportswear-products-grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
     padding: 0;
   }
 
-  .favorite-btn svg {
-    width: 1.6rem !important;
-    height: 1.6rem !important;
+  .sportswear-product-image-wrapper {
+    height: 180px;
+  }
+
+  .sportswear-product-card {
+    height: 380px;
+  }
+
+  .sportswear-product-name {
+    font-size: 10px;
+  }
+
+  .sportswear-product-price {
+    font-size: 0.95rem;
+  }
+
+  .sportswear-add-to-cart-btn {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.6rem;
+  }
+
+  .sportswear-add-to-favorites-btn {
+    width: 38px;
+    min-height: 34px;
+    padding: 0.45rem 0.5rem;
   }
 }
 
-/* Extra small mobile styles */
+/* ===== EXTRA SMALL MOBILE (360px and below) ===== */
 @media (max-width: 360px) {
   .product-categories {
-    padding: 1rem 0;
+    padding: 1.5rem 0;
   }
   
-  .category-nav {
-    gap: 0.3rem;
-    padding: 0 0.5rem;
+  .sportswear-category-nav {
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
   }
   
-  .category-btn {
-    padding: 0.35rem 0.5rem;
+  .sportswear-category-btn {
+    padding: 0.4rem 0.8rem;
     font-size: 0.7rem;
   }
   
-  .products-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  .sportswear-products-container {
+    padding: 0.5rem;
   }
   
-  .products-container {
+  .sportswear-products-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
     padding: 0 0.5rem;
   }
   
-  .product-categories .product-image {
-    height: 220px !important;
-    padding: 5px !important;
+  .sportswear-product-card {
+    height: 450px;
   }
   
-  .product-info {
-    padding: 0.75rem;
+  .sportswear-product-image-wrapper {
+    height: 220px;
   }
   
-  .product-name {
-    font-size: 0.85rem;
-    min-height: 2.2rem;
+  .sportswear-product-name {
+    font-size: 11px;
+    margin-bottom: 0.5rem;
   }
   
-  .product-price {
+  .sportswear-product-price {
     font-size: 0.95rem;
-  }
-  
-  .product-brand {
-    font-size: 0.75rem;
-  }
-  
-  .view-all-btn {
-    padding: 0.7rem 1.25rem;
-    font-size: 0.85rem;
-  }
-  
-  .favorite-btn {
-    font-size: 1.5rem;
-    padding: 0;
-  }
-
-  .favorite-btn svg {
-    width: 1.5rem !important;
-    height: 1.5rem !important;
-  }
-}
-
-/* Loading and Error States */
-.loading-container, .error-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-  padding: 2rem;
-}
-
-.loading-spinner {
-  font-size: 1.2rem;
-  color: #666;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.error-container {
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.error-message {
-  color: #e74c3c;
-  font-size: 1.1rem;
-  text-align: center;
-}
-
-.retry-btn {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s;
-}
-
-.retry-btn:hover {
-  background: #0056b3;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Product Image Styles */
-.product-categories .product-image-img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  object-position: center !important;
-  border-radius: 8px !important;
-  border: 2px solid rgba(0, 191, 255, 0.3) !important;
-  transition: all 0.3s ease !important;
-  box-shadow: 0 0 10px rgba(0, 191, 255, 0.2) !important;
-}
-
-.product-image-img:hover {
-  border-color: rgba(0, 191, 255, 0.5);
-  transform: scale(1.02);
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.4) !important;
-}
-
-/* Responsive adjustments for product cards */
-@media (max-width: 768px) {
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-  }
-  
-  .product-card {
-    width: 100%;
-    height: 420px;
-  }
-  
-  .product-categories .product-image {
-    height: 280px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .products-grid {
-    grid-template-columns: repeat(1, 1fr);
-    gap: 1rem;
-  }
-  
-  .product-card {
-    width: 100%;
-    max-width: 350px;
-    margin: 0 auto;
-    height: 380px;
-  }
-  
-  .product-categories .product-image {
-    height: 250px !important;
-  }
-  
-  .product-info {
-    padding: 1rem;
+    margin-bottom: 0.75rem;
   }
 } 

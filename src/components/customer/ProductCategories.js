@@ -11,6 +11,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
+import { FaShoppingCart } from "react-icons/fa";
 
 const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   const [showAll, setShowAll] = useState(false);
@@ -84,7 +85,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   const filteredProducts = products.filter(product => 
     product.category && product.category.toLowerCase() === activeCategory.toLowerCase()
   );
-  const displayedProducts = showAll ? filteredProducts : filteredProducts.slice(0, 6);
+  const displayedProducts = showAll ? filteredProducts : filteredProducts.slice(0, 8);
   
   // Debug logging
   console.log(`Category: ${activeCategory}, Total products: ${products.length}, Filtered: ${filteredProducts.length}, Displayed: ${displayedProducts.length}, Show All: ${showAll}`);
@@ -131,22 +132,21 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
   return (
     <section className="product-categories">
       {/* Category Nav */}
-      <div className="category-nav-wrapper">
+      <div className="sportswear-category-nav-wrapper">
         {/* LEFT ARROW */}
-        {canScrollLeft && (
-          <button
-            className="scroll-btn left"
-            onClick={() => scrollNav("left")}
-          >
-            <FaChevronLeft />
-          </button>
-        )}
+        <button
+          className="sportswear-scroll-btn left"
+          onClick={() => scrollNav("left")}
+          title="Scroll left"
+        >
+          <FaChevronLeft />
+        </button>
 
-        <div className="category-nav" ref={navRef}>
+        <div className="sportswear-category-nav" ref={navRef}>
           {categories.map(category => (
             <button
               key={category.id}
-              className={`category-btn ${activeCategory === category.id ? 'active' : ''}`}
+              className={`sportswear-category-btn ${activeCategory === category.id ? 'active' : ''}`}
               onClick={() => {
                 setActiveCategory(category.id);
                 setShowAll(false);
@@ -158,75 +158,80 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
         </div>
 
         {/* RIGHT ARROW */}
-        {canScrollRight && (
-          <button
-            className="scroll-btn right"
-            onClick={() => scrollNav("right")}
-          >
-            <FaChevronRight />
-          </button>
-        )}
+        <button
+          className="sportswear-scroll-btn right"
+          onClick={() => scrollNav("right")}
+          title="Scroll right"
+        >
+          <FaChevronRight />
+        </button>
       </div>
 
       {/* Products */}
-      <div className="products-container">
+      <div className="sportswear-products-container">
         {loading ? (
           <Loading message="Loading products..." />
         ) : error ? (
           <ErrorState message={error} onRetry={() => window.location.reload()} />
         ) : (
-          <div className="products-grid">
+          <div className="sportswear-products-grid">
             {displayedProducts.map(product => (
-              <div key={product.id} className="product-card">
+              <div key={product.id} className="sportswear-product-card">
                 <ProtectedAction
                   onAuthenticated={() => openProductModal(product)}
                   onUnauthenticated={() => openSignIn()}
-                  className="product-clickable-area"
+                  className="sportswear-product-clickable-area"
                 >
-                  <div className="product-image">
+                  <div className="sportswear-product-image-wrapper">
                     {product.main_image ? (
                       <img 
                         src={product.main_image} 
                         alt={product.name}
-                        className="product-image-img"
+                        className="sportswear-product-image"
                       />
                     ) : (
-                      <span className="product-emoji">🏀</span>
+                      <span className="sportswear-product-emoji">🏀</span>
                     )}
                   </div>
-                  <div className="product-info">
-                    <div className="product-brand"></div>
-                    <p className="product-name">{product.name}</p>
-                    <div className="product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                  <div className="sportswear-product-info">
+                    <p className="sportswear-product-name">{product.name}</p>
+                    <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                    <div className="sportswear-action-buttons">
+                      <button className="sportswear-add-to-cart-btn" title="Add to Cart">
+                        <FaShoppingCart />
+                        <span>Add Cart</span>
+                      </button>
+                      <button 
+                        className="sportswear-add-to-favorites-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleWishlist(product);
+                        }}
+                        title={isInWishlist(product.id) ? "Remove from Favorites" : "Add to Favorites"}
+                      >
+                        {isInWishlist(product.id) ? (
+                          <AiFillHeart color="red" />
+                        ) : (
+                          <AiOutlineHeart />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </ProtectedAction>
-                <button
-                  className="favorite-btn"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent modal from opening when clicking favorite
-                    handleToggleWishlist(product);
-                  }}
-                >
-                  {isInWishlist(product.id) ? (
-                    <AiFillHeart color="red" />
-                  ) : (
-                    <AiOutlineHeart />
-                  )}
-                </button>
               </div>
             ))}
           </div>
         )}
 
         {/* View All/Show Less Button */}
-        {filteredProducts.length > 6 && (
-          <div className="view-all-section">
+        {filteredProducts.length > 8 && (
+          <div className="sportswear-view-all-section">
             {!showAll ? (
-              <button className="view-all-btn" onClick={() => setShowAll(true)}>
-                VIEW ALL
+              <button className="sportswear-view-all-btn" onClick={() => setShowAll(true)}>
+                SHOW MORE
               </button>
             ) : (
-              <button className="view-all-btn show-less" onClick={() => setShowAll(false)}>
+              <button className="sportswear-view-all-btn show-less" onClick={() => setShowAll(false)}>
                 SHOW LESS
               </button>
             )}
