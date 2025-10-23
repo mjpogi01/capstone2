@@ -1,13 +1,15 @@
-import React, { useState } from "react";
-import { FcGoogle } from "react-icons/fc";   // ✅ Google colored G
-import { FaFacebook } from "react-icons/fa"; // ✅ Facebook "f"
+import React, { useState, useEffect } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { FaFacebook } from "react-icons/fa";
+import { AiOutlineMail, AiOutlineLock } from "react-icons/ai";
 import styles from "./SignInModal.module.css";
-import logo from "../../images/yohanns_logo-removebg-preview 3.png";
-import jerseyImage from "../../images/Group 118.png";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import logo from "../../images/yohanns_logo-removebg-preview 3.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
-const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
+const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -17,6 +19,16 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
   const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("yohannModalOpen");
+      return () => {
+        document.body.classList.remove("yohannModalOpen");
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -32,18 +44,16 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
 
     try {
       const result = await login(formData);
-      onClose(); // Close modal on successful login
-      
-      // Redirect based on user role
+      onClose();
+
       const user = result.user;
-      const role = user.user_metadata?.role || 'customer';
-      if (role === 'owner') {
-        navigate('/owner');
-      } else if (role === 'admin') {
-        navigate('/admin');
+      const role = user.user_metadata?.role || "customer";
+      if (role === "owner") {
+        navigate("/owner");
+      } else if (role === "admin") {
+        navigate("/admin");
       } else {
-        // For customers, stay on current page or redirect to home
-        navigate('/');
+        navigate("/");
       }
     } catch (error) {
       setError(error.message);
@@ -55,134 +65,146 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
   const handleSocial = (provider) => console.log(`Sign in with ${provider}`);
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-        {/* LEFT SIDE IMAGE */}
-        <div
-          className={styles.modalLeft}
-          style={leftWidth ? { "--modal-left-width": leftWidth } : undefined}
+    <div className={styles.signinModalOverlay} onClick={onClose}>
+      <div className={styles.signinModal} onClick={(e) => e.stopPropagation()}>
+        {/* Close Button */}
+        <button
+          className={styles.signinCloseBtn}
+          onClick={onClose}
+          aria-label="Close modal"
         >
-          <img
-            src={jerseyImage}
-            alt="Sportswear"
-            className={styles.jerseyImage}
-          />
-        </div>
+          ✕
+        </button>
 
-        {/* RIGHT SIDE FORM */}
-        <div className={styles.modalRight}>
-          <button
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-
-          {/* MAIN CONTENT */}
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <img
-                src={logo}
-                alt="YOHANNS Sportswear House"
-                className={styles.modalLogo}
-              />
-              <h2 className={styles.modalTitle}>Sign In</h2>
-              <p className={styles.modalSubtitle}>Welcome back! Please login</p>
+        {/* Modal Content Wrapper */}
+        <div className={styles.signinModalContent}>
+          {/* Header - Logo & Title */}
+          <div className={styles.signinHeader}>
+            <img
+              src={logo}
+              alt="Yohann's Sportswear House"
+              className={styles.signinLogo}
+            />
+            <div>
+              <h1 className={styles.signinTitle}>Welcome Back!</h1>
+              <p className={styles.signinSubtitle}>Sign in to continue your journey.</p>
             </div>
+          </div>
 
-            {/* ERROR MESSAGE */}
-            {error && (
-              <div className={styles.errorMessage}>
-                {error}
-              </div>
-            )}
+          {/* Error Alert */}
+          {error && (
+            <div className={styles.signinErrorAlert}>
+              <span className={styles.signinErrorIcon}>⚠</span>
+              <span>{error}</span>
+            </div>
+          )}
 
-            {/* FORM */}
-            <form className={styles.modalForm} onSubmit={handleSubmit}>
-              <div className={styles.formGroup}>
+          {/* Form - Primary */}
+          <form className={styles.signinForm} onSubmit={handleSubmit}>
+            {/* Email Field */}
+            <div className={styles.signinFormGroup}>
+              <label className={styles.signinLabel}>Email</label>
+              <div className={styles.signinInputWrapper}>
+                <AiOutlineMail className={styles.signinInputIcon} />
                 <input
                   type="email"
                   name="email"
-                  className={styles.formInput}
-                  placeholder="Email Address"
+                  className={styles.signinInput}
+                  placeholder="Enter email"
                   value={formData.email}
                   onChange={handleInputChange}
                   required
                   disabled={isLoading}
                 />
               </div>
+            </div>
 
-              <div className={styles.formGroup}>
-                <div className={styles.passwordInputContainer}>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    className={styles.formInput}
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    className={styles.passwordToggle}
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? "🙈" : "👁"}
-                  </button>
-                </div>
+            {/* Password Field */}
+            <div className={styles.signinFormGroup}>
+              <div className={styles.signinPasswordHeader}>
+                <label className={styles.signinLabel}>Password</label>
+                <a href="#forgot" className={styles.signinForgotLink}>
+                  Forgot password?
+                </a>
               </div>
-
-              <div className={styles.formActions}>
-                <button 
-                  type="submit" 
-                  className={styles.signinButton}
+              <div className={styles.signinInputWrapper}>
+                <AiOutlineLock className={styles.signinInputIcon} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  className={styles.signinInput}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
                   disabled={isLoading}
-                >
-                  {isLoading ? "Signing In..." : "Sign In"}
-                </button>
-              </div>
-            </form>
-
-            {/* SOCIAL LOGIN */}
-            <div className={styles.socialLogin}>
-              <div className={styles.separator}>
-                <span>or</span>
-              </div>
-              <div className={styles.socialButtons}>
+                />
                 <button
                   type="button"
-                  className={`${styles.socialButton} ${styles.google}`}
-                  onClick={() => handleSocial("Google")}
-                  aria-label="Sign in with Google"
+                  className={styles.signinPasswordToggle}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle password visibility"
+                  title={showPassword ? "Hide password" : "Show password"}
                 >
-                  <FcGoogle className={styles.socialIcon} />
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.socialButton} ${styles.facebook}`}
-                  onClick={() => handleSocial("Facebook")}
-                  aria-label="Sign in with Facebook"
-                >
-                  <FaFacebook className={styles.socialIcon} />
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
               </div>
             </div>
+
+            {/* Sign In Button */}
+            <button
+              type="submit"
+              className={styles.signinSignInBtn}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className={styles.signinSpinner}></span>
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className={styles.signinDivider}>
+            <span>OR</span>
           </div>
 
-          {/* FOOTER */}
-          <div className={styles.modalFooter}>
+          {/* Social Buttons - Secondary */}
+          <div className={styles.signinSocialButtons}>
+            <button
+              type="button"
+              className={styles.signinSocialBtn}
+              onClick={() => handleSocial("Google")}
+              aria-label="Sign in with Google"
+            >
+              <FcGoogle />
+              <span>Sign in with Google</span>
+            </button>
+            <button
+              type="button"
+              className={styles.signinSocialBtn}
+              onClick={() => handleSocial("Facebook")}
+              aria-label="Sign in with Facebook"
+            >
+              <FaFacebook />
+              <span>Sign in with Facebook</span>
+            </button>
+          </div>
+
+          {/* Sign Up Prompt */}
+          <div className={styles.signinSignUpPrompt}>
             <p>
-              Don't Have An Account?{" "}
+              Don't have an account?{" "}
               <button
                 type="button"
-                className={styles.signupLink}
+                className={styles.signinSignUpLink}
                 onClick={onOpenSignUp}
               >
-                Sign Up
+                Sign up
               </button>
             </p>
           </div>
@@ -193,3 +215,4 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp, leftWidth }) => {
 };
 
 export default SignInModal;
+

@@ -1,12 +1,14 @@
-import React, { useState } from "react";
-import { FcGoogle } from "react-icons/fc"; // ✅ New Google G
-import { FaFacebook } from "react-icons/fa"; // ✅ Updated Facebook f
-import styles from "./SignUpModal.module.css"; // ✅ scoped CSS
-import logo from "../../images/yohanns_logo-removebg-preview 3.png";
-import jerseyImage from "../../images/Group 118.png";
+import React, { useState, useEffect } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { FaFacebook } from "react-icons/fa";
+import { AiOutlineMail, AiOutlineLock, AiOutlinePhone } from "react-icons/ai";
+import styles from "./SignUpModal.module.css";
 import { useAuth } from "../../contexts/AuthContext";
+import logo from "../../images/yohanns_logo-removebg-preview 3.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
-const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
+const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
   const [formData, setFormData] = useState({
     email: "",
     contact: "",
@@ -18,6 +20,16 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const { register } = useAuth();
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("yohannModalOpen");
+      return () => {
+        document.body.classList.remove("yohannModalOpen");
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -38,17 +50,15 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
     }
 
     try {
-      // Map contact to phone for the API
       const userData = {
         email: formData.email,
         password: formData.password,
-        phone: formData.contact
+        phone: formData.contact,
       };
 
       const result = await register(userData);
       console.log("Sign up successful:", result);
-      onClose(); // Close modal on successful registration
-      // You can add a success message or redirect here
+      onClose();
     } catch (error) {
       setError(error.message);
       console.error("Sign up error:", error);
@@ -60,169 +70,186 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn, leftWidth }) => {
   const handleSocial = (provider) => console.log(`Sign up with ${provider}`);
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-        {/* LEFT IMAGE */}
-        <div
-          className={styles.modalLeft}
-          style={leftWidth ? { ["--modal-left-width"]: leftWidth } : undefined}
+    <div className={styles.signupModalOverlay} onClick={onClose}>
+      <div className={styles.signupModal} onClick={(e) => e.stopPropagation()}>
+        {/* Close Button */}
+        <button
+          className={styles.signupCloseBtn}
+          onClick={onClose}
+          aria-label="Close modal"
         >
-          <img
-            src={jerseyImage}
-            alt="Sportswear"
-            className={styles.jerseyImage}
-          />
-        </div>
+          ✕
+        </button>
 
-        {/* RIGHT FORM */}
-        <div className={styles.modalRight}>
-          <button
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-
-          <div className={styles.modalHeader}>
+        {/* Modal Content Wrapper */}
+        <div className={styles.signupModalContent}>
+          {/* Header - Logo & Title */}
+          <div className={styles.signupHeader}>
             <img
               src={logo}
-              alt="YOHANNS Sportswear House"
-              className={styles.modalLogo}
+              alt="Yohann's Sportswear House"
+              className={styles.signupLogo}
             />
-            <h2 className={styles.modalTitle}>Create an account</h2>
-            <p className={styles.modalSubtitle}>Fill all credentials</p>
+            <div>
+              <h1 className={styles.signupTitle}>Create Account</h1>
+              <p className={styles.signupSubtitle}>Join us today and start shopping.</p>
+            </div>
           </div>
 
-          {/* ERROR MESSAGE */}
+          {/* Error Alert */}
           {error && (
-            <div className={styles.errorMessage}>
-              {error}
+            <div className={styles.signupErrorAlert}>
+              <span className={styles.signupErrorIcon}>⚠</span>
+              <span>{error}</span>
             </div>
           )}
 
-          {/* FORM */}
-          <form className={styles.modalForm} onSubmit={handleSubmit}>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
+          {/* Form - Primary */}
+          <form className={styles.signupForm} onSubmit={handleSubmit}>
+            {/* Email Field */}
+            <div className={styles.signupFormGroup}>
+              <label className={styles.signupLabel}>Email</label>
+              <div className={styles.signupInputWrapper}>
+                <AiOutlineMail className={styles.signupInputIcon} />
                 <input
                   type="email"
                   name="email"
-                  className={styles.formInput}
-                  placeholder="Email Address"
+                  className={styles.signupInput}
+                  placeholder="Enter email"
                   value={formData.email}
                   onChange={handleInputChange}
                   required
                   disabled={isLoading}
                 />
               </div>
+            </div>
 
-              <div className={styles.formGroup}>
+            {/* Phone Field */}
+            <div className={styles.signupFormGroup}>
+              <label className={styles.signupLabel}>Phone</label>
+              <div className={styles.signupInputWrapper}>
+                <AiOutlinePhone className={styles.signupInputIcon} />
                 <input
                   type="tel"
                   name="contact"
-                  className={styles.formInput}
-                  placeholder="Contact No."
+                  className={styles.signupInput}
+                  placeholder="Phone number"
                   value={formData.contact}
                   onChange={handleInputChange}
                   required
                   disabled={isLoading}
                 />
               </div>
+            </div>
 
-              <div className={styles.formGroup}>
-                <div className={styles.passwordInputContainer}>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    className={styles.formInput}
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    className={styles.passwordToggle}
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? "🙈" : "👁"}
-                  </button>
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <div className={styles.passwordInputContainer}>
-                  <input
-                    type={showConfirm ? "text" : "password"}
-                    name="confirmPassword"
-                    className={styles.formInput}
-                    placeholder="Confirm Password"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    className={styles.passwordToggle}
-                    onClick={() => setShowConfirm(!showConfirm)}
-                    aria-label="Toggle confirm password visibility"
-                  >
-                    {showConfirm ? "🙈" : "👁"}
-                  </button>
-                </div>
+            {/* Password Field */}
+            <div className={styles.signupFormGroup}>
+              <label className={styles.signupLabel}>Password</label>
+              <div className={styles.signupInputWrapper}>
+                <AiOutlineLock className={styles.signupInputIcon} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  className={styles.signupInput}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className={styles.signupPasswordToggle}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle password visibility"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                </button>
               </div>
             </div>
 
-            <div className={styles.formActions}>
-              <button 
-                type="submit" 
-                className={styles.signinButton}
-                disabled={isLoading}
-              >
-                {isLoading ? "Creating Account..." : "Sign Up"}
-              </button>
+            {/* Confirm Password Field */}
+            <div className={styles.signupFormGroup}>
+              <label className={styles.signupLabel}>Confirm Password</label>
+              <div className={styles.signupInputWrapper}>
+                <AiOutlineLock className={styles.signupInputIcon} />
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  name="confirmPassword"
+                  className={styles.signupInput}
+                  placeholder="••••••••"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className={styles.signupPasswordToggle}
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  aria-label="Toggle confirm password visibility"
+                  title={showConfirm ? "Hide password" : "Show password"}
+                >
+                  <FontAwesomeIcon icon={showConfirm ? faEyeSlash : faEye} />
+                </button>
+              </div>
             </div>
+
+            {/* Sign Up Button */}
+            <button
+              type="submit"
+              className={styles.signupSignUpBtn}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className={styles.signupSpinner}></span>
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
+            </button>
           </form>
 
-          {/* SOCIAL LOGIN */}
-          <div className={styles.socialLogin}>
-            <div className={styles.separator}>
-              <span>or</span>
-            </div>
-            <div className={styles.socialButtons}>
-              <button
-                type="button"
-                className={`${styles.socialButton} ${styles.google}`}
-                onClick={() => handleSocial("Google")}
-                aria-label="Sign up with Google"
-              >
-                <FcGoogle className={styles.socialIcon} />
-              </button>
-              <button
-                type="button"
-                className={`${styles.socialButton} ${styles.facebook}`}
-                onClick={() => handleSocial("Facebook")}
-                aria-label="Sign up with Facebook"
-              >
-                <FaFacebook className={styles.socialIcon} />
-              </button>
-            </div>
+          {/* Divider */}
+          <div className={styles.signupDivider}>
+            <span>OR</span>
           </div>
 
-          {/* FOOTER */}
-          <div className={styles.modalFooter}>
+          {/* Social Buttons - Secondary */}
+          <div className={styles.signupSocialButtons}>
+            <button
+              type="button"
+              className={styles.signupSocialBtn}
+              onClick={() => handleSocial("Google")}
+              aria-label="Sign up with Google"
+            >
+              <FcGoogle />
+              <span>Sign up with Google</span>
+            </button>
+            <button
+              type="button"
+              className={styles.signupSocialBtn}
+              onClick={() => handleSocial("Facebook")}
+              aria-label="Sign up with Facebook"
+            >
+              <FaFacebook />
+              <span>Sign up with Facebook</span>
+            </button>
+          </div>
+
+          {/* Sign In Prompt */}
+          <div className={styles.signupSignInPrompt}>
             <p>
-              Already Have An Account?{" "}
+              Already have an account?{" "}
               <button
                 type="button"
-                className={styles.signupLink}
+                className={styles.signupSignInLink}
                 onClick={onOpenSignIn}
               >
-                Sign In
+                Sign in
               </button>
             </p>
           </div>
