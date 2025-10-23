@@ -4,8 +4,12 @@
   padding: 0;
   box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
   border-bottom: 2px solid #00bfff;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
+  width: 100%;
 }
 
 .header-top {
@@ -498,85 +502,443 @@
 }
 */
 
-.search-container {
+/* ============================================
+   YOHANNS SEARCH - Dark Minimalist Design
+   Icon-Only with Dropdown Panel
+   ============================================ */
+
+/* Search Icon Wrapper */
+.yohanns-search-wrapper {
   display: flex;
-  max-width: 250px;
-  margin-right: 0.5rem;
-  position: relative;
-  gap: 0.25rem;
   align-items: center;
+  justify-content: center;
 }
 
-.search-input {
-  flex: 1;
-  padding: 0.5rem 0.8rem;
+/* Search Toggle Icon Button */
+.yohanns-search-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: none;
-  border-radius: 4px;
-  background: rgba(0, 191, 255, 0.1);
-  color: #00bfff;
-  font-size: 0.8rem;
-  border: 1px solid rgba(0, 191, 255, 0.3);
-  min-width: 0;
-}
-
-.search-input::placeholder {
-  color: rgba(0, 191, 255, 0.7);
-}
-
-.search-input:focus {
-  outline: none;
-  background: rgba(0, 191, 255, 0.15);
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
-}
-
-.search-button {
-  padding: 0.5rem 0.8rem;
-  background: #00bfff;
-  border: none;
-  border-radius: 4px;
-  color: #000;
+  background: transparent;
+  color: #aaa;
   cursor: pointer;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   transition: all 0.3s ease;
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
-  display: inline-flex;
+  font-family: inherit;
+}
+
+.yohanns-search-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #4fc3f7;
+  transform: scale(1.1);
+}
+
+.yohanns-search-toggle:active {
+  transform: scale(0.95);
+}
+
+.yohanns-search-toggle svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* Search Dropdown Wrapper - Positioned Below Icon */
+.yohanns-search-dropdown-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 70px 20px 0 0;
+  animation: yohanns-fadeIn 0.2s ease-out;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+@keyframes yohanns-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Search Dropdown Panel */
+.yohanns-search-dropdown {
+  display: flex;
+  width: auto;
+  min-width: 320px;
+  max-width: 420px;
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  padding: 0;
+  gap: 2px;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  animation: yohanns-slideDown 0.3s ease-out;
+  position: relative;
+  flex-wrap: wrap;
+}
+
+@keyframes yohanns-slideDown {
+  from {
+    transform: translateY(-15px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Search Input Field */
+.yohanns-search-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: 400;
+  min-width: 0;
+  outline: none;
+}
+
+.yohanns-search-input::placeholder {
+  color: #aaa;
+}
+
+.yohanns-search-input:focus {
+  color: #ffffff;
+}
+
+/* Search Submit Button */
+.yohanns-search-submit-btn {
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+
+.yohanns-search-submit-btn:hover {
+  background: rgba(79, 195, 247, 0.1);
+  color: #4fc3f7;
+}
+
+.yohanns-search-submit-btn:active {
+  transform: scale(0.95);
+}
+
+.yohanns-search-submit-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* Focus Border Effect */
+.yohanns-search-dropdown:has(.yohanns-search-input:focus) {
+  border-color: #4fc3f7;
+  box-shadow: 0 4px 15px rgba(79, 195, 247, 0.2);
+}
+
+/* Search Results Container */
+.yohanns-search-results-container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Search Results List */
+.yohanns-search-results-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual Search Result Item */
+.yohanns-search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #333333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.yohanns-search-result-item:last-child {
+  border-bottom: none;
+}
+
+.yohanns-search-result-item:hover {
+  background: rgba(79, 195, 247, 0.1);
+}
+
+/* Result Image */
+.yohanns-result-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Result Image Wrapper */
+.yohanns-result-image-wrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #1a1a1a;
+  display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.search-button svg {
+.yohanns-result-placeholder {
+  font-size: 1.5rem;
+  color: #4fc3f7;
+}
+
+/* Result Info */
+.yohanns-result-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.yohanns-result-name {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yohanns-result-price {
+  color: #4fc3f7;
+  font-size: 0.8rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+.yohanns-result-category {
+  color: #999999;
+  font-size: 0.7rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* No Results Message */
+.yohanns-search-no-results {
+  padding: 16px;
+  text-align: center;
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+/* Search Results Grid Layout */
+.yohanns-search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 12px;
+  max-width: 600px;
+}
+
+/* Search Product Card */
+.yohanns-search-product-card {
+  display: flex;
+  flex-direction: column;
+  background: #0d0d0d;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.yohanns-search-product-card:hover {
+  border-color: #4fc3f7;
+  box-shadow: 0 4px 12px rgba(79, 195, 247, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Product Image Wrapper */
+.yohanns-search-product-image-wrapper {
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yohanns-search-product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.yohanns-search-product-placeholder {
+  font-size: 2.5rem;
+  color: #4fc3f7;
+}
+
+/* Product Info Section */
+.yohanns-search-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+}
+
+.yohanns-search-product-name {
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 2.4em;
+}
+
+.yohanns-search-product-price {
+  color: #4fc3f7;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.yohanns-search-product-category {
+  color: #999999;
+  font-size: 0.75rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tablet Responsive */
+@media (max-width: 768px) {
+  .yohanns-search-toggle {
+    width: 34px;
+    height: 34px;
+  }
+
+  .yohanns-search-toggle svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .yohanns-search-dropdown-wrapper {
+    padding-top: 70px;
+  }
+
+  .yohanns-search-dropdown {
+    width: 95%;
+    max-width: 420px;
+    gap: 1px;
+  }
+
+  .yohanns-search-input {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+
+  .yohanns-search-submit-btn {
+    padding: 8px 12px;
+    margin-right: 2px;
+  }
+
+  .yohanns-search-submit-btn svg {
   width: 16px;
   height: 16px;
 }
-
-  .search-button:hover {
-    background: #0099cc;
-    box-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
-  }
-
-/* Medium screens */
-@media (max-width: 1024px) {
-  .logo-image {
-    height: 32px;
-    max-width: 100px;
-  }
-  
-  .search-container {
-    max-width: 200px;
-  }
-  
-  .search-input {
-    font-size: 0.75rem;
-    padding: 0.45rem 0.7rem;
-  }
-  
-  .search-button {
-    padding: 0.45rem 0.7rem;
-    font-size: 0.8rem;
-  }
 }
 
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .yohanns-search-toggle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .yohanns-search-toggle svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .yohanns-search-dropdown-wrapper {
+    padding-top: 65px;
+  }
+
+  .yohanns-search-dropdown {
+    width: 97%;
+    max-width: 100%;
+  }
+
+  .yohanns-search-input {
+    padding: 9px 12px;
+    font-size: 0.85rem;
+  }
+
+  .yohanns-search-submit-btn {
+    padding: 7px 10px;
+    margin-right: 2px;
+  }
+
+  .yohanns-search-submit-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+}
 
 /* Tablet styles */
 @media (max-width: 1024px) {
@@ -590,10 +952,6 @@
   
   .nav-link {
     font-size: 0.8rem;
-  }
-  
-  .search-container {
-    max-width: 250px;
   }
 }
 
@@ -628,23 +986,6 @@
     justify-content: center;
     order: 3;
     flex-wrap: wrap;
-  }
-  
-  .search-container {
-    width: 100%;
-    max-width: none;
-    margin-right: 0;
-    margin-bottom: 0.5rem;
-    order: 1;
-  }
-  
-  .search-input {
-    font-size: 0.9rem;
-    padding: 0.75rem 1rem;
-  }
-  
-  .search-button {
-    padding: 0.75rem 1rem;
   }
   
   .icon {
@@ -728,15 +1069,6 @@
   .icon {
     padding: 0.4rem;
     font-size: 0.9rem;
-  }
-  
-  .search-input {
-    font-size: 0.85rem;
-    padding: 0.6rem 0.8rem;
-  }
-  
-  .search-button {
-    padding: 0.6rem 0.8rem;
   }
   
   .cart-badge, .wishlist-badge, .orders-badge {

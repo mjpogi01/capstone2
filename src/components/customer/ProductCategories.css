@@ -16,7 +16,7 @@
 /* ===== MAIN CONTAINER ===== */
 .product-categories {
   background: #000000;
-  padding: 4rem 0;
+  padding: 2rem 0;
   min-height: 60vh;
   margin-top: -1px;
   border: none;
@@ -30,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 3rem;
+
   max-width: 1000px;
   border: 1px solid rgba(255, 255, 255, 0.253);
   border-radius: 50px;
@@ -97,11 +97,11 @@
 }
 
 .sportswear-scroll-btn.left {
-  left: -60px;
+  left: -90px;
 }
 
 .sportswear-scroll-btn.right {
-  right: -60px;
+  right: -90px;
 }
 
 /* ===== CATEGORY BUTTONS ===== */
@@ -645,5 +645,106 @@
   .sportswear-product-price {
     font-size: 0.95rem;
     margin-bottom: 0.75rem;
+  }
+} 
+
+/* ===== SEARCH HEADER SECTION ===== */
+.sportswear-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.1) 0%, rgba(0, 0, 0, 0.5) 100%);
+  border: 1px solid var(--sportswear-border-cyan);
+  border-radius: 8px;
+  margin-bottom: 30px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: searchHeaderSlideIn 0.3s ease-out;
+  gap: 20px;
+}
+
+@keyframes searchHeaderSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sportswear-search-info {
+  flex: 1;
+}
+
+.sportswear-search-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--sportswear-text-white);
+  margin: 0 0 4px 0;
+  font-family: 'Orbitron', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sportswear-search-query {
+  color: var(--sportswear-accent-yellow);
+  font-weight: 700;
+}
+
+.sportswear-search-count {
+  font-size: 0.85rem;
+  color: var(--sportswear-accent-cyan);
+  margin: 0;
+  font-weight: 500;
+}
+
+.sportswear-clear-search-btn {
+  background: transparent;
+  border: 2px solid var(--sportswear-accent-cyan);
+  color: var(--sportswear-accent-cyan);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.sportswear-clear-search-btn:hover {
+  background: var(--sportswear-accent-cyan);
+  color: var(--sportswear-primary-dark);
+  box-shadow: 0 0 20px var(--sportswear-glow-cyan);
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .sportswear-search-header {
+    padding: 12px 15px;
+    gap: 15px;
+  }
+
+  .sportswear-search-title {
+    font-size: 1rem;
+  }
+
+  .sportswear-search-count {
+    font-size: 0.8rem;
+  }
+
+  .sportswear-clear-search-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
   }
 } 

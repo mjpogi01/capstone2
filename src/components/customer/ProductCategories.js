@@ -13,7 +13,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
 import { FaShoppingCart } from "react-icons/fa";
 
-const ProductCategories = ({ activeCategory, setActiveCategory }) => {
+const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, setSearchQuery }) => {
   const [showAll, setShowAll] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null); // Add this state
   const [isModalOpen, setIsModalOpen] = useState(false); // Add this state
@@ -82,13 +82,17 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
     fetchProducts();
   }, []);
 
-  const filteredProducts = products.filter(product => 
-    product.category && product.category.toLowerCase() === activeCategory.toLowerCase()
-  );
+  const filteredProducts = searchQuery.trim()
+    ? products.filter(product =>
+        product.name && product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : products.filter(product => 
+        product.category && product.category.toLowerCase() === activeCategory.toLowerCase()
+      );
   const displayedProducts = showAll ? filteredProducts : filteredProducts.slice(0, 8);
   
   // Debug logging
-  console.log(`Category: ${activeCategory}, Total products: ${products.length}, Filtered: ${filteredProducts.length}, Displayed: ${displayedProducts.length}, Show All: ${showAll}`);
+  console.log(`Category: ${activeCategory}, Total products: ${products.length}, Filtered: ${filteredProducts.length}, Displayed: ${displayedProducts.length}, Show All: ${showAll}, Search: ${searchQuery}`);
 
   const checkScroll = () => {
     if (navRef.current) {
@@ -169,6 +173,32 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
 
       {/* Products */}
       <div className="sportswear-products-container">
+        {/* Search Header - Show when searching */}
+        {searchQuery.trim() && (
+          <div className="sportswear-search-header">
+            <div className="sportswear-search-info">
+              <h2 className="sportswear-search-title">
+                Search Results for: <span className="sportswear-search-query">"{searchQuery}"</span>
+              </h2>
+              <p className="sportswear-search-count">
+                Found {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <button 
+              className="sportswear-clear-search-btn"
+              onClick={() => {
+                setSearchQuery('');
+                setActiveCategory('jerseys');
+                setShowAll(false);
+              }}
+              title="Clear search"
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <Loading message="Loading products..." />
         ) : error ? (
@@ -197,7 +227,15 @@ const ProductCategories = ({ activeCategory, setActiveCategory }) => {
                     <p className="sportswear-product-name">{product.name}</p>
                     <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                     <div className="sportswear-action-buttons">
-                      <button className="sportswear-add-to-cart-btn" title="Add to Cart">
+                      <button 
+                        className="sportswear-add-to-cart-btn" 
+                        title="Add to Cart"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openProductModal(product);
+                        }}
+                      >
                         <FaShoppingCart />
                         <span>Add Cart</span>
                       </button>

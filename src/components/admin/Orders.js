@@ -256,6 +256,9 @@ const Orders = () => {
   };
 
   const truncateOrderNumber = (orderNumber) => {
+    if (!orderNumber || typeof orderNumber !== 'string') {
+      return 'N/A';
+    }
     if (orderNumber.length > 12) {
       return orderNumber.substring(0, 8) + '...' + orderNumber.substring(orderNumber.length - 4);
     }

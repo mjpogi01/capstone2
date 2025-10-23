@@ -13,12 +13,15 @@ import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useNavigate } from 'react-router-dom';
 import orderService from '../../services/orderService';
+import productService from '../../services/productService';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [ordersCount, setOrdersCount] = useState(0);
+  const [searchResults, setSearchResults] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, isOwner, isAdmin } = useAuth();
@@ -114,6 +117,33 @@ const Header = () => {
     setShowProfileDropdown(false);
   };
 
+  // Search products as user types
+  useEffect(() => {
+    const searchProducts = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+        const allProducts = await productService.getAllProducts();
+        const query = searchQuery.toLowerCase();
+        
+        // Filter products by name matching the search query
+        const results = allProducts.filter(product => 
+          product.name && product.name.toLowerCase().includes(query)
+        );
+        
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Error searching products:', error);
+        setSearchResults([]);
+      }
+    };
+
+    searchProducts();
+  }, [searchQuery]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -187,15 +217,13 @@ const Header = () => {
         
         <div className="header-right">
           <div className="utility-icons">
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-            <button className="search-button" aria-label="Search">
+          <div className="yohanns-search-wrapper">
+            <button 
+              className="yohanns-search-toggle" 
+              aria-label="Search" 
+              title="Search"
+              onClick={() => setShowSearchDropdown(!showSearchDropdown)}
+            >
               <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
                 <circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
                 <line x1="15.5" y1="15.5" x2="20" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -354,6 +382,106 @@ const Header = () => {
       </div>
       
       
+      {/* Dark Minimalist Search Dropdown - Below Icon */}
+      {showSearchDropdown && (
+        <div 
+          className={`yohanns-search-dropdown-wrapper`}
+          onClick={() => setShowSearchDropdown(false)}
+        >
+          <div 
+            className="yohanns-search-dropdown" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="yohanns-search-input"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setShowSearchDropdown(false);
+                } else if (e.key === 'Enter') {
+                  // Navigate to home with search query on Enter
+                  if (searchQuery.trim()) {
+                    setShowSearchDropdown(false);
+                    navigate(`/?search=${encodeURIComponent(searchQuery)}`);
+                  }
+                }
+              }}
+            />
+            <button 
+              className="yohanns-search-submit-btn"
+              aria-label="Search"
+              title="Search"
+              onClick={() => {
+                if (searchQuery.trim()) {
+                  setShowSearchDropdown(false);
+                  navigate(`/?search=${encodeURIComponent(searchQuery)}`);
+                }
+              }}
+            >
+              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
+                <line x1="15.5" y1="15.5" x2="20" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            {/* Search Results Container */}
+            {searchQuery.trim() && (
+              <div className="yohanns-search-results-container">
+                {searchResults.length > 0 ? (
+                  <div className="yohanns-search-results-list">
+                    {searchResults.slice(0, 8).map((product) => (
+                      <div 
+                        key={product.id} 
+                        className="yohanns-search-result-item"
+                        onClick={() => {
+                          setShowSearchDropdown(false);
+                          // Navigate to home with search query
+                          navigate(`/?search=${encodeURIComponent(searchQuery)}`);
+                        }}
+                      >
+                        <div className="yohanns-result-image-wrapper">
+                          {product.main_image ? (
+                            <img 
+                              src={product.main_image} 
+                              alt={product.name}
+                              className="yohanns-result-image"
+                              onError={(e) => e.target.src = '/images/placeholder-jersey.png'}
+                            />
+                          ) : product.image ? (
+                            <img 
+                              src={product.image} 
+                              alt={product.name}
+                              className="yohanns-result-image"
+                              onError={(e) => e.target.src = '/images/placeholder-jersey.png'}
+                            />
+                          ) : (
+                            <div className="yohanns-result-placeholder">🏀</div>
+                          )}
+                        </div>
+                        <div className="yohanns-result-info">
+                          <p className="yohanns-result-name">{product.name}</p>
+                          <p className="yohanns-result-price">₱{parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          {product.category && (
+                            <p className="yohanns-result-category">{product.category}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="yohanns-search-no-results">
+                    <p>No products found</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <SignInModal 
         isOpen={showSignInModal} 
         onClose={closeSignIn} 
