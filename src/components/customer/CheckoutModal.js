@@ -75,14 +75,30 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   ];
 
   const subtotalAmount = cartItems.reduce((total, item) => {
-    return total + (parseFloat(item.price) * item.quantity);
+    const price = parseFloat(item.price || item.product_price || item.productPrice || 0);
+    const quantity = parseInt(item.quantity || 1);
+    console.log('Cart item price calculation:', {
+      itemName: item.name,
+      rawPrice: item.price,
+      parsedPrice: price,
+      quantity: quantity,
+      itemTotal: price * quantity
+    });
+    return total + (price * quantity);
   }, 0);
 
   const shippingCost = shippingMethod === 'cod' ? 50.00 : 0.00;
   const totalAmount = subtotalAmount + shippingCost;
+  
+  console.log('Order Summary:', {
+    subtotal: subtotalAmount,
+    shipping: shippingCost,
+    total: totalAmount,
+    itemCount: cartItems.length
+  });
 
   const totalItems = cartItems.reduce((total, item) => {
-    return total + item.quantity;
+    return total + parseInt(item.quantity || 1);
   }, 0);
 
   const handlePlaceOrder = () => {
@@ -644,9 +660,9 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       </div>
                     </div>
                   </div>
-                  <div className="price-cell">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                  <div className="quantity-cell">{item.quantity}</div>
-                  <div className="total-cell">₱{(parseFloat(item.price) * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                  <div className="price-cell">₱{(parseFloat(item.price || item.product_price || item.productPrice || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                  <div className="quantity-cell">{item.quantity || 1}</div>
+                  <div className="total-cell">₱{((parseFloat(item.price || item.product_price || item.productPrice || 0)) * (item.quantity || 1)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                 </div>
               );
             })}

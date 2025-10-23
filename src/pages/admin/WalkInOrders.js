@@ -21,7 +21,9 @@ import {
   FaFilter,
   FaLock,
   FaSun,
-  FaMoon
+  FaMoon,
+  FaBasketballBall,
+  FaTrophy
 } from 'react-icons/fa';
 import ProductModal from '../../components/customer/ProductModal';
 import CheckoutModal from '../../components/customer/CheckoutModal';
@@ -59,7 +61,8 @@ const WalkInOrders = () => {
     { value: 'all', label: 'All Products', icon: FaStore, color: '#3b82f6' },
     { value: 'jerseys', label: 'Jerseys', icon: FaTshirt, color: '#ef4444' },
     { value: 'shorts', label: 'Shorts', icon: FaShoePrints, color: '#10b981' },
-    { value: 'shoes', label: 'Shoes', icon: FaShoePrints, color: '#f59e0b' },
+    { value: 'balls', label: 'Balls', icon: FaBasketballBall, color: '#f59e0b' },
+    { value: 'trophies', label: 'Trophies', icon: FaTrophy, color: '#ffd700' },
     { value: 'accessories', label: 'Accessories', icon: FaGift, color: '#8b5cf6' }
   ];
 

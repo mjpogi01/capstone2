@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import profileImageService from '../../services/profileImageService';
 import userProfileService from '../../services/userProfileService';
+import userService from '../../services/userService';
 import './Profile.css';
 
 const Profile = () => {
@@ -17,8 +18,6 @@ const Profile = () => {
     name: '',
     email: '',
     phone: '',
-    gender: 'Male',
-    dateOfBirth: '',
     address: '',
     password: '*****************'
   });
@@ -32,43 +31,46 @@ const Profile = () => {
         setIsLoading(true);
         
         // Get user profile from database
-        const profileData = await userProfileService.getUserProfile(user.id);
-        
-        if (profileData) {
-          setFormData({
-            name: profileData.full_name || '',
-            email: user.email || '',
-            phone: profileData.phone || '',
-            gender: profileData.gender || 'Male',
-            dateOfBirth: profileData.date_of_birth || '',
-            address: profileData.address || '',
-            password: '*****************'
-          });
-          setProfileImage(profileData.avatar_url);
-        } else {
-          // Fallback to user metadata if no profile exists
-          setFormData({
-            name: user.user_metadata?.full_name || '',
-            email: user.email || '',
-            phone: user.user_metadata?.phone || '',
-            gender: 'Male',
-            dateOfBirth: '',
-            address: '',
-            password: '*****************'
-          });
-          setProfileImage(user.user_metadata?.avatar_url);
+        let profileData = null;
+        try {
+          profileData = await userProfileService.getUserProfile(user.id);
+        } catch (profileError) {
+          console.log('No profile data found, will use defaults');
         }
+        
+        // Try to get the user's saved address from checkout
+        let savedAddress = null;
+        try {
+          savedAddress = await userService.getUserAddress();
+          console.log('✅ Successfully loaded checkout address:', savedAddress);
+        } catch (addressError) {
+          console.log('ℹ️ No checkout address found (user hasn\'t placed an order yet)');
+        }
+        
+        // Determine the best source for each field (note: database uses snake_case)
+        const name = savedAddress?.full_name || profileData?.full_name || user.user_metadata?.full_name || '';
+        const phone = savedAddress?.phone || profileData?.phone || user.user_metadata?.phone || '';
+        const address = savedAddress?.address || profileData?.address || '';
+        
+        setFormData({
+          name: name,
+          email: user.email || '',
+          phone: phone,
+          address: address,
+          password: '*****************'
+        });
+        
+        setProfileImage(profileData?.avatar_url || user.user_metadata?.avatar_url);
+        
       } catch (error) {
         console.error('Error loading user profile:', error);
-        showNotification('Failed to load profile data', 'error');
+        // Don't show error notification for missing checkout data - it's normal for new users
         
         // Fallback to user metadata
         setFormData({
           name: user.user_metadata?.full_name || '',
           email: user.email || '',
           phone: user.user_metadata?.phone || '',
-          gender: 'Male',
-          dateOfBirth: '',
           address: '',
           password: '*****************'
         });
@@ -79,20 +81,13 @@ const Profile = () => {
     };
 
     loadUserProfile();
-  }, [user, showNotification]);
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
-    }));
-  };
-
-  const handleGenderChange = (gender) => {
-    setFormData(prev => ({
-      ...prev,
-      gender
     }));
   };
 
@@ -162,8 +157,6 @@ const Profile = () => {
       const profileData = {
         full_name: formData.name.trim(),
         phone: formData.phone.trim(),
-        gender: formData.gender,
-        date_of_birth: formData.dateOfBirth,
         address: formData.address.trim(),
         avatar_url: profileImage
       };
@@ -191,20 +184,37 @@ const Profile = () => {
     // Reload original data from database
     if (user) {
       try {
-        const profileData = await userProfileService.getUserProfile(user.id);
-        
-        if (profileData) {
-          setFormData({
-            name: profileData.full_name || '',
-            email: user.email || '',
-            phone: profileData.phone || '',
-            gender: profileData.gender || 'Male',
-            dateOfBirth: profileData.date_of_birth || '',
-            address: profileData.address || '',
-            password: '*****************'
-          });
-          setProfileImage(profileData.avatar_url);
+        // Get user profile from database
+        let profileData = null;
+        try {
+          profileData = await userProfileService.getUserProfile(user.id);
+        } catch (profileError) {
+          console.log('No profile data found, will use defaults');
         }
+        
+        // Try to get the user's saved address from checkout
+        let savedAddress = null;
+        try {
+          savedAddress = await userService.getUserAddress();
+        } catch (addressError) {
+          console.log('ℹ️ No checkout address found');
+        }
+        
+        // Determine the best source for each field (note: database uses snake_case)
+        const name = savedAddress?.full_name || profileData?.full_name || user.user_metadata?.full_name || '';
+        const phone = savedAddress?.phone || profileData?.phone || user.user_metadata?.phone || '';
+        const address = savedAddress?.address || profileData?.address || '';
+        
+        setFormData({
+          name: name,
+          email: user.email || '',
+          phone: phone,
+          address: address,
+          password: '*****************'
+        });
+        
+        setProfileImage(profileData?.avatar_url || user.user_metadata?.avatar_url);
+        
       } catch (error) {
         console.error('Error reloading profile data:', error);
       }
@@ -291,7 +301,13 @@ const Profile = () => {
                     value={formData.name}
                     onChange={handleInputChange}
                     disabled={!isEditing}
+                    placeholder="Your full name"
                   />
+                  {!formData.name && (
+                    <small style={{ color: '#ff6b6b', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                      📌 Will auto-fill after you place your first order
+                    </small>
+                  )}
                 </div>
 
                 {/* Email */}
@@ -302,8 +318,12 @@ const Profile = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    disabled={!isEditing}
+                    disabled={true}
+                    style={{ cursor: 'not-allowed', opacity: 0.7 }}
                   />
+                  <small style={{ color: '#00bfff', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    Email cannot be changed (from your account signup)
+                  </small>
                 </div>
 
                 {/* Phone */}
@@ -315,62 +335,13 @@ const Profile = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     disabled={!isEditing}
+                    placeholder="Your contact number"
                   />
-                </div>
-
-                {/* Gender */}
-                <div className="form-field">
-                  <label>Gender :</label>
-                  <div className="radio-group">
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="Male"
-                        checked={formData.gender === 'Male'}
-                        onChange={() => handleGenderChange('Male')}
-                        disabled={!isEditing}
-                      />
-                      <span className="radio-custom"></span>
-                      Male
-                    </label>
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="Female"
-                        checked={formData.gender === 'Female'}
-                        onChange={() => handleGenderChange('Female')}
-                        disabled={!isEditing}
-                      />
-                      <span className="radio-custom"></span>
-                      Female
-                    </label>
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="Other"
-                        checked={formData.gender === 'Other'}
-                        onChange={() => handleGenderChange('Other')}
-                        disabled={!isEditing}
-                      />
-                      <span className="radio-custom"></span>
-                      Other
-                    </label>
-                  </div>
-                </div>
-
-                {/* Date of Birth */}
-                <div className="form-field">
-                  <label>Date Of Birth :</label>
-                  <input
-                    type="date"
-                    name="dateOfBirth"
-                    value={formData.dateOfBirth}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                  />
+                  {!formData.phone && (
+                    <small style={{ color: '#ff6b6b', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                      📌 Will auto-fill after you place your first order
+                    </small>
+                  )}
                 </div>
 
                 {/* Address */}
@@ -382,7 +353,13 @@ const Profile = () => {
                     value={formData.address}
                     onChange={handleInputChange}
                     disabled={!isEditing}
+                    placeholder="Your delivery address"
                   />
+                  {!formData.address && (
+                    <small style={{ color: '#ff6b6b', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                      📌 Will auto-fill after you place your first order
+                    </small>
+                  )}
                 </div>
 
                 {/* Password */}

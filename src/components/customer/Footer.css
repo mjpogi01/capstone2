@@ -35,7 +35,7 @@
 .footer-tagline {
   color: rgba(0, 191, 255, 0.9);
   font-size: 1rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -56,7 +56,7 @@
   text-decoration: none;
   font-size: 0.9rem;
   transition: all 0.3s ease;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -73,7 +73,7 @@
   margin-bottom: 1.5rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .contact-info {
@@ -105,14 +105,14 @@
 }
 
 .contact-text {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .contact-link {
   color: #ffffff;
   font-size: 0.9rem;
   text-decoration: none;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
   transition: color 0.3s ease;
 }
 
@@ -130,7 +130,7 @@
 .copyright {
   color: rgba(0, 191, 255, 0.7);
   font-size: 0.9rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 /* Tablet styles */
