@@ -69,9 +69,11 @@
   border-radius: 15px;
   border: 1px solid #333;
   box-shadow: 0 8px 24px rgba(0, 191, 255, 0.2);
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
-              box-shadow 0.6s ease;
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+              box-shadow 0.8s ease,
+              opacity 0.5s ease;
   transform-style: preserve-3d;
+  will-change: transform;
 }
 
 .yohanns-map-container:active {
@@ -443,14 +445,17 @@
 /* Smooth zoom animation */
 @keyframes mapZoomIn {
   0% {
-    transform: scale(0.95);
-    opacity: 0.8;
+    transform: scale(0.92) translateZ(0);
+    opacity: 0.7;
   }
-  50% {
-    transform: scale(1.02);
+  30% {
+    opacity: 0.85;
+  }
+  60% {
+    transform: scale(1.03) translateZ(0);
   }
   100% {
-    transform: scale(1);
+    transform: scale(1) translateZ(0);
     opacity: 1;
   }
 }
@@ -461,17 +466,20 @@
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  animation: fadeInUp 0.6s ease-out;
+  animation: fadeInUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @keyframes fadeInUp {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px) scale(0.95);
   }
-  to {
+  60% {
+    opacity: 0.8;
+  }
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 

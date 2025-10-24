@@ -244,14 +244,15 @@ const Branches = () => {
           lng: (userLocation.lng + branch.position.lng) / 2
         };
         
-        // Zoom out to show overview
+        // Zoom out to show overview with smooth animation
         mapRef.current.setView(midPoint, 10, { 
           animate: true, 
-          duration: 0.5 
+          duration: 1.2,
+          easeLinearity: 0.1
         });
       }
       
-      // Step 2: Fetch route data while zooming
+      // Step 2: Fetch route data while zooming (wait for zoom out to complete)
       setTimeout(async () => {
         try {
           const response = await fetch(
@@ -275,11 +276,11 @@ const Branches = () => {
                 mapRef.current.fitBounds(bounds, { 
                   padding: [80, 80],
                   animate: true,
-                  duration: 1.2,
-                  easeLinearity: 0.25
+                  duration: 1.8,
+                  easeLinearity: 0.1
                 });
               }
-            }, 300);
+            }, 600);
             
             // Use actual distance from routing API (in meters)
             const actualDistance = data.routes[0].distance / 1000; // Convert to km
@@ -332,7 +333,8 @@ const Branches = () => {
               mapRef.current.fitBounds(bounds, { 
                 padding: [80, 80],
                 animate: true,
-                duration: 1.2
+                duration: 1.8,
+                easeLinearity: 0.1
               });
             }
           }
@@ -357,28 +359,31 @@ const Branches = () => {
             mapRef.current.fitBounds(bounds, { 
               padding: [80, 80],
               animate: true,
-              duration: 1.2
+              duration: 1.8,
+              easeLinearity: 0.1
             });
           }
         }
-      }, 500);
+      }, 800);
     } else {
-      // If no user location, just zoom to branch with animation
+      // If no user location, just zoom to branch with smooth animation
       setTravelInfo(null);
       if (mapRef.current) {
-        // Zoom out first
+        // Zoom out first with smooth easing
         mapRef.current.setView(branch.position, 10, { 
           animate: true, 
-          duration: 0.5 
+          duration: 1.2,
+          easeLinearity: 0.1
         });
         
-        // Then zoom in to branch
+        // Then zoom in to branch with smooth easing
         setTimeout(() => {
           mapRef.current.setView(branch.position, 16, { 
             animate: true, 
-            duration: 1 
+            duration: 1.8,
+            easeLinearity: 0.1
           });
-        }, 500);
+        }, 900);
       }
     }
   };
