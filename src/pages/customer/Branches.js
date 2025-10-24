@@ -198,13 +198,34 @@ const Branches = () => {
       }
     };
 
-    return {
+    // Detect water crossing between Batangas and Mindoro
+    // Batangas branches: lat > 13.7
+    // Mindoro branches: lat < 13.5
+    const isBatangas = (lat) => lat > 13.7;
+    const isMindoro = (lat) => lat < 13.5;
+    
+    const crossesWater = (isBatangas(userLoc.lat) && isMindoro(branchPos.lat)) ||
+                         (isMindoro(userLoc.lat) && isBatangas(branchPos.lat));
+
+    const travelInfo = {
       distance: distance.toFixed(1),
       walking: formatTime(distance / speeds.walking),
       bicycle: formatTime(distance / speeds.bicycle),
       motorcycle: formatTime(distance / speeds.motorcycle),
-      car: formatTime(distance / speeds.car)
+      car: formatTime(distance / speeds.car),
+      crossesWater: crossesWater
     };
+
+    // Add ferry travel time if crossing water
+    if (crossesWater) {
+      // Ferry from Batangas to Calapan: ~1.5-2 hours
+      // Plus additional time for land travel on both sides
+      const ferryTime = 1.75; // 1 hour 45 minutes for ferry
+      const additionalLandTime = distance / speeds.car; // Estimate land portion
+      travelInfo.ferry = formatTime(ferryTime + additionalLandTime * 0.3);
+    }
+
+    return travelInfo;
   };
 
   const focusBranch = async (branch) => {
@@ -596,6 +617,20 @@ const Branches = () => {
                     <span className="mode-time">{travelInfo.car}</span>
                   </div>
                 </div>
+                {travelInfo.crossesWater && (
+                  <div className="travel-mode ferry-mode">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
+                      <path d="M2 20a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1a2.4 2.4 0 0 1 2 -1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1a2.4 2.4 0 0 1 2 -1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1"/>
+                      <path d="M4 18l-1 -5h18l-1 5"/>
+                      <path d="M5 13v-6h8l4 6"/>
+                      <path d="M7 7v-4h2"/>
+                    </svg>
+                    <div className="mode-details">
+                      <span className="mode-label">Ferry + Land</span>
+                      <span className="mode-time">{travelInfo.ferry}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
