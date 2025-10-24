@@ -174,7 +174,7 @@
 
 .sort-buttons {
   display: flex;
-  gap: 0;
+  gap: 8px;
   flex: 1;
 }
 
@@ -182,7 +182,6 @@
   padding: 10px 24px;
   background: #1a1a1a;
   border: 1px solid #262626;
-  border-right: none;
   color: #d1d5db;
   font-size: 14px;
   font-weight: 500;
@@ -191,10 +190,11 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   position: relative;
+  border-radius: 4px;
 }
 
 .sort-btn:first-child {
-  border-radius: 4px 0 0 4px;
+  border-radius: 4px;
 }
 
 .price-dropdown-wrapper {
@@ -202,8 +202,8 @@
 }
 
 .price-dropdown-wrapper .sort-btn {
-  border-radius: 0 4px 4px 0;
-  border-right: 1px solid #262626;
+  border-radius: 4px;
+  border: 1px solid #262626;
 }
 
 .sort-btn:hover {
@@ -217,10 +217,7 @@
   color: #ffffff;
   border-color: #3b82f6;
   z-index: 2;
-}
-
-.sort-btn.active + .sort-btn {
-  border-left-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .sort-btn.price-btn {
