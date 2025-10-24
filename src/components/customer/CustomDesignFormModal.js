@@ -28,6 +28,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
+  const [validationMessage, setValidationMessage] = useState(null);
 
   const errors = useMemo(() => {
     const e = {};
@@ -80,8 +81,33 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setShowSummary(true);
-    if (hasErrors) return;
+    
+    // Clear previous validation message
+    setValidationMessage(null);
+    
+    // Check for errors before submission
+    if (hasErrors) {
+      // Count error types for a clean message
+      const errorFields = [];
+      if (errors.clientName || errors.email || errors.phone) errorFields.push('Client Information');
+      if (errors.teamName) errorFields.push('Team Name');
+      if (errors.pickup) errorFields.push('Pickup Location');
+      
+      // Check for member errors
+      const hasMemberErrors = Object.keys(errors).some(key => key.startsWith('member_'));
+      if (hasMemberErrors) errorFields.push('Team Roster');
+      
+      setValidationMessage({
+        type: 'error',
+        title: 'Please Complete Required Fields',
+        fields: errorFields
+      });
+      
+      // Scroll to top to show notification
+      document.querySelector('.cdfm-form')?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       // Simulate submit
@@ -106,22 +132,47 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
         </div>
 
         <form className="cdfm-form" onSubmit={handleSubmit}>
+          {/* Validation Notification */}
+          {validationMessage && (
+            <div className={`validation-notification ${validationMessage.type}`}>
+              <div className="validation-header">
+                <span className="validation-icon">⚠️</span>
+                <strong>{validationMessage.title}</strong>
+                <button 
+                  type="button" 
+                  className="validation-close"
+                  onClick={() => setValidationMessage(null)}
+                  aria-label="Close notification"
+                >
+                  ✕
+                </button>
+              </div>
+              {validationMessage.fields && validationMessage.fields.length > 0 && (
+                <ul className="validation-list">
+                  {validationMessage.fields.map((field, idx) => (
+                    <li key={idx}>{field}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           {/* Client Information */}
           <section className="card">
             <h3 className="card-title">Client Information</h3>
             <div className="grid two">
               <div className={`field ${errors.clientName ? 'error' : ''}`}>
-                <label>Client Name</label>
+                <label>Client Name <span className="required">*</span></label>
                 <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Full name" />
                 {errors.clientName && <span className="error-text">{errors.clientName}</span>}
               </div>
               <div className={`field ${errors.email ? 'error' : ''}`}>
-                <label>Contact Email</label>
+                <label>Contact Email <span className="required">*</span></label>
                 <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
                 {errors.email && <span className="error-text">{errors.email}</span>}
               </div>
               <div className={`field ${errors.phone ? 'error' : ''}`}>
-                <label>Phone Number</label>
+                <label>Phone Number <span className="required">*</span></label>
                 <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. +63 912 345 6789" />
                 {errors.phone && <span className="error-text">{errors.phone}</span>}
               </div>
@@ -135,7 +186,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
               <span className="char-count">{teamName.length}/50</span>
             </div>
             <div className={`field ${errors.teamName ? 'error' : ''}`}>
-              <label>Team Name</label>
+              <label>Team Name <span className="required">*</span></label>
               <input maxLength={50} value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="Enter team name" />
               {errors.teamName && <span className="error-text">{errors.teamName}</span>}
             </div>
@@ -175,8 +226,8 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             </div>
             <div className="roster-table">
               <div className="roster-head">
-                <div>Jersey #</div>
-                <div>Surname</div>
+                <div>Jersey # <span className="required">*</span></div>
+                <div>Surname <span className="required">*</span></div>
                 <div></div>
               </div>
               {members.map((m, idx) => (
@@ -209,7 +260,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           <section className="card">
             <h3 className="card-title">Pickup Location</h3>
             <div className={`field ${errors.pickup ? 'error' : ''}`}>
-              <label>Select a branch</label>
+              <label>Select a branch <span className="required">*</span></label>
               <select
                 className="select"
                 value={pickupBranchId}
@@ -246,9 +297,16 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           {/* Submit */}
           <div className="submit-bar">
             <div className="submit-bar-inner">
-              <button className="submit-btn" disabled={isSubmitting}>
+              <button 
+                className="submit-btn" 
+                disabled={isSubmitting || hasErrors}
+                title={hasErrors ? 'Please fill all required fields' : ''}
+              >
                 {isSubmitting ? 'Submitting...' : 'Submit Order'}
               </button>
+              {hasErrors && (
+                <span className="submit-hint">Complete all required fields to submit</span>
+              )}
             </div>
           </div>
         </form>

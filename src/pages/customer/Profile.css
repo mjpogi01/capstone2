@@ -2,8 +2,10 @@
 .profile-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1a2e 100%);
-  padding: 2rem 0;
-  padding-top: 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6rem 0 2rem 0;
   color: #ffffff;
 }
 
@@ -11,6 +13,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
+  width: 100%;
 }
 
 /* Header */
@@ -339,7 +342,7 @@
 /* Tablet styles */
 @media (max-width: 1024px) {
   .profile-page {
-    padding-top: 5.5rem;
+    padding: 5.5rem 0 2rem 0;
   }
   
   .profile-container {
@@ -368,8 +371,7 @@
 /* Mobile styles */
 @media (max-width: 768px) {
   .profile-page {
-    padding: 1.5rem 0;
-    padding-top: 5rem;
+    padding: 5rem 0 2rem 0;
   }
   
   .profile-container {
@@ -458,8 +460,7 @@
 /* Small mobile styles */
 @media (max-width: 480px) {
   .profile-page {
-    padding: 1rem 0;
-    padding-top: 4.5rem;
+    padding: 4.5rem 0 1.5rem 0;
   }
   
   .profile-container {
@@ -544,8 +545,7 @@
 /* Extra small mobile styles */
 @media (max-width: 360px) {
   .profile-page {
-    padding: 0.75rem 0;
-    padding-top: 4rem;
+    padding: 4rem 0 1rem 0;
   }
   
   .profile-container {
