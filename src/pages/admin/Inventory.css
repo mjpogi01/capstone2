@@ -1,12 +1,16 @@
 /* ===========================================
    INVENTORY MANAGEMENT - MODERN RESPONSIVE DESIGN
+   Centered Layout with Max Width
    =========================================== */
 
-/* Inventory page now uses admin-dashboard structure */
+/* Inventory content wrapper */
 .inventory-main-content {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 /* Header Section */
@@ -726,24 +730,16 @@
 
 /* Large Desktop (1400px+) */
 @media (min-width: 1400px) {
-  .inventory-main-content {
-    padding: 3rem;
-  }
+  /* Styling handled by AdminDashboard.css */
 }
 
 /* Desktop (1200px - 1399px) */
 @media (max-width: 1399px) {
-  .inventory-main-content {
-    padding: 2rem;
-  }
+  /* Styling handled by AdminDashboard.css */
 }
 
 /* Large Laptop (1024px - 1199px) */
 @media (max-width: 1199px) {
-  .inventory-main-content {
-    padding: 1.5rem;
-  }
-  
   .inventory-header h1 {
     font-size: 2.25rem;
   }
@@ -795,10 +791,6 @@
 
 /* Tablet (768px - 1023px) */
 @media (max-width: 1023px) {
-  .inventory-main-content {
-    padding: 1.25rem;
-  }
-  
   .inventory-header {
     padding: 1.5rem;
   }
@@ -874,10 +866,6 @@
 
 /* Mobile Large (481px - 767px) */
 @media (max-width: 767px) {
-  .inventory-main-content {
-    padding: 1rem;
-  }
-  
   .inventory-header {
     padding: 1.25rem;
   }
@@ -922,10 +910,6 @@
 
 /* Mobile Small (320px - 480px) */
 @media (max-width: 480px) {
-  .inventory-main-content {
-    padding: 0.75rem;
-  }
-  
   .inventory-header {
     padding: 1rem;
   }
@@ -990,10 +974,6 @@
 
 /* Extra Small Mobile (below 320px) */
 @media (max-width: 319px) {
-  .inventory-main-content {
-    padding: 0.5rem;
-  }
-  
   .inventory-header {
     padding: 0.875rem;
   }

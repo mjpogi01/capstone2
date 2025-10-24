@@ -14,15 +14,7 @@
   font-family: 'Oswald', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.admin-main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  margin-left: 280px;
-  padding: 1rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow-x: hidden;
-}
+/* .admin-main-content styling now handled by AdminDashboard.css */
 
 .accounts-container {
   max-width: 1400px;
@@ -386,18 +378,11 @@
 
 /* Desktop (1200px - 1399px) */
 @media (max-width: 1399px) {
-  .admin-main-content {
-    padding: 2rem;
-  }
+  /* .admin-main-content styling handled by AdminDashboard.css */
 }
 
 /* Large Laptop (1024px - 1199px) */
 @media (max-width: 1199px) {
-  .admin-main-content {
-    margin-left: 220px;
-    padding: 0.75rem;
-  }
-  
   .accounts-header h1 {
     font-size: 2.25rem;
   }
@@ -417,10 +402,6 @@
 
 /* Tablet (768px - 1023px) */
 @media (max-width: 1023px) {
-  .admin-main-content {
-    margin-left: 0;
-    padding: 0.5rem;
-  }
   
   .accounts-header {
     flex-direction: column;
@@ -462,9 +443,6 @@
 
 /* Mobile Large (481px - 767px) */
 @media (max-width: 767px) {
-  .admin-main-content {
-    padding: 1rem;
-  }
   
   .accounts-header {
     padding: 1.25rem;
@@ -513,9 +491,6 @@
 
 /* Mobile Small (320px - 480px) */
 @media (max-width: 480px) {
-  .admin-main-content {
-    padding: 0.75rem;
-  }
   
   .accounts-header {
     padding: 1rem;
@@ -572,9 +547,6 @@
 
 /* Extra Small Mobile (below 320px) */
 @media (max-width: 319px) {
-  .admin-main-content {
-    padding: 0.5rem;
-  }
   
   .accounts-header {
     padding: 0.875rem;

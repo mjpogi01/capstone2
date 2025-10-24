@@ -28,17 +28,15 @@ const Sidebar = ({ activePage, setActivePage }) => {
   };
 
   return (
-    <div className="sidebar">
+    <aside className="admin-sidebar">
       <div className="sidebar-header">
-        <div className="logo">
-          <Link to="/">
-            <img
-              src={logo}
-              alt="YOHANNS Sportswear House"
-              className="logo-image"
-            />
-          </Link>
-        </div>
+        <Link to="/" className="sidebar-logo">
+          <img
+            src={logo}
+            alt="YOHANNS Sportswear House"
+            className="sidebar-logo-image"
+          />
+        </Link>
       </div>
 
       <nav className="sidebar-nav">
@@ -46,29 +44,29 @@ const Sidebar = ({ activePage, setActivePage }) => {
           <Link
             key={item.id}
             to={item.path}
-            className={`nav-item ${activePage === item.id ? 'active' : ''}`}
+            className={`sidebar-nav-item ${activePage === item.id ? 'active' : ''}`}
             onClick={() => setActivePage(item.id)}
           >
-            <div className="nav-icon">
+            <div className="sidebar-nav-icon">
               <FontAwesomeIcon icon={item.icon} />
             </div>
-            <span className="nav-label">{item.label}</span>
+            <span className="sidebar-nav-label">{item.label}</span>
           </Link>
         ))}
       </nav>
 
       <div className="sidebar-footer">
         <button
-          className="logout-btn"
+          className="sidebar-logout-btn"
           onClick={handleLogout}
         >
-          <div className="logout-icon">
+          <div className="sidebar-logout-icon">
             <FontAwesomeIcon icon={faSignOutAlt} />
           </div>
-          <span className="logout-label">Logout</span>
+          <span className="sidebar-logout-label">Logout</span>
         </button>
       </div>
-    </div>
+    </aside>
   );
 };
 

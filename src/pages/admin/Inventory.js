@@ -170,12 +170,13 @@ const Inventory = () => {
         setActivePage={setActivePage} 
       />
       <div className="admin-main-content">
-        <div className="inventory-header">
-          <h1>Inventory Management</h1>
-          <p>Manage your product inventory</p>
-        </div>
+        <div className="inventory-main-content">
+          <div className="inventory-header">
+            <h1>Inventory Management</h1>
+            <p>Manage your product inventory</p>
+          </div>
 
-        <div className="inventory-content">
+          <div className="inventory-content">
           {loading ? (
             <div className="loading">Loading products...</div>
           ) : (
@@ -412,6 +413,7 @@ const Inventory = () => {
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
 

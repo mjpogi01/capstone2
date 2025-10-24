@@ -545,97 +545,103 @@ const Orders = () => {
         )}
       </div>
 
-      {/* Compact Orders Table */}
-      <div className="compact-orders-table">
-        <div className="table-header">
+      {/* Yohann's Orders Table - Redesigned */}
+      <div className="yh-orders-table-wrapper">
+        <div className="yh-orders-table-header">
           <div 
-            className="header-cell sortable" 
+            className="yh-orders-header-cell yh-orders-sortable" 
             onClick={() => handleSort('orderNumber')}
           >
-            Order #
-            <FaSort className={`sort-icon ${sortConfig.key === 'orderNumber' ? 'active' : ''}`} />
+            <span className="yh-orders-header-title">Order #</span>
+            <FaSort className={`yh-orders-sort-icon ${sortConfig.key === 'orderNumber' ? 'yh-orders-active' : ''}`} />
           </div>
           <div 
-            className="header-cell sortable" 
+            className="yh-orders-header-cell yh-orders-sortable" 
             onClick={() => handleSort('customerName')}
           >
-            Customer
-            <FaSort className={`sort-icon ${sortConfig.key === 'customerName' ? 'active' : ''}`} />
+            <span className="yh-orders-header-title">Customer</span>
+            <FaSort className={`yh-orders-sort-icon ${sortConfig.key === 'customerName' ? 'yh-orders-active' : ''}`} />
           </div>
-          <div className="header-cell">Items</div>
+          <div className="yh-orders-header-cell">
+            <span className="yh-orders-header-title">Items</span>
+          </div>
           <div 
-            className="header-cell sortable" 
+            className="yh-orders-header-cell yh-orders-sortable" 
             onClick={() => handleSort('totalAmount')}
           >
-            Total
-            <FaSort className={`sort-icon ${sortConfig.key === 'totalAmount' ? 'active' : ''}`} />
+            <span className="yh-orders-header-title">Total</span>
+            <FaSort className={`yh-orders-sort-icon ${sortConfig.key === 'totalAmount' ? 'yh-orders-active' : ''}`} />
           </div>
           <div 
-            className="header-cell sortable" 
+            className="yh-orders-header-cell yh-orders-sortable" 
             onClick={() => handleSort('orderDate')}
           >
-            Date
-            <FaSort className={`sort-icon ${sortConfig.key === 'orderDate' ? 'active' : ''}`} />
+            <span className="yh-orders-header-title">Date</span>
+            <FaSort className={`yh-orders-sort-icon ${sortConfig.key === 'orderDate' ? 'yh-orders-active' : ''}`} />
           </div>
-          <div className="header-cell">Status</div>
-          <div className="header-cell">Actions</div>
+          <div className="yh-orders-header-cell">
+            <span className="yh-orders-header-title">Status</span>
+          </div>
+          <div className="yh-orders-header-cell">
+            <span className="yh-orders-header-title">Actions</span>
+          </div>
         </div>
         
-        <div className="table-body">
+        <div className="yh-orders-table-body">
           {filteredOrders.map((order, index) => {
             const dateInfo = formatDate(order.orderDate);
             return (
-              <div key={order.id} className={`table-row ${index % 2 === 0 ? 'even' : 'odd'}`}>
-                <div className="table-cell order-number">
+              <div key={order.id} className={`yh-orders-table-row ${index % 2 === 0 ? 'yh-orders-row-even' : 'yh-orders-row-odd'}`}>
+                <div className="yh-orders-table-cell yh-orders-cell-order-number">
                   <span 
-                    className="order-number-text"
+                    className="yh-orders-number-text"
                     title={order.orderNumber}
                   >
                     {truncateOrderNumber(order.orderNumber)}
                   </span>
                 </div>
                 
-                <div className="table-cell customer-info">
-                  <div className="customer-name">{order.customerName}</div>
-                  <div className="customer-secondary">N/A</div>
+                <div className="yh-orders-table-cell yh-orders-cell-customer">
+                  <div className="yh-orders-customer-name">{order.customerName}</div>
+                  <div className="yh-orders-customer-email">{order.customerEmail || 'N/A'}</div>
                 </div>
                 
-                <div className="table-cell items-info">
-                  <div className="items-count">{order.totalItems} item{order.totalItems !== 1 ? 's' : ''}</div>
-                  <div className="delivery-method">
+                <div className="yh-orders-table-cell yh-orders-cell-items">
+                  <div className="yh-orders-items-count">{order.totalItems} item{order.totalItems !== 1 ? 's' : ''}</div>
+                  <div className="yh-orders-delivery-method">
                     {order.shippingMethod === 'pickup' ? 'Pickup' : 'COD'}
-                    {order.pickupLocation && ` - ${order.pickupLocation}`}
+                    {order.pickupLocation && ` - ${order.pickupLocation.substring(0, 15)}...`}
                   </div>
                 </div>
                 
-                <div className="table-cell total-amount">
-                  <span className="total-price">₱{(order.totalAmount || 0).toFixed(2)}</span>
+                <div className="yh-orders-table-cell yh-orders-cell-total">
+                  <span className="yh-orders-total-price">₱{(order.totalAmount || 0).toFixed(2)}</span>
                 </div>
                 
-                <div className="table-cell order-date">
-                  <div className="date-info">
-                    <div className="date-text">{dateInfo.date}</div>
-                    <div className="time-text">{dateInfo.time}</div>
+                <div className="yh-orders-table-cell yh-orders-cell-date">
+                  <div className="yh-orders-date-wrapper">
+                    <div className="yh-orders-date-text">{dateInfo.date}</div>
+                    <div className="yh-orders-time-text">{dateInfo.time}</div>
                   </div>
                 </div>
                 
-                <div className="table-cell status-cell">
+                <div className="yh-orders-table-cell yh-orders-cell-status">
                   <div 
-                    className={`status-badge ${getStatusColor(order.status)}`}
+                    className={`yh-orders-status-badge yh-orders-status-${getStatusColor(order.status)}`}
                     title={getStatusDescription(order.status)}
                   >
                     {getStatusDisplayName(order.status)}
                   </div>
                 </div>
                 
-                <div className="table-cell actions">
+                <div className="yh-orders-table-cell yh-orders-cell-actions">
                   <button 
-                    className="view-details-btn"
+                    className="yh-orders-view-btn"
                     onClick={() => toggleOrderExpansion(order.id)}
                     title="View Details"
                   >
-                    <FaEye />
-                    View Details
+                    <FaEye className="yh-orders-btn-icon" />
+                    <span className="yh-orders-btn-text">View</span>
                   </button>
                 </div>
               </div>
@@ -722,23 +728,40 @@ const Orders = () => {
                 </div>
                 
                 <div className="order-details-body">
-                  <div className="details-section">
-                    <h4><FaUser className="section-icon" />Customer Information</h4>
-                    <div className="detail-row">
-                      <span className="detail-label"><FaUser className="detail-icon" />Name:</span>
-                      <span className="detail-value">{order.customerName}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label"><FaEnvelope className="detail-icon" />Email:</span>
-                      <span className="detail-value">{order.customerEmail}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label"><FaPhone className="detail-icon" />Phone:</span>
-                      <span className="detail-value">{order.deliveryAddress?.phone || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label"><FaMapMarkerAlt className="detail-icon" />Address:</span>
-                      <span className="detail-value">{order.deliveryAddress?.address || 'N/A'}</span>
+                  <div className="yh-customer-section">
+                    <h4 className="yh-customer-heading">
+                      <FaUser className="yh-customer-heading-icon" />
+                      Customer Information
+                    </h4>
+                    <div className="yh-customer-info-grid">
+                      <div className="yh-customer-info-row">
+                        <span className="yh-customer-label">
+                          <FaUser className="yh-customer-icon" />
+                          Name:
+                        </span>
+                        <span className="yh-customer-value">{order.customerName}</span>
+                      </div>
+                      <div className="yh-customer-info-row">
+                        <span className="yh-customer-label">
+                          <FaEnvelope className="yh-customer-icon" />
+                          Email:
+                        </span>
+                        <span className="yh-customer-value yh-customer-value-email">{order.customerEmail}</span>
+                      </div>
+                      <div className="yh-customer-info-row">
+                        <span className="yh-customer-label">
+                          <FaPhone className="yh-customer-icon" />
+                          Phone:
+                        </span>
+                        <span className="yh-customer-value yh-customer-value-phone">{order.deliveryAddress?.phone || 'N/A'}</span>
+                      </div>
+                      <div className="yh-customer-info-row">
+                        <span className="yh-customer-label">
+                          <FaMapMarkerAlt className="yh-customer-icon" />
+                          Address:
+                        </span>
+                        <span className="yh-customer-value yh-customer-value-address">{order.deliveryAddress?.address || 'N/A'}</span>
+                      </div>
                     </div>
                   </div>
                   
@@ -781,19 +804,38 @@ const Orders = () => {
                     ))}
                   </div>
                   
-                  <div className="details-section">
-                    <h4><FaDollarSign className="section-icon" />Order Summary</h4>
-                    <div className="summary-row">
-                      <span><FaDollarSign className="summary-icon" />Subtotal:</span>
-                      <span>₱{(order.subtotalAmount || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="summary-row">
-                      <span><FaShippingFast className="summary-icon" />Shipping:</span>
-                      <span>₱{(order.shippingCost || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="summary-row total">
-                      <span><FaDollarSign className="summary-icon" />Total:</span>
-                      <span>₱{(order.totalAmount || 0).toFixed(2)}</span>
+                  {/* Redesigned Order Summary */}
+                  <div className="details-section yh-summary-section">
+                    <h4 className="yh-summary-heading">
+                      <FaDollarSign className="yh-summary-heading-icon" />
+                      Order Summary
+                    </h4>
+                    <div className="yh-summary-container">
+                      <div className="yh-summary-item yh-summary-subtotal">
+                        <div className="yh-summary-label">
+                          <FaDollarSign className="yh-summary-icon" />
+                          <span className="yh-summary-label-text">Subtotal</span>
+                        </div>
+                        <span className="yh-summary-value">₱{(order.subtotalAmount || 0).toFixed(2)}</span>
+                      </div>
+                      
+                      <div className="yh-summary-item yh-summary-shipping">
+                        <div className="yh-summary-label">
+                          <FaShippingFast className="yh-summary-icon" />
+                          <span className="yh-summary-label-text">Shipping</span>
+                        </div>
+                        <span className="yh-summary-value">₱{(order.shippingCost || 0).toFixed(2)}</span>
+                      </div>
+                      
+                      <div className="yh-summary-divider"></div>
+                      
+                      <div className="yh-summary-item yh-summary-total">
+                        <div className="yh-summary-label">
+                          <FaDollarSign className="yh-summary-icon yh-summary-total-icon" />
+                          <span className="yh-summary-label-text yh-summary-total-label">Total Amount</span>
+                        </div>
+                        <span className="yh-summary-value yh-summary-total-value">₱{(order.totalAmount || 0).toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
                   
