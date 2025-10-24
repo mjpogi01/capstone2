@@ -555,6 +555,15 @@
   letter-spacing: 0.5px;
 }
 
+.mode-description {
+  font-size: 0.7rem;
+  color: rgba(156, 163, 175, 0.7);
+  font-weight: 400;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.2;
+  font-style: italic;
+}
+
 .mode-time {
   font-size: 0.9rem;
   color: #ffffff;

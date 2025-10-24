@@ -586,6 +586,7 @@ const Branches = () => {
                   </svg>
                   <div className="mode-details">
                     <span className="mode-label">Walking</span>
+                    <span className="mode-description">Estimated travel time by walking</span>
                     <span className="mode-time">{travelInfo.walking}</span>
                   </div>
                 </div>
@@ -597,6 +598,7 @@ const Branches = () => {
                   </svg>
                   <div className="mode-details">
                     <span className="mode-label">Bicycle</span>
+                    <span className="mode-description">Estimated travel time by bicycle</span>
                     <span className="mode-time">{travelInfo.bicycle}</span>
                   </div>
                 </div>
@@ -608,6 +610,7 @@ const Branches = () => {
                   </svg>
                   <div className="mode-details">
                     <span className="mode-label">Motorcycle</span>
+                    <span className="mode-description">Estimated travel time by motorcycle</span>
                     <span className="mode-time">{travelInfo.motorcycle}</span>
                   </div>
                 </div>
@@ -619,6 +622,7 @@ const Branches = () => {
                   </svg>
                   <div className="mode-details">
                     <span className="mode-label">Car</span>
+                    <span className="mode-description">Estimated travel time by car</span>
                     <span className="mode-time">{travelInfo.car}</span>
                   </div>
                 </div>
@@ -632,6 +636,7 @@ const Branches = () => {
                     </svg>
                     <div className="mode-details">
                       <span className="mode-label">Ferry + Land</span>
+                      <span className="mode-description">Estimated travel time by ferry and land vehicle</span>
                       <span className="mode-time">{travelInfo.ferry}</span>
                     </div>
                   </div>
