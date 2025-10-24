@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaTimes, FaSearch, FaFilter, FaSortAmountDown } from 'react-icons/fa';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -128,32 +128,34 @@ const ProductListModal = ({ isOpen, onClose }) => {
 
   return (
     <>
-      <div className="product-list-overlay" onClick={onClose}>
-        <div className="product-list-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="shop-overlay" onClick={onClose}>
+        <div className="shop-container" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="product-list-header">
-            <h2>Shop Our Products</h2>
-            <button className="close-modal-btn" onClick={onClose}>
+          <div className="shop-header">
+            <h1 className="shop-title">Shop Our Products</h1>
+            <button className="shop-close-btn" onClick={onClose} aria-label="Close">
               <FaTimes />
             </button>
           </div>
 
-          {/* Filters and Search */}
-          <div className="product-list-controls">
-            <div className="search-bar">
-              <FaSearch className="search-icon" />
+          {/* Search and Filters Bar */}
+          <div className="shop-filter-bar">
+            <div className="shop-search-wrapper">
+              <FaSearch className="shop-search-icon" />
               <input
                 type="text"
-                placeholder="Search products..."
+                className="shop-search-input"
+                placeholder="Search for products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
-            <div className="filter-controls">
-              <div className="category-filter">
-                <FaFilter className="filter-icon" />
+            <div className="shop-filters-wrapper">
+              <div className="shop-filter-group">
+                <FaFilter className="shop-filter-icon" />
                 <select
+                  className="shop-select"
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
@@ -163,9 +165,13 @@ const ProductListModal = ({ isOpen, onClose }) => {
                 </select>
               </div>
 
-              <div className="sort-dropdown">
-                <label>Sort by:</label>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <div className="shop-filter-group">
+                <FaSortAmountDown className="shop-filter-icon" />
+                <select 
+                  className="shop-select" 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
                   <option value="name">Name</option>
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
@@ -177,79 +183,81 @@ const ProductListModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Product Grid */}
-          <div className="product-list-content">
+          <div className="shop-content">
             {loading ? (
               <Loading message="Loading products..." />
             ) : error ? (
               <ErrorState message={error} onRetry={fetchProducts} />
             ) : filteredProducts.length === 0 ? (
-              <div className="empty-state">
+              <div className="shop-empty-state">
                 <p>No products found</p>
               </div>
             ) : (
               <>
-                <div className="products-grid">
-                  {currentProducts.map((product) => (
+                <div className="product-grid">
+                  {currentProducts.map((product, index) => (
                     <div
                       key={product.id}
                       className="product-card"
+                      style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div 
-                        className="product-clickable-area"
+                        className="product-card-clickable"
                         onClick={() => handleProductClick(product)}
                       >
-                        <div className="product-image">
+                        <div className="product-card-image">
                           {product.main_image || product.image_url ? (
                             <img 
                               src={product.main_image || product.image_url} 
                               alt={product.name}
-                              className="product-image-img"
+                              className="product-img"
                             />
                           ) : (
-                            <span className="product-emoji">🏀</span>
+                            <span className="product-placeholder">🏀</span>
                           )}
                         </div>
                         
-                        <div className="product-info">
-                          <div className="product-brand"></div>
-                          <p className="product-name">{product.name}</p>
-                          <div className="product-price">
-                            ₱ {parseFloat(product.price).toLocaleString('en-US', {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0
-                            })}
-                          </div>
+                        <div className="product-card-info">
+                          <h3 className="product-card-name">{product.name}</h3>
                         </div>
                       </div>
                       
-                      <button
-                        className="favorite-btn"
-                        onClick={(e) => handleToggleWishlist(product, e)}
-                      >
-                        {isInWishlist(product.id) ? (
-                          <AiFillHeart color="red" />
-                        ) : (
-                          <AiOutlineHeart />
-                        )}
-                      </button>
+                      <div className="product-card-footer">
+                        <div className="product-card-price">
+                          ₱{parseFloat(product.price).toLocaleString('en-US', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                          })}
+                        </div>
+                        <button
+                          className="product-wishlist-btn"
+                          onClick={(e) => handleToggleWishlist(product, e)}
+                          aria-label="Add to wishlist"
+                        >
+                          {isInWishlist(product.id) ? (
+                            <AiFillHeart className="wishlist-icon filled" />
+                          ) : (
+                            <AiOutlineHeart className="wishlist-icon" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="pagination">
+                  <div className="shop-pagination">
                     <button
                       onClick={() => paginate(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="page-btn"
+                      className="shop-page-btn"
                     >
                       Previous
                     </button>
 
                     {[...Array(totalPages)].map((_, index) => {
                       const pageNumber = index + 1;
-                      // Show first, last, current, and adjacent pages
                       if (
                         pageNumber === 1 ||
                         pageNumber === totalPages ||
@@ -259,13 +267,13 @@ const ProductListModal = ({ isOpen, onClose }) => {
                           <button
                             key={pageNumber}
                             onClick={() => paginate(pageNumber)}
-                            className={`page-btn ${currentPage === pageNumber ? 'active' : ''}`}
+                            className={`shop-page-btn ${currentPage === pageNumber ? 'active' : ''}`}
                           >
                             {pageNumber}
                           </button>
                         );
                       } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                        return <span key={pageNumber} className="page-dots">...</span>;
+                        return <span key={pageNumber} className="shop-page-dots">...</span>;
                       }
                       return null;
                     })}
@@ -273,14 +281,14 @@ const ProductListModal = ({ isOpen, onClose }) => {
                     <button
                       onClick={() => paginate(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="page-btn"
+                      className="shop-page-btn"
                     >
                       Next
                     </button>
                   </div>
                 )}
 
-                <div className="results-info">
+                <div className="shop-results-info">
                   Showing {indexOfFirstProduct + 1} - {Math.min(indexOfLastProduct, filteredProducts.length)} of {filteredProducts.length} products
                 </div>
               </>

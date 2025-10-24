@@ -1455,7 +1455,6 @@
   border-color: var(--primary-blue);
   box-shadow: var(--shadow-md);
 }
-
 .orders-count-info {
   text-align: center;
   padding: var(--spacing-lg);
