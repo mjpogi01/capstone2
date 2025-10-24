@@ -258,6 +258,7 @@ const Branches = () => {
             ]);
             mapRef.current.fitBounds(bounds, { 
               padding: [80, 80],
+              maxZoom: 16,
               animate: true,
               duration: 2.0,
               easeLinearity: 0.05
@@ -289,6 +290,7 @@ const Branches = () => {
             ]);
             mapRef.current.fitBounds(bounds, { 
               padding: [80, 80],
+              maxZoom: 16,
               animate: true,
               duration: 2.0,
               easeLinearity: 0.05
