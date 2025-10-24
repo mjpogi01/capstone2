@@ -1,34 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import './About.css';
 
 const About = () => {
-  const [activeTab, setActiveTab] = useState('mission');
-
-  // Tab content
-  const missionContent = "At Yohann's Sportswear House, our mission is to deliver premium, customizable sports apparel that champions local talent, supports active lifestyles, and fuels passion for the game. Through innovation, local pride, and unbeatable service, we aim to elevate every player's journey — from the streets to the spotlight.";
-
-  const visionContent = "To become the leading sportswear brand in the Philippines, recognized for our commitment to quality, innovation, and community support. We envision a future where every athlete, from grassroots to professional level, has access to premium sportswear that enhances their performance and represents their passion for the game.";
-
-  const valuesContent = "Our values drive everything we do: Innovation in design, Community focus through local support, Excellence in craftsmanship, and Passion for empowering athletes. We believe in sustainable practices and inclusivity, ensuring every piece tells a story of dedication and pride.";
-
-  // Optimized tab switcher
-  const handleTabChange = useCallback((tab) => {
-    setActiveTab(tab);
-  }, []);
-
-  // Get current content
-  const getContent = () => {
-    switch (activeTab) {
-      case 'mission':
-        return missionContent;
-      case 'vision':
-        return visionContent;
-      case 'values':
-        return valuesContent;
-      default:
-        return missionContent;
-    }
-  };
 
   return (
     <div className="about-page" role="main" aria-labelledby="about-title">
@@ -45,47 +18,6 @@ const About = () => {
           {/* Subtitle */}
           <p className="about-subtitle">
             Step into the world of performance and style with YOHANN'S SPORTSWEAR HOUSE
-          </p>
-        </div>
-
-        {/* Interactive Buttons */}
-        <div className="about-buttons" role="tablist" aria-label="About sections">
-          <button 
-            className={`about-btn ${activeTab === 'mission' ? 'active' : ''}`}
-            onClick={() => handleTabChange('mission')}
-            role="tab"
-            aria-selected={activeTab === 'mission'}
-            aria-controls="content-block"
-            tabIndex={activeTab === 'mission' ? 0 : -1}
-          >
-            Mission
-          </button>
-          <button 
-            className={`about-btn ${activeTab === 'vision' ? 'active' : ''}`}
-            onClick={() => handleTabChange('vision')}
-            role="tab"
-            aria-selected={activeTab === 'vision'}
-            aria-controls="content-block"
-            tabIndex={activeTab === 'vision' ? 0 : -1}
-          >
-            Vision
-          </button>
-          <button 
-            className={`about-btn ${activeTab === 'values' ? 'active' : ''}`}
-            onClick={() => handleTabChange('values')}
-            role="tab"
-            aria-selected={activeTab === 'values'}
-            aria-controls="content-block"
-            tabIndex={activeTab === 'values' ? 0 : -1}
-          >
-            Values
-          </button>
-        </div>
-
-        {/* Content Block */}
-        <div className="about-content-block" id="content-block" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
-          <p className="about-content-text">
-            {getContent()}
           </p>
         </div>
 

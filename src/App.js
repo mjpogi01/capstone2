@@ -1,8 +1,9 @@
 import React from 'react';
 import './App.css';
+import './styles/responsive-global.css';
 import Header from './components/customer/Header';
 import Footer from './components/customer/Footer';
-import Branches from './components/customer/Branches';
+import Branches from './pages/customer/Branches';
 import Home from './pages/customer/Home';
 import About from './pages/customer/About';
 import Highlights from './pages/customer/Highlights';

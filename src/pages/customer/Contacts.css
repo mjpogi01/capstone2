@@ -1,9 +1,10 @@
 /* Contact Us Page Styles */
 .contacts {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
   color: #ffffff;
-  padding: 2rem 0;
+  padding: 100px 0 3rem 0;
+  font-family: 'Inter', sans-serif;
 }
 
 .contacts-container {
@@ -16,15 +17,17 @@
 .contacts-hero {
   text-align: center;
   margin-bottom: 4rem;
-  padding: 3rem 0;
+  padding: 2rem 0;
 }
 
 .contacts-hero h1 {
   font-size: 2.5rem;
-  font-weight: bold;
+  font-weight: 700;
   color: #00bfff;
   text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
   margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+  font-family: 'Inter', sans-serif;
 }
 
 .contacts-hero p {
@@ -33,6 +36,8 @@
   max-width: 800px;
   margin: 0 auto;
   line-height: 1.6;
+  font-weight: 400;
+  font-family: 'Inter', sans-serif;
 }
 
 /* Branch Cards Grid */
@@ -60,7 +65,9 @@
   color: #00bfff;
   margin-bottom: 1rem;
   font-size: 1.3rem;
+  font-weight: 600;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+  font-family: 'Inter', sans-serif;
 }
 
 .branch-info {
@@ -91,7 +98,9 @@
 
 .branch-info-text {
   color: #a9d8ff;
-  line-height: 1.4;
+  line-height: 1.6;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
 }
 
 /* Contact Form */
@@ -106,10 +115,12 @@
 
 .contact-form h2 {
   font-size: 2rem;
+  font-weight: 700;
   color: #00bfff;
   text-align: center;
   margin-bottom: 2rem;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+  font-family: 'Inter', sans-serif;
 }
 
 .form-container {
@@ -131,6 +142,8 @@
   background: #0d0d0d;
   color: #ffffff;
   font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
   transition: border-color 0.3s ease;
 }
 
@@ -142,6 +155,7 @@
 
 .form-input::placeholder {
   color: #666;
+  font-family: 'Inter', sans-serif;
 }
 
 .form-textarea {
@@ -152,6 +166,8 @@
   background: #0d0d0d;
   color: #ffffff;
   font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
   margin-bottom: 1rem;
   resize: vertical;
   min-height: 120px;
@@ -166,16 +182,18 @@
 
 .form-textarea::placeholder {
   color: #666;
+  font-family: 'Inter', sans-serif;
 }
 
 .submit-button {
   background: #00bfff;
   color: #000;
-  padding: 12px 24px;
+  padding: 12px 28px;
   border-radius: 8px;
   border: none;
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
@@ -199,10 +217,11 @@
 .map-link {
   background: transparent;
   color: #00bfff;
-  padding: 12px 24px;
+  padding: 12px 28px;
   border-radius: 8px;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   border: 2px solid #00bfff;
   transition: all 0.3s ease;
   display: inline-block;
@@ -217,33 +236,54 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .contacts {
+    padding: 100px 0 2rem 0;
+  }
+  
   .contacts-container {
-    padding: 0 1rem;
+    padding: 0 5%;
+    max-width: 100%;
+  }
+  
+  .contacts-hero {
+    padding: 2rem 0;
+    margin-bottom: 3rem;
   }
   
   .contacts-hero h1 {
-    font-size: 2rem;
+    font-size: clamp(2rem, 5vw, 2.5rem);
+    padding: 0 1rem;
   }
   
   .contacts-hero p {
-    font-size: 1rem;
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
+    padding: 0 1rem;
+    max-width: 90%;
+    margin: 1rem auto;
   }
   
   .branches-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
+    padding: 0 5%;
   }
   
   .branch-card {
     padding: 1.5rem;
+    width: 90%;
+    max-width: 400px;
+    margin: 0 auto;
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.15);
   }
   
   .contact-form {
     padding: 2rem 1.5rem;
+    margin-bottom: 3rem;
   }
   
   .contact-form h2 {
     font-size: 1.5rem;
+    margin-bottom: 1.5rem;
   }
   
   .form-row {
@@ -254,16 +294,24 @@
 
 @media (max-width: 480px) {
   .contacts {
-    padding: 1rem 0;
+    padding: 85px 0 1.5rem 0;
+  }
+  
+  .contacts-container {
+    padding: 0 1rem;
   }
   
   .contacts-hero {
-    padding: 2rem 0;
+    padding: 1rem 0;
     margin-bottom: 2rem;
   }
   
   .contacts-hero h1 {
     font-size: 1.8rem;
+  }
+  
+  .contacts-hero p {
+    font-size: 0.95rem;
   }
   
   .branch-card {
@@ -276,10 +324,12 @@
   
   .contact-form {
     padding: 1.5rem 1rem;
+    margin-bottom: 2rem;
   }
   
   .contact-form h2 {
     font-size: 1.3rem;
+    margin-bottom: 1rem;
   }
   
   .form-input,
@@ -289,7 +339,77 @@
   }
   
   .submit-button {
-    padding: 10px 20px;
+    padding: 10px 24px;
     font-size: 0.9rem;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+  .contacts {
+    padding: 80px 0 1rem 0;
+  }
+  
+  .contacts-container {
+    padding: 0 0.75rem;
+  }
+  
+  .contacts-hero h1 {
+    font-size: 1.6rem;
+  }
+  
+  .contacts-hero p {
+    font-size: 0.85rem;
+  }
+  
+  .branch-card {
+    padding: 0.75rem;
+  }
+  
+  .branch-card h3 {
+    font-size: 1rem;
+  }
+  
+  .contact-form {
+    padding: 1rem 0.75rem;
+  }
+  
+  .contact-form h2 {
+    font-size: 1.2rem;
+  }
+  
+  .form-input,
+  .form-textarea {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+  
+  .submit-button {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .contacts {
+    padding: 70px 0 1rem 0;
+  }
+  
+  .contacts-hero {
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+  
+  .contacts-hero h1 {
+    font-size: 1.5rem;
+  }
+  
+  .branch-card {
+    padding: 0.75rem;
+  }
+  
+  .contact-form {
+    padding: 1rem;
   }
 }

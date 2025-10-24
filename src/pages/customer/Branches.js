@@ -191,9 +191,13 @@ const Branches = () => {
   return (
     <section id="branches" className="yohanns-branches-section">
       <div className="yohanns-branches-container">
-        <h1 className="neon-text yohanns-branches-heading">Our Branches</h1>
-        <p className="yohanns-branches-description">Find the nearest Yohann's Sportswear House branch on the map.</p>
-        <div className="yohanns-branches-layout">
+        <div className="yohanns-branches-hero">
+          <h1 className="neon-text yohanns-branches-heading">Our Branches</h1>
+          <p className="yohanns-branches-description">Find the nearest Yohann's Sportswear House branch on the map.</p>
+        </div>
+        
+        <div className="yohanns-branches-content">
+          <div className="yohanns-branches-layout">
           <div className="yohanns-branch-list">
             {branches.map((branch) => (
               <div 
@@ -273,10 +277,12 @@ const Branches = () => {
               </Marker>
             ))}
           </MapContainer>
+          </div>
         </div>
       </div>
     </section>
   );
 };
 
-export default Branches; 
+export default Branches;
+
