@@ -300,8 +300,25 @@
   padding: 8px 0;
   font-size: 11px;
   font-family: 'Poppins', sans-serif;
-  outline: none;
+  outline: none !important;
+  box-shadow: none !important;
   transition: all 0.3s ease;
+}
+
+.signinInput:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.signinInput:-webkit-autofill,
+.signinInput:-webkit-autofill:hover,
+.signinInput:-webkit-autofill:focus,
+.signinInput:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.04) inset !important;
+  -webkit-text-fill-color: white !important;
+  border: none !important;
+  outline: none !important;
 }
 
 .signinInput::placeholder {
