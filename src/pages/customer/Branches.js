@@ -237,116 +237,47 @@ const Branches = () => {
     
     // Draw route line from user location to branch
     if (userLocation) {
-      // Step 1: Zoom out slightly for overview (3D-like effect)
-      if (mapRef.current) {
-        const midPoint = {
-          lat: (userLocation.lat + branch.position.lat) / 2,
-          lng: (userLocation.lng + branch.position.lng) / 2
-        };
+      // Fetch route data and zoom in one smooth motion
+      try {
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${branch.position.lng},${branch.position.lat}?overview=full&geometries=geojson`
+        );
+        const data = await response.json();
         
-        // Zoom out to show overview with smooth animation
-        mapRef.current.setView(midPoint, 10, { 
-          animate: true, 
-          duration: 1.2,
-          easeLinearity: 0.1
-        });
-      }
-      
-      // Step 2: Fetch route data while zooming (wait for zoom out to complete)
-      setTimeout(async () => {
-        try {
-          const response = await fetch(
-            `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${branch.position.lng},${branch.position.lat}?overview=full&geometries=geojson`
-          );
-          const data = await response.json();
+        if (data.routes && data.routes.length > 0) {
+          // Get the route geometry and convert to Leaflet format
+          const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
           
-          if (data.routes && data.routes.length > 0) {
-            // Get the route geometry and convert to Leaflet format
-            const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-            
-            // Step 3: Zoom in to show the route (3D-like zoom in)
-            setTimeout(() => {
-              setRouteCoordinates(routeCoords);
-              
-              if (mapRef.current) {
-                const bounds = L.latLngBounds([
-                  [userLocation.lat, userLocation.lng],
-                  [branch.position.lat, branch.position.lng]
-                ]);
-                mapRef.current.fitBounds(bounds, { 
-                  padding: [80, 80],
-                  animate: true,
-                  duration: 1.8,
-                  easeLinearity: 0.1
-                });
-              }
-            }, 600);
-            
-            // Use actual distance from routing API (in meters)
-            const actualDistance = data.routes[0].distance / 1000; // Convert to km
-            
-            // Calculate travel times using actual distance
-            const speeds = {
-              walking: 5,      // 5 km/h
-              bicycle: 15,     // 15 km/h
-              motorcycle: 40,  // 40 km/h
-              car: 50          // 50 km/h
-            };
-
-            const formatTime = (hours) => {
-              if (hours < 1) {
-                return `${Math.round(hours * 60)} min`;
-              } else {
-                const hrs = Math.floor(hours);
-                const mins = Math.round((hours - hrs) * 60);
-                return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
-              }
-            };
-
-            const info = {
-              distance: actualDistance.toFixed(1),
-              walking: formatTime(actualDistance / speeds.walking),
-              bicycle: formatTime(actualDistance / speeds.bicycle),
-              motorcycle: formatTime(actualDistance / speeds.motorcycle),
-              car: formatTime(actualDistance / speeds.car)
-            };
-            
-            setTravelInfo(info);
-          } else {
-            // Fallback to straight line if routing fails
-            const route = [
+          // Set route and zoom in one smooth motion
+          setRouteCoordinates(routeCoords);
+          
+          if (mapRef.current) {
+            const bounds = L.latLngBounds([
               [userLocation.lat, userLocation.lng],
               [branch.position.lat, branch.position.lng]
-            ];
-            setRouteCoordinates(route);
-            
-            // Calculate travel information using Haversine
-            const info = calculateTravelInfo(userLocation, branch.position);
-            setTravelInfo(info);
-            
-            // Fit map to show route
-            if (mapRef.current) {
-              const bounds = L.latLngBounds([
-                [userLocation.lat, userLocation.lng],
-                [branch.position.lat, branch.position.lng]
-              ]);
-              mapRef.current.fitBounds(bounds, { 
-                padding: [80, 80],
-                animate: true,
-                duration: 1.8,
-                easeLinearity: 0.1
-              });
-            }
+            ]);
+            mapRef.current.fitBounds(bounds, { 
+              padding: [80, 80],
+              animate: true,
+              duration: 1.5,
+              easeLinearity: 0.2
+            });
           }
-        } catch (error) {
-          console.error('Error fetching route:', error);
-          // Fallback to straight line
+          
+          // Calculate travel information using actual distance from API
+          const info = calculateTravelInfo(userLocation, branch.position);
+          // Update with actual distance from route API
+          info.distance = (data.routes[0].distance / 1000).toFixed(1);
+          setTravelInfo(info);
+        } else {
+          // Fallback to straight line if routing fails
           const route = [
             [userLocation.lat, userLocation.lng],
             [branch.position.lat, branch.position.lng]
           ];
           setRouteCoordinates(route);
           
+          // Calculate travel information using Haversine
           const info = calculateTravelInfo(userLocation, branch.position);
           setTravelInfo(info);
           
@@ -359,31 +290,46 @@ const Branches = () => {
             mapRef.current.fitBounds(bounds, { 
               padding: [80, 80],
               animate: true,
-              duration: 1.8,
-              easeLinearity: 0.1
+              duration: 1.5,
+              easeLinearity: 0.2
             });
           }
         }
-      }, 800);
+      } catch (error) {
+        console.error('Error fetching route:', error);
+        // Fallback to straight line
+        const route = [
+          [userLocation.lat, userLocation.lng],
+          [branch.position.lat, branch.position.lng]
+        ];
+        setRouteCoordinates(route);
+        
+        const info = calculateTravelInfo(userLocation, branch.position);
+        setTravelInfo(info);
+        
+        // Fit map to show route
+        if (mapRef.current) {
+          const bounds = L.latLngBounds([
+            [userLocation.lat, userLocation.lng],
+            [branch.position.lat, branch.position.lng]
+          ]);
+          mapRef.current.fitBounds(bounds, { 
+            padding: [80, 80],
+            animate: true,
+            duration: 1.5,
+            easeLinearity: 0.2
+          });
+        }
+      }
     } else {
-      // If no user location, just zoom to branch with smooth animation
+      // If no user location, just zoom to branch with one smooth animation
       setTravelInfo(null);
       if (mapRef.current) {
-        // Zoom out first with smooth easing
-        mapRef.current.setView(branch.position, 10, { 
+        mapRef.current.setView(branch.position, 15, { 
           animate: true, 
-          duration: 1.2,
-          easeLinearity: 0.1
+          duration: 1.5,
+          easeLinearity: 0.2
         });
-        
-        // Then zoom in to branch with smooth easing
-        setTimeout(() => {
-          mapRef.current.setView(branch.position, 16, { 
-            animate: true, 
-            duration: 1.8,
-            easeLinearity: 0.1
-          });
-        }, 900);
       }
     }
   };
@@ -586,7 +532,6 @@ const Branches = () => {
                   </svg>
                   <div className="mode-details">
                     <span className="mode-label">Walking</span>
-                    <span className="mode-description">Estimated travel time by walking</span>
                     <span className="mode-time">{travelInfo.walking}</span>
                   </div>
                 </div>
@@ -598,7 +543,6 @@ const Branches = () => {
                   </svg>
                   <div className="mode-details">
                     <span className="mode-label">Bicycle</span>
-                    <span className="mode-description">Estimated travel time by bicycle</span>
                     <span className="mode-time">{travelInfo.bicycle}</span>
                   </div>
                 </div>
@@ -610,7 +554,6 @@ const Branches = () => {
                   </svg>
                   <div className="mode-details">
                     <span className="mode-label">Motorcycle</span>
-                    <span className="mode-description">Estimated travel time by motorcycle</span>
                     <span className="mode-time">{travelInfo.motorcycle}</span>
                   </div>
                 </div>
@@ -622,7 +565,6 @@ const Branches = () => {
                   </svg>
                   <div className="mode-details">
                     <span className="mode-label">Car</span>
-                    <span className="mode-description">Estimated travel time by car</span>
                     <span className="mode-time">{travelInfo.car}</span>
                   </div>
                 </div>
@@ -636,7 +578,6 @@ const Branches = () => {
                     </svg>
                     <div className="mode-details">
                       <span className="mode-label">Ferry + Land</span>
-                      <span className="mode-description">Estimated travel time by ferry and land vehicle</span>
                       <span className="mode-time">{travelInfo.ferry}</span>
                     </div>
                   </div>
