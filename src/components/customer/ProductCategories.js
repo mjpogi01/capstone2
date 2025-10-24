@@ -56,7 +56,6 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
     { id: 'long sleeves', name: 'LONG SLEEVES' },
     { id: 'hoodies', name: 'HOODIES' },
     { id: 'uniforms', name: 'UNIFORMS' },
-    { id: 'replicated', name: 'REPLICATED JERSEYS' },
     { id: 'balls', name: 'BALLS' },
     { id: 'trophies', name: 'TROPHIES' }
   ];

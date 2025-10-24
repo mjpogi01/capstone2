@@ -67,15 +67,19 @@
   background: linear-gradient(
     90deg,
     #0d47a1 0%,
-    #00bfff 50%,
-    #87ceeb 100%
+    #00bfff 25%,
+    #87ceeb 50%,
+    #00bfff 75%,
+    #0d47a1 100%
   );
+  background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
+  animation: shiningGradient 1.5s linear infinite;
 }
 
 .nav-link:focus,
