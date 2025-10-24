@@ -11,6 +11,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
+import orderService from '../../services/orderService';
 import { FaShoppingCart } from "react-icons/fa";
 
 const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, setSearchQuery }) => {
@@ -20,6 +21,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [productRatings, setProductRatings] = useState({});
   const navRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -34,6 +36,21 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
       return;
     }
     await toggleWishlist(product);
+  };
+
+  // Function to calculate average rating for a product
+  const calculateAverageRating = async (productId) => {
+    try {
+      const reviews = await orderService.getProductReviews(productId);
+      if (reviews.length === 0) return null; // No reviews available
+      
+      const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+      const averageRating = totalRating / reviews.length;
+      return averageRating.toFixed(1); // Always show 1 decimal place
+    } catch (error) {
+      console.error('Error calculating rating for product', productId, error);
+      return null; // No rating available on error
+    }
   };
 
   // Add this function to handle opening the modal
@@ -68,6 +85,9 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
         setError(null);
         const fetchedProducts = await productService.getAllProducts();
         setProducts(fetchedProducts);
+        
+        // Load ratings asynchronously without blocking the UI
+        loadRatingsAsync(fetchedProducts);
       } catch (err) {
         console.error('Error fetching products:', err);
         setError('Failed to load products');
@@ -80,6 +100,28 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
 
     fetchProducts();
   }, []);
+
+  // Load ratings asynchronously without blocking the main product load
+  const loadRatingsAsync = async (products) => {
+    try {
+      const ratings = {};
+      // Process ratings in batches to avoid overwhelming the API
+      const batchSize = 5;
+      for (let i = 0; i < products.length; i += batchSize) {
+        const batch = products.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(async (product) => {
+            const averageRating = await calculateAverageRating(product.id);
+            ratings[product.id] = averageRating;
+          })
+        );
+        // Update ratings progressively
+        setProductRatings(prev => ({ ...prev, ...ratings }));
+      }
+    } catch (error) {
+      console.error('Error loading ratings:', error);
+    }
+  };
 
   const filteredProducts = searchQuery.trim()
     ? products.filter(product =>
@@ -224,7 +266,16 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                   </div>
                   <div className="sportswear-product-info">
                     <p className="sportswear-product-name">{product.name}</p>
-                    <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                    <div className="sportswear-product-stats">
+                      <span className="sportswear-sold-count">{product.sold_quantity || 0} sold</span>
+                    </div>
+                    <div className="sportswear-price-rating-row">
+                      <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                      <span className="sportswear-rating">
+                        <span className="sportswear-star">★</span>
+                        {productRatings[product.id] || 'No reviews'}
+                      </span>
+                    </div>
                     <div className="sportswear-action-buttons">
                       <button 
                         className="sportswear-add-to-cart-btn" 
