@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaSearch, FaFilter, FaSortAmountDown, FaStar, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaTimes, FaSearch, FaFilter, FaSortAmountDown, FaStar, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,7 +36,7 @@ const ProductListModal = ({ isOpen, onClose }) => {
   const { openSignIn } = useModal();
   const { addToCart } = useCart();
   
-  const productsPerPage = 12;
+  const productsPerPage = 15;
 
   useEffect(() => {
     if (isOpen) {
@@ -94,11 +94,19 @@ const ProductListModal = ({ isOpen, onClose }) => {
     }
 
     // Filter by price range
-    if (priceMin !== '' && priceMin !== null) {
-      filtered = filtered.filter(product => parseFloat(product.price) >= parseFloat(priceMin));
+    if (priceMin !== '' && priceMin !== null && !isNaN(priceMin)) {
+      const minPrice = parseFloat(priceMin);
+      filtered = filtered.filter(product => {
+        const productPrice = parseFloat(product.price);
+        return !isNaN(productPrice) && productPrice >= minPrice;
+      });
     }
-    if (priceMax !== '' && priceMax !== null) {
-      filtered = filtered.filter(product => parseFloat(product.price) <= parseFloat(priceMax));
+    if (priceMax !== '' && priceMax !== null && !isNaN(priceMax)) {
+      const maxPrice = parseFloat(priceMax);
+      filtered = filtered.filter(product => {
+        const productPrice = parseFloat(product.price);
+        return !isNaN(productPrice) && productPrice <= maxPrice;
+      });
     }
 
     // Filter by rating (if ratings are available in product data)
@@ -280,7 +288,23 @@ const ProductListModal = ({ isOpen, onClose }) => {
               </div>
             </div>
             <div className="results-count">
-              1/{filteredProducts.length}
+              <button
+                className="page-nav-arrow"
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                aria-label="Previous page"
+              >
+                <FaChevronLeft />
+              </button>
+              <span className="page-counter">{currentPage}/{totalPages}</span>
+              <button
+                className="page-nav-arrow"
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                aria-label="Next page"
+              >
+                <FaChevronRight />
+              </button>
             </div>
           </div>
 
@@ -341,6 +365,7 @@ const ProductListModal = ({ isOpen, onClose }) => {
                     value={priceMin}
                     onChange={(e) => setPriceMin(e.target.value)}
                     className="price-input"
+                    min="0"
                   />
                   <span className="price-separator">-</span>
                   <input
@@ -349,8 +374,20 @@ const ProductListModal = ({ isOpen, onClose }) => {
                     value={priceMax}
                     onChange={(e) => setPriceMax(e.target.value)}
                     className="price-input"
+                    min="0"
                   />
                 </div>
+                {(priceMin !== '' || priceMax !== '') && (
+                  <div className="price-filter-active">
+                    {priceMin && priceMax ? (
+                      <span>₱{parseFloat(priceMin).toLocaleString()} - ₱{parseFloat(priceMax).toLocaleString()}</span>
+                    ) : priceMin ? (
+                      <span>From ₱{parseFloat(priceMin).toLocaleString()}</span>
+                    ) : (
+                      <span>Up to ₱{parseFloat(priceMax).toLocaleString()}</span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Rating Filter */}

@@ -1,0 +1,359 @@
+/* Branch Select Modal Overlay */
+.branch-select-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.branch-select-modal {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  border-radius: 20px;
+  max-width: 1200px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: slideUp 0.3s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Close Button */
+.branch-select-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  font-size: 18px;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.branch-select-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  transform: rotate(90deg);
+  color: #ef4444;
+}
+
+/* Header */
+.branch-select-header {
+  padding: 40px 40px 30px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.branch-select-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 15px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+.branch-select-description {
+  font-size: 16px;
+  color: #9ca3af;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Content Area */
+.branch-select-content {
+  padding: 30px 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  .branch-select-content {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .branch-select-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Branch Cards */
+.branch-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.3s ease;
+  animation: slideInCard 0.5s ease forwards;
+  opacity: 0;
+}
+
+@keyframes slideInCard {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.branch-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+}
+
+/* Branch Card Header */
+.branch-card-header {
+  flex: 1;
+}
+
+.branch-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.branch-card-address {
+  font-size: 14px;
+  color: #9ca3af;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Facebook Button */
+.branch-facebook-btn {
+  background: linear-gradient(135deg, #1877f2 0%, #0c5fd6 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+.branch-facebook-btn:hover {
+  background: linear-gradient(135deg, #0c5fd6 0%, #0a4fb8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(24, 119, 242, 0.4);
+}
+
+.branch-facebook-btn:active {
+  transform: translateY(0);
+}
+
+.fb-icon {
+  font-size: 16px;
+}
+
+/* Footer */
+.branch-select-footer {
+  padding: 30px 40px 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.branch-select-footer-text {
+  font-size: 15px;
+  color: #9ca3af;
+  margin: 0 0 16px;
+  font-weight: 500;
+}
+
+.branch-main-page-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: #3b82f6;
+  border: 2px solid #3b82f6;
+  border-radius: 10px;
+  padding: 12px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.branch-main-page-btn:hover {
+  background: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.branch-main-page-btn:active {
+  transform: translateY(0);
+}
+
+/* Scrollbar Styling */
+.branch-select-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.branch-select-modal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.branch-select-modal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.branch-select-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .branch-select-modal {
+    border-radius: 16px;
+    max-height: 95vh;
+  }
+
+  .branch-select-header {
+    padding: 30px 24px 24px;
+  }
+
+  .branch-select-title {
+    font-size: 24px;
+  }
+
+  .branch-select-description {
+    font-size: 14px;
+  }
+
+  .branch-select-content {
+    padding: 20px 24px;
+    gap: 16px;
+  }
+
+  .branch-card {
+    padding: 20px;
+  }
+
+  .branch-card-title {
+    font-size: 16px;
+  }
+
+  .branch-card-address {
+    font-size: 13px;
+  }
+
+  .branch-facebook-btn {
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+
+  .branch-select-footer {
+    padding: 24px 24px 30px;
+  }
+
+  .branch-select-footer-text {
+    font-size: 14px;
+  }
+
+  .branch-main-page-btn {
+    font-size: 14px;
+    padding: 10px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .branch-select-overlay {
+    padding: 10px;
+  }
+
+  .branch-select-modal {
+    border-radius: 12px;
+  }
+
+  .branch-select-header {
+    padding: 24px 20px 20px;
+  }
+
+  .branch-select-title {
+    font-size: 20px;
+  }
+
+  .branch-select-description {
+    font-size: 13px;
+  }
+
+  .branch-select-content {
+    padding: 16px 20px;
+    gap: 12px;
+  }
+
+  .branch-card {
+    padding: 16px;
+  }
+
+  .branch-select-footer {
+    padding: 20px 20px 24px;
+  }
+}
+

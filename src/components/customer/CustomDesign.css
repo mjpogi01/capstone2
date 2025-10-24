@@ -349,19 +349,40 @@
   letter-spacing: 0.8px;
   font-family: "Orbitron", monospace;
   cursor: pointer;
-  box-shadow: 0 0 20px rgba(0, 191, 255, 0.4), 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   z-index: 999;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 160px;
   text-align: center;
   line-height: 1.3;
+  overflow: hidden;
+  position: fixed;
+}
+
+.custom-design-floating-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.custom-design-floating-btn:hover::before {
+  left: 100%;
 }
 
 .custom-design-floating-btn:hover {
   transform: scale(1.05) translateY(-3px);
-  box-shadow: 0 0 30px rgba(0, 191, 255, 0.8), 0 12px 25px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
 }
-
 
 .custom-design-floating-btn:active {
   transform: scale(0.98);

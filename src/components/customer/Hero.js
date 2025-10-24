@@ -6,11 +6,13 @@ import slide1c from '../../images/Slide/1c.png';
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
 import ProductListModal from './ProductListModal';
+import BranchSelectModal from './BranchSelectModal';
 
 const Hero = () => {
 	const slides = [slide1a, slide1b, slide1c];
 	const [current, setCurrent] = useState(0);
 	const [showProductList, setShowProductList] = useState(false);
+	const [showBranchSelect, setShowBranchSelect] = useState(false);
 	const { openSignIn } = useModal();
 
 	useEffect(() => {
@@ -49,7 +51,12 @@ const Hero = () => {
 						>
 							<button className="btn btn-primary">SHOP NOW</button>
 						</ProtectedAction>
-						<button className="btn btn-secondary">INQUIRE NOW</button>
+						<button 
+							className="btn btn-secondary"
+							onClick={() => setShowBranchSelect(true)}
+						>
+							INQUIRE NOW
+						</button>
 					</div>
 				</div>
 				
@@ -58,13 +65,19 @@ const Hero = () => {
 				</div>
 			</div>
 
-			{/* Product List Modal */}
-			<ProductListModal 
-				isOpen={showProductList} 
-				onClose={() => setShowProductList(false)} 
-			/>
-		</section>
-	);
+		{/* Product List Modal */}
+		<ProductListModal 
+			isOpen={showProductList} 
+			onClose={() => setShowProductList(false)} 
+		/>
+
+		{/* Branch Select Modal */}
+		<BranchSelectModal 
+			isOpen={showBranchSelect} 
+			onClose={() => setShowBranchSelect(false)} 
+		/>
+	</section>
+);
 };
 
-export default Hero; 
+export default Hero;

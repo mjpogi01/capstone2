@@ -1,7 +1,7 @@
 import React from 'react';
 import './Branches.css';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 
 const createGMapsLink = (query) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -55,6 +55,13 @@ const branches = [
     address: 'Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines',
     position: { lat: 13.9288950, lng: 120.8113147 },
     gmaps: createGMapsLink('Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines')
+  },
+  {
+    id: 8,
+    name: 'PINAMALAYAN BRANCH',
+    address: 'Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines',
+    position: { lat: 13.0350, lng: 121.4847 },
+    gmaps: createGMapsLink('Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines')
   }
 ];
 
@@ -98,15 +105,286 @@ const activeRedIcon = L.icon({
   shadowSize: [41, 41]
 });
 
+// Blue icon for user location
+const userLocationIcon = L.icon({
+  iconUrl:
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+            <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0.75  0 0 0 0 1  0 0 0 1 0"/>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <circle cx="15" cy="15" r="12" fill="#3b82f6" stroke="#fff" stroke-width="3" filter="url(#glow)"/>
+        <circle cx="15" cy="15" r="5" fill="#fff"/>
+      </svg>`
+    ),
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15]
+});
+
 const Branches = () => {
   const [activeId, setActiveId] = React.useState(null);
   const mapRef = React.useRef(null);
   const [isRouting, setIsRouting] = React.useState(false);
+  const [userLocation, setUserLocation] = React.useState(null);
+  const [routeCoordinates, setRouteCoordinates] = React.useState([]);
+  const [travelInfo, setTravelInfo] = React.useState(null);
 
-  const focusBranch = (branch) => {
+  // Get user's current location on component mount
+  React.useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userPos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(userPos);
+        },
+        (error) => {
+          console.log('Unable to get user location:', error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+  }, []);
+
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return distance; // Distance in km
+  };
+
+  // Calculate travel time based on mode of transport
+  const calculateTravelInfo = (userLoc, branchPos) => {
+    const distance = calculateDistance(
+      userLoc.lat,
+      userLoc.lng,
+      branchPos.lat,
+      branchPos.lng
+    );
+
+    // Average speeds in km/h
+    const speeds = {
+      walking: 5,      // 5 km/h
+      bicycle: 15,     // 15 km/h
+      motorcycle: 40,  // 40 km/h
+      car: 50          // 50 km/h (considering city traffic)
+    };
+
+    const formatTime = (hours) => {
+      if (hours < 1) {
+        return `${Math.round(hours * 60)} min`;
+      } else {
+        const hrs = Math.floor(hours);
+        const mins = Math.round((hours - hrs) * 60);
+        return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+      }
+    };
+
+    // Detect water crossing between Batangas and Mindoro
+    // Batangas branches: lat > 13.7
+    // Mindoro branches: lat < 13.5
+    const isBatangas = (lat) => lat > 13.7;
+    const isMindoro = (lat) => lat < 13.5;
+    
+    const crossesWater = (isBatangas(userLoc.lat) && isMindoro(branchPos.lat)) ||
+                         (isMindoro(userLoc.lat) && isBatangas(branchPos.lat));
+
+    const travelInfo = {
+      distance: distance.toFixed(1),
+      walking: formatTime(distance / speeds.walking),
+      bicycle: formatTime(distance / speeds.bicycle),
+      motorcycle: formatTime(distance / speeds.motorcycle),
+      car: formatTime(distance / speeds.car),
+      crossesWater: crossesWater
+    };
+
+    // Add ferry travel time if crossing water
+    if (crossesWater) {
+      // Ferry from Batangas to Calapan: ~1.5-2 hours
+      // Plus additional time for land travel on both sides
+      const ferryTime = 1.75; // 1 hour 45 minutes for ferry
+      const additionalLandTime = distance / speeds.car; // Estimate land portion
+      travelInfo.ferry = formatTime(ferryTime + additionalLandTime * 0.3);
+    }
+
+    return travelInfo;
+  };
+
+  const focusBranch = async (branch) => {
     setActiveId(branch.id);
-    if (mapRef.current) {
-      mapRef.current.setView(branch.position, 16, { animate: true });
+    
+    // Clear previous route first for smooth transition
+    setRouteCoordinates([]);
+    setTravelInfo(null);
+    
+    // Draw route line from user location to branch
+    if (userLocation) {
+      // Step 1: Zoom out slightly for overview (3D-like effect)
+      if (mapRef.current) {
+        const midPoint = {
+          lat: (userLocation.lat + branch.position.lat) / 2,
+          lng: (userLocation.lng + branch.position.lng) / 2
+        };
+        
+        // Zoom out to show overview with smooth animation
+        mapRef.current.setView(midPoint, 10, { 
+          animate: true, 
+          duration: 1.2,
+          easeLinearity: 0.1
+        });
+      }
+      
+      // Step 2: Fetch route data while zooming (wait for zoom out to complete)
+      setTimeout(async () => {
+        try {
+          const response = await fetch(
+            `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${branch.position.lng},${branch.position.lat}?overview=full&geometries=geojson`
+          );
+          const data = await response.json();
+          
+          if (data.routes && data.routes.length > 0) {
+            // Get the route geometry and convert to Leaflet format
+            const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+            
+            // Step 3: Zoom in to show the route (3D-like zoom in)
+            setTimeout(() => {
+              setRouteCoordinates(routeCoords);
+              
+              if (mapRef.current) {
+                const bounds = L.latLngBounds([
+                  [userLocation.lat, userLocation.lng],
+                  [branch.position.lat, branch.position.lng]
+                ]);
+                mapRef.current.fitBounds(bounds, { 
+                  padding: [80, 80],
+                  animate: true,
+                  duration: 1.8,
+                  easeLinearity: 0.1
+                });
+              }
+            }, 600);
+            
+            // Use actual distance from routing API (in meters)
+            const actualDistance = data.routes[0].distance / 1000; // Convert to km
+            
+            // Calculate travel times using actual distance
+            const speeds = {
+              walking: 5,      // 5 km/h
+              bicycle: 15,     // 15 km/h
+              motorcycle: 40,  // 40 km/h
+              car: 50          // 50 km/h
+            };
+
+            const formatTime = (hours) => {
+              if (hours < 1) {
+                return `${Math.round(hours * 60)} min`;
+              } else {
+                const hrs = Math.floor(hours);
+                const mins = Math.round((hours - hrs) * 60);
+                return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+              }
+            };
+
+            const info = {
+              distance: actualDistance.toFixed(1),
+              walking: formatTime(actualDistance / speeds.walking),
+              bicycle: formatTime(actualDistance / speeds.bicycle),
+              motorcycle: formatTime(actualDistance / speeds.motorcycle),
+              car: formatTime(actualDistance / speeds.car)
+            };
+            
+            setTravelInfo(info);
+          } else {
+            // Fallback to straight line if routing fails
+            const route = [
+              [userLocation.lat, userLocation.lng],
+              [branch.position.lat, branch.position.lng]
+            ];
+            setRouteCoordinates(route);
+            
+            // Calculate travel information using Haversine
+            const info = calculateTravelInfo(userLocation, branch.position);
+            setTravelInfo(info);
+            
+            // Fit map to show route
+            if (mapRef.current) {
+              const bounds = L.latLngBounds([
+                [userLocation.lat, userLocation.lng],
+                [branch.position.lat, branch.position.lng]
+              ]);
+              mapRef.current.fitBounds(bounds, { 
+                padding: [80, 80],
+                animate: true,
+                duration: 1.8,
+                easeLinearity: 0.1
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching route:', error);
+          // Fallback to straight line
+          const route = [
+            [userLocation.lat, userLocation.lng],
+            [branch.position.lat, branch.position.lng]
+          ];
+          setRouteCoordinates(route);
+          
+          const info = calculateTravelInfo(userLocation, branch.position);
+          setTravelInfo(info);
+          
+          // Fit map to show route
+          if (mapRef.current) {
+            const bounds = L.latLngBounds([
+              [userLocation.lat, userLocation.lng],
+              [branch.position.lat, branch.position.lng]
+            ]);
+            mapRef.current.fitBounds(bounds, { 
+              padding: [80, 80],
+              animate: true,
+              duration: 1.8,
+              easeLinearity: 0.1
+            });
+          }
+        }
+      }, 800);
+    } else {
+      // If no user location, just zoom to branch with smooth animation
+      setTravelInfo(null);
+      if (mapRef.current) {
+        // Zoom out first with smooth easing
+        mapRef.current.setView(branch.position, 10, { 
+          animate: true, 
+          duration: 1.2,
+          easeLinearity: 0.1
+        });
+        
+        // Then zoom in to branch with smooth easing
+        setTimeout(() => {
+          mapRef.current.setView(branch.position, 16, { 
+            animate: true, 
+            duration: 1.8,
+            easeLinearity: 0.1
+          });
+        }, 900);
+      }
     }
   };
 
@@ -188,6 +466,14 @@ const Branches = () => {
     return null;
   };
 
+  const MapRefSetter = () => {
+    const map = useMap();
+    React.useEffect(() => {
+      mapRef.current = map;
+    }, [map]);
+    return null;
+  };
+
   return (
     <section id="branches" className="yohanns-branches-section">
       <div className="yohanns-branches-container">
@@ -198,42 +484,46 @@ const Branches = () => {
         
         <div className="yohanns-branches-content">
           <div className="yohanns-branches-layout">
-          <div className="yohanns-branch-list">
-            {branches.map((branch) => (
-              <div 
-                key={branch.id} 
-                className={`yohanns-branch-item ${activeId === branch.id ? 'yohanns-branch-item-active' : ''}`}
-                onClick={() => focusBranch(branch)}
-              >
-                <div className="yohanns-branch-name">{branch.name}</div>
-                <div className="yohanns-branch-address">{branch.address}</div>
-                {activeId === branch.id ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
-                    disabled={isRouting}
-                    className="yohanns-directions-button"
-                    style={{ marginTop: '8px' }}
-                  >
-                    {isRouting ? 'Getting Directions...' : 'Get Directions'}
-                  </button>
-                ) : null}
-              </div>
-            ))}
-          </div>
-
+          
+          {/* Left Column: Map + Travel Info */}
+          <div className="yohanns-map-column">
           <MapContainer
-            whenCreated={(map) => { mapRef.current = map; }}
             className="yohanns-map-container"
             center={branches[0].position}
             zoom={12}
             scrollWheelZoom={true}
           >
+            <MapRefSetter />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
             <FitBounds points={branches.map(b => b.position)} />
+
+            {/* Route line from user to selected branch - Following actual roads */}
+            {routeCoordinates.length > 0 && (
+              <Polyline
+                positions={routeCoordinates}
+                color="#3b82f6"
+                weight={4}
+                opacity={0.7}
+              />
+            )}
+
+            {/* User location marker */}
+            {userLocation && (
+              <Marker
+                position={[userLocation.lat, userLocation.lng]}
+                icon={userLocationIcon}
+              >
+                <Popup>
+                  <div className="yohanns-info-window">
+                    <div className="yohanns-info-window-title">Your Location</div>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
 
             {branches.map(branch => (
               <Marker
@@ -242,17 +532,18 @@ const Branches = () => {
                 icon={activeId === branch.id ? activeRedIcon : defaultIcon}
                 eventHandlers={{
                   click: () => {
-                    setActiveId(branch.id);
-                    if (mapRef.current) {
-                      mapRef.current.setView(branch.position, 16, { animate: true });
-                    }
+                    focusBranch(branch);
                   }
                 }}
               >
                 {activeId === branch.id ? (
                   <Popup
                     position={branch.position}
-                    onClose={() => setActiveId(null)}
+                    onClose={() => {
+                      setActiveId(null);
+                      setRouteCoordinates([]);
+                      setTravelInfo(null);
+                    }}
                   >
                     <div className="yohanns-info-window">
                       <div className="yohanns-info-window-title">{branch.name}</div>
@@ -277,6 +568,104 @@ const Branches = () => {
               </Marker>
             ))}
           </MapContainer>
+
+          {/* Travel Information Panel */}
+          {travelInfo && userLocation && (
+            <div className="yohanns-travel-info">
+              <div className="travel-info-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                <span className="distance-value">{travelInfo.distance} km</span>
+              </div>
+              <div className="travel-info-modes">
+                <div className="travel-mode">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                  <div className="mode-details">
+                    <span className="mode-label">Walking</span>
+                    <span className="mode-time">{travelInfo.walking}</span>
+                  </div>
+                </div>
+                <div className="travel-mode">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                    <circle cx="5.5" cy="17.5" r="2.5"/>
+                    <circle cx="18.5" cy="17.5" r="2.5"/>
+                    <path d="M5 17h-.5a2.5 2.5 0 0 1 0-5H8m12 0l-4-7H8"/>
+                  </svg>
+                  <div className="mode-details">
+                    <span className="mode-label">Bicycle</span>
+                    <span className="mode-time">{travelInfo.bicycle}</span>
+                  </div>
+                </div>
+                <div className="travel-mode">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                    <path d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12v6m14-6v6"/>
+                    <circle cx="7" cy="19" r="2"/>
+                    <circle cx="17" cy="19" r="2"/>
+                  </svg>
+                  <div className="mode-details">
+                    <span className="mode-label">Motorcycle</span>
+                    <span className="mode-time">{travelInfo.motorcycle}</span>
+                  </div>
+                </div>
+                <div className="travel-mode">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                    <path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
+                    <path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
+                    <path d="M5 17h-2v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-6m-6 -6h15m-6 0v-5"/>
+                  </svg>
+                  <div className="mode-details">
+                    <span className="mode-label">Car</span>
+                    <span className="mode-time">{travelInfo.car}</span>
+                  </div>
+                </div>
+                {travelInfo.crossesWater && (
+                  <div className="travel-mode ferry-mode">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
+                      <path d="M2 20a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1a2.4 2.4 0 0 1 2 -1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1a2.4 2.4 0 0 1 2 -1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1"/>
+                      <path d="M4 18l-1 -5h18l-1 5"/>
+                      <path d="M5 13v-6h8l4 6"/>
+                      <path d="M7 7v-4h2"/>
+                    </svg>
+                    <div className="mode-details">
+                      <span className="mode-label">Ferry + Land</span>
+                      <span className="mode-time">{travelInfo.ferry}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          </div>
+          {/* End Map Column */}
+
+          {/* Right Column: Branch List */}
+          <div className="yohanns-branch-list">
+            {branches.map((branch) => (
+              <div 
+                key={branch.id} 
+                className={`yohanns-branch-item ${activeId === branch.id ? 'yohanns-branch-item-active' : ''}`}
+                onClick={() => focusBranch(branch)}
+              >
+                <div className="yohanns-branch-name">{branch.name}</div>
+                <div className="yohanns-branch-address">{branch.address}</div>
+                {activeId === branch.id ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
+                    disabled={isRouting}
+                    className="yohanns-directions-button"
+                    style={{ marginTop: '8px' }}
+                  >
+                    {isRouting ? 'Getting Directions...' : 'Get Directions'}
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          
           </div>
         </div>
       </div>
@@ -285,4 +674,3 @@ const Branches = () => {
 };
 
 export default Branches;
-

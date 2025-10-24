@@ -58,17 +58,26 @@
 /* Layout styles */
 .yohanns-branches-layout {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 1fr 400px;
   gap: 2rem;
 }
 
 /* Map container styles */
 .yohanns-map-container {
-  height: 480px;
+  height: 600px;
   width: 100%;
   border-radius: 15px;
   border: 1px solid #333;
   box-shadow: 0 8px 24px rgba(0, 191, 255, 0.2);
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+              box-shadow 0.8s ease,
+              opacity 0.5s ease;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.yohanns-map-container:active {
+  transform: scale(0.98);
 }
 
 /* Branch list styles */
@@ -78,6 +87,28 @@
   padding: 1.5rem;
   box-shadow: 0 8px 24px rgba(0, 191, 255, 0.15);
   border: 1px solid #333;
+  height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for branch list */
+.yohanns-branch-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.yohanns-branch-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.yohanns-branch-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 191, 255, 0.3);
+  border-radius: 10px;
+}
+
+.yohanns-branch-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 191, 255, 0.5);
 }
 
 .yohanns-branch-item {
@@ -255,12 +286,12 @@
   }
   
   .yohanns-branch-list {
-    order: 2;
     padding: 1.5rem;
+    height: auto;
+    max-height: 400px;
   }
   
   .yohanns-map-container {
-    order: 1;
     height: 300px;
   }
 }
@@ -293,6 +324,8 @@
   
   .yohanns-branch-list {
     padding: 1rem;
+    height: auto;
+    max-height: 350px;
   }
   
   .yohanns-branch-item {
@@ -333,6 +366,8 @@
   
   .yohanns-branch-list {
     padding: 0.75rem;
+    height: auto;
+    max-height: 300px;
   }
   
   .yohanns-branch-item {
@@ -387,6 +422,175 @@
   .yohanns-branch-list {
     max-height: 200px;
     overflow-y: auto;
+  }
+}
+
+/* Map Column (Left side) */
+.yohanns-map-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Route line animation */
+@keyframes drawRoute {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Smooth zoom animation */
+@keyframes mapZoomIn {
+  0% {
+    transform: scale(0.92) translateZ(0);
+    opacity: 0.7;
+  }
+  30% {
+    opacity: 0.85;
+  }
+  60% {
+    transform: scale(1.03) translateZ(0);
+  }
+  100% {
+    transform: scale(1) translateZ(0);
+    opacity: 1;
+  }
+}
+
+/* Travel Information Panel */
+.yohanns-travel-info {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  animation: fadeInUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  60% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.travel-info-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 191, 255, 0.2);
+}
+
+.distance-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #00bfff;
+  font-family: 'Inter', sans-serif;
+  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+}
+
+.travel-info-modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.travel-mode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.travel-mode:hover {
+  background: rgba(0, 191, 255, 0.1);
+  border-color: rgba(0, 191, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.travel-mode.ferry-mode {
+  background: rgba(0, 191, 255, 0.15);
+  border: 1px solid rgba(0, 191, 255, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 191, 255, 0.2);
+}
+
+.travel-mode.ferry-mode:hover {
+  background: rgba(0, 191, 255, 0.25);
+  border-color: rgba(0, 191, 255, 0.6);
+  box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+}
+
+.ferry-mode .mode-label {
+  color: #00bfff;
+  font-weight: 600;
+}
+
+.mode-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mode-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-time {
+  font-size: 0.9rem;
+  color: #ffffff;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 768px) {
+  .yohanns-map-column {
+    gap: 1rem;
+  }
+
+  .travel-info-modes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .yohanns-travel-info {
+    padding: 1rem;
+  }
+  
+  .distance-value {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .travel-info-modes {
+    grid-template-columns: 1fr;
+  }
+  
+  .mode-label {
+    font-size: 0.7rem;
+  }
+  
+  .mode-time {
+    font-size: 0.85rem;
   }
 }
 
