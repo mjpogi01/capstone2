@@ -58,13 +58,13 @@
 /* Layout styles */
 .yohanns-branches-layout {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 1fr 400px;
   gap: 2rem;
 }
 
 /* Map container styles */
 .yohanns-map-container {
-  height: 480px;
+  height: 600px;
   width: 100%;
   border-radius: 15px;
   border: 1px solid #333;
@@ -78,6 +78,28 @@
   padding: 1.5rem;
   box-shadow: 0 8px 24px rgba(0, 191, 255, 0.15);
   border: 1px solid #333;
+  height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for branch list */
+.yohanns-branch-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.yohanns-branch-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.yohanns-branch-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 191, 255, 0.3);
+  border-radius: 10px;
+}
+
+.yohanns-branch-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 191, 255, 0.5);
 }
 
 .yohanns-branch-item {
@@ -255,12 +277,12 @@
   }
   
   .yohanns-branch-list {
-    order: 2;
     padding: 1.5rem;
+    height: auto;
+    max-height: 400px;
   }
   
   .yohanns-map-container {
-    order: 1;
     height: 300px;
   }
 }
@@ -293,6 +315,8 @@
   
   .yohanns-branch-list {
     padding: 1rem;
+    height: auto;
+    max-height: 350px;
   }
   
   .yohanns-branch-item {
@@ -333,6 +357,8 @@
   
   .yohanns-branch-list {
     padding: 0.75rem;
+    height: auto;
+    max-height: 300px;
   }
   
   .yohanns-branch-item {

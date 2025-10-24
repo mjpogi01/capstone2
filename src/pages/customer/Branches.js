@@ -55,6 +55,13 @@ const branches = [
     address: 'Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines',
     position: { lat: 13.9288950, lng: 120.8113147 },
     gmaps: createGMapsLink('Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines')
+  },
+  {
+    id: 8,
+    name: 'PINAMALAYAN BRANCH',
+    address: 'Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines',
+    position: { lat: 13.0350, lng: 121.4847 },
+    gmaps: createGMapsLink('Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines')
   }
 ];
 
@@ -198,29 +205,7 @@ const Branches = () => {
         
         <div className="yohanns-branches-content">
           <div className="yohanns-branches-layout">
-          <div className="yohanns-branch-list">
-            {branches.map((branch) => (
-              <div 
-                key={branch.id} 
-                className={`yohanns-branch-item ${activeId === branch.id ? 'yohanns-branch-item-active' : ''}`}
-                onClick={() => focusBranch(branch)}
-              >
-                <div className="yohanns-branch-name">{branch.name}</div>
-                <div className="yohanns-branch-address">{branch.address}</div>
-                {activeId === branch.id ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
-                    disabled={isRouting}
-                    className="yohanns-directions-button"
-                    style={{ marginTop: '8px' }}
-                  >
-                    {isRouting ? 'Getting Directions...' : 'Get Directions'}
-                  </button>
-                ) : null}
-              </div>
-            ))}
-          </div>
-
+          
           <MapContainer
             whenCreated={(map) => { mapRef.current = map; }}
             className="yohanns-map-container"
@@ -277,6 +262,30 @@ const Branches = () => {
               </Marker>
             ))}
           </MapContainer>
+
+          <div className="yohanns-branch-list">
+            {branches.map((branch) => (
+              <div 
+                key={branch.id} 
+                className={`yohanns-branch-item ${activeId === branch.id ? 'yohanns-branch-item-active' : ''}`}
+                onClick={() => focusBranch(branch)}
+              >
+                <div className="yohanns-branch-name">{branch.name}</div>
+                <div className="yohanns-branch-address">{branch.address}</div>
+                {activeId === branch.id ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
+                    disabled={isRouting}
+                    className="yohanns-directions-button"
+                    style={{ marginTop: '8px' }}
+                  >
+                    {isRouting ? 'Getting Directions...' : 'Get Directions'}
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          
           </div>
         </div>
       </div>
