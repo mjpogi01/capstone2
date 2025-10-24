@@ -34,10 +34,57 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    // Get review statistics for all products
+    // Reviews are on orders, which have order_items linking to products
+    const { data: orderItems, error: itemsError } = await supabase
+      .from('order_items')
+      .select('product_id, order_id');
+
+    const { data: orderReviews, error: reviewsError } = await supabase
+      .from('order_reviews')
+      .select('order_id, rating');
+
+    // Calculate review stats per product
+    const reviewMap = {};
+    if (orderItems && orderReviews && !itemsError && !reviewsError) {
+      // Create a map of order_id to product_ids
+      const orderToProducts = {};
+      orderItems.forEach(item => {
+        if (!orderToProducts[item.order_id]) {
+          orderToProducts[item.order_id] = [];
+        }
+        orderToProducts[item.order_id].push(item.product_id);
+      });
+
+      // Map reviews to products
+      orderReviews.forEach(review => {
+        const productIds = orderToProducts[review.order_id] || [];
+        productIds.forEach(productId => {
+          if (!reviewMap[productId]) {
+            reviewMap[productId] = { ratings: [], count: 0 };
+          }
+          reviewMap[productId].ratings.push(review.rating);
+          reviewMap[productId].count++;
+        });
+      });
+
+      // Calculate averages
+      Object.keys(reviewMap).forEach(productId => {
+        const ratings = reviewMap[productId].ratings;
+        const average = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+        reviewMap[productId] = {
+          average_rating: parseFloat(average.toFixed(1)),
+          review_count: ratings.length
+        };
+      });
+    }
+
     // Transform the data to match the expected format
     const transformedData = data.map(product => ({
       ...product,
-      branch_name: product.branches?.name || null
+      branch_name: product.branches?.name || null,
+      average_rating: reviewMap[product.id]?.average_rating || 0,
+      review_count: reviewMap[product.id]?.review_count || 0
     }));
 
     res.json(transformedData);

@@ -101,11 +101,10 @@ const ProductListModal = ({ isOpen, onClose }) => {
       filtered = filtered.filter(product => parseFloat(product.price) <= parseFloat(priceMax));
     }
 
-    // Filter by rating (if ratings are available in product data)
-    // Note: Assuming products might have a 'rating' field
+    // Filter by rating
     if (selectedRating !== null) {
       filtered = filtered.filter(product => {
-        const rating = product.rating || product.average_rating || 0;
+        const rating = product.average_rating || 0;
         return rating >= selectedRating;
       });
     }
@@ -439,13 +438,16 @@ const ProductListModal = ({ isOpen, onClose }) => {
                           </button>
                         </div>
                         
-                        {/* Review Count and Sold Quantity */}
-                        {((product.review_count > 0) || (product.sold_quantity > 0)) && (
+                        {/* Review Rating and Sold Quantity */}
+                        {((product.average_rating > 0) || (product.sold_quantity > 0)) && (
                           <div className="product-stats">
-                            {product.review_count > 0 && (
+                            {product.average_rating > 0 && (
                               <div className="product-reviews">
                                 <FaStar className="review-star" />
-                                <span className="review-count">{product.review_count}</span>
+                                <span className="review-rating">{product.average_rating.toFixed(1)}</span>
+                                {product.review_count > 0 && (
+                                  <span className="review-count">({product.review_count})</span>
+                                )}
                               </div>
                             )}
                             {product.sold_quantity > 0 && (
