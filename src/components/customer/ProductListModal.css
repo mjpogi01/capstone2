@@ -118,7 +118,7 @@
   flex-wrap: nowrap;
 }
 
-/* Search Box - Dark Theme */
+/* Search Box */
 .search-box {
   position: relative;
   width: 280px;
@@ -145,7 +145,7 @@
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   transition: all 0.2s ease;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .search-input:hover {
@@ -157,11 +157,11 @@
   outline: none;
   border-color: #3b82f6 !important;
   background: #0a0a0a !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), inset 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .search-input::placeholder {
-  color: #6b7280;
+  color: #9ca3af !important;
 }
 
 .sort-label {
@@ -464,7 +464,7 @@
   transform: translateY(2px);
 }
 
-/* Price Range Filter - Dark Theme */
+/* Price Range Filter */
 .price-inputs {
   display: flex;
   align-items: center;
@@ -481,7 +481,7 @@
   font-size: 13px;
   font-family: 'Inter', sans-serif;
   transition: all 0.2s ease;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .price-input:hover {
@@ -493,15 +493,15 @@
   outline: none;
   border-color: #3b82f6 !important;
   background: #0a0a0a !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), inset 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .price-input::placeholder {
-  color: #6b7280;
+  color: #9ca3af !important;
 }
 
 .price-separator {
-  color: #d1d5db;
+  color: #9ca3af;
   font-size: 13px;
   font-weight: 500;
 }
@@ -772,18 +772,10 @@
   font-size: 12px;
 }
 
-.review-rating {
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  margin-right: 2px;
-}
-
 .review-count {
   color: #9ca3af;
-  font-size: 11px;
-  font-weight: 400;
+  font-size: 12px;
+  font-weight: 500;
   font-family: 'Inter', sans-serif;
 }
 
@@ -1053,13 +1045,9 @@
     font-size: 11px;
   }
 
-  .review-rating {
-    font-size: 11px;
-  }
-
   .review-count,
   .sold-count {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .add-to-cart-btn {
@@ -1226,13 +1214,9 @@
     font-size: 10px;
   }
 
-  .review-rating {
-    font-size: 10px;
-  }
-
   .review-count,
   .sold-count {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .add-to-cart-btn {
