@@ -3,49 +3,49 @@ import { FaTimes, FaFacebookF } from 'react-icons/fa';
 import './BranchSelectModal.css';
 
 const BranchSelectModal = ({ isOpen, onClose }) => {
-  // Branch data with Facebook page links
+  // Branch data with Facebook page links - Each branch has its specific FB page
   const branches = [
     {
       id: 1,
       name: 'BATANGAS CITY BRANCH',
       address: 'Unit 1 Casa Buena Building, P.Burgos ST. EXT Calicanto, 4200 Batangas',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      facebook: 'https://www.facebook.com/profile.php?id=100088691090349'
     },
     {
       id: 2,
       name: 'BAUAN BRANCH',
       address: 'J.P Rizal St. Poblacion, Bauan Batangas',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      facebook: 'https://www.facebook.com/profile.php?id=61578740126566'
     },
     {
       id: 3,
       name: 'SAN PASCUAL (MAIN BRANCH)',
       address: 'Villa Maria Subdivision Sambat, San Pascual, 4204 Batangas',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      facebook: 'https://www.facebook.com/princeyohannsportswear'
     },
     {
       id: 4,
       name: 'CALAPAN BRANCH',
       address: 'Unit 2, Ground Floor Basa Bldg., Infantado Street, Brgy. San Vicente West Calapan City, 5200 Oriental Mindoro',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      facebook: 'https://www.facebook.com/calapan.yohanns'
     },
     {
       id: 5,
       name: 'PINAMALAYAN BRANCH',
       address: 'Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      facebook: 'https://www.facebook.com/profile.php?id=61566315711120'
     },
     {
       id: 6,
       name: 'MUZON BRANCH',
       address: 'Barangay Muzon, San Luis, 4226 Batangas',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      facebook: 'https://www.facebook.com/profile.php?id=100084914692738'
     },
     {
       id: 7,
       name: 'LEMERY BRANCH',
       address: 'Miranda Bldg, Illustre Ave., Brgy. District III 4209 Lemery Batangas',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      facebook: 'https://www.facebook.com/profile.php?id=61565602109412'
     },
     {
       id: 8,
@@ -57,7 +57,7 @@ const BranchSelectModal = ({ isOpen, onClose }) => {
       id: 9,
       name: 'CALACA BRANCH',
       address: 'Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      facebook: 'https://www.facebook.com/profile.php?id=100095084529081'
     }
   ];
 
@@ -66,8 +66,8 @@ const BranchSelectModal = ({ isOpen, onClose }) => {
   };
 
   const handleMainPageClick = () => {
-    // Open main Facebook page
-    window.open('https://www.facebook.com/yohannssportshouse', '_blank', 'noopener,noreferrer');
+    // Open main Facebook page (San Pascual Main Branch)
+    window.open('https://www.facebook.com/princeyohannsportswear', '_blank', 'noopener,noreferrer');
   };
 
   if (!isOpen) return null;
