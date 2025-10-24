@@ -79,8 +79,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     'Long Sleeves',
     'Uniforms',
     'Accessories',
-    'Shoes',
-    'Bags',
+    'Balls',
+    'Trophies',
     'Hats'
   ];
 

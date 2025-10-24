@@ -52,7 +52,7 @@
   --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Typography */
-  --font-family: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family: 'Oswald', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;

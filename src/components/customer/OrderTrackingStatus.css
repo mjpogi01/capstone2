@@ -22,7 +22,7 @@
   font-size: 1.8rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .order-number {
@@ -68,7 +68,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .status-content p {
@@ -135,7 +135,7 @@
   font-size: 1.3rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .history-timeline {
@@ -229,7 +229,7 @@
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .estimated-delivery p {
@@ -251,7 +251,7 @@
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .tracking-contact p {

@@ -113,6 +113,11 @@
   color: #00bfff;
   font-weight: 600;
 }
+.required {
+  color: #ff6b6b;
+  margin-left: 0.25rem;
+  font-weight: 700;
+}
 .field input {
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(0, 191, 255, 0.2);
@@ -279,6 +284,88 @@
 .branch-name { color: #ffffff; font-weight: 600; }
 .branch-address { color: #999; font-size: 0.85rem; }
 
+/* Validation Notification */
+.validation-notification {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.05) 100%);
+  border: 2px solid #ff6b6b;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  animation: slideDown 0.3s ease-out;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.validation-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ff6b6b;
+  font-size: 1rem;
+}
+
+.validation-icon {
+  font-size: 1.25rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.validation-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #ff6b6b;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.validation-close:hover {
+  background: rgba(255, 107, 107, 0.2);
+  transform: scale(1.1);
+}
+
+.validation-list {
+  margin: 0.75rem 0 0 1.75rem;
+  padding: 0;
+  list-style: none;
+  color: #ffb3b3;
+  font-size: 0.9rem;
+}
+
+.validation-list li {
+  padding: 0.25rem 0;
+  position: relative;
+}
+
+.validation-list li:before {
+  content: '→';
+  position: absolute;
+  left: -1.25rem;
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
 /* Summary */
 .summary-toggle {
   background: rgba(0, 0, 0, 0.3);
@@ -307,13 +394,19 @@
   z-index: 5;
   backdrop-filter: blur(10px);
 }
-.submit-bar-inner { display: flex; justify-content: flex-end; }
+.submit-bar-inner { 
+  display: flex; 
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 10px;
+}
 .submit-btn {
   background: linear-gradient(135deg, #00bfff 0%, #0099cc 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
-  margin: 10px;
+  margin: 10px 0;
   padding: 0.6rem 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -331,6 +424,23 @@
   opacity: 0.5;
   cursor: not-allowed;
   background: #666;
+  box-shadow: none;
+}
+.submit-hint {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-right: auto;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Confirmation */

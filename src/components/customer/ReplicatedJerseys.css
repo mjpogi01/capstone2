@@ -18,7 +18,7 @@
   text-transform: uppercase;
   letter-spacing: 2px;
   text-shadow: 0 0 10px #00bfff, 0 0 20px #00bfff;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .jerseys-grid {
@@ -116,7 +116,7 @@
   font-weight: 900;
   margin-bottom: 1rem;
   text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
   text-align: center;
 }
 
@@ -126,7 +126,7 @@
   text-align: center;
   letter-spacing: 2px;
   text-shadow: 0 0 5px currentColor;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
   text-transform: uppercase;
 }
 
@@ -187,7 +187,7 @@
   letter-spacing: 1px;
   border-radius: 4px;
   box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
-  font-family: 'Orbitron', monospace;
+  font-family: 'Oswald', sans-serif;
 }
 
 .view-all-btn:hover {
