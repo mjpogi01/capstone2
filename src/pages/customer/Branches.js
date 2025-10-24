@@ -259,8 +259,8 @@ const Branches = () => {
             mapRef.current.fitBounds(bounds, { 
               padding: [80, 80],
               animate: true,
-              duration: 1.5,
-              easeLinearity: 0.2
+              duration: 2.0,
+              easeLinearity: 0.05
             });
           }
           
@@ -290,8 +290,8 @@ const Branches = () => {
             mapRef.current.fitBounds(bounds, { 
               padding: [80, 80],
               animate: true,
-              duration: 1.5,
-              easeLinearity: 0.2
+              duration: 2.0,
+              easeLinearity: 0.05
             });
           }
         }
@@ -316,8 +316,8 @@ const Branches = () => {
           mapRef.current.fitBounds(bounds, { 
             padding: [80, 80],
             animate: true,
-            duration: 1.5,
-            easeLinearity: 0.2
+            duration: 2.0,
+            easeLinearity: 0.05
           });
         }
       }
@@ -327,8 +327,8 @@ const Branches = () => {
       if (mapRef.current) {
         mapRef.current.setView(branch.position, 15, { 
           animate: true, 
-          duration: 1.5,
-          easeLinearity: 0.2
+          duration: 2.0,
+          easeLinearity: 0.05
         });
       }
     }
