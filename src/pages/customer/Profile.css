@@ -1,84 +1,106 @@
-/* Profile Page Styles */
-.profile-page {
+/* Yohann's Profile Page Styles - Black Theme */
+
+/* Main Container */
+.yohanns-profile-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1a2e 100%);
+  background: #000000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 6rem 0 2rem 0;
   color: #ffffff;
+  position: relative;
+  overflow-x: hidden;
 }
 
-.profile-container {
+.yohanns-profile-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
-/* Header */
-.profile-header {
+/* Header Section */
+.yohanns-profile-header {
   text-align: center;
   margin-bottom: 1rem;
 }
 
-.profile-title {
+.yohanns-profile-title {
   font-size: 2.5rem;
   font-weight: 700;
   color: #ffffff;
   margin-bottom: 2rem;
   text-transform: uppercase;
   letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
+  font-family: 'Inter', sans-serif;
 }
 
-/* Tabs */
-.profile-tabs {
+/* Tabs Navigation */
+.yohanns-profile-tabs {
   display: flex;
   justify-content: center;
   gap: 1rem;
   margin-bottom: 0.5rem;
 }
 
-.tab {
+.yohanns-profile-tab {
   padding: 12px 24px;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-family: 'Inter', sans-serif;
 }
 
-.tab.active {
-  background: #ffd700;
+.yohanns-profile-tab.active {
+  background: #00bfff;
   color: #000000;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.5);
 }
 
-.tab:not(.active) {
-  background: #333333;
-  color: #ffffff;
-  border: 1px solid #555555;
+.yohanns-profile-tab:not(.active) {
+  background: rgba(0, 191, 255, 0.1);
+  color: #00bfff;
+  border: 1px solid rgba(0, 191, 255, 0.3);
 }
 
-.tab:not(.active):hover {
-  background: #444444;
-  border-color: #666666;
+.yohanns-profile-tab:not(.active):hover {
+  background: rgba(0, 191, 255, 0.2);
+  border-color: rgba(0, 191, 255, 0.5);
+  transform: translateY(-2px);
 }
 
-/* Content */
-.profile-content {
-  background: rgba(26, 26, 46, 0.8);
+/* Content Container */
+.yohanns-profile-content {
+  background: rgba(0, 0, 0, 0.8);
   border-radius: 16px;
   padding: 2rem;
-  border: 1px solid rgba(0, 191, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 191, 255, 0.1);
+  border: 2px solid rgba(0, 191, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 191, 255, 0.2);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
+/* Top Controls - Edit/Save/Cancel Buttons */
+.yohanns-profile-top-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(0, 191, 255, 0.2);
 }
 
 /* Personal Information Section */
-.personal-info-section {
+.yohanns-personal-info-section {
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 3rem;
@@ -86,207 +108,237 @@
 }
 
 /* Profile Picture Section */
-.profile-picture-section {
+.yohanns-profile-picture-section {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
 }
 
-.profile-picture {
+.yohanns-profile-picture {
   position: relative;
   width: 200px;
   height: 200px;
 }
 
-.profile-avatar {
+.yohanns-profile-avatar {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: #333333;
+  background: #1a1a1a;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 3px solid #00bfff;
-  box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
-  color: #666666;
+  box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+  color: #00bfff;
+  transition: all 0.3s ease;
 }
 
-.profile-avatar svg {
+.yohanns-profile-avatar:hover {
+  box-shadow: 0 0 40px rgba(0, 191, 255, 0.7);
+  transform: scale(1.02);
+}
+
+.yohanns-profile-avatar svg {
   width: 80px;
   height: 80px;
 }
 
-.profile-image {
+.yohanns-profile-image {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  border: 3px solid #00bfff;
+  box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+  transition: all 0.3s ease;
 }
 
-.upload-btn {
-  background: #1e3a8a;
-  color: #ffffff;
+.yohanns-profile-image:hover {
+  box-shadow: 0 0 40px rgba(0, 191, 255, 0.7);
+  transform: scale(1.02);
+}
+
+.yohanns-upload-btn {
+  background: rgba(0, 191, 255, 0.1);
+  color: #00bfff;
   border: 2px solid #00bfff;
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-family: 'Inter', sans-serif;
 }
 
-.upload-btn:hover:not(:disabled) {
-  background: #1e40af;
-  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
+.yohanns-upload-btn:hover:not(:disabled) {
+  background: #00bfff;
+  color: #000000;
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.5);
   transform: translateY(-2px);
 }
 
-.upload-btn:disabled {
-  background: #666666;
-  border-color: #888888;
+.yohanns-upload-btn:disabled {
+  background: #1a1a1a;
+  border-color: #333333;
+  color: #666666;
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.5;
 }
 
 /* Personal Information Form */
-.personal-info-form {
+.yohanns-personal-info-form {
   flex: 1;
 }
 
-.form-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.yohanns-form-header {
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 191, 255, 0.2);
+  border-bottom: 2px solid rgba(0, 191, 255, 0.3);
 }
 
-.form-header h3 {
+.yohanns-form-header h3 {
   color: #ffffff;
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
+  font-family: 'Inter', sans-serif;
 }
 
-.edit-link {
-  color: #ffd700;
+.yohanns-edit-link {
+  color: #00bfff;
   background: none;
   border: none;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
 }
 
-.edit-link:hover {
-  color: #ffed4e;
+.yohanns-edit-link:hover {
+  color: #87ceeb;
+  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
 }
 
-.edit-actions {
+.yohanns-edit-actions {
   display: flex;
   gap: 1rem;
 }
 
-.save-btn, .cancel-btn {
+.yohanns-save-btn,
+.yohanns-cancel-btn {
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
+  font-family: 'Inter', sans-serif;
 }
 
-.save-btn {
+.yohanns-save-btn {
   background: #00bfff;
   color: #000000;
+  border: 2px solid #00bfff;
 }
 
-.save-btn:hover {
-  background: #0080ff;
+.yohanns-save-btn:hover {
+  background: #87ceeb;
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.5);
   transform: translateY(-1px);
 }
 
-.cancel-btn {
-  background: #666666;
+.yohanns-cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
-.cancel-btn:hover {
-  background: #777777;
+.yohanns-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Form Fields */
-.form-fields {
+.yohanns-form-fields {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.form-field {
+.yohanns-form-field {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.form-field label {
+.yohanns-form-field label {
   min-width: 150px;
   color: #ffffff;
   font-weight: 500;
   font-size: 14px;
+  font-family: 'Inter', sans-serif;
 }
 
-.form-field input {
+.yohanns-form-field input {
   flex: 1;
-  background: #333333;
-  border: 2px solid #00bfff;
+  background: #1a1a1a;
+  border: 2px solid rgba(0, 191, 255, 0.3);
   border-radius: 8px;
   padding: 12px 16px;
   color: #ffffff;
   font-size: 14px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 0 10px rgba(0, 191, 255, 0.1);
+  font-family: 'Inter', sans-serif;
 }
 
-.form-field input:focus {
+.yohanns-form-field input::placeholder {
+  color: #666666;
+}
+
+.yohanns-form-field input:focus {
   outline: none;
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
-  border-color: #0080ff;
+  box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+  border-color: #00bfff;
 }
 
-.form-field input:disabled {
-  background: #2a2a2a;
-  border-color: #555555;
-  color: #cccccc;
+.yohanns-form-field input:disabled {
+  background: #0d0d0d;
+  border-color: #333333;
+  color: #888888;
   cursor: not-allowed;
 }
 
 /* Radio Group */
-.radio-group {
+.yohanns-radio-group {
   display: flex;
   gap: 2rem;
   flex: 1;
 }
 
-.radio-option {
+.yohanns-radio-option {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
   color: #ffffff;
   font-size: 14px;
+  font-family: 'Inter', sans-serif;
 }
 
-.radio-option input[type="radio"] {
+.yohanns-radio-option input[type="radio"] {
   display: none;
 }
 
-.radio-custom {
+.yohanns-radio-custom {
   width: 20px;
   height: 20px;
   border: 2px solid #00bfff;
@@ -296,12 +348,12 @@
   box-shadow: 0 0 8px rgba(0, 191, 255, 0.2);
 }
 
-.radio-option input[type="radio"]:checked + .radio-custom {
+.yohanns-radio-option input[type="radio"]:checked + .yohanns-radio-custom {
   background: #00bfff;
-  box-shadow: 0 0 12px rgba(0, 191, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 191, 255, 0.5);
 }
 
-.radio-option input[type="radio"]:checked + .radio-custom::after {
+.yohanns-radio-option input[type="radio"]:checked + .yohanns-radio-custom::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -313,303 +365,399 @@
   border-radius: 50%;
 }
 
-.radio-option input[type="radio"]:disabled + .radio-custom {
-  border-color: #555555;
+.yohanns-radio-option input[type="radio"]:disabled + .yohanns-radio-custom {
+  border-color: #333333;
   box-shadow: none;
 }
 
-.radio-option input[type="radio"]:disabled:checked + .radio-custom {
-  background: #555555;
+.yohanns-radio-option input[type="radio"]:disabled:checked + .yohanns-radio-custom {
+  background: #333333;
+}
+
+/* Change Password Button */
+.yohanns-change-password-btn {
+  background: rgba(0, 191, 255, 0.1);
+  color: #00bfff;
+  border: 1px solid #00bfff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+.yohanns-change-password-btn:hover {
+  background: #00bfff;
+  color: #000000;
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.4);
 }
 
 /* Orders Section */
-.orders-section {
+.yohanns-orders-section {
   text-align: center;
   padding: 3rem;
 }
 
-.orders-section h3 {
+.yohanns-orders-section h3 {
   color: #ffffff;
   font-size: 1.5rem;
   margin-bottom: 1rem;
+  font-family: 'Inter', sans-serif;
 }
 
-.orders-section p {
+.yohanns-orders-section p {
   color: #cccccc;
   font-size: 16px;
+  font-family: 'Inter', sans-serif;
 }
 
-/* Tablet styles */
+/* Loading State */
+.yohanns-profile-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #00bfff;
+}
+
+.yohanns-profile-loading-title {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.yohanns-profile-loading-text {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ======================
+   RESPONSIVE DESIGN
+   ====================== */
+
+/* Tablet (1024px) */
 @media (max-width: 1024px) {
-  .profile-page {
+  .yohanns-profile-page {
     padding: 5.5rem 0 2rem 0;
   }
   
-  .profile-container {
+  .yohanns-profile-container {
     padding: 0 1.5rem;
   }
   
-  .profile-content {
+  .yohanns-profile-content {
     padding: 1.75rem;
   }
   
-  .personal-info-section {
+  .yohanns-personal-info-section {
     gap: 2.5rem;
   }
   
-  .profile-picture {
+  .yohanns-profile-picture {
     width: 180px;
     height: 180px;
   }
   
-  .profile-avatar svg {
+  .yohanns-profile-avatar svg {
     width: 70px;
     height: 70px;
   }
 }
 
-/* Mobile styles */
+/* Tablet/Mobile (768px) */
 @media (max-width: 768px) {
-  .profile-page {
+  .yohanns-profile-page {
     padding: 5rem 0 2rem 0;
   }
   
-  .profile-container {
+  .yohanns-profile-container {
     padding: 0 1rem;
   }
   
-  .profile-title {
+  .yohanns-profile-title {
     font-size: 2rem;
     margin-bottom: 1.5rem;
   }
   
-  .profile-content {
+  .yohanns-profile-content {
+    margin-top: 90px;
+    margin: 90px 10px 10px 10px;
     padding: 1.5rem;
   }
   
-  .personal-info-section {
+  .yohanns-personal-info-section {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
   
-  .profile-picture-section {
+  .yohanns-profile-picture-section {
     align-items: center;
-    order: 2;
-  }
-  
-  .personal-info-form {
     order: 1;
   }
   
-  .form-field {
+  .yohanns-personal-info-form {
+    order: 2;
+  }
+  
+  .yohanns-form-field {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
   
-  .form-field label {
+  .yohanns-form-field label {
     min-width: auto;
     font-weight: 600;
   }
   
-  .radio-group {
+  .yohanns-radio-group {
     flex-direction: column;
     gap: 1rem;
   }
   
-  .profile-tabs {
+  .yohanns-profile-tabs {
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
   }
   
-  .tab {
+  .yohanns-profile-tab {
     width: 100%;
     max-width: 300px;
     padding: 10px 20px;
     font-size: 13px;
   }
   
-  .profile-picture {
+  .yohanns-profile-picture {
     width: 150px;
     height: 150px;
   }
   
-  .profile-avatar svg {
+  .yohanns-profile-avatar svg {
     width: 60px;
     height: 60px;
   }
   
-  .upload-btn {
+  .yohanns-upload-btn {
     width: 100%;
     max-width: 200px;
     padding: 10px 20px;
     font-size: 13px;
   }
   
-  .form-header h3 {
+  .yohanns-profile-top-controls {
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .yohanns-form-header h3 {
     font-size: 1.3rem;
   }
   
-  .form-field input {
+  .yohanns-form-field input {
     padding: 10px 14px;
     font-size: 13px;
   }
 }
 
-/* Small mobile styles */
+/* Small Mobile (480px) */
 @media (max-width: 480px) {
-  .profile-page {
+  .yohanns-profile-page {
     padding: 4.5rem 0 1.5rem 0;
   }
   
-  .profile-container {
+  .yohanns-profile-container {
     padding: 0 0.75rem;
   }
   
-  .profile-title {
+  .yohanns-profile-title {
     font-size: 1.8rem;
     margin-bottom: 1.25rem;
   }
   
-  .profile-content {
+  .yohanns-profile-content {
     padding: 1rem;
+    border-width: 1px;
   }
   
-  .personal-info-section {
+  .yohanns-personal-info-section {
     gap: 1.5rem;
   }
   
-  .profile-picture {
+  .yohanns-profile-picture {
     width: 130px;
     height: 130px;
   }
   
-  .profile-avatar svg {
+  .yohanns-profile-avatar svg {
     width: 50px;
     height: 50px;
   }
   
-  .upload-btn {
+  .yohanns-upload-btn {
     max-width: 180px;
     padding: 8px 16px;
     font-size: 12px;
   }
   
-  .form-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
+  .yohanns-profile-top-controls {
+    margin-bottom: 1rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .yohanns-edit-actions {
+    gap: 0.75rem;
   }
   
-  .form-header h3 {
+  .yohanns-form-header h3 {
     font-size: 1.2rem;
   }
   
-  .edit-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .save-btn, .cancel-btn {
+  .yohanns-save-btn,
+  .yohanns-cancel-btn {
     flex: 1;
-    margin: 0 0.25rem;
     padding: 6px 12px;
     font-size: 12px;
   }
   
-  .form-field input {
+  .yohanns-form-field input {
     padding: 8px 12px;
     font-size: 12px;
   }
   
-  .form-field label {
+  .yohanns-form-field label {
     font-size: 13px;
   }
   
-  .tab {
+  .yohanns-profile-tab {
     padding: 8px 16px;
     font-size: 12px;
   }
   
-  .radio-option {
+  .yohanns-radio-option {
     font-size: 13px;
   }
   
-  .radio-custom {
+  .yohanns-radio-custom {
     width: 18px;
     height: 18px;
   }
+  
+  .yohanns-change-password-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
 }
 
-/* Extra small mobile styles */
+/* Extra Small Mobile (360px) */
 @media (max-width: 360px) {
-  .profile-page {
+  .yohanns-profile-page {
     padding: 4rem 0 1rem 0;
   }
   
-  .profile-container {
+  .yohanns-profile-container {
     padding: 0 0.5rem;
   }
   
-  .profile-title {
+  .yohanns-profile-title {
     font-size: 1.6rem;
     margin-bottom: 1rem;
   }
   
-  .profile-content {
+  .yohanns-profile-content {
     padding: 0.75rem;
   }
   
-  .personal-info-section {
+  .yohanns-personal-info-section {
     gap: 1.25rem;
   }
   
-  .profile-picture {
+  .yohanns-profile-picture {
     width: 120px;
     height: 120px;
   }
   
-  .profile-avatar svg {
+  .yohanns-profile-avatar svg {
     width: 45px;
     height: 45px;
   }
   
-  .upload-btn {
+  .yohanns-upload-btn {
     max-width: 160px;
     padding: 6px 12px;
     font-size: 11px;
   }
   
-  .form-header h3 {
+  .yohanns-profile-top-controls {
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .yohanns-edit-actions {
+    gap: 0.5rem;
+  }
+  
+  .yohanns-form-header h3 {
     font-size: 1.1rem;
   }
   
-  .save-btn, .cancel-btn {
+  .yohanns-save-btn,
+  .yohanns-cancel-btn {
     padding: 5px 10px;
     font-size: 11px;
   }
   
-  .form-field input {
+  .yohanns-form-field input {
     padding: 6px 10px;
     font-size: 11px;
   }
   
-  .form-field label {
+  .yohanns-form-field label {
     font-size: 12px;
   }
   
-  .tab {
+  .yohanns-profile-tab {
     padding: 6px 12px;
     font-size: 11px;
   }
   
-  .radio-option {
+  .yohanns-radio-option {
     font-size: 12px;
   }
   
-  .radio-custom {
+  .yohanns-radio-custom {
     width: 16px;
     height: 16px;
+  }
+  
+  .yohanns-change-password-btn {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+}
+
+/* Landscape Mode for Mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .yohanns-profile-page {
+    padding: 3rem 0 1rem 0;
+  }
+  
+  .yohanns-profile-content {
+    padding: 1rem;
+  }
+  
+  .yohanns-personal-info-section {
+    gap: 1.5rem;
+  }
+  
+  .yohanns-profile-picture {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .yohanns-profile-avatar svg {
+    width: 40px;
+    height: 40px;
   }
 }

@@ -223,12 +223,12 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div className="profile-page">
-        <div className="profile-container">
-          <div className="profile-content">
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#00bfff' }}>
-              <div style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Loading profile...</div>
-              <div style={{ fontSize: '0.9rem', opacity: 0.7 }}>Please wait while we fetch your information.</div>
+      <div className="yohanns-profile-page">
+        <div className="yohanns-profile-container">
+          <div className="yohanns-profile-content">
+            <div className="yohanns-profile-loading">
+              <div className="yohanns-profile-loading-title">Loading profile...</div>
+              <div className="yohanns-profile-loading-text">Please wait while we fetch your information.</div>
             </div>
           </div>
         </div>
@@ -237,22 +237,36 @@ const Profile = () => {
   }
 
   return (
-    <div className="profile-page">
-      <div className="profile-container">
+    <div className="yohanns-profile-page">
+      <div className="yohanns-profile-container">
         {/* Content */}
-        <div className="profile-content">
-          <div className="personal-info-section">
+        <div className="yohanns-profile-content">
+          {/* Edit Controls - Top Right */}
+          <div className="yohanns-profile-top-controls">
+            {!isEditing ? (
+              <button className="yohanns-edit-link" onClick={() => setIsEditing(true)}>
+                Edit
+              </button>
+            ) : (
+              <div className="yohanns-edit-actions">
+                <button className="yohanns-save-btn" onClick={handleSave}>Save</button>
+                <button className="yohanns-cancel-btn" onClick={handleCancel}>Cancel</button>
+              </div>
+            )}
+          </div>
+
+          <div className="yohanns-personal-info-section">
             {/* Left Column - Profile Picture */}
-            <div className="profile-picture-section">
-              <div className="profile-picture">
+            <div className="yohanns-profile-picture-section">
+              <div className="yohanns-profile-picture">
                 {profileImage ? (
                   <img 
                     src={profileImage} 
                     alt="Profile" 
-                    className="profile-image"
+                    className="yohanns-profile-image"
                   />
                 ) : (
-                  <div className="profile-avatar">
+                  <div className="yohanns-profile-avatar">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                     </svg>
@@ -260,7 +274,7 @@ const Profile = () => {
                 )}
               </div>
               <button 
-                className="upload-btn" 
+                className="yohanns-upload-btn" 
                 onClick={handleFileSelect}
                 disabled={isUploading}
               >
@@ -276,24 +290,14 @@ const Profile = () => {
             </div>
 
             {/* Right Column - Personal Information */}
-            <div className="personal-info-form">
-              <div className="form-header">
+            <div className="yohanns-personal-info-form">
+              <div className="yohanns-form-header">
                 <h3>Personal Information</h3>
-                {!isEditing ? (
-                  <button className="edit-link" onClick={() => setIsEditing(true)}>
-                    Edit
-                  </button>
-                ) : (
-                  <div className="edit-actions">
-                    <button className="save-btn" onClick={handleSave}>Save</button>
-                    <button className="cancel-btn" onClick={handleCancel}>Cancel</button>
-                  </div>
-                )}
               </div>
 
-              <div className="form-fields">
+              <div className="yohanns-form-fields">
                 {/* Name */}
-                <div className="form-field">
+                <div className="yohanns-form-field">
                   <label>Name :</label>
                   <input
                     type="text"
@@ -311,7 +315,7 @@ const Profile = () => {
                 </div>
 
                 {/* Email */}
-                <div className="form-field">
+                <div className="yohanns-form-field">
                   <label>Email Address :</label>
                   <input
                     type="email"
@@ -327,7 +331,7 @@ const Profile = () => {
                 </div>
 
                 {/* Phone */}
-                <div className="form-field">
+                <div className="yohanns-form-field">
                   <label>Phone Number :</label>
                   <input
                     type="tel"
@@ -345,7 +349,7 @@ const Profile = () => {
                 </div>
 
                 {/* Address */}
-                <div className="form-field">
+                <div className="yohanns-form-field">
                   <label>Address :</label>
                   <input
                     type="text"
@@ -363,23 +367,13 @@ const Profile = () => {
                 </div>
 
                 {/* Password */}
-                <div className="form-field">
+                <div className="yohanns-form-field">
                   <label>Password :</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
                     <span style={{ color: '#cccccc', fontSize: '14px' }}>••••••••••••••••</span>
                     <button 
-                      className="change-password-btn"
+                      className="yohanns-change-password-btn"
                       onClick={() => showNotification('Password change functionality coming soon!', 'info')}
-                      style={{
-                        background: '#1e3a8a',
-                        color: '#ffffff',
-                        border: '1px solid #00bfff',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                      }}
                     >
                       Change Password
                     </button>

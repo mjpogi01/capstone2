@@ -1,9 +1,10 @@
 /* Main container styles */
 .faqs-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
   color: #ffffff;
-  padding: 2rem 0;
+  padding: 100px 0 3rem 0;
+  font-family: 'Inter', sans-serif;
 }
 
 .faqs-wrapper {
@@ -16,15 +17,17 @@
 .faqs-hero {
   text-align: center;
   margin-bottom: 4rem;
-  padding: 3rem 0;
+  padding: 2rem 0;
 }
 
 .faqs-title {
   font-size: 2.5rem;
-  font-weight: bold;
+  font-weight: 700;
   color: #00bfff;
   text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
   margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+  font-family: 'Inter', sans-serif;
 }
 
 .faqs-subtitle {
@@ -33,6 +36,8 @@
   max-width: 800px;
   margin: 0 auto;
   line-height: 1.6;
+  font-weight: 400;
+  font-family: 'Inter', sans-serif;
 }
 
 /* FAQs section styles */
@@ -68,6 +73,7 @@
   align-items: center;
   font-size: 1.1rem;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
   transition: all 0.3s ease;
 }
 
@@ -96,6 +102,8 @@
   padding: 1rem 1.5rem 1.5rem 1.5rem;
   color: #a9d8ff;
   line-height: 1.6;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
   border-top: 1px solid #333;
   animation: slideDown 0.3s ease;
 }
@@ -124,15 +132,19 @@
 
 .faqs-contact-title {
   font-size: 2rem;
+  font-weight: 700;
   color: #00bfff;
   margin-bottom: 1rem;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+  font-family: 'Inter', sans-serif;
 }
 
 .faqs-contact-description {
   font-size: 1.1rem;
   color: #a9d8ff;
   margin-bottom: 2rem;
+  font-weight: 400;
+  font-family: 'Inter', sans-serif;
 }
 
 .faqs-contact-buttons {
@@ -143,10 +155,11 @@
 }
 
 .faqs-contact-button {
-  padding: 12px 24px;
+  padding: 12px 28px;
   border-radius: 8px;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   transition: all 0.3s ease;
   display: inline-block;
   cursor: pointer;
@@ -181,42 +194,58 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .faqs-container {
-    padding: 1rem 0;
+    padding: 100px 0 2rem 0;
   }
   
   .faqs-wrapper {
-    padding: 0 1rem;
+    padding: 0 5%;
+    max-width: 100%;
   }
   
   .faqs-hero {
     padding: 2rem 0;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
   }
   
   .faqs-title {
-    font-size: 2rem;
+    font-size: clamp(2rem, 5vw, 2.5rem);
+    padding: 0 1rem;
   }
   
   .faqs-subtitle {
-    font-size: 1rem;
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
+    padding: 0 1rem;
+    max-width: 90%;
+    margin: 1rem auto;
+  }
+  
+  .faq-list {
+    padding: 0 5%;
+  }
+  
+  .faq-item {
+    width: 90%;
+    max-width: 600px;
+    margin: 0 auto 1rem auto;
   }
   
   .faq-question-button {
-    padding: 1rem;
+    padding: 1.25rem;
     font-size: 1rem;
   }
   
   .faq-answer {
-    padding: 0 1rem 1rem 1rem;
+    padding: 0 1.25rem 1.25rem 1.25rem;
   }
   
   .faqs-contact {
     padding: 2rem;
-    margin-top: 2rem;
+    margin-top: 3rem;
   }
   
   .faqs-contact-title {
     font-size: 1.5rem;
+    margin-bottom: 1.5rem;
   }
   
   .faqs-contact-buttons {
@@ -232,8 +261,25 @@
 }
 
 @media (max-width: 480px) {
+  .faqs-container {
+    padding: 85px 0 1.5rem 0;
+  }
+  
+  .faqs-wrapper {
+    padding: 0 1rem;
+  }
+  
+  .faqs-hero {
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+  }
+  
   .faqs-title {
     font-size: 1.8rem;
+  }
+  
+  .faqs-subtitle {
+    font-size: 0.95rem;
   }
   
   .faq-question-button {
@@ -247,5 +293,78 @@
   
   .faqs-contact {
     padding: 1.5rem;
+    margin-top: 2rem;
   }
-} 
+  
+  .faqs-contact-title {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+  .faqs-container {
+    padding: 80px 0 1rem 0;
+  }
+  
+  .faqs-wrapper {
+    padding: 0 0.75rem;
+  }
+  
+  .faqs-title {
+    font-size: 1.6rem;
+  }
+  
+  .faqs-subtitle {
+    font-size: 0.85rem;
+  }
+  
+  .faq-question-button {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .faq-answer {
+    padding: 0.5rem 0.75rem 0.75rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .faqs-contact {
+    padding: 1rem;
+  }
+  
+  .faqs-contact-title {
+    font-size: 1.2rem;
+  }
+  
+  .faqs-contact-button {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .faqs-container {
+    padding: 70px 0 1rem 0;
+  }
+  
+  .faqs-hero {
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+  
+  .faqs-title {
+    font-size: 1.5rem;
+  }
+  
+  .faq-question-button {
+    padding: 0.75rem;
+  }
+  
+  .faqs-contact {
+    padding: 1rem;
+    margin-top: 1.5rem;
+  }
+}
