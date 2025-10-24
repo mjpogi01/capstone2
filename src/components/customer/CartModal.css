@@ -345,6 +345,27 @@
   margin: 3px 0;
 }
 
+.mycart-detail-line-full {
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Ball and Trophy Details Styling */
+.mycart-ball-details,
+.mycart-trophy-details {
+  padding: 8px;
+  background: rgba(0, 191, 255, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 191, 255, 0.2);
+}
+
+.mycart-engraving-text {
+  font-style: italic;
+  color: #ffd700;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
 .mycart-detail-label {
   font-weight: 600;
   color: var(--shopee-text-primary);

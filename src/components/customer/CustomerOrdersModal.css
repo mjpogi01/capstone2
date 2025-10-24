@@ -36,6 +36,12 @@
   color: #00bfff;
 }
 
+.customer-orders-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .customer-orders-modal-title {
   display: flex;
   align-items: center;
@@ -43,6 +49,29 @@
   margin: 0;
   font-size: 24px;
   font-weight: 600;
+}
+
+.customer-orders-count-badge {
+  background: linear-gradient(135deg, #00bfff, #0080ff);
+  color: #1a1a2e;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.4);
+  animation: fadeInScale 0.3s ease;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .customer-orders-modal-close {
@@ -909,6 +938,17 @@
     padding: 16px 20px;
   }
   
+  .customer-orders-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .customer-orders-count-badge {
+    font-size: 12px;
+    padding: 4px 12px;
+  }
+  
   .customer-orders-modal-body {
     padding: 16px 20px;
   }
@@ -960,5 +1000,115 @@
 
   .proof-image {
     height: 80px;
+  }
+}
+
+/* Ball and Trophy Order Details Styles */
+.ball-details,
+.trophy-details {
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.15), rgba(0, 191, 255, 0.05));
+  border: 1px solid rgba(0, 191, 255, 0.3);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.detail-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ball-badge {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+}
+
+.trophy-badge {
+  background: linear-gradient(135deg, #ffd700, #ffae42);
+  color: #1a1a2e;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.ball-info-grid,
+.trophy-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 191, 255, 0.2);
+}
+
+.detail-item-full {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #00bfff;
+  font-weight: 600;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.engraving-text {
+  font-style: italic;
+  color: #ffd700;
+  font-weight: 600;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.single-order-info {
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(0, 191, 255, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 191, 255, 0.2);
+}
+
+.single-order-info > div {
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.single-order-info > div:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive for Ball and Trophy details */
+@media (max-width: 768px) {
+  .ball-info-grid,
+  .trophy-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .ball-info-grid,
+  .trophy-info-grid {
+    grid-template-columns: 1fr;
   }
 }

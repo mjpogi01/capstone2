@@ -256,9 +256,16 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     <div className="customer-orders-modal-overlay" onClick={onClose}>
       <div className="customer-orders-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="customer-orders-modal-header">
-          <h2 className="customer-orders-modal-title">
-            <FaShoppingBag /> My Orders
-          </h2>
+          <div className="customer-orders-header-content">
+            <h2 className="customer-orders-modal-title">
+              <FaShoppingBag /> My Orders
+            </h2>
+            {!loading && !error && orders.length > 0 && (
+              <div className="customer-orders-count-badge">
+                {orders.length} {orders.length === 1 ? 'Order' : 'Orders'}
+              </div>
+            )}
+          </div>
           <button className="customer-orders-modal-close" onClick={onClose}>
             <FaTimes />
           </button>
@@ -313,22 +320,126 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                       <div className="customer-order-items">
                         <h4>Order Items ({order.totalItems} items)</h4>
                         <div className="items-list">
-                          {order.orderItems && order.orderItems.map((item, index) => (
-                            <div key={index} className="order-item">
-                              <div className="item-info">
-                                <div className="item-name">{item.name}</div>
-                                <div className="item-details">
-                                  Size: {item.size} | Qty: {item.quantity}
-                                  {item.isTeamOrder && (
-                                    <div className="team-order-info">
-                                      <FaUsers /> Team Order: {item.teamName}
+                          {order.orderItems && order.orderItems.map((item, index) => {
+                            // Determine product category (balls, trophies, or apparel)
+                            const isBall = item.category?.toLowerCase() === 'balls';
+                            const isTrophy = item.category?.toLowerCase() === 'trophies';
+                            const isApparel = !isBall && !isTrophy; // jerseys, t-shirts, etc.
+
+                            return (
+                              <div key={index} className="order-item">
+                                <div className="item-info">
+                                  <div className="item-name">{item.name}</div>
+                                  
+                                  {/* For Apparel (Jerseys, T-shirts, etc.) */}
+                                  {isApparel && (
+                                    <div className="item-details">
+                                      Size: {item.size} | Qty: {item.quantity}
+                                      {item.isTeamOrder && (
+                                        <div className="team-order-info">
+                                          <FaUsers /> Team Order: {item.teamName}
+                                        </div>
+                                      )}
+                                      {!item.isTeamOrder && item.singleOrderDetails && (
+                                        <div className="single-order-info">
+                                          {item.singleOrderDetails.teamName && (
+                                            <div>Team: {item.singleOrderDetails.teamName}</div>
+                                          )}
+                                          {item.singleOrderDetails.surname && (
+                                            <div>Surname: {item.singleOrderDetails.surname}</div>
+                                          )}
+                                          {item.singleOrderDetails.number && (
+                                            <div>Number: {item.singleOrderDetails.number}</div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* For Balls */}
+                                  {isBall && (
+                                    <div className="item-details ball-details">
+                                      <div className="detail-badge ball-badge">🏀 Ball</div>
+                                      <div className="ball-info-grid">
+                                        {item.ballDetails?.sportType && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Sport:</span>
+                                            <span className="detail-value">{item.ballDetails.sportType}</span>
+                                          </div>
+                                        )}
+                                        {item.ballDetails?.brand && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Brand:</span>
+                                            <span className="detail-value">{item.ballDetails.brand}</span>
+                                          </div>
+                                        )}
+                                        {item.ballDetails?.ballSize && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Size:</span>
+                                            <span className="detail-value">{item.ballDetails.ballSize}</span>
+                                          </div>
+                                        )}
+                                        {item.ballDetails?.material && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Material:</span>
+                                            <span className="detail-value">{item.ballDetails.material}</span>
+                                          </div>
+                                        )}
+                                        <div className="detail-item">
+                                          <span className="detail-label">Quantity:</span>
+                                          <span className="detail-value">{item.quantity}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* For Trophies */}
+                                  {isTrophy && (
+                                    <div className="item-details trophy-details">
+                                      <div className="detail-badge trophy-badge">🏆 Trophy</div>
+                                      <div className="trophy-info-grid">
+                                        {item.trophyDetails?.trophyType && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Type:</span>
+                                            <span className="detail-value">{item.trophyDetails.trophyType}</span>
+                                          </div>
+                                        )}
+                                        {item.trophyDetails?.size && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Size:</span>
+                                            <span className="detail-value">{item.trophyDetails.size}</span>
+                                          </div>
+                                        )}
+                                        {item.trophyDetails?.material && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Material:</span>
+                                            <span className="detail-value">{item.trophyDetails.material}</span>
+                                          </div>
+                                        )}
+                                        {item.trophyDetails?.engravingText && (
+                                          <div className="detail-item detail-item-full">
+                                            <span className="detail-label">Engraving:</span>
+                                            <span className="detail-value engraving-text">{item.trophyDetails.engravingText}</span>
+                                          </div>
+                                        )}
+                                        {item.trophyDetails?.occasion && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Occasion:</span>
+                                            <span className="detail-value">{item.trophyDetails.occasion}</span>
+                                          </div>
+                                        )}
+                                        <div className="detail-item">
+                                          <span className="detail-label">Quantity:</span>
+                                          <span className="detail-value">{item.quantity}</span>
+                                        </div>
+                                      </div>
                                     </div>
                                   )}
                                 </div>
+                                <div className="item-price">₱{(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                               </div>
-                              <div className="item-price">₱{(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
 

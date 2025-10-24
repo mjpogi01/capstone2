@@ -578,6 +578,11 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
             </div>
             {cartItems.map((item, index) => {
               console.log('Cart item:', item); // Debug log
+              // Determine product category
+              const isBall = item.category?.toLowerCase() === 'balls';
+              const isTrophy = item.category?.toLowerCase() === 'trophies';
+              const isApparel = !isBall && !isTrophy;
+
               return (
                 <div key={index} className="table-row">
                   <div className="item-cell">
@@ -598,14 +603,15 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                           className="item-type clickable"
                           onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
                         >
-                          {item.category === 'team' ? 'Team Order' : 'Single Order'}
+                          {isBall ? '🏀 Ball' : isTrophy ? '🏆 Trophy' : (item.category === 'team' ? 'Team Order' : 'Single Order')}
                           <span className="dropdown-arrow">
                             {expandedOrderIndex === index ? '▲' : '▼'}
                           </span>
                         </div>
                         {expandedOrderIndex === index && (
                           <div className="order-details-dropdown">
-                            {item.category === 'team' && item.teamMembers && item.teamMembers.length > 0 ? (
+                            {/* For Apparel - Team Orders */}
+                            {isApparel && item.category === 'team' && item.teamMembers && item.teamMembers.length > 0 ? (
                               <div className="team-details">
                                 <div className="team-name-header">
                                   <div className="detail-row">
@@ -633,7 +639,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                   ))}
                                 </div>
                               </div>
-                            ) : (
+                            ) : isApparel ? (
+                              /* For Apparel - Single Orders */
                               <div className="single-order-details">
                                 <div className="member-details">
                                   <div className="detail-row">
@@ -654,7 +661,73 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                   </div>
                                 </div>
                               </div>
-                            )}
+                            ) : isBall ? (
+                              /* For Balls */
+                              <div className="ball-details-checkout">
+                                <div className="member-details">
+                                  {item.ballDetails?.sportType && (
+                                    <div className="detail-row">
+                                      <span className="detail-label">Sport:</span>
+                                      <span className="detail-value">{item.ballDetails.sportType}</span>
+                                    </div>
+                                  )}
+                                  {item.ballDetails?.brand && (
+                                    <div className="detail-row">
+                                      <span className="detail-label">Brand:</span>
+                                      <span className="detail-value">{item.ballDetails.brand}</span>
+                                    </div>
+                                  )}
+                                  {item.ballDetails?.ballSize && (
+                                    <div className="detail-row">
+                                      <span className="detail-label">Size:</span>
+                                      <span className="detail-value">{item.ballDetails.ballSize}</span>
+                                    </div>
+                                  )}
+                                  {item.ballDetails?.material && (
+                                    <div className="detail-row">
+                                      <span className="detail-label">Material:</span>
+                                      <span className="detail-value">{item.ballDetails.material}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : isTrophy ? (
+                              /* For Trophies */
+                              <div className="trophy-details-checkout">
+                                <div className="member-details">
+                                  {item.trophyDetails?.trophyType && (
+                                    <div className="detail-row">
+                                      <span className="detail-label">Type:</span>
+                                      <span className="detail-value">{item.trophyDetails.trophyType}</span>
+                                    </div>
+                                  )}
+                                  {item.trophyDetails?.size && (
+                                    <div className="detail-row">
+                                      <span className="detail-label">Size:</span>
+                                      <span className="detail-value">{item.trophyDetails.size}</span>
+                                    </div>
+                                  )}
+                                  {item.trophyDetails?.material && (
+                                    <div className="detail-row">
+                                      <span className="detail-label">Material:</span>
+                                      <span className="detail-value">{item.trophyDetails.material}</span>
+                                    </div>
+                                  )}
+                                  {item.trophyDetails?.engravingText && (
+                                    <div className="detail-row detail-row-full">
+                                      <span className="detail-label">Engraving:</span>
+                                      <span className="detail-value engraving-text">{item.trophyDetails.engravingText}</span>
+                                    </div>
+                                  )}
+                                  {item.trophyDetails?.occasion && (
+                                    <div className="detail-row">
+                                      <span className="detail-label">Occasion:</span>
+                                      <span className="detail-value">{item.trophyDetails.occasion}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
                         )}
                       </div>

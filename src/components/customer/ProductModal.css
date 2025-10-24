@@ -535,6 +535,119 @@
   gap: 15px;
 }
 
+/* ===== BALL DETAILS SECTION ===== */
+.modal-ball-details-section {
+  margin-bottom: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(247, 147, 30, 0.1));
+  border: 2px solid rgba(255, 107, 53, 0.3);
+  border-radius: 12px;
+}
+
+.modal-ball-details-label {
+  display: block;
+  color: #ff6b35;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-align: center;
+}
+
+.modal-ball-details-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-ball-details-input {
+  width: 100%;
+  padding: 12px 15px;
+  background: rgba(26, 26, 46, 0.8);
+  border: 2px solid rgba(255, 107, 53, 0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.modal-ball-details-input:focus {
+  outline: none;
+  border-color: #ff6b35;
+  background: rgba(26, 26, 46, 1);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.modal-ball-details-input option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+/* ===== TROPHY DETAILS SECTION ===== */
+.modal-trophy-details-section {
+  margin-bottom: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 174, 66, 0.1));
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 12px;
+}
+
+.modal-trophy-details-label {
+  display: block;
+  color: #ffd700;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-align: center;
+}
+
+.modal-trophy-details-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-trophy-details-input,
+.modal-trophy-details-textarea {
+  width: 100%;
+  padding: 12px 15px;
+  background: rgba(26, 26, 46, 0.8);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.modal-trophy-details-input:focus,
+.modal-trophy-details-textarea:focus {
+  outline: none;
+  border-color: #ffd700;
+  background: rgba(26, 26, 46, 1);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+}
+
+.modal-trophy-details-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.modal-trophy-details-input option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.modal-trophy-details-input::placeholder,
+.modal-trophy-details-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .modal-single-order-input,
 .modal-single-order-select {
   background: #1a1a2e;

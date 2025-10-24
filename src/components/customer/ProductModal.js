@@ -35,6 +35,21 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  
+  // Ball and Trophy specific details
+  const [ballDetails, setBallDetails] = useState(existingCartItemData?.ballDetails || {
+    sportType: '',
+    brand: '',
+    ballSize: '',
+    material: ''
+  });
+  const [trophyDetails, setTrophyDetails] = useState(existingCartItemData?.trophyDetails || {
+    trophyType: '',
+    size: '',
+    material: '',
+    engravingText: '',
+    occasion: ''
+  });
 
   // Debug: Monitor Buy Now item changes
   useEffect(() => {
@@ -91,6 +106,11 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
   if (!isOpen || !product) return null;
 
+  // Determine product category
+  const isBall = product.category?.toLowerCase() === 'balls';
+  const isTrophy = product.category?.toLowerCase() === 'trophies';
+  const isApparel = !isBall && !isTrophy;
+
   const adultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   const kidsSizes = ['2XS', 'XS', 'S', 'M', 'L', 'XL'];
   const sizes = sizeType === 'adult' ? adultSizes : kidsSizes;
@@ -121,10 +141,13 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
-        singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+        singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
         price: finalPrice, // Use discounted price for kids
-        isReplacement: isFromCart // Mark as replacement when coming from cart
+        isReplacement: isFromCart, // Mark as replacement when coming from cart
+        category: product.category, // Include category
+        ballDetails: isBall ? ballDetails : null,
+        trophyDetails: isTrophy ? trophyDetails : null
       };
 
       console.log('🛒 Cart options:', cartOptions);
@@ -196,9 +219,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
-        singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+        singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
-        price: finalPrice
+        price: finalPrice,
+        category: product.category, // Include category
+        ballDetails: isBall ? ballDetails : null,
+        trophyDetails: isTrophy ? trophyDetails : null
       };
 
       // Use callback if provided (for walk-in ordering), otherwise use default flow
@@ -218,10 +244,13 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
-        singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+        singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
         isBuyNow: true, // Mark as Buy Now item
-        uniqueId: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` // Generate unique ID
+        uniqueId: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
+        category: product.category, // Include category
+        ballDetails: isBall ? ballDetails : null,
+        trophyDetails: isTrophy ? trophyDetails : null
       };
       
       console.log('🛒 Buy Now item created:', buyNowItem);
@@ -382,27 +411,29 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
 
 
-            {/* Order Type Switch */}
-            <div className="modal-order-switch">
-              <div className="modal-switch-container">
-                <button
-                  className={`modal-switch-option ${!isTeamOrder ? 'active' : ''}`}
-                  onClick={() => setIsTeamOrder(false)}
-                >
-                  <span className="modal-switch-text">Single Order</span>
-                </button>
-                <button
-                  className={`modal-switch-option ${isTeamOrder ? 'active' : ''}`}
-                  onClick={() => setIsTeamOrder(true)}
-                >
-                  <FaUsers className="modal-switch-icon" />
-                  <span className="modal-switch-text">Team Order</span>
-                </button>
+            {/* Order Type Switch - Only for Apparel */}
+            {isApparel && (
+              <div className="modal-order-switch">
+                <div className="modal-switch-container">
+                  <button
+                    className={`modal-switch-option ${!isTeamOrder ? 'active' : ''}`}
+                    onClick={() => setIsTeamOrder(false)}
+                  >
+                    <span className="modal-switch-text">Single Order</span>
+                  </button>
+                  <button
+                    className={`modal-switch-option ${isTeamOrder ? 'active' : ''}`}
+                    onClick={() => setIsTeamOrder(true)}
+                  >
+                    <FaUsers className="modal-switch-icon" />
+                    <span className="modal-switch-text">Team Order</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Size Type Toggle for Team Orders */}
-            {isTeamOrder && (
+            {/* Size Type Toggle for Team Orders - Only for Apparel */}
+            {isApparel && isTeamOrder && (
               <div className="modal-size-type-section">
                 <div className="modal-size-type-label">SIZE TYPE</div>
                 <div className="modal-size-type-buttons">
@@ -428,8 +459,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
             )}
 
-            {/* Team Members Section */}
-            {isTeamOrder && (
+            {/* Team Members Section - Only for Apparel */}
+            {isApparel && isTeamOrder && (
               <div className="modal-team-section">
                 <div className="modal-team-label">Team Members</div>
                 
@@ -499,8 +530,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
             )}
 
-            {/* Size Type Toggle */}
-            {!isTeamOrder && (
+            {/* Size Type Toggle - Only for Apparel */}
+            {isApparel && !isTeamOrder && (
               <div className="modal-size-type-section">
                 <div className="modal-size-type-label">SIZE TYPE</div>
                 <div className="modal-size-type-buttons">
@@ -526,8 +557,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
             )}
 
-            {/* Single Order Form */}
-            {!isTeamOrder && (
+            {/* Single Order Form - Only for Apparel */}
+            {isApparel && !isTeamOrder && (
               <div className="modal-single-order-section">
                 <div className="modal-single-order-label">Order Details</div>
                 <div className="modal-single-order-form">
@@ -561,6 +592,117 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       <option key={size} value={size}>{size}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+            )}
+
+            {/* Ball Details Form */}
+            {isBall && (
+              <div className="modal-ball-details-section">
+                <div className="modal-ball-details-label">🏀 BALL DETAILS</div>
+                <div className="modal-ball-details-form">
+                  <select
+                    value={ballDetails.sportType}
+                    onChange={(e) => setBallDetails({...ballDetails, sportType: e.target.value})}
+                    className="modal-ball-details-input"
+                  >
+                    <option value="">Select Sport Type</option>
+                    <option value="Basketball">Basketball</option>
+                    <option value="Volleyball">Volleyball</option>
+                    <option value="Soccer">Soccer</option>
+                    <option value="Football">Football</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Brand (e.g., Molten, Mikasa)"
+                    value={ballDetails.brand}
+                    onChange={(e) => setBallDetails({...ballDetails, brand: e.target.value})}
+                    className="modal-ball-details-input"
+                  />
+                  <select
+                    value={ballDetails.ballSize}
+                    onChange={(e) => setBallDetails({...ballDetails, ballSize: e.target.value})}
+                    className="modal-ball-details-input"
+                  >
+                    <option value="">Select Size</option>
+                    <option value="Size 3 (Kids)">Size 3 (Kids)</option>
+                    <option value="Size 5 (Youth)">Size 5 (Youth)</option>
+                    <option value="Size 6 (Women)">Size 6 (Women)</option>
+                    <option value="Size 7 (Men)">Size 7 (Men)</option>
+                    <option value="Official Size">Official Size</option>
+                  </select>
+                  <select
+                    value={ballDetails.material}
+                    onChange={(e) => setBallDetails({...ballDetails, material: e.target.value})}
+                    className="modal-ball-details-input"
+                  >
+                    <option value="">Select Material</option>
+                    <option value="Rubber">Rubber</option>
+                    <option value="Synthetic Leather">Synthetic Leather</option>
+                    <option value="Genuine Leather">Genuine Leather</option>
+                    <option value="Composite">Composite</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Trophy Details Form */}
+            {isTrophy && (
+              <div className="modal-trophy-details-section">
+                <div className="modal-trophy-details-label">🏆 TROPHY DETAILS</div>
+                <div className="modal-trophy-details-form">
+                  <select
+                    value={trophyDetails.trophyType}
+                    onChange={(e) => setTrophyDetails({...trophyDetails, trophyType: e.target.value})}
+                    className="modal-trophy-details-input"
+                  >
+                    <option value="">Select Trophy Type</option>
+                    <option value="Cup Trophy">Cup Trophy</option>
+                    <option value="Figure Trophy">Figure Trophy</option>
+                    <option value="Plaque">Plaque</option>
+                    <option value="Medal">Medal</option>
+                    <option value="Crystal Trophy">Crystal Trophy</option>
+                    <option value="Wooden Trophy">Wooden Trophy</option>
+                  </select>
+                  <select
+                    value={trophyDetails.size}
+                    onChange={(e) => setTrophyDetails({...trophyDetails, size: e.target.value})}
+                    className="modal-trophy-details-input"
+                  >
+                    <option value="">Select Size</option>
+                    <option value='6" (Small)'>6" (Small)</option>
+                    <option value='10" (Medium)'>10" (Medium)</option>
+                    <option value='14" (Large)'>14" (Large)</option>
+                    <option value='18" (Extra Large)'>18" (Extra Large)</option>
+                    <option value='24" (Premium)'>24" (Premium)</option>
+                  </select>
+                  <select
+                    value={trophyDetails.material}
+                    onChange={(e) => setTrophyDetails({...trophyDetails, material: e.target.value})}
+                    className="modal-trophy-details-input"
+                  >
+                    <option value="">Select Material</option>
+                    <option value="Plastic">Plastic</option>
+                    <option value="Metal">Metal</option>
+                    <option value="Crystal">Crystal</option>
+                    <option value="Wood">Wood</option>
+                    <option value="Acrylic">Acrylic</option>
+                  </select>
+                  <textarea
+                    placeholder="Engraving Text (Optional)"
+                    value={trophyDetails.engravingText}
+                    onChange={(e) => setTrophyDetails({...trophyDetails, engravingText: e.target.value})}
+                    className="modal-trophy-details-textarea"
+                    rows={3}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Occasion (e.g., Championship 2025)"
+                    value={trophyDetails.occasion}
+                    onChange={(e) => setTrophyDetails({...trophyDetails, occasion: e.target.value})}
+                    className="modal-trophy-details-input"
+                  />
                 </div>
               </div>
             )}

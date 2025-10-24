@@ -207,67 +207,141 @@ const CartModal = () => {
                         </div>
                         
                         <div className="mycart-order-type-container">
-                          <div 
-                            className={`mycart-order-type-header ${expandedOrderIndex === index ? 'expanded' : ''}`}
-                            onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
-                          >
-                            <span className="mycart-order-type-label">
-                              {item.isTeamOrder ? 'Team Order' : 'Single Order'}
-                            </span>
-                            <span className="mycart-dropdown-arrow">
-                              <FontAwesomeIcon icon={faChevronDown} />
-                            </span>
-                          </div>
-                          
-                          {expandedOrderIndex === index && (
-                            <div className="mycart-order-details-section">
-                              {item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 ? (
-                                <div>
-                                  <div className="mycart-detail-line">
-                                    <span className="mycart-detail-label">Team:</span>
-                                    <span className="mycart-detail-value">{item.teamMembers[0]?.teamName || 'N/A'}</span>
-                                  </div>
-                                  <div className="mycart-team-members-list">
-                                    {item.teamMembers.map((member, memberIndex) => (
-                                      <div key={memberIndex} className="mycart-team-member-item">
+                          {(() => {
+                            const isBall = item.category?.toLowerCase() === 'balls';
+                            const isTrophy = item.category?.toLowerCase() === 'trophies';
+                            const isApparel = !isBall && !isTrophy;
+
+                            return (
+                              <>
+                                <div 
+                                  className={`mycart-order-type-header ${expandedOrderIndex === index ? 'expanded' : ''}`}
+                                  onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                                >
+                                  <span className="mycart-order-type-label">
+                                    {isBall ? '🏀 Ball Details' : isTrophy ? '🏆 Trophy Details' : (item.isTeamOrder ? 'Team Order' : 'Single Order')}
+                                  </span>
+                                  <span className="mycart-dropdown-arrow">
+                                    <FontAwesomeIcon icon={faChevronDown} />
+                                  </span>
+                                </div>
+                                
+                                {expandedOrderIndex === index && (
+                                  <div className="mycart-order-details-section">
+                                    {/* For Apparel - Team Orders */}
+                                    {isApparel && item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 ? (
+                                      <div>
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Team:</span>
+                                          <span className="mycart-detail-value">{item.teamMembers[0]?.teamName || 'N/A'}</span>
+                                        </div>
+                                        <div className="mycart-team-members-list">
+                                          {item.teamMembers.map((member, memberIndex) => (
+                                            <div key={memberIndex} className="mycart-team-member-item">
+                                              <div className="mycart-detail-line">
+                                                <span className="mycart-detail-label">Surname:</span>
+                                                <span className="mycart-detail-value">{member.surname || 'N/A'}</span>
+                                              </div>
+                                              <div className="mycart-detail-line">
+                                                <span className="mycart-detail-label">Jersey:</span>
+                                                <span className="mycart-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                              </div>
+                                              <div className="mycart-detail-line">
+                                                <span className="mycart-detail-label">Size:</span>
+                                                <span className="mycart-detail-value">{member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ) : isApparel ? (
+                                      /* For Apparel - Single Orders */
+                                      <div>
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Team:</span>
+                                          <span className="mycart-detail-value">{item.singleOrderDetails?.teamName || 'N/A'}</span>
+                                        </div>
                                         <div className="mycart-detail-line">
                                           <span className="mycart-detail-label">Surname:</span>
-                                          <span className="mycart-detail-value">{member.surname || 'N/A'}</span>
+                                          <span className="mycart-detail-value">{item.singleOrderDetails?.surname || 'N/A'}</span>
                                         </div>
                                         <div className="mycart-detail-line">
                                           <span className="mycart-detail-label">Jersey:</span>
-                                          <span className="mycart-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                          <span className="mycart-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                         </div>
                                         <div className="mycart-detail-line">
                                           <span className="mycart-detail-label">Size:</span>
-                                          <span className="mycart-detail-value">{member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                          <span className="mycart-detail-value">{item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                         </div>
                                       </div>
-                                    ))}
+                                    ) : isBall ? (
+                                      /* For Balls */
+                                      <div className="mycart-ball-details">
+                                        {item.ballDetails?.sportType && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Sport:</span>
+                                            <span className="mycart-detail-value">{item.ballDetails.sportType}</span>
+                                          </div>
+                                        )}
+                                        {item.ballDetails?.brand && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Brand:</span>
+                                            <span className="mycart-detail-value">{item.ballDetails.brand}</span>
+                                          </div>
+                                        )}
+                                        {item.ballDetails?.ballSize && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Size:</span>
+                                            <span className="mycart-detail-value">{item.ballDetails.ballSize}</span>
+                                          </div>
+                                        )}
+                                        {item.ballDetails?.material && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Material:</span>
+                                            <span className="mycart-detail-value">{item.ballDetails.material}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : isTrophy ? (
+                                      /* For Trophies */
+                                      <div className="mycart-trophy-details">
+                                        {item.trophyDetails?.trophyType && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Type:</span>
+                                            <span className="mycart-detail-value">{item.trophyDetails.trophyType}</span>
+                                          </div>
+                                        )}
+                                        {item.trophyDetails?.size && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Size:</span>
+                                            <span className="mycart-detail-value">{item.trophyDetails.size}</span>
+                                          </div>
+                                        )}
+                                        {item.trophyDetails?.material && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Material:</span>
+                                            <span className="mycart-detail-value">{item.trophyDetails.material}</span>
+                                          </div>
+                                        )}
+                                        {item.trophyDetails?.engravingText && (
+                                          <div className="mycart-detail-line mycart-detail-line-full">
+                                            <span className="mycart-detail-label">Engraving:</span>
+                                            <span className="mycart-detail-value mycart-engraving-text">{item.trophyDetails.engravingText}</span>
+                                          </div>
+                                        )}
+                                        {item.trophyDetails?.occasion && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Occasion:</span>
+                                            <span className="mycart-detail-value">{item.trophyDetails.occasion}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : null}
                                   </div>
-                                </div>
-                              ) : (
-                                <div>
-                                  <div className="mycart-detail-line">
-                                    <span className="mycart-detail-label">Team:</span>
-                                    <span className="mycart-detail-value">{item.singleOrderDetails?.teamName || 'N/A'}</span>
-                                  </div>
-                                  <div className="mycart-detail-line">
-                                    <span className="mycart-detail-label">Surname:</span>
-                                    <span className="mycart-detail-value">{item.singleOrderDetails?.surname || 'N/A'}</span>
-                                  </div>
-                                  <div className="mycart-detail-line">
-                                    <span className="mycart-detail-label">Jersey:</span>
-                                    <span className="mycart-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
-                                  </div>
-                                  <div className="mycart-detail-line">
-                                    <span className="mycart-detail-label">Size:</span>
-                                    <span className="mycart-detail-value">{item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                         
                         <div className="mycart-quantity-controls">
