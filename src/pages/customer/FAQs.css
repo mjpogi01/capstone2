@@ -4,7 +4,7 @@
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
   color: #ffffff;
   padding: 100px 0 3rem 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .faqs-wrapper {
@@ -27,7 +27,7 @@
   text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
   margin-bottom: 1rem;
   letter-spacing: -0.02em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .faqs-subtitle {
@@ -37,7 +37,7 @@
   margin: 0 auto;
   line-height: 1.6;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 /* FAQs section styles */
@@ -73,7 +73,7 @@
   align-items: center;
   font-size: 1.1rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   transition: all 0.3s ease;
 }
 
@@ -102,7 +102,7 @@
   padding: 1rem 1.5rem 1.5rem 1.5rem;
   color: #a9d8ff;
   line-height: 1.6;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
   border-top: 1px solid #333;
   animation: slideDown 0.3s ease;
@@ -136,7 +136,7 @@
   color: #00bfff;
   margin-bottom: 1rem;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .faqs-contact-description {
@@ -144,7 +144,7 @@
   color: #a9d8ff;
   margin-bottom: 2rem;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .faqs-contact-buttons {
@@ -159,7 +159,7 @@
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   transition: all 0.3s ease;
   display: inline-block;
   cursor: pointer;

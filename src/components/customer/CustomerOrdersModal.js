@@ -22,6 +22,9 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedOrderForReview, setSelectedOrderForReview] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
+  const [showCancelReason, setShowCancelReason] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [orderToCancel, setOrderToCancel] = useState(null);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -119,19 +122,32 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleCancelOrder = async (orderId) => {
+  const handleCancelOrder = (orderId) => {
+    setOrderToCancel(orderId);
+    setShowCancelReason(true);
+    setCancelReason('');
+  };
+
+  const handleSubmitCancellation = async () => {
+    if (!cancelReason) {
+      showError('Reason Required', 'Please select a cancellation reason');
+      return;
+    }
+
     if (!user) return;
     
-    setCancellingOrder(orderId);
+    setCancellingOrder(orderToCancel);
+    setShowCancelReason(false);
+    
     try {
-      await orderService.updateOrderStatus(orderId, 'cancelled');
+      await orderService.updateOrderStatus(orderToCancel, 'cancelled');
       
       // Remove the cancelled order from the list automatically
       setOrders(prevOrders => 
-        prevOrders.filter(order => order.id !== orderId)
+        prevOrders.filter(order => order.id !== orderToCancel)
       );
       
-      showSuccess('Order Cancelled', 'Your order has been successfully cancelled and removed from your orders list.');
+      showSuccess('Order Cancelled', `Your order has been successfully cancelled. Reason: ${cancelReason}`);
       
       // Trigger event to refresh orders count in header
       window.dispatchEvent(new CustomEvent('orderCancelled'));
@@ -141,7 +157,15 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
       showError('Cancellation Failed', 'Failed to cancel order. Please try again or contact support.');
     } finally {
       setCancellingOrder(null);
+      setOrderToCancel(null);
+      setCancelReason('');
     }
+  };
+
+  const handleCloseCancelDialog = () => {
+    setShowCancelReason(false);
+    setOrderToCancel(null);
+    setCancelReason('');
   };
 
   const toggleOrderExpansion = (orderId) => {
@@ -621,6 +645,82 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                   Submit Review
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Reason Dialog */}
+      {showCancelReason && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal cancel-reason-modal">
+            <h3>Cancel Order</h3>
+            <p>Please select a reason for cancelling:</p>
+            
+            <div className="cancel-reasons">
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Ordered by mistake"
+                  checked={cancelReason === 'Ordered by mistake'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Ordered by mistake</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Changed my mind"
+                  checked={cancelReason === 'Changed my mind'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Changed my mind</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Wrong product or size selected"
+                  checked={cancelReason === 'Wrong product or size selected'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Wrong product or size selected</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Payment or checkout issue"
+                  checked={cancelReason === 'Payment or checkout issue'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Payment or checkout issue</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Personal reasons (other)"
+                  checked={cancelReason === 'Personal reasons (other)'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Personal reasons (other)</span>
+              </label>
+            </div>
+            
+            <div className="confirmation-buttons">
+              <button className="confirm-btn submit-cancel-btn" onClick={handleSubmitCancellation}>
+                Submit
+              </button>
+              <button className="confirm-btn back-btn" onClick={handleCloseCancelDialog}>
+                Close
+              </button>
             </div>
           </div>
         </div>

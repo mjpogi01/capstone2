@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaTruck, FaUsers, FaChevronDown } from 'react-icons/fa';
+import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaPhone, FaChevronUp } from 'react-icons/fa';
 import userService from '../../services/userService';
 import './CheckoutModal.css';
 
@@ -39,12 +39,19 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     streetAddress: ''
   });
   const [addressErrors, setAddressErrors] = useState({});
+  const [orderErrors, setOrderErrors] = useState({}); // For order validation
   
   const [shippingMethod, setShippingMethod] = useState('pickup');
   const [selectedLocation, setSelectedLocation] = useState('BATANGAS CITY');
   const [orderNotes, setOrderNotes] = useState('');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false); // Confirmation dialog
+  const [showOrderComplete, setShowOrderComplete] = useState(false); // Order complete message
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Delete address confirmation
+  const [addressToDelete, setAddressToDelete] = useState(null); // Address ID to delete
+  const [showCancelReason, setShowCancelReason] = useState(false); // Cancel reason dialog
+  const [cancelReason, setCancelReason] = useState(''); // Selected cancellation reason
 
   // Check for user address when modal opens
   useEffect(() => {
@@ -101,7 +108,42 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     return total + parseInt(item.quantity || 1);
   }, 0);
 
+  const validateOrder = () => {
+    const errors = {};
+    
+    // Validate based on shipping method
+    if (shippingMethod === 'cod') {
+      // For COD (delivery), check if user has selected an address
+      if (!deliveryAddress.receiver || !deliveryAddress.phone || !deliveryAddress.address) {
+        errors.address = 'Please add or select a delivery address';
+      }
+    }
+    
+    // Always require location selection
+    if (!selectedLocation || selectedLocation.trim() === '') {
+      errors.location = 'Please select a branch location';
+    }
+    
+    setOrderErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handlePlaceOrder = () => {
+    // Validate order before placing
+    if (!validateOrder()) {
+      // Scroll to top to show errors
+      const modalContent = document.querySelector('.checkout-modal-content');
+      if (modalContent) {
+        modalContent.scrollTop = 0;
+      }
+      return;
+    }
+    
+    // Show confirmation dialog
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmOrder = () => {
     const orderData = {
       deliveryAddress,
       shippingMethod,
@@ -116,6 +158,37 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     };
     
     onPlaceOrder(orderData);
+    setShowConfirmation(false);
+    setShowOrderComplete(true);
+  };
+
+  const handleCancelOrder = () => {
+    setShowConfirmation(false);
+    setShowCancelReason(true);
+    setCancelReason(''); // Reset reason
+  };
+
+  const handleSubmitCancellation = () => {
+    if (!cancelReason) {
+      alert('Please select a cancellation reason');
+      return;
+    }
+    
+    console.log('Order cancelled. Reason:', cancelReason);
+    // You can send the cancellation reason to backend here if needed
+    
+    setShowCancelReason(false);
+    setCancelReason('');
+  };
+
+  const handleBackToOrder = () => {
+    setShowCancelReason(false);
+    setShowConfirmation(true);
+    setCancelReason('');
+  };
+
+  const handleCloseComplete = () => {
+    setShowOrderComplete(false);
     onClose();
   };
 
@@ -255,27 +328,40 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     }
   };
 
-  const handleDeleteAddress = async (addressId) => {
-    if (window.confirm('Are you sure you want to delete this address?')) {
-      try {
-        await userService.deleteUserAddress(addressId);
-        // Refresh addresses list
-        await checkUserAddress();
-        
-        // If the deleted address was selected, clear the selection
-        if (selectedAddressId === addressId) {
-          setSelectedAddressId(null);
-          setDeliveryAddress({
-            address: '',
-            receiver: '',
-            phone: ''
-          });
-        }
-      } catch (error) {
-        console.error('Failed to delete address:', error);
-        alert('Failed to delete address. Please try again.');
+  const handleDeleteAddress = (addressId) => {
+    setAddressToDelete(addressId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAddress = async () => {
+    try {
+      await userService.deleteUserAddress(addressToDelete);
+      // Refresh addresses list
+      await checkUserAddress();
+      
+      // If the deleted address was selected, clear the selection
+      if (selectedAddressId === addressToDelete) {
+        setSelectedAddressId(null);
+        setDeliveryAddress({
+          address: '',
+          receiver: '',
+          phone: ''
+        });
       }
+      
+      setShowDeleteConfirm(false);
+      setAddressToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete address:', error);
+      alert('Failed to delete address. Please try again.');
+      setShowDeleteConfirm(false);
+      setAddressToDelete(null);
     }
+  };
+
+  const cancelDeleteAddress = () => {
+    setShowDeleteConfirm(false);
+    setAddressToDelete(null);
   };
 
   const handleChangeAddress = (address = null) => {
@@ -397,7 +483,11 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       type="tel"
                       name="phone"
                       value={newAddress.phone}
-                      onChange={handleAddressInputChange}
+                      onChange={(e) => {
+                        // Only allow numbers, spaces, dashes, and plus sign
+                        const value = e.target.value.replace(/[^\d\s\-+]/g, '');
+                        handleAddressInputChange({ target: { name: 'phone', value } });
+                      }}
                       className={addressErrors.phone ? 'error' : ''}
                       placeholder="Phone Number"
                       maxLength={30}
@@ -490,7 +580,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
               /* No Address Yet */
               <div className="no-address-section">
                 <div className="no-address-content">
-                  <div className="no-address-icon">📍</div>
+                  <div className="no-address-icon"><FaMapMarkerAlt /></div>
                   <div className="no-address-text">
                     <h3>No address yet</h3>
                     <p>Please add your delivery address to continue</p>
@@ -518,14 +608,13 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       receiver: address.full_name,
                       phone: address.phone
                     });
+                    setOrderErrors(prev => ({ ...prev, address: '' }));
                   }}
                 >
                   <div className="address-card-content">
                     <div className="address-header">
                       <div className="location-icon">
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                        </svg>
+                        <FaMapMarkerAlt />
                       </div>
                       <div className="receiver-info">
                         <div className="receiver-name">{address.full_name}</div>
@@ -561,6 +650,22 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
               ))}
             </div>
           )}
+          
+          {/* Show error if COD selected but no address */}
+          {orderErrors.address && shippingMethod === 'cod' && (
+            <div className="error-message" style={{ 
+              display: 'block', 
+              marginTop: '12px', 
+              padding: '12px', 
+              backgroundColor: 'rgba(255, 68, 68, 0.1)', 
+              borderLeft: '4px solid #ff4444', 
+              color: '#ff4444', 
+              fontSize: '14px',
+              borderRadius: '4px'
+            }}>
+              {orderErrors.address}
+            </div>
+          )}
         </div>
 
         {/* Products Ordered Section - ORDER DETAILS */}
@@ -572,6 +677,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           <div className="products-table">
             <div className="table-header">
               <div className="header-item">ITEM</div>
+              <div className="header-order">ORDER</div>
               <div className="header-price">PRICE</div>
               <div className="header-quantity">QTY</div>
               <div className="header-total">TOTAL</div>
@@ -599,17 +705,29 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       </div>
                       <div className="item-details">
                         <div className="item-name">{item.name}</div>
-                        <div 
-                          className="item-type clickable"
-                          onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
-                        >
-                          {isBall ? '🏀 Ball' : isTrophy ? '🏆 Trophy' : (item.category === 'team' ? 'Team Order' : 'Single Order')}
-                          <span className="dropdown-arrow">
-                            {expandedOrderIndex === index ? '▲' : '▼'}
-                          </span>
-                        </div>
-                        {expandedOrderIndex === index && (
-                          <div className="order-details-dropdown">
+                      </div>
+                    </div>
+                  </div>
+                  <div 
+                    className="order-cell"
+                    onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                  >
+                    {isBall ? (
+                      <><FaBasketballBall /> Ball</>
+                    ) : isTrophy ? (
+                      <><FaTrophy /> Trophy</>
+                    ) : item.category === 'team' ? (
+                      <><FaUserFriends /> Team Order</>
+                    ) : (
+                      <><FaUser /> Single Order</>
+                    )}
+                    <span className="dropdown-arrow">
+                      {expandedOrderIndex === index ? <FaChevronUp /> : <FaChevronDown />}
+                    </span>
+                  </div>
+                  {expandedOrderIndex === index && (
+                    <div className="order-details-wrapper" style={{ gridColumn: '1 / -1' }}>
+                      <div className="order-details-dropdown">
                             {/* For Apparel - Team Orders */}
                             {isApparel && item.category === 'team' && item.teamMembers && item.teamMembers.length > 0 ? (
                               <div className="team-details">
@@ -728,11 +846,9 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                 </div>
                               </div>
                             ) : null}
-                          </div>
-                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                   <div className="price-cell">₱{(parseFloat(item.price || item.product_price || item.productPrice || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                   <div className="quantity-cell">{item.quantity || 1}</div>
                   <div className="total-cell">₱{((parseFloat(item.price || item.product_price || item.productPrice || 0)) * (item.quantity || 1)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
@@ -758,7 +874,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                     name="shipping"
                     value="pickup"
                     checked={shippingMethod === 'pickup'}
-                    onChange={(e) => setShippingMethod(e.target.value)}
+                    onChange={(e) => {
+                      setShippingMethod(e.target.value);
+                      setOrderErrors(prev => ({ ...prev, address: '' }));
+                    }}
                   />
                   <span className="checkmark"></span>
                   <div className="option-content">
@@ -773,7 +892,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                     name="shipping"
                     value="cod"
                     checked={shippingMethod === 'cod'}
-                    onChange={(e) => setShippingMethod(e.target.value)}
+                    onChange={(e) => {
+                      setShippingMethod(e.target.value);
+                      setOrderErrors(prev => ({ ...prev, address: '' }));
+                    }}
                   />
                   <span className="checkmark"></span>
                   <div className="option-content">
@@ -798,12 +920,18 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                           onClick={() => {
                             setSelectedLocation(location);
                             setShowLocationDropdown(false);
+                            setOrderErrors(prev => ({ ...prev, location: '' }));
                           }}
                         >
                           {location}
                         </div>
                       ))}
                     </div>
+                  )}
+                  {orderErrors.location && (
+                    <span className="error-message" style={{ display: 'block', marginTop: '8px', color: '#ff4444', fontSize: '14px' }}>
+                      {orderErrors.location}
+                    </span>
                   )}
                 </div>
               </div>
@@ -848,6 +976,132 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmation && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal">
+            <h3>Confirm Order</h3>
+            <p>Are you sure you want to place this order?</p>
+            <div className="confirmation-buttons">
+              <button className="confirm-btn yes-btn" onClick={handleConfirmOrder}>
+                Yes
+              </button>
+              <button className="confirm-btn no-btn" onClick={handleCancelOrder}>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Complete Dialog */}
+      {showOrderComplete && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal order-complete-modal">
+            <div className="success-icon">✓</div>
+            <h3>Order Completed!</h3>
+            <p>Your order has been successfully placed.</p>
+            <button className="confirm-btn ok-btn" onClick={handleCloseComplete}>
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Address Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal delete-confirm-modal">
+            <h3>Delete Address</h3>
+            <p>Are you sure you want to delete this address?</p>
+            <div className="confirmation-buttons">
+              <button className="confirm-btn yes-btn" onClick={confirmDeleteAddress}>
+                Yes
+              </button>
+              <button className="confirm-btn no-btn" onClick={cancelDeleteAddress}>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Reason Dialog */}
+      {showCancelReason && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal cancel-reason-modal">
+            <h3>Cancel Order</h3>
+            <p>Please select a reason for cancelling:</p>
+            
+            <div className="cancel-reasons">
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Ordered by mistake"
+                  checked={cancelReason === 'Ordered by mistake'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Ordered by mistake</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Changed my mind"
+                  checked={cancelReason === 'Changed my mind'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Changed my mind</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Wrong product or size selected"
+                  checked={cancelReason === 'Wrong product or size selected'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Wrong product or size selected</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Payment or checkout issue"
+                  checked={cancelReason === 'Payment or checkout issue'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Payment or checkout issue</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Personal reasons (other)"
+                  checked={cancelReason === 'Personal reasons (other)'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Personal reasons (other)</span>
+              </label>
+            </div>
+            
+            <div className="confirmation-buttons">
+              <button className="confirm-btn submit-cancel-btn" onClick={handleSubmitCancellation}>
+                Submit
+              </button>
+              <button className="confirm-btn back-btn" onClick={handleBackToOrder}>
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

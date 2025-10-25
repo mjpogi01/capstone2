@@ -791,10 +791,13 @@
 }
 
 .product-footer-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 0.8rem !important;
 }
 
 .product-card-price {
@@ -803,7 +806,8 @@
   font-weight: 800;
   font-family: 'Inter', sans-serif;
   letter-spacing: -0.02em;
-  flex: 1;
+  margin-bottom: 4px !important;
+  width: 100%;
 }
 
 /* Product Stats - Review Count & Sold Quantity */
@@ -848,7 +852,7 @@
 }
 
 .add-to-cart-btn {
-  width: 100%;
+  flex: 1 1 0% !important;
   padding: 10px 16px;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   border: none;
@@ -862,6 +866,12 @@
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  order: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 42px !important;
+  min-width: 0 !important;
 }
 
 .add-to-cart-btn:hover {
@@ -879,16 +889,20 @@
 .product-wishlist-btn {
   background: rgba(255, 107, 107, 0.1);
   border: 2px solid rgba(255, 107, 107, 0.3);
-  width: 32px;
-  height: 32px;
+  width: 42px !important;
+  height: 42px !important;
   border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   cursor: pointer;
   transition: all 0.15s ease;
-  padding: 0;
-  flex-shrink: 0;
+  padding: 0 !important;
+  flex: 0 0 42px !important;
+  flex-shrink: 0 !important;
+  order: 2 !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
 }
 
 .product-wishlist-btn:hover {

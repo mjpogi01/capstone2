@@ -1,203 +1,177 @@
-/* Main section styles */
-.yohanns-branches-section {
+/* Main container styles - matching FAQs structure */
+.branches-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
   color: #ffffff;
   padding: 100px 0 3rem 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  font-family: 'Inter', sans-serif;
-  overflow-x: hidden;
-  position: relative;
-}
-
-.yohanns-branches-container {
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 2rem;
-  text-align: center;
+  font-family: 'Oswald', sans-serif;
   position: relative;
   z-index: 1;
 }
 
-/* Hero Section */
-.yohanns-branches-hero {
+.branches-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero section styles - matching FAQs */
+.branches-hero {
   text-align: center;
   margin-bottom: 4rem;
   padding: 2rem 0;
 }
 
-.yohanns-branches-heading {
-  margin-bottom: 1rem;
-  text-align: center;
+.branches-title {
   font-size: 2.5rem;
   font-weight: 700;
   color: #00bfff;
   text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
+  margin-bottom: 1rem;
   letter-spacing: -0.02em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
-.yohanns-branches-description {
-  margin: 0 0 1rem 0;
-  color: #a9d8ff;
-  text-align: center;
+.branches-subtitle {
   font-size: 1.2rem;
-  font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  color: #a9d8ff;
+  max-width: 800px;
+  margin: 0 auto;
   line-height: 1.6;
+  font-weight: 400;
+  font-family: 'Oswald', sans-serif;
 }
 
-/* Branches Content Section */
-.yohanns-branches-content {
+/* Main content section */
+.branches-content {
   margin-bottom: 4rem;
+  position: relative;
+  z-index: 1;
 }
 
-/* Layout styles */
-.yohanns-branches-layout {
+/* Layout grid for map and branch list */
+.branches-layout {
   display: grid;
   grid-template-columns: 1fr 400px;
   gap: 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
 }
 
-/* Map container styles */
-.yohanns-map-container {
-  height: 600px;
-  width: 100%;
+/* Map column styles */
+.branches-map-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Map container */
+.branches-map-wrapper {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
   border-radius: 15px;
+  padding: 1rem;
   border: 1px solid #333;
-  box-shadow: 0 8px 24px rgba(0, 191, 255, 0.2);
-  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
-              box-shadow 0.8s ease,
-              opacity 0.5s ease;
-  transform-style: preserve-3d;
-  will-change: transform;
+  box-shadow: 0 8px 24px rgba(0, 191, 255, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
-.yohanns-map-container:active {
-  transform: scale(0.98);
+.branches-map-wrapper:hover {
+  border-color: #00bfff;
+  box-shadow: 0 8px 30px rgba(0, 191, 255, 0.25);
 }
 
-/* Branch list styles */
-.yohanns-branch-list {
+.branches-map {
+  height: 500px;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #333;
+  position: relative;
+  z-index: 1;
+}
+
+/* Branch list styles - matching FAQs item structure */
+.branches-list-wrapper {
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
   border-radius: 15px;
   padding: 1.5rem;
-  box-shadow: 0 8px 24px rgba(0, 191, 255, 0.15);
   border: 1px solid #333;
+  box-shadow: 0 8px 24px rgba(0, 191, 255, 0.15);
   height: 600px;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* Custom scrollbar for branch list */
-.yohanns-branch-list::-webkit-scrollbar {
+/* Custom scrollbar */
+.branches-list-wrapper::-webkit-scrollbar {
   width: 8px;
 }
 
-.yohanns-branch-list::-webkit-scrollbar-track {
+.branches-list-wrapper::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 10px;
 }
 
-.yohanns-branch-list::-webkit-scrollbar-thumb {
+.branches-list-wrapper::-webkit-scrollbar-thumb {
   background: rgba(0, 191, 255, 0.3);
   border-radius: 10px;
 }
 
-.yohanns-branch-list::-webkit-scrollbar-thumb:hover {
+.branches-list-wrapper::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 191, 255, 0.5);
 }
 
-.yohanns-branch-item {
-  padding: 1rem;
-  border-radius: 12px;
-  cursor: pointer;
-  margin-bottom: 0.75rem;
-  border: 1px solid #333;
+/* Branch item - similar to FAQ item */
+.branches-item {
   background: #0d0d0d;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  border: 1px solid #333;
+  overflow: hidden;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.yohanns-branch-item-active {
-  border: 1px solid #00bfff;
-  background: rgba(0, 191, 255, 0.1);
-  box-shadow: 0 4px 16px rgba(0, 191, 255, 0.3);
-}
-
-.yohanns-branch-item:hover {
+.branches-item:hover {
   border-color: #00bfff;
+  box-shadow: 0 4px 20px rgba(0, 191, 255, 0.2);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 191, 255, 0.2);
 }
 
-.yohanns-branch-name {
+.branches-item-active {
+  border-color: #00bfff;
+  background: rgba(0, 191, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 191, 255, 0.3);
+}
+
+.branches-item-content {
+  padding: 1.25rem;
+}
+
+.branches-item-name {
   font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #ffffff;
-  font-family: 'Inter', sans-serif;
   font-size: 1rem;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  font-family: 'Oswald', sans-serif;
 }
 
-.yohanns-branch-address {
+.branches-item-address {
   font-size: 0.9rem;
   color: #a9d8ff;
   line-height: 1.6;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
 }
 
-/* InfoWindow styles */
-.yohanns-info-window {
-  min-width: 250px;
-  max-width: 300px;
-  padding: 12px;
-  background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
-  border-radius: 10px;
-  border: 1px solid #00bfff;
-  box-shadow: 0 6px 24px rgba(0, 191, 255, 0.2);
-  color: #ffffff;
-}
-
-.yohanns-info-window-title {
-  font-weight: 600;
-  margin-bottom: 6px;
-  font-size: 15px;
-  color: #00bfff;
-  text-shadow: 0 0 8px rgba(0, 191, 255, 0.5);
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-info-window-address {
-  font-size: 13px;
-  line-height: 1.4;
-  color: #a9d8ff;
-  margin-bottom: 8px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-}
-
-.yohanns-info-window-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: rgba(0, 191, 255, 0.1);
-  border-radius: 6px;
-  border: 1px solid rgba(0, 191, 255, 0.3);
-  margin-bottom: 8px;
-}
-
-.yohanns-info-window-badge-text {
-  font-size: 11px;
-  color: #00bfff;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-directions-button {
+.branches-directions-button {
   width: 100%;
   padding: 10px 16px;
   background: #00bfff;
@@ -206,18 +180,19 @@
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   cursor: pointer;
+  margin-top: 0.75rem;
   transition: all 0.3s ease;
 }
 
-.yohanns-directions-button:hover {
+.branches-directions-button:hover {
   background: #0099cc;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 191, 255, 0.4);
 }
 
-.yohanns-directions-button:disabled {
+.branches-directions-button:disabled {
   background: #666;
   color: #999;
   cursor: not-allowed;
@@ -225,265 +200,28 @@
   box-shadow: none;
 }
 
-.yohanns-directions-button:disabled:hover {
-  background: #666;
-  transform: none;
-  box-shadow: none;
-}
-
-/* Loading and error states */
-.loading-text, .error-text {
-  margin-bottom: 1.5rem;
-  color: #a9d8ff;
-  text-align: center;
-  font-family: 'Inter', sans-serif;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .yohanns-branches-section {
-    padding: 100px 0 2rem 0;
-  }
-  
-  .yohanns-branches-container {
-    padding: 0 5%;
-    max-width: 100%;
-  }
-  
-  .yohanns-branches-hero {
-    padding: 2rem 0;
-    margin-bottom: 3rem;
-  }
-  
-  .yohanns-branches-heading {
-    font-size: clamp(2rem, 5vw, 2.5rem);
-    padding: 0 1rem;
-  }
-  
-  .yohanns-branches-description {
-    font-size: clamp(0.95rem, 2vw, 1.1rem);
-    padding: 0 1rem;
-    max-width: 90%;
-    margin: 1rem auto;
-  }
-  
-  .yohanns-branches-content {
-    margin-bottom: 3rem;
-    padding: 0 5%;
-  }
-  
-  .yohanns-branches-layout {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-  
-  .yohanns-branch-item {
-    width: 90%;
-    max-width: 400px;
-    margin: 0 auto;
-    padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.15);
-  }
-  
-  .yohanns-branch-list {
-    padding: 1.5rem;
-    height: auto;
-    max-height: 400px;
-  }
-  
-  .yohanns-map-container {
-    height: 300px;
-  }
-}
-
-@media (max-width: 480px) {
-  .yohanns-branches-section {
-    padding: 85px 0 1.5rem 0;
-  }
-  
-  .yohanns-branches-container {
-    padding: 0 1rem;
-  }
-  
-  .yohanns-branches-hero {
-    padding: 1rem 0;
-    margin-bottom: 2rem;
-  }
-  
-  .yohanns-branches-heading {
-    font-size: 1.8rem;
-  }
-  
-  .yohanns-branches-description {
-    font-size: 0.95rem;
-  }
-  
-  .yohanns-branches-content {
-    margin-bottom: 2rem;
-  }
-  
-  .yohanns-branch-list {
-    padding: 1rem;
-    height: auto;
-    max-height: 350px;
-  }
-  
-  .yohanns-branch-item {
-    padding: 0.75rem;
-  }
-  
-  .yohanns-map-container {
-    height: 250px;
-  }
-  
-  .yohanns-branches-layout {
-    gap: 1rem;
-  }
-  
-  .yohanns-directions-button {
-    padding: 8px 14px;
-    font-size: 0.85rem;
-  }
-}
-
-/* Extra small devices */
-@media (max-width: 360px) {
-  .yohanns-branches-section {
-    padding: 80px 0 1rem 0;
-  }
-  
-  .yohanns-branches-container {
-    padding: 0 0.75rem;
-  }
-  
-  .yohanns-branches-heading {
-    font-size: 1.6rem;
-  }
-  
-  .yohanns-branches-description {
-    font-size: 0.85rem;
-  }
-  
-  .yohanns-branch-list {
-    padding: 0.75rem;
-    height: auto;
-    max-height: 300px;
-  }
-  
-  .yohanns-branch-item {
-    padding: 0.65rem;
-  }
-  
-  .yohanns-branch-name {
-    font-size: 0.9rem;
-  }
-  
-  .yohanns-branch-address {
-    font-size: 0.8rem;
-  }
-  
-  .yohanns-map-container {
-    height: 220px;
-  }
-  
-  .yohanns-branches-layout {
-    gap: 0.75rem;
-  }
-  
-  .yohanns-directions-button {
-    padding: 8px 12px;
-    font-size: 0.8rem;
-  }
-}
-
-/* Landscape orientation on mobile */
-@media (max-height: 500px) and (orientation: landscape) {
-  .yohanns-branches-section {
-    padding: 70px 0 1rem 0;
-  }
-  
-  .yohanns-branches-hero {
-    padding: 0.5rem 0;
-    margin-bottom: 1rem;
-  }
-  
-  .yohanns-branches-heading {
-    font-size: 1.5rem;
-  }
-  
-  .yohanns-branches-content {
-    margin-bottom: 1.5rem;
-  }
-  
-  .yohanns-map-container {
-    height: 200px;
-  }
-  
-  .yohanns-branch-list {
-    max-height: 200px;
-    overflow-y: auto;
-  }
-}
-
-/* Map Column (Left side) */
-.yohanns-map-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Route line animation */
-@keyframes drawRoute {
-  from {
-    stroke-dashoffset: 1000;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* Smooth zoom animation */
-@keyframes mapZoomIn {
-  0% {
-    transform: scale(0.92) translateZ(0);
-    opacity: 0.7;
-  }
-  30% {
-    opacity: 0.85;
-  }
-  60% {
-    transform: scale(1.03) translateZ(0);
-  }
-  100% {
-    transform: scale(1) translateZ(0);
-    opacity: 1;
-  }
-}
-
-/* Travel Information Panel */
-.yohanns-travel-info {
+/* Travel information panel */
+.branches-travel-info {
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-  border-radius: 12px;
+  border-radius: 15px;
   padding: 1.5rem;
+  border: 1px solid #333;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  animation: fadeInUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: fadeInUp 0.5s ease;
 }
 
 @keyframes fadeInUp {
-  0% {
+  from {
     opacity: 0;
-    transform: translateY(30px) scale(0.95);
+    transform: translateY(20px);
   }
-  60% {
-    opacity: 0.8;
-  }
-  100% {
+  to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
-.travel-info-header {
+.branches-travel-header {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -492,21 +230,21 @@
   border-bottom: 1px solid rgba(0, 191, 255, 0.2);
 }
 
-.distance-value {
+.branches-travel-distance {
   font-size: 1.5rem;
   font-weight: 700;
   color: #00bfff;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
 }
 
-.travel-info-modes {
+.branches-travel-modes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1rem;
 }
 
-.travel-mode {
+.branches-travel-mode {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -517,89 +255,284 @@
   transition: all 0.3s ease;
 }
 
-.travel-mode:hover {
+.branches-travel-mode:hover {
   background: rgba(0, 191, 255, 0.1);
   border-color: rgba(0, 191, 255, 0.3);
   transform: translateY(-2px);
 }
 
-.travel-mode.ferry-mode {
+.branches-travel-mode-ferry {
   background: rgba(0, 191, 255, 0.15);
   border: 1px solid rgba(0, 191, 255, 0.4);
-  box-shadow: 0 2px 10px rgba(0, 191, 255, 0.2);
 }
 
-.travel-mode.ferry-mode:hover {
+.branches-travel-mode-ferry:hover {
   background: rgba(0, 191, 255, 0.25);
   border-color: rgba(0, 191, 255, 0.6);
-  box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
 }
 
-.ferry-mode .mode-label {
-  color: #00bfff;
-  font-weight: 600;
-}
-
-.mode-details {
+.branches-travel-mode-details {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.mode-label {
+.branches-travel-mode-label {
   font-size: 0.75rem;
   color: #9ca3af;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.mode-description {
-  font-size: 0.7rem;
-  color: rgba(156, 163, 175, 0.7);
-  font-weight: 400;
-  font-family: 'Inter', sans-serif;
-  line-height: 1.2;
-  font-style: italic;
+.branches-travel-mode-ferry .branches-travel-mode-label {
+  color: #00bfff;
+  font-weight: 600;
 }
 
-.mode-time {
+.branches-travel-mode-time {
   font-size: 0.9rem;
   color: #ffffff;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
-@media (max-width: 768px) {
-  .yohanns-map-column {
-    gap: 1rem;
-  }
+/* Map popup styles */
+.branches-popup {
+  min-width: 250px;
+  max-width: 300px;
+}
 
-  .travel-info-modes {
+.branches-popup-content {
+  padding: 12px;
+  background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+  border-radius: 10px;
+  color: #ffffff;
+}
+
+.branches-popup-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #00bfff;
+  margin-bottom: 6px;
+  text-shadow: 0 0 8px rgba(0, 191, 255, 0.5);
+  font-family: 'Oswald', sans-serif;
+}
+
+.branches-popup-address {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #a9d8ff;
+  margin-bottom: 8px;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 400;
+}
+
+.branches-popup-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 191, 255, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 191, 255, 0.3);
+  margin-bottom: 8px;
+}
+
+.branches-popup-badge-text {
+  font-size: 11px;
+  color: #00bfff;
+  font-weight: 500;
+  font-family: 'Oswald', sans-serif;
+}
+
+/* Responsive design - matching FAQs breakpoints */
+@media (max-width: 768px) {
+  .branches-container {
+    padding: 100px 0 2rem 0;
+  }
+  
+  .branches-wrapper {
+    padding: 0 5%;
+    max-width: 100%;
+  }
+  
+  .branches-hero {
+    padding: 2rem 0;
+    margin-bottom: 3rem;
+  }
+  
+  .branches-title {
+    font-size: clamp(2rem, 5vw, 2.5rem);
+    padding: 0 1rem;
+  }
+  
+  .branches-subtitle {
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
+    padding: 0 1rem;
+    max-width: 90%;
+    margin: 1rem auto;
+  }
+  
+  .branches-content {
+    margin-bottom: 3rem;
+  }
+  
+  .branches-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .branches-map {
+    height: 350px;
+  }
+  
+  .branches-list-wrapper {
+    height: auto;
+    max-height: 400px;
+  }
+  
+  .branches-item {
+    width: 95%;
+    margin: 0 auto 1rem auto;
+  }
+  
+  .branches-travel-modes {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .yohanns-travel-info {
-    padding: 1rem;
-  }
-  
-  .distance-value {
+  .branches-travel-distance {
     font-size: 1.2rem;
   }
 }
 
 @media (max-width: 480px) {
-  .travel-info-modes {
+  .branches-container {
+    padding: 85px 0 1.5rem 0;
+  }
+  
+  .branches-wrapper {
+    padding: 0 1rem;
+  }
+  
+  .branches-hero {
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+  }
+  
+  .branches-title {
+    font-size: 1.8rem;
+  }
+  
+  .branches-subtitle {
+    font-size: 0.95rem;
+  }
+  
+  .branches-content {
+    margin-bottom: 2rem;
+  }
+  
+  .branches-map {
+    height: 300px;
+  }
+  
+  .branches-list-wrapper {
+    padding: 1rem;
+    max-height: 350px;
+  }
+  
+  .branches-item-content {
+    padding: 1rem;
+  }
+  
+  .branches-travel-modes {
     grid-template-columns: 1fr;
   }
   
-  .mode-label {
+  .branches-travel-mode-label {
     font-size: 0.7rem;
   }
   
-  .mode-time {
+  .branches-travel-mode-time {
+    font-size: 0.85rem;
+  }
+  
+  .branches-directions-button {
+    padding: 8px 14px;
     font-size: 0.85rem;
   }
 }
 
+/* Extra small devices */
+@media (max-width: 360px) {
+  .branches-container {
+    padding: 80px 0 1rem 0;
+  }
+  
+  .branches-wrapper {
+    padding: 0 0.75rem;
+  }
+  
+  .branches-title {
+    font-size: 1.6rem;
+  }
+  
+  .branches-subtitle {
+    font-size: 0.85rem;
+  }
+  
+  .branches-map {
+    height: 250px;
+  }
+  
+  .branches-list-wrapper {
+    padding: 0.75rem;
+    max-height: 300px;
+  }
+  
+  .branches-item-content {
+    padding: 0.75rem;
+  }
+  
+  .branches-item-name {
+    font-size: 0.9rem;
+  }
+  
+  .branches-item-address {
+    font-size: 0.8rem;
+  }
+  
+  .branches-directions-button {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .branches-container {
+    padding: 70px 0 1rem 0;
+  }
+  
+  .branches-hero {
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+  
+  .branches-title {
+    font-size: 1.5rem;
+  }
+  
+  .branches-map {
+    height: 250px;
+  }
+  
+  .branches-list-wrapper {
+    max-height: 250px;
+  }
+  
+  .branches-content {
+    margin-bottom: 1.5rem;
+  }
+}

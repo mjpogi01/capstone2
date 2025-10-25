@@ -25,10 +25,17 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const [images, setImages] = useState([]); // {file, url}
   const [members, setMembers] = useState([ { ...initialMember } ]);
   const [pickupBranchId, setPickupBranchId] = useState('');
+  const [shippingMethod, setShippingMethod] = useState('pickup'); // 'pickup' or 'delivery'
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [orderNotes, setOrderNotes] = useState(''); // Notes/message to Yohanns
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
   const [validationMessage, setValidationMessage] = useState(null);
+  const [showErrors, setShowErrors] = useState(false); // Track if errors should be shown
+  const [instantErrors, setInstantErrors] = useState({}); // Real-time validation errors
+  
+  const DELIVERY_FEE = 50; // Delivery fee in pesos
 
   const errors = useMemo(() => {
     const e = {};
@@ -38,7 +45,14 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     if (!phone.trim()) e.phone = 'Phone is required';
     else if (!/^\+?[0-9\-()\s]{7,}$/.test(phone)) e.phone = 'Enter a valid phone number';
     if (!teamName.trim()) e.teamName = 'Team name is required';
-    if (!pickupBranchId) e.pickup = 'Please select a pickup location';
+    
+    // Shipping method validation
+    if (shippingMethod === 'pickup' && !pickupBranchId) {
+      e.pickup = 'Please select a pickup location';
+    }
+    if (shippingMethod === 'delivery' && !deliveryAddress.trim()) {
+      e.deliveryAddress = 'Delivery address is required';
+    }
 
     // Roster validation
     const numbers = new Set();
@@ -51,7 +65,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       }
     });
     return e;
-  }, [clientName, email, phone, teamName, pickupBranchId, members]);
+  }, [clientName, email, phone, teamName, shippingMethod, pickupBranchId, deliveryAddress, members]);
 
   const hasErrors = Object.keys(errors).length > 0;
 
@@ -79,31 +93,33 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const removeMemberRow = (index) => setMembers(prev => prev.filter((_, i) => i !== index));
   const updateMember = (index, field, value) => setMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
 
+  const resetForm = () => {
+    setClientName('');
+    setEmail('');
+    setPhone('');
+    setTeamName('');
+    setImages([]);
+    setMembers([{ ...initialMember }]);
+    setPickupBranchId('');
+    setShippingMethod('pickup');
+    setDeliveryAddress('');
+    setOrderNotes(''); // Reset notes
+    setValidationMessage(null);
+    setShowSummary(false);
+    setShowErrors(false); // Reset error display
+    setInstantErrors({}); // Reset instant validation errors
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Clear previous validation message
-    setValidationMessage(null);
+    // Clear instant errors and show submit errors
+    setInstantErrors({});
+    setShowErrors(true);
     
     // Check for errors before submission
     if (hasErrors) {
-      // Count error types for a clean message
-      const errorFields = [];
-      if (errors.clientName || errors.email || errors.phone) errorFields.push('Client Information');
-      if (errors.teamName) errorFields.push('Team Name');
-      if (errors.pickup) errorFields.push('Pickup Location');
-      
-      // Check for member errors
-      const hasMemberErrors = Object.keys(errors).some(key => key.startsWith('member_'));
-      if (hasMemberErrors) errorFields.push('Team Roster');
-      
-      setValidationMessage({
-        type: 'error',
-        title: 'Please Complete Required Fields',
-        fields: errorFields
-      });
-      
-      // Scroll to top to show notification
+      // Scroll to top to show inline errors
       document.querySelector('.cdfm-form')?.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -113,7 +129,16 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       // Simulate submit
       await new Promise(res => setTimeout(res, 1200));
       const ref = 'CD-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-      setConfirmation({ reference: ref, pickup: branches.find(b => b.id === pickupBranchId)?.name });
+      setConfirmation({ 
+        reference: ref, 
+        shippingMethod: shippingMethod,
+        pickup: shippingMethod === 'pickup' ? branches.find(b => b.id === pickupBranchId)?.name : null,
+        deliveryAddress: shippingMethod === 'delivery' ? deliveryAddress : null,
+        deliveryFee: shippingMethod === 'delivery' ? DELIVERY_FEE : 0
+      });
+      
+      // Clear the form after successful submission
+      resetForm();
     } finally {
       setIsSubmitting(false);
     }
@@ -132,49 +157,85 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
         </div>
 
         <form className="cdfm-form" onSubmit={handleSubmit}>
-          {/* Validation Notification */}
-          {validationMessage && (
-            <div className={`validation-notification ${validationMessage.type}`}>
-              <div className="validation-header">
-                <span className="validation-icon">⚠️</span>
-                <strong>{validationMessage.title}</strong>
-                <button 
-                  type="button" 
-                  className="validation-close"
-                  onClick={() => setValidationMessage(null)}
-                  aria-label="Close notification"
-                >
-                  ✕
-                </button>
-              </div>
-              {validationMessage.fields && validationMessage.fields.length > 0 && (
-                <ul className="validation-list">
-                  {validationMessage.fields.map((field, idx) => (
-                    <li key={idx}>{field}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
           {/* Client Information */}
           <section className="card">
             <h3 className="card-title">Client Information</h3>
             <div className="grid two">
-              <div className={`field ${errors.clientName ? 'error' : ''}`}>
+              <div className="field">
                 <label>Client Name <span className="required">*</span></label>
-                <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Full name" />
-                {errors.clientName && <span className="error-text">{errors.clientName}</span>}
+                <div className="input-wrapper">
+                  <input 
+                    className={showErrors && errors.clientName ? 'error' : ''} 
+                    value={clientName} 
+                    onChange={(e) => {
+                      setClientName(e.target.value);
+                      // Clear error when user starts typing
+                      if (showErrors && e.target.value.trim()) {
+                        setShowErrors(false);
+                      }
+                    }}
+                    placeholder="Full name" 
+                  />
+                  {showErrors && errors.clientName && <span className="inline-error">{errors.clientName}</span>}
+                </div>
               </div>
-              <div className={`field ${errors.email ? 'error' : ''}`}>
+              <div className="field">
                 <label>Contact Email <span className="required">*</span></label>
-                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
-                {errors.email && <span className="error-text">{errors.email}</span>}
+                <div className="input-wrapper">
+                  <input 
+                    className={(showErrors && errors.email) || instantErrors.email ? 'error' : ''} 
+                    value={email} 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEmail(value);
+                      
+                      // Real-time validation - show error immediately if invalid format
+                      if (value.trim() && !/^\S+@\S+\.\S+$/.test(value)) {
+                        setInstantErrors(prev => ({ ...prev, email: 'Invalid email format' }));
+                      } else {
+                        setInstantErrors(prev => ({ ...prev, email: '' }));
+                      }
+                      
+                      // Clear submit errors when valid email is entered
+                      if (showErrors && /^\S+@\S+\.\S+$/.test(value)) {
+                        setShowErrors(false);
+                      }
+                    }}
+                    placeholder="name@example.com" 
+                  />
+                  {((showErrors && errors.email) || instantErrors.email) && (
+                    <span className="inline-error">{instantErrors.email || errors.email}</span>
+                  )}
+                </div>
               </div>
-              <div className={`field ${errors.phone ? 'error' : ''}`}>
+              <div className="field">
                 <label>Phone Number <span className="required">*</span></label>
-                <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. +63 912 345 6789" />
-                {errors.phone && <span className="error-text">{errors.phone}</span>}
+                <div className="input-wrapper">
+                  <input 
+                    className={(showErrors && errors.phone) || instantErrors.phone ? 'error' : ''} 
+                    value={phone} 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setPhone(value);
+                      
+                      // Real-time validation - show error immediately if invalid format
+                      if (value.trim() && !/^\+?[0-9\-()\s]{7,}$/.test(value)) {
+                        setInstantErrors(prev => ({ ...prev, phone: 'Invalid phone format' }));
+                      } else {
+                        setInstantErrors(prev => ({ ...prev, phone: '' }));
+                      }
+                      
+                      // Clear submit errors when valid phone is entered
+                      if (showErrors && /^\+?[0-9\-()\s]{7,}$/.test(value)) {
+                        setShowErrors(false);
+                      }
+                    }}
+                    placeholder="e.g. +63 912 345 6789" 
+                  />
+                  {((showErrors && errors.phone) || instantErrors.phone) && (
+                    <span className="inline-error">{instantErrors.phone || errors.phone}</span>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -185,10 +246,24 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
               <h3 className="card-title">Team Details</h3>
               <span className="char-count">{teamName.length}/50</span>
             </div>
-            <div className={`field ${errors.teamName ? 'error' : ''}`}>
+            <div className="field">
               <label>Team Name <span className="required">*</span></label>
-              <input maxLength={50} value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="Enter team name" />
-              {errors.teamName && <span className="error-text">{errors.teamName}</span>}
+              <div className="input-wrapper">
+                <input 
+                  className={showErrors && errors.teamName ? 'error' : ''} 
+                  maxLength={50} 
+                  value={teamName} 
+                  onChange={(e) => {
+                    setTeamName(e.target.value);
+                    // Clear error when user starts typing
+                    if (showErrors && e.target.value.trim()) {
+                      setShowErrors(false);
+                    }
+                  }}
+                  placeholder="Enter team name" 
+                />
+                {showErrors && errors.teamName && <span className="inline-error">{errors.teamName}</span>}
+              </div>
             </div>
           </section>
 
@@ -232,17 +307,54 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
               </div>
               {members.map((m, idx) => (
                 <div key={idx} className="roster-row">
-                  <div className={`field ${errors[`member_number_${idx}`] ? 'error' : ''}`}>
-                    <input type="number" min="0" value={m.number}
-                           onChange={e => updateMember(idx, 'number', e.target.value)}
-                           placeholder="e.g. 23" />
-                    {errors[`member_number_${idx}`] && <span className="error-text">{errors[`member_number_${idx}`]}</span>}
+                  <div className="field">
+                    <div className="input-wrapper">
+                      <input 
+                        className={(showErrors && errors[`member_number_${idx}`]) || instantErrors[`member_number_${idx}`] ? 'error' : ''}
+                        type="text" 
+                        value={m.number}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          
+                          // Real-time validation - show error immediately if contains non-numeric characters
+                          if (value.trim() && /[^\d]/.test(value)) {
+                            setInstantErrors(prev => ({ ...prev, [`member_number_${idx}`]: 'Numbers only' }));
+                          } else {
+                            setInstantErrors(prev => ({ ...prev, [`member_number_${idx}`]: '' }));
+                          }
+                          
+                          // Filter out non-numeric characters
+                          const numericValue = value.replace(/[^\d]/g, '');
+                          updateMember(idx, 'number', numericValue);
+                          
+                          // Clear error when user enters valid number
+                          if (showErrors && numericValue.trim()) {
+                            setShowErrors(false);
+                          }
+                        }}
+                        placeholder="e.g. 23" 
+                      />
+                      {((showErrors && errors[`member_number_${idx}`]) || instantErrors[`member_number_${idx}`]) && (
+                        <span className="inline-error">{instantErrors[`member_number_${idx}`] || errors[`member_number_${idx}`]}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className={`field ${errors[`member_surname_${idx}`] ? 'error' : ''}`}>
-                    <input value={m.surname}
-                           onChange={e => updateMember(idx, 'surname', e.target.value)}
-                           placeholder="Surname" />
-                    {errors[`member_surname_${idx}`] && <span className="error-text">{errors[`member_surname_${idx}`]}</span>}
+                  <div className="field">
+                    <div className="input-wrapper">
+                      <input 
+                        className={showErrors && errors[`member_surname_${idx}`] ? 'error' : ''}
+                        value={m.surname}
+                        onChange={(e) => {
+                          updateMember(idx, 'surname', e.target.value);
+                          // Clear error when user starts typing
+                          if (showErrors && e.target.value.trim()) {
+                            setShowErrors(false);
+                          }
+                        }}
+                        placeholder="Surname" 
+                      />
+                      {showErrors && errors[`member_surname_${idx}`] && <span className="inline-error">{errors[`member_surname_${idx}`]}</span>}
+                    </div>
                   </div>
                   <div className="row-actions">
                     {members.length > 1 && (
@@ -256,27 +368,103 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             </div>
           </section>
 
-          {/* Pickup Location */}
-          <section className="card">
-            <h3 className="card-title">Pickup Location</h3>
-            <div className={`field ${errors.pickup ? 'error' : ''}`}>
-              <label>Select a branch <span className="required">*</span></label>
-              <select
-                className="select"
-                value={pickupBranchId}
-                onChange={(e) => setPickupBranchId(e.target.value)}
-              >
-                <option value="">Choose a pickup location</option>
-                {branches.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-              {pickupBranchId && (
-                <small className="helper">{branches.find(b => b.id === pickupBranchId)?.address}</small>
-              )}
-              {errors.pickup && <span className="error-text">{errors.pickup}</span>}
-            </div>
-          </section>
+          {/* Shipping Method and Notes Container */}
+          <div className="shipping-notes-container">
+            {/* Shipping Method */}
+            <section className="card shipping-section">
+              <h3 className="card-title">Shipping Method</h3>
+              <div className="field">
+                <div className="shipping-methods">
+                  <button
+                    type="button"
+                    className={`shipping-option ${shippingMethod === 'pickup' ? 'active' : ''}`}
+                    onClick={() => setShippingMethod('pickup')}
+                  >
+                    <div className="shipping-option-title">Store Pickup</div>
+                    <div className="shipping-option-desc">Free</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`shipping-option ${shippingMethod === 'delivery' ? 'active' : ''}`}
+                    onClick={() => setShippingMethod('delivery')}
+                  >
+                    <div className="shipping-option-title">Delivery</div>
+                    <div className="shipping-option-desc">₱{DELIVERY_FEE}</div>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* Notes/Message Section */}
+            <section className="card notes-section">
+              <h3 className="card-title">Notes/Message to Yohanns</h3>
+              <textarea
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+                placeholder="Please Leave A Message ......"
+                className="notes-textarea"
+                rows="4"
+              />
+            </section>
+          </div>
+
+          {/* Pickup Location - Show only if pickup is selected */}
+          {shippingMethod === 'pickup' && (
+            <section className="card">
+              <h3 className="card-title">Pickup Location</h3>
+              <div className="field">
+                <label>Select a branch <span className="required">*</span></label>
+                <select
+                  className={`select ${showErrors && errors.pickup ? 'error' : ''}`}
+                  value={pickupBranchId}
+                  onChange={(e) => {
+                    setPickupBranchId(e.target.value);
+                    // Clear error when user selects a branch
+                    if (showErrors && e.target.value) {
+                      setShowErrors(false);
+                    }
+                  }}
+                >
+                  <option value="">Choose a pickup location</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+                {pickupBranchId && (
+                  <small className="helper">{branches.find(b => b.id === pickupBranchId)?.address}</small>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Delivery Address - Show only if delivery is selected */}
+          {shippingMethod === 'delivery' && (
+            <section className="card">
+              <h3 className="card-title">Delivery Address</h3>
+              <div className="field">
+                <label>Complete Address <span className="required">*</span></label>
+                <div className="input-wrapper">
+                  <textarea
+                    className={`delivery-textarea ${showErrors && errors.deliveryAddress ? 'error' : ''}`}
+                    value={deliveryAddress}
+                    onChange={(e) => {
+                      setDeliveryAddress(e.target.value);
+                      // Clear error when user starts typing
+                      if (showErrors && e.target.value.trim()) {
+                        setShowErrors(false);
+                      }
+                    }}
+                    placeholder="Enter your complete delivery address"
+                    rows="3"
+                  />
+                  {showErrors && errors.deliveryAddress && <span className="inline-error">{errors.deliveryAddress}</span>}
+                </div>
+                <small className="helper" style={{color: '#00bfff', marginTop: '8px', display: 'block'}}>
+                  Delivery Fee: ₱{DELIVERY_FEE}
+                </small>
+              </div>
+            </section>
+          )}
 
           {/* Summary */}
           <section className="card">
@@ -285,11 +473,10 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             </button>
             {showSummary && (
               <div className="summary-content">
-                <div><strong>Client:</strong> {clientName} ({email}, {phone})</div>
-                <div><strong>Team:</strong> {teamName}</div>
-                <div><strong>Members:</strong> {members.length}</div>
-                <div><strong>Pickup:</strong> {branches.find(b => b.id === pickupBranchId)?.name || '-'}</div>
-                <div><strong>Images:</strong> {images.length} uploaded</div>
+                <div><strong>Team Name:</strong> {teamName || '-'}</div>
+                <div><strong>Team Members:</strong> {members.length} {members.length === 1 ? 'member' : 'members'}</div>
+                <div><strong>Shipping:</strong> {shippingMethod === 'pickup' ? 'Store Pickup (Free)' : `Delivery (₱${DELIVERY_FEE})`}</div>
+                <div><strong>Design Images:</strong> {images.length} {images.length === 1 ? 'image' : 'images'}</div>
               </div>
             )}
           </section>
@@ -299,12 +486,11 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             <div className="submit-bar-inner">
               <button 
                 className="submit-btn" 
-                disabled={isSubmitting || hasErrors}
-                title={hasErrors ? 'Please fill all required fields' : ''}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Order'}
               </button>
-              {hasErrors && (
+              {showErrors && hasErrors && (
                 <span className="submit-hint">Complete all required fields to submit</span>
               )}
             </div>
@@ -316,7 +502,15 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             <div className="confirm-modal" onClick={e => e.stopPropagation()}>
               <h3>Order Submitted</h3>
               <p>Reference Number: <strong>{confirmation.reference}</strong></p>
-              <p>Pickup Location: <strong>{confirmation.pickup}</strong></p>
+              {confirmation.shippingMethod === 'pickup' && (
+                <p>Pickup Location: <strong>{confirmation.pickup}</strong></p>
+              )}
+              {confirmation.shippingMethod === 'delivery' && (
+                <>
+                  <p>Delivery Address: <strong>{confirmation.deliveryAddress}</strong></p>
+                  <p>Delivery Fee: <strong>₱{confirmation.deliveryFee}</strong></p>
+                </>
+              )}
               <button onClick={() => { setConfirmation(null); onClose(); }}>Close</button>
             </div>
           </div>

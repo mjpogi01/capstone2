@@ -3,6 +3,17 @@ import './Branches.css';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faMapMarkerAlt, 
+  faWalking, 
+  faBicycle, 
+  faMotorcycle, 
+  faCar, 
+  faShip,
+  faStore,
+  faRoute
+} from '@fortawesome/free-solid-svg-icons';
 
 const createGMapsLink = (query) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 
@@ -171,7 +182,7 @@ const Branches = () => {
     return distance; // Distance in km
   };
 
-  // Calculate travel time based on mode of transport
+  // Calculate travel time based on mode of transport (Google Maps-like estimation)
   const calculateTravelInfo = (userLoc, branchPos) => {
     const distance = calculateDistance(
       userLoc.lat,
@@ -180,12 +191,13 @@ const Branches = () => {
       branchPos.lng
     );
 
-    // Average speeds in km/h
+    // More realistic average speeds (km/h) accounting for real-world conditions
+    // These match Google Maps estimates more closely
     const speeds = {
-      walking: 5,      // 5 km/h
-      bicycle: 15,     // 15 km/h
-      motorcycle: 40,  // 40 km/h
-      car: 50          // 50 km/h (considering city traffic)
+      walking: 4.5,      // 4.5 km/h (includes stops, crossings)
+      bicycle: 12,       // 12 km/h (realistic city cycling with traffic)
+      motorcycle: 35,    // 35 km/h (city roads with traffic)
+      car: 40            // 40 km/h (includes traffic, stops, turns in Philippines)
     };
 
     const formatTime = (hours) => {
@@ -198,6 +210,20 @@ const Branches = () => {
       }
     };
 
+    // Add overhead time for short trips (stops, intersections, etc.)
+    const addOverhead = (baseTime, distance) => {
+      if (distance < 5) {
+        // Short trips: add 15% overhead for traffic lights, turns
+        return baseTime * 1.15;
+      } else if (distance < 15) {
+        // Medium trips: add 10% overhead
+        return baseTime * 1.10;
+      } else {
+        // Long trips: add 8% overhead (highway portions)
+        return baseTime * 1.08;
+      }
+    };
+
     // Detect water crossing between Batangas and Mindoro
     // Batangas branches: lat > 13.7
     // Mindoro branches: lat < 13.5
@@ -207,22 +233,31 @@ const Branches = () => {
     const crossesWater = (isBatangas(userLoc.lat) && isMindoro(branchPos.lat)) ||
                          (isMindoro(userLoc.lat) && isBatangas(branchPos.lat));
 
+    // Calculate base travel times and add realistic overhead
+    const baseWalkingTime = distance / speeds.walking;
+    const baseBicycleTime = distance / speeds.bicycle;
+    const baseMotorcycleTime = distance / speeds.motorcycle;
+    const baseCarTime = distance / speeds.car;
+
     const travelInfo = {
       distance: distance.toFixed(1),
-      walking: formatTime(distance / speeds.walking),
-      bicycle: formatTime(distance / speeds.bicycle),
-      motorcycle: formatTime(distance / speeds.motorcycle),
-      car: formatTime(distance / speeds.car),
+      walking: formatTime(addOverhead(baseWalkingTime, distance)),
+      bicycle: formatTime(addOverhead(baseBicycleTime, distance)),
+      motorcycle: formatTime(addOverhead(baseMotorcycleTime, distance)),
+      car: formatTime(addOverhead(baseCarTime, distance)),
       crossesWater: crossesWater
     };
 
     // Add ferry travel time if crossing water
     if (crossesWater) {
-      // Ferry from Batangas to Calapan: ~1.5-2 hours
-      // Plus additional time for land travel on both sides
-      const ferryTime = 1.75; // 1 hour 45 minutes for ferry
-      const additionalLandTime = distance / speeds.car; // Estimate land portion
-      travelInfo.ferry = formatTime(ferryTime + additionalLandTime * 0.3);
+      // Ferry from Batangas to Calapan: ~2 hours actual crossing
+      // Plus port waiting time (30 min) and land travel to/from ports
+      const ferryTime = 2.0; // 2 hours for ferry crossing
+      const portWaitTime = 0.5; // 30 minutes buffer for boarding/waiting
+      // Estimate 30% of total distance is land travel (to/from ports)
+      const estimatedLandDistance = distance * 0.3;
+      const landTravelTime = addOverhead(estimatedLandDistance / speeds.car, estimatedLandDistance);
+      travelInfo.ferry = formatTime(ferryTime + portWaitTime + landTravelTime);
     }
 
     return travelInfo;
@@ -251,24 +286,60 @@ const Branches = () => {
           // Set route and zoom in one smooth motion
           setRouteCoordinates(routeCoords);
           
-          if (mapRef.current) {
-            const bounds = L.latLngBounds([
-              [userLocation.lat, userLocation.lng],
-              [branch.position.lat, branch.position.lng]
-            ]);
-            mapRef.current.fitBounds(bounds, { 
-              padding: [80, 80],
-              maxZoom: 16,
-              animate: true,
-              duration: 2.0,
-              easeLinearity: 0.05
-            });
+          if (mapRef.current && mapRef.current._loaded) {
+            try {
+              const bounds = L.latLngBounds([
+                [userLocation.lat, userLocation.lng],
+                [branch.position.lat, branch.position.lng]
+              ]);
+              mapRef.current.fitBounds(bounds, { 
+                padding: [80, 80],
+                maxZoom: 16,
+                animate: true,
+                duration: 2.0,
+                easeLinearity: 0.05
+              });
+            } catch (error) {
+              console.error('Error fitting bounds:', error);
+            }
           }
           
-          // Calculate travel information using actual distance from API
-          const info = calculateTravelInfo(userLocation, branch.position);
-          // Update with actual distance from route API
-          info.distance = (data.routes[0].distance / 1000).toFixed(1);
+          // Calculate travel information using actual distance from OSRM API
+          const actualDistance = data.routes[0].distance / 1000; // Convert meters to km
+          
+          // Recalculate with actual road distance (more accurate than straight line)
+          const speeds = {
+            walking: 4.5,
+            bicycle: 12,
+            motorcycle: 35,
+            car: 40
+          };
+          
+          const addOverhead = (baseTime, distance) => {
+            if (distance < 5) return baseTime * 1.15;
+            else if (distance < 15) return baseTime * 1.10;
+            else return baseTime * 1.08;
+          };
+          
+          const formatTime = (hours) => {
+            if (hours < 1) {
+              return `${Math.round(hours * 60)} min`;
+            } else {
+              const hrs = Math.floor(hours);
+              const mins = Math.round((hours - hrs) * 60);
+              return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+            }
+          };
+          
+          const info = {
+            distance: actualDistance.toFixed(1),
+            walking: formatTime(addOverhead(actualDistance / speeds.walking, actualDistance)),
+            bicycle: formatTime(addOverhead(actualDistance / speeds.bicycle, actualDistance)),
+            motorcycle: formatTime(addOverhead(actualDistance / speeds.motorcycle, actualDistance)),
+            car: formatTime(addOverhead(actualDistance / speeds.car, actualDistance)),
+            crossesWater: false // OSRM doesn't provide water routes
+          };
+          
           setTravelInfo(info);
         } else {
           // Fallback to straight line if routing fails
@@ -283,18 +354,22 @@ const Branches = () => {
           setTravelInfo(info);
           
           // Fit map to show route
-          if (mapRef.current) {
-            const bounds = L.latLngBounds([
-              [userLocation.lat, userLocation.lng],
-              [branch.position.lat, branch.position.lng]
-            ]);
-            mapRef.current.fitBounds(bounds, { 
-              padding: [80, 80],
-              maxZoom: 16,
-              animate: true,
-              duration: 2.0,
-              easeLinearity: 0.05
-            });
+          if (mapRef.current && mapRef.current._loaded) {
+            try {
+              const bounds = L.latLngBounds([
+                [userLocation.lat, userLocation.lng],
+                [branch.position.lat, branch.position.lng]
+              ]);
+              mapRef.current.fitBounds(bounds, { 
+                padding: [80, 80],
+                maxZoom: 16,
+                animate: true,
+                duration: 2.0,
+                easeLinearity: 0.05
+              });
+            } catch (error) {
+              console.error('Error fitting bounds:', error);
+            }
           }
         }
       } catch (error) {
@@ -310,28 +385,36 @@ const Branches = () => {
         setTravelInfo(info);
         
         // Fit map to show route
-        if (mapRef.current) {
-          const bounds = L.latLngBounds([
-            [userLocation.lat, userLocation.lng],
-            [branch.position.lat, branch.position.lng]
-          ]);
-          mapRef.current.fitBounds(bounds, { 
-            padding: [80, 80],
-            animate: true,
-            duration: 2.0,
-            easeLinearity: 0.05
-          });
+        if (mapRef.current && mapRef.current._loaded) {
+          try {
+            const bounds = L.latLngBounds([
+              [userLocation.lat, userLocation.lng],
+              [branch.position.lat, branch.position.lng]
+            ]);
+            mapRef.current.fitBounds(bounds, { 
+              padding: [80, 80],
+              animate: true,
+              duration: 2.0,
+              easeLinearity: 0.05
+            });
+          } catch (error) {
+            console.error('Error fitting bounds fallback:', error);
+          }
         }
       }
     } else {
       // If no user location, just zoom to branch with one smooth animation
       setTravelInfo(null);
-      if (mapRef.current) {
-        mapRef.current.setView(branch.position, 15, { 
-          animate: true, 
-          duration: 2.0,
-          easeLinearity: 0.05
-        });
+      if (mapRef.current && mapRef.current._loaded) {
+        try {
+          mapRef.current.setView(branch.position, 15, { 
+            animate: true, 
+            duration: 2.0,
+            easeLinearity: 0.05
+          });
+        } catch (error) {
+          console.error('Error setting view:', error);
+        }
       }
     }
   };
@@ -423,20 +506,21 @@ const Branches = () => {
   };
 
   return (
-    <section id="branches" className="yohanns-branches-section">
-      <div className="yohanns-branches-container">
-        <div className="yohanns-branches-hero">
-          <h1 className="neon-text yohanns-branches-heading">Our Branches</h1>
-          <p className="yohanns-branches-description">Find the nearest Yohann's Sportswear House branch on the map.</p>
+    <section id="branches" className="branches-container">
+      <div className="branches-wrapper">
+        <div className="branches-hero">
+          <h1 className="branches-title page-title">Our Branches</h1>
+          <p className="branches-subtitle">Find the nearest Yohann's Sportswear House branch on the map.</p>
         </div>
         
-        <div className="yohanns-branches-content">
-          <div className="yohanns-branches-layout">
+        <div className="branches-content">
+          <div className="branches-layout">
           
           {/* Left Column: Map + Travel Info */}
-          <div className="yohanns-map-column">
+          <div className="branches-map-column">
+          <div className="branches-map-wrapper">
           <MapContainer
-            className="yohanns-map-container"
+            className="branches-map"
             center={branches[0].position}
             zoom={12}
             scrollWheelZoom={true}
@@ -460,14 +544,14 @@ const Branches = () => {
             )}
 
             {/* User location marker */}
-            {userLocation && (
+              {userLocation && (
               <Marker
                 position={[userLocation.lat, userLocation.lng]}
                 icon={userLocationIcon}
               >
                 <Popup>
-                  <div className="yohanns-info-window">
-                    <div className="yohanns-info-window-title">Your Location</div>
+                  <div className="branches-popup-content">
+                    <div className="branches-popup-title">Your Location</div>
                   </div>
                 </Popup>
               </Marker>
@@ -493,20 +577,17 @@ const Branches = () => {
                       setTravelInfo(null);
                     }}
                   >
-                    <div className="yohanns-info-window">
-                      <div className="yohanns-info-window-title">{branch.name}</div>
-                      <div className="yohanns-info-window-address">{branch.address}</div>
-                      <div className="yohanns-info-window-badge">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                          <circle cx="12" cy="10" r="3"/>
-                        </svg>
-                        <span className="yohanns-info-window-badge-text">Yohann's Sportswear House</span>
+                    <div className="branches-popup-content">
+                      <div className="branches-popup-title">{branch.name}</div>
+                      <div className="branches-popup-address">{branch.address}</div>
+                      <div className="branches-popup-badge">
+                        <FontAwesomeIcon icon={faStore} style={{ color: '#00bfff', fontSize: '14px' }} />
+                        <span className="branches-popup-badge-text">Yohann's Sportswear House</span>
                       </div>
                       <button
                         onClick={() => getDirectionsTo(branch)}
                         disabled={isRouting}
-                        className="yohanns-directions-button"
+                        className="branches-directions-button"
                       >
                         {isRouting ? 'Getting Directions...' : 'Get Directions'}
                       </button>
@@ -516,71 +597,51 @@ const Branches = () => {
               </Marker>
             ))}
           </MapContainer>
+          </div>
+          {/* End Map Wrapper */}
 
           {/* Travel Information Panel */}
           {travelInfo && userLocation && (
-            <div className="yohanns-travel-info">
-              <div className="travel-info-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-                <span className="distance-value">{travelInfo.distance} km</span>
+            <div className="branches-travel-info">
+              <div className="branches-travel-header">
+                <FontAwesomeIcon icon={faRoute} style={{ color: '#00bfff', fontSize: '20px' }} />
+                <span className="branches-travel-distance">{travelInfo.distance} km</span>
               </div>
-              <div className="travel-info-modes">
-                <div className="travel-mode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                  </svg>
-                  <div className="mode-details">
-                    <span className="mode-label">Walking</span>
-                    <span className="mode-time">{travelInfo.walking}</span>
+              <div className="branches-travel-modes">
+                <div className="branches-travel-mode">
+                  <FontAwesomeIcon icon={faWalking} style={{ color: '#ffffff', fontSize: '18px' }} />
+                  <div className="branches-travel-mode-details">
+                    <span className="branches-travel-mode-label">Walking</span>
+                    <span className="branches-travel-mode-time">{travelInfo.walking}</span>
                   </div>
                 </div>
-                <div className="travel-mode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                    <circle cx="5.5" cy="17.5" r="2.5"/>
-                    <circle cx="18.5" cy="17.5" r="2.5"/>
-                    <path d="M5 17h-.5a2.5 2.5 0 0 1 0-5H8m12 0l-4-7H8"/>
-                  </svg>
-                  <div className="mode-details">
-                    <span className="mode-label">Bicycle</span>
-                    <span className="mode-time">{travelInfo.bicycle}</span>
+                <div className="branches-travel-mode">
+                  <FontAwesomeIcon icon={faBicycle} style={{ color: '#ffffff', fontSize: '18px' }} />
+                  <div className="branches-travel-mode-details">
+                    <span className="branches-travel-mode-label">Bicycle</span>
+                    <span className="branches-travel-mode-time">{travelInfo.bicycle}</span>
                   </div>
                 </div>
-                <div className="travel-mode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                    <path d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12v6m14-6v6"/>
-                    <circle cx="7" cy="19" r="2"/>
-                    <circle cx="17" cy="19" r="2"/>
-                  </svg>
-                  <div className="mode-details">
-                    <span className="mode-label">Motorcycle</span>
-                    <span className="mode-time">{travelInfo.motorcycle}</span>
+                <div className="branches-travel-mode">
+                  <FontAwesomeIcon icon={faMotorcycle} style={{ color: '#ffffff', fontSize: '18px' }} />
+                  <div className="branches-travel-mode-details">
+                    <span className="branches-travel-mode-label">Motorcycle</span>
+                    <span className="branches-travel-mode-time">{travelInfo.motorcycle}</span>
                   </div>
                 </div>
-                <div className="travel-mode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                    <path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
-                    <path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
-                    <path d="M5 17h-2v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-6m-6 -6h15m-6 0v-5"/>
-                  </svg>
-                  <div className="mode-details">
-                    <span className="mode-label">Car</span>
-                    <span className="mode-time">{travelInfo.car}</span>
+                <div className="branches-travel-mode">
+                  <FontAwesomeIcon icon={faCar} style={{ color: '#ffffff', fontSize: '18px' }} />
+                  <div className="branches-travel-mode-details">
+                    <span className="branches-travel-mode-label">Car</span>
+                    <span className="branches-travel-mode-time">{travelInfo.car}</span>
                   </div>
                 </div>
                 {travelInfo.crossesWater && (
-                  <div className="travel-mode ferry-mode">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
-                      <path d="M2 20a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1a2.4 2.4 0 0 1 2 -1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1a2.4 2.4 0 0 1 2 -1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1"/>
-                      <path d="M4 18l-1 -5h18l-1 5"/>
-                      <path d="M5 13v-6h8l4 6"/>
-                      <path d="M7 7v-4h2"/>
-                    </svg>
-                    <div className="mode-details">
-                      <span className="mode-label">Ferry + Land</span>
-                      <span className="mode-time">{travelInfo.ferry}</span>
+                  <div className="branches-travel-mode branches-travel-mode-ferry">
+                    <FontAwesomeIcon icon={faShip} style={{ color: '#00bfff', fontSize: '18px' }} />
+                    <div className="branches-travel-mode-details">
+                      <span className="branches-travel-mode-label">Ferry + Land</span>
+                      <span className="branches-travel-mode-time">{travelInfo.ferry}</span>
                     </div>
                   </div>
                 )}
@@ -591,25 +652,26 @@ const Branches = () => {
           {/* End Map Column */}
 
           {/* Right Column: Branch List */}
-          <div className="yohanns-branch-list">
+          <div className="branches-list-wrapper">
             {branches.map((branch) => (
               <div 
                 key={branch.id} 
-                className={`yohanns-branch-item ${activeId === branch.id ? 'yohanns-branch-item-active' : ''}`}
+                className={`branches-item ${activeId === branch.id ? 'branches-item-active' : ''}`}
                 onClick={() => focusBranch(branch)}
               >
-                <div className="yohanns-branch-name">{branch.name}</div>
-                <div className="yohanns-branch-address">{branch.address}</div>
-                {activeId === branch.id ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
-                    disabled={isRouting}
-                    className="yohanns-directions-button"
-                    style={{ marginTop: '8px' }}
-                  >
-                    {isRouting ? 'Getting Directions...' : 'Get Directions'}
-                  </button>
-                ) : null}
+                <div className="branches-item-content">
+                  <div className="branches-item-name">{branch.name}</div>
+                  <div className="branches-item-address">{branch.address}</div>
+                  {activeId === branch.id ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
+                      disabled={isRouting}
+                      className="branches-directions-button"
+                    >
+                      {isRouting ? 'Getting Directions...' : 'Get Directions'}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>

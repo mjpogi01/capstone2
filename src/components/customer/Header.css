@@ -37,7 +37,8 @@
 
 .nav-menu {
   display: flex;
-  gap: 2.5rem;
+  margin-left: 50px;
+  gap: 5rem;
 }
 
 .nav-link {
@@ -664,11 +665,12 @@
   min-width: 320px;
   max-width: 420px;
   background: #1a1a1a;
-  border: 1px solid #333333;
+  border: 2px solid #00bfff;
   border-radius: 8px;
   padding: 0;
   gap: 2px;
   align-items: center;
+  box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   animation: yohanns-slideDown 0.3s ease-out;
   position: relative;
@@ -691,29 +693,33 @@
   flex: 1;
   padding: 12px 16px;
   border: none;
-  background: transparent;
+  background: rgba(0, 191, 255, 0.05);
   color: #ffffff;
   font-size: 0.95rem;
-  font-family: inherit;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
   min-width: 0;
   outline: none;
+  border-radius: 6px;
+  transition: all 0.3s ease;
 }
 
 .yohanns-search-input::placeholder {
-  color: #aaa;
+  color: #999;
+  font-family: 'Oswald', sans-serif;
 }
 
 .yohanns-search-input:focus {
   color: #ffffff;
+  background: rgba(0, 191, 255, 0.1);
 }
 
 /* Search Submit Button */
 .yohanns-search-submit-btn {
   padding: 10px 14px;
-  background: transparent;
+  background: linear-gradient(135deg, #00bfff, #0099cc);
   border: none;
-  color: #aaa;
+  color: #ffffff;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -721,13 +727,15 @@
   flex-shrink: 0;
   transition: all 0.3s ease;
   font-family: inherit;
-  border-radius: 4px;
+  border-radius: 6px;
   margin-right: 4px;
 }
 
 .yohanns-search-submit-btn:hover {
-  background: rgba(79, 195, 247, 0.1);
-  color: #4fc3f7;
+  background: linear-gradient(135deg, #00d4ff, #00bfff);
+  color: #ffffff;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0, 191, 255, 0.5);
 }
 
 .yohanns-search-submit-btn:active {
@@ -745,8 +753,18 @@
 
 /* Focus Border Effect */
 .yohanns-search-dropdown:has(.yohanns-search-input:focus) {
-  border-color: #4fc3f7;
-  box-shadow: 0 4px 15px rgba(79, 195, 247, 0.2);
+  border-color: #00d4ff;
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.6), 0 4px 15px rgba(0, 191, 255, 0.3);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.4), 0 4px 15px rgba(0, 191, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.7), 0 4px 20px rgba(0, 191, 255, 0.5);
+  }
 }
 
 /* Search Results Container */
