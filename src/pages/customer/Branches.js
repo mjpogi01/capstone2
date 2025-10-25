@@ -3,6 +3,17 @@ import './Branches.css';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faMapMarkerAlt, 
+  faWalking, 
+  faBicycle, 
+  faMotorcycle, 
+  faCar, 
+  faShip,
+  faStore,
+  faRoute
+} from '@fortawesome/free-solid-svg-icons';
 
 const createGMapsLink = (query) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 
@@ -423,20 +434,21 @@ const Branches = () => {
   };
 
   return (
-    <section id="branches" className="yohanns-branches-section">
-      <div className="yohanns-branches-container">
-        <div className="yohanns-branches-hero">
-          <h1 className="neon-text yohanns-branches-heading">Our Branches</h1>
-          <p className="yohanns-branches-description">Find the nearest Yohann's Sportswear House branch on the map.</p>
+    <section id="branches" className="branches-container">
+      <div className="branches-wrapper">
+        <div className="branches-hero">
+          <h1 className="branches-title page-title">Our Branches</h1>
+          <p className="branches-subtitle">Find the nearest Yohann's Sportswear House branch on the map.</p>
         </div>
         
-        <div className="yohanns-branches-content">
-          <div className="yohanns-branches-layout">
+        <div className="branches-content">
+          <div className="branches-layout">
           
           {/* Left Column: Map + Travel Info */}
-          <div className="yohanns-map-column">
+          <div className="branches-map-column">
+          <div className="branches-map-wrapper">
           <MapContainer
-            className="yohanns-map-container"
+            className="branches-map"
             center={branches[0].position}
             zoom={12}
             scrollWheelZoom={true}
@@ -460,14 +472,14 @@ const Branches = () => {
             )}
 
             {/* User location marker */}
-            {userLocation && (
+              {userLocation && (
               <Marker
                 position={[userLocation.lat, userLocation.lng]}
                 icon={userLocationIcon}
               >
                 <Popup>
-                  <div className="yohanns-info-window">
-                    <div className="yohanns-info-window-title">Your Location</div>
+                  <div className="branches-popup-content">
+                    <div className="branches-popup-title">Your Location</div>
                   </div>
                 </Popup>
               </Marker>
@@ -493,20 +505,17 @@ const Branches = () => {
                       setTravelInfo(null);
                     }}
                   >
-                    <div className="yohanns-info-window">
-                      <div className="yohanns-info-window-title">{branch.name}</div>
-                      <div className="yohanns-info-window-address">{branch.address}</div>
-                      <div className="yohanns-info-window-badge">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                          <circle cx="12" cy="10" r="3"/>
-                        </svg>
-                        <span className="yohanns-info-window-badge-text">Yohann's Sportswear House</span>
+                    <div className="branches-popup-content">
+                      <div className="branches-popup-title">{branch.name}</div>
+                      <div className="branches-popup-address">{branch.address}</div>
+                      <div className="branches-popup-badge">
+                        <FontAwesomeIcon icon={faStore} style={{ color: '#00bfff', fontSize: '14px' }} />
+                        <span className="branches-popup-badge-text">Yohann's Sportswear House</span>
                       </div>
                       <button
                         onClick={() => getDirectionsTo(branch)}
                         disabled={isRouting}
-                        className="yohanns-directions-button"
+                        className="branches-directions-button"
                       >
                         {isRouting ? 'Getting Directions...' : 'Get Directions'}
                       </button>
@@ -516,71 +525,51 @@ const Branches = () => {
               </Marker>
             ))}
           </MapContainer>
+          </div>
+          {/* End Map Wrapper */}
 
           {/* Travel Information Panel */}
           {travelInfo && userLocation && (
-            <div className="yohanns-travel-info">
-              <div className="travel-info-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-                <span className="distance-value">{travelInfo.distance} km</span>
+            <div className="branches-travel-info">
+              <div className="branches-travel-header">
+                <FontAwesomeIcon icon={faRoute} style={{ color: '#00bfff', fontSize: '20px' }} />
+                <span className="branches-travel-distance">{travelInfo.distance} km</span>
               </div>
-              <div className="travel-info-modes">
-                <div className="travel-mode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                  </svg>
-                  <div className="mode-details">
-                    <span className="mode-label">Walking</span>
-                    <span className="mode-time">{travelInfo.walking}</span>
+              <div className="branches-travel-modes">
+                <div className="branches-travel-mode">
+                  <FontAwesomeIcon icon={faWalking} style={{ color: '#ffffff', fontSize: '18px' }} />
+                  <div className="branches-travel-mode-details">
+                    <span className="branches-travel-mode-label">Walking</span>
+                    <span className="branches-travel-mode-time">{travelInfo.walking}</span>
                   </div>
                 </div>
-                <div className="travel-mode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                    <circle cx="5.5" cy="17.5" r="2.5"/>
-                    <circle cx="18.5" cy="17.5" r="2.5"/>
-                    <path d="M5 17h-.5a2.5 2.5 0 0 1 0-5H8m12 0l-4-7H8"/>
-                  </svg>
-                  <div className="mode-details">
-                    <span className="mode-label">Bicycle</span>
-                    <span className="mode-time">{travelInfo.bicycle}</span>
+                <div className="branches-travel-mode">
+                  <FontAwesomeIcon icon={faBicycle} style={{ color: '#ffffff', fontSize: '18px' }} />
+                  <div className="branches-travel-mode-details">
+                    <span className="branches-travel-mode-label">Bicycle</span>
+                    <span className="branches-travel-mode-time">{travelInfo.bicycle}</span>
                   </div>
                 </div>
-                <div className="travel-mode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                    <path d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12v6m14-6v6"/>
-                    <circle cx="7" cy="19" r="2"/>
-                    <circle cx="17" cy="19" r="2"/>
-                  </svg>
-                  <div className="mode-details">
-                    <span className="mode-label">Motorcycle</span>
-                    <span className="mode-time">{travelInfo.motorcycle}</span>
+                <div className="branches-travel-mode">
+                  <FontAwesomeIcon icon={faMotorcycle} style={{ color: '#ffffff', fontSize: '18px' }} />
+                  <div className="branches-travel-mode-details">
+                    <span className="branches-travel-mode-label">Motorcycle</span>
+                    <span className="branches-travel-mode-time">{travelInfo.motorcycle}</span>
                   </div>
                 </div>
-                <div className="travel-mode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                    <path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
-                    <path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
-                    <path d="M5 17h-2v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-6m-6 -6h15m-6 0v-5"/>
-                  </svg>
-                  <div className="mode-details">
-                    <span className="mode-label">Car</span>
-                    <span className="mode-time">{travelInfo.car}</span>
+                <div className="branches-travel-mode">
+                  <FontAwesomeIcon icon={faCar} style={{ color: '#ffffff', fontSize: '18px' }} />
+                  <div className="branches-travel-mode-details">
+                    <span className="branches-travel-mode-label">Car</span>
+                    <span className="branches-travel-mode-time">{travelInfo.car}</span>
                   </div>
                 </div>
                 {travelInfo.crossesWater && (
-                  <div className="travel-mode ferry-mode">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2">
-                      <path d="M2 20a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1a2.4 2.4 0 0 1 2 -1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1a2.4 2.4 0 0 1 2 -1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2 -1"/>
-                      <path d="M4 18l-1 -5h18l-1 5"/>
-                      <path d="M5 13v-6h8l4 6"/>
-                      <path d="M7 7v-4h2"/>
-                    </svg>
-                    <div className="mode-details">
-                      <span className="mode-label">Ferry + Land</span>
-                      <span className="mode-time">{travelInfo.ferry}</span>
+                  <div className="branches-travel-mode branches-travel-mode-ferry">
+                    <FontAwesomeIcon icon={faShip} style={{ color: '#00bfff', fontSize: '18px' }} />
+                    <div className="branches-travel-mode-details">
+                      <span className="branches-travel-mode-label">Ferry + Land</span>
+                      <span className="branches-travel-mode-time">{travelInfo.ferry}</span>
                     </div>
                   </div>
                 )}
@@ -591,25 +580,26 @@ const Branches = () => {
           {/* End Map Column */}
 
           {/* Right Column: Branch List */}
-          <div className="yohanns-branch-list">
+          <div className="branches-list-wrapper">
             {branches.map((branch) => (
               <div 
                 key={branch.id} 
-                className={`yohanns-branch-item ${activeId === branch.id ? 'yohanns-branch-item-active' : ''}`}
+                className={`branches-item ${activeId === branch.id ? 'branches-item-active' : ''}`}
                 onClick={() => focusBranch(branch)}
               >
-                <div className="yohanns-branch-name">{branch.name}</div>
-                <div className="yohanns-branch-address">{branch.address}</div>
-                {activeId === branch.id ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
-                    disabled={isRouting}
-                    className="yohanns-directions-button"
-                    style={{ marginTop: '8px' }}
-                  >
-                    {isRouting ? 'Getting Directions...' : 'Get Directions'}
-                  </button>
-                ) : null}
+                <div className="branches-item-content">
+                  <div className="branches-item-name">{branch.name}</div>
+                  <div className="branches-item-address">{branch.address}</div>
+                  {activeId === branch.id ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); getDirectionsTo(branch); }}
+                      disabled={isRouting}
+                      className="branches-directions-button"
+                    >
+                      {isRouting ? 'Getting Directions...' : 'Get Directions'}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
