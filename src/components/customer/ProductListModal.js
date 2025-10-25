@@ -58,6 +58,8 @@ const ProductListModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     filterAndSortProducts();
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
   }, [products, searchTerm, selectedCategory, selectedCategories, sortBy, priceMin, priceMax, selectedRating]);
 
   const fetchProducts = async () => {
@@ -109,13 +111,13 @@ const ProductListModal = ({ isOpen, onClose }) => {
       });
     }
 
-    // Filter by rating (if ratings are available in product data)
-    // Note: Assuming products might have a 'rating' field
+    // Filter by rating
     if (selectedRating !== null) {
       filtered = filtered.filter(product => {
-        const rating = product.rating || product.average_rating || 0;
+        const rating = product.average_rating || 0;
         return rating >= selectedRating;
       });
+      console.log(`✨ Rating filter (>= ${selectedRating}): ${filtered.length} products match`);
     }
 
     // Sort products
@@ -452,30 +454,33 @@ const ProductListModal = ({ isOpen, onClose }) => {
                         
                         <div className="product-card-info">
                           <h3 className="product-card-name">{product.name}</h3>
+                          
+                          {/* Price Section */}
+                          <div className="product-card-price">
+                            ₱{parseFloat(product.price).toLocaleString('en-US', {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            })}
+                          </div>
+                          
+                          {/* Review Count and Sold Quantity - Same as Homepage */}
+                          {(product.average_rating > 0 || product.sold_quantity > 0) && (
+                            <div className="product-stats">
+                              {product.average_rating > 0 && (
+                                <span className="stat-item">
+                                  <span className="rating-number">{product.average_rating}</span>
+                                  <FaStar className="star-icon" />
+                                </span>
+                              )}
+                              {product.sold_quantity > 0 && (
+                                <span className="stat-item">{product.sold_quantity} sold</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       
                       <div className="product-card-footer">
-                        {/* Price Section */}
-                        <div className="product-card-price">
-                          ₱{parseFloat(product.price).toLocaleString('en-US', {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                          })}
-                        </div>
-                        
-                        {/* Review Count and Sold Quantity - Show only if data exists */}
-                        {(product.average_rating > 0 || product.sold_quantity > 0) && (
-                          <div className="product-stats">
-                            {product.average_rating > 0 && (
-                              <span className="stat-item">{product.average_rating} star</span>
-                            )}
-                            {product.sold_quantity > 0 && (
-                              <span className="stat-item">{product.sold_quantity} sold</span>
-                            )}
-                          </div>
-                        )}
-                        
                         {/* Add to Cart Button and Wishlist Heart - Side by Side */}
                         <div className="product-footer-top">
                           <button
