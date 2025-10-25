@@ -50,6 +50,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   const [showOrderComplete, setShowOrderComplete] = useState(false); // Order complete message
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Delete address confirmation
   const [addressToDelete, setAddressToDelete] = useState(null); // Address ID to delete
+  const [showCancelReason, setShowCancelReason] = useState(false); // Cancel reason dialog
+  const [cancelReason, setCancelReason] = useState(''); // Selected cancellation reason
 
   // Check for user address when modal opens
   useEffect(() => {
@@ -162,6 +164,27 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
 
   const handleCancelOrder = () => {
     setShowConfirmation(false);
+    setShowCancelReason(true);
+    setCancelReason(''); // Reset reason
+  };
+
+  const handleSubmitCancellation = () => {
+    if (!cancelReason) {
+      alert('Please select a cancellation reason');
+      return;
+    }
+    
+    console.log('Order cancelled. Reason:', cancelReason);
+    // You can send the cancellation reason to backend here if needed
+    
+    setShowCancelReason(false);
+    setCancelReason('');
+  };
+
+  const handleBackToOrder = () => {
+    setShowCancelReason(false);
+    setShowConfirmation(true);
+    setCancelReason('');
   };
 
   const handleCloseComplete = () => {
@@ -998,6 +1021,82 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
               </button>
               <button className="confirm-btn no-btn" onClick={cancelDeleteAddress}>
                 No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Reason Dialog */}
+      {showCancelReason && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal cancel-reason-modal">
+            <h3>Cancel Order</h3>
+            <p>Please select a reason for cancelling:</p>
+            
+            <div className="cancel-reasons">
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Ordered by mistake"
+                  checked={cancelReason === 'Ordered by mistake'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Ordered by mistake</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Changed my mind"
+                  checked={cancelReason === 'Changed my mind'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Changed my mind</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Wrong product or size selected"
+                  checked={cancelReason === 'Wrong product or size selected'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Wrong product or size selected</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Payment or checkout issue"
+                  checked={cancelReason === 'Payment or checkout issue'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Payment or checkout issue</span>
+              </label>
+              
+              <label className="reason-option">
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value="Personal reasons (other)"
+                  checked={cancelReason === 'Personal reasons (other)'}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+                <span>Personal reasons (other)</span>
+              </label>
+            </div>
+            
+            <div className="confirmation-buttons">
+              <button className="confirm-btn submit-cancel-btn" onClick={handleSubmitCancellation}>
+                Submit
+              </button>
+              <button className="confirm-btn back-btn" onClick={handleBackToOrder}>
+                Back
               </button>
             </div>
           </div>
