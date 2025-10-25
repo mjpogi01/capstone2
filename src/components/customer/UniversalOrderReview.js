@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FaStar, FaUser, FaCalendarAlt, FaComment } from 'react-icons/fa';
+import { useAuth } from '../../contexts/AuthContext';
 import './UniversalOrderReview.css';
 
-const UniversalOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
+const UniversalOrderReview = ({ orderId, orderNumber, productId = null, onReviewSubmit }) => {
+  const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [reviewStats, setReviewStats] = useState(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -21,7 +23,7 @@ const UniversalOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
 
   const fetchReviews = async () => {
     try {
-      const response = await fetch(`/api/order-tracking/reviews/${orderId}`);
+      const response = await fetch(`http://localhost:4000/api/order-tracking/reviews/${orderId}`);
       const data = await response.json();
       
       if (data.success) {
@@ -36,7 +38,7 @@ const UniversalOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
 
   const fetchReviewStats = async () => {
     try {
-      const response = await fetch(`/api/order-tracking/review-stats/${orderId}`);
+      const response = await fetch(`http://localhost:4000/api/order-tracking/review-stats/${orderId}`);
       const data = await response.json();
       
       if (data.success) {
@@ -50,20 +52,26 @@ const UniversalOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!newReview.comment.trim()) return;
+    
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
 
     setSubmitting(true);
     try {
-      const response = await fetch('/api/order-tracking/review', {
+      const response = await fetch('http://localhost:4000/api/order-tracking/review', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           orderId,
-          userId: 'current-user-id', // Replace with actual user ID
+          userId: user.id, // Use actual user ID from auth context
           rating: newReview.rating,
           comment: newReview.comment,
-          reviewType: newReview.reviewType
+          reviewType: newReview.reviewType,
+          productId: productId // Include product ID for product-specific reviews
         })
       });
 
