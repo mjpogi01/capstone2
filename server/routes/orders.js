@@ -166,25 +166,25 @@ router.get('/', async (req, res) => {
       let customerName = 'Unknown Customer';
       let customerEmail = 'N/A';
       
-      // For custom design orders, use client info from order_items
-      if (order.order_type === 'custom_design' && order.order_items && order.order_items.length > 0) {
+      // For all orders, prioritize user account information
+      const user = userData[order.user_id];
+      if (user?.email) {
+        customerEmail = user.email;
+      }
+      if (user?.full_name) {
+        customerName = user.full_name;
+      } else if (order.delivery_address?.receiver) {
+        customerName = order.delivery_address.receiver;
+      }
+      
+      // For custom design orders, if no user name is available, fall back to client info
+      if (order.order_type === 'custom_design' && order.order_items && order.order_items.length > 0 && !user?.full_name) {
         const firstItem = order.order_items[0];
         if (firstItem.client_name) {
           customerName = firstItem.client_name;
         }
         if (firstItem.client_email) {
           customerEmail = firstItem.client_email;
-        }
-      } else {
-        // For regular orders, use user data or delivery address
-        const user = userData[order.user_id];
-        if (user?.email) {
-          customerEmail = user.email;
-        }
-        if (user?.full_name) {
-          customerName = user.full_name;
-        } else if (order.delivery_address?.receiver) {
-          customerName = order.delivery_address.receiver;
         }
       }
       
@@ -256,24 +256,24 @@ router.get('/:id', async (req, res) => {
     let customerName = 'Unknown Customer';
     let customerEmail = 'N/A';
     
-    // For custom design orders, use client info from order_items
-    if (order.order_type === 'custom_design' && order.order_items && order.order_items.length > 0) {
+    // For all orders, prioritize user account information
+    if (userData?.email) {
+      customerEmail = userData.email;
+    }
+    if (userData?.full_name) {
+      customerName = userData.full_name;
+    } else if (order.delivery_address?.receiver) {
+      customerName = order.delivery_address.receiver;
+    }
+    
+    // For custom design orders, if no user name is available, fall back to client info
+    if (order.order_type === 'custom_design' && order.order_items && order.order_items.length > 0 && !userData?.full_name) {
       const firstItem = order.order_items[0];
       if (firstItem.client_name) {
         customerName = firstItem.client_name;
       }
       if (firstItem.client_email) {
         customerEmail = firstItem.client_email;
-      }
-    } else {
-      // For regular orders, use user data or delivery address
-      if (userData?.email) {
-        customerEmail = userData.email;
-      }
-      if (userData?.full_name) {
-        customerName = userData.full_name;
-      } else if (order.delivery_address?.receiver) {
-        customerName = order.delivery_address.receiver;
       }
     }
     

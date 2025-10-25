@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { useAuth } from '../../contexts/AuthContext';
 import './CustomDesignFormModal.css';
 
 const branches = [
@@ -18,6 +19,7 @@ const branches = [
 const initialMember = { number: '', surname: '', size: '', sizingType: 'adults' };
 
 export default function CustomDesignFormModal({ isOpen, onClose }) {
+  const { user } = useAuth();
   const [clientName, setClientName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -96,8 +98,9 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const updateMember = (index, field, value) => setMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
 
   const resetForm = () => {
-    setClientName('');
-    setEmail('');
+    // Pre-populate with user data if logged in
+    setClientName(user?.user_metadata?.full_name || '');
+    setEmail(user?.email || '');
     setPhone('');
     setTeamName('');
     setImages([]);
@@ -141,6 +144,11 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       formData.append('pickupBranchId', pickupBranchId);
       formData.append('deliveryAddress', deliveryAddress);
       formData.append('orderNotes', orderNotes);
+      
+      // Add user ID if logged in
+      if (user?.id) {
+        formData.append('userId', user.id);
+      }
       
       // Add design images if any
       images.forEach((image, index) => {

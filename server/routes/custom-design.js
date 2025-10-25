@@ -50,7 +50,8 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       shippingMethod,
       pickupBranchId,
       deliveryAddress,
-      orderNotes
+      orderNotes,
+      userId
     } = req.body;
 
     // Validate required fields
@@ -116,16 +117,28 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       }
     }
 
-    // Use an existing user for custom design orders
-    let userId = '6833e7d5-408a-4210-ac68-8e9d793ee5da'; // Use the first custom design user
+    // Use provided user ID or create a new user for custom design orders
+    let finalUserId = userId;
     
-    try {
-      // Verify the user exists
-      const { data: existingUser, error: userError } = await supabase.auth.admin.getUserById(userId);
-      
-      if (userError || !existingUser.user) {
-        console.log('🔧 User not found, creating new user for custom design orders...');
+    if (finalUserId) {
+      // Verify the provided user exists
+      try {
+        const { data: existingUser, error: userError } = await supabase.auth.admin.getUserById(finalUserId);
         
+        if (userError || !existingUser.user) {
+          console.log('🔧 Provided user not found, creating new user for custom design orders...');
+          finalUserId = null; // Will create new user below
+        } else {
+          console.log('✅ Using provided user:', finalUserId);
+        }
+      } catch (error) {
+        console.log('🔧 Error verifying user, creating new user for custom design orders...');
+        finalUserId = null; // Will create new user below
+      }
+    }
+    
+    if (!finalUserId) {
+      try {
         // Create a new user for custom design orders
         const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
           email: `custom-design-${Date.now()}@yohanns.com`,
@@ -140,20 +153,18 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
           console.error('❌ Error creating user:', createError);
           throw new Error('Failed to create user for custom design order');
         } else {
-          userId = newUser.user.id;
-          console.log('✅ Created user for custom design order:', userId);
+          finalUserId = newUser.user.id;
+          console.log('✅ Created user for custom design order:', finalUserId);
         }
-      } else {
-        console.log('✅ Using existing user:', userId);
+      } catch (error) {
+        console.error('❌ Error handling user creation:', error);
+        throw new Error('Failed to get or create user for custom design order');
       }
-    } catch (error) {
-      console.error('❌ Error handling user creation:', error);
-      throw new Error('Failed to get or create user for custom design order');
     }
 
     // Create order data - using existing schema with custom data in JSON fields
     const orderData = {
-      user_id: userId,
+      user_id: finalUserId,
       order_number: orderNumber,
       status: 'pending',
       shipping_method: shippingMethod === 'delivery' ? 'cod' : shippingMethod, // Convert 'delivery' to 'cod'
