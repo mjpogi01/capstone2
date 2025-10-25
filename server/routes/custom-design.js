@@ -41,6 +41,15 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
   try {
     console.log('🎨 Custom design order submission received');
     
+    // Check if user ID is provided (authentication required)
+    const userId = req.body.userId;
+    if (!userId) {
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        message: 'You must be logged in to place a custom design order'
+      });
+    }
+    
     const {
       clientName,
       email,
@@ -50,8 +59,7 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       shippingMethod,
       pickupBranchId,
       deliveryAddress,
-      orderNotes,
-      userId
+      orderNotes
     } = req.body;
 
     // Validate required fields
@@ -117,49 +125,27 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       }
     }
 
-    // Use provided user ID or create a new user for custom design orders
+    // Verify the provided user exists (authentication required)
     let finalUserId = userId;
     
-    if (finalUserId) {
-      // Verify the provided user exists
-      try {
-        const { data: existingUser, error: userError } = await supabase.auth.admin.getUserById(finalUserId);
-        
-        if (userError || !existingUser.user) {
-          console.log('🔧 Provided user not found, creating new user for custom design orders...');
-          finalUserId = null; // Will create new user below
-        } else {
-          console.log('✅ Using provided user:', finalUserId);
-        }
-      } catch (error) {
-        console.log('🔧 Error verifying user, creating new user for custom design orders...');
-        finalUserId = null; // Will create new user below
-      }
-    }
-    
-    if (!finalUserId) {
-      try {
-        // Create a new user for custom design orders
-        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-          email: `custom-design-${Date.now()}@yohanns.com`,
-          password: 'CustomDesign123!',
-          user_metadata: {
-            full_name: 'Custom Design Customer',
-            role: 'customer'
-          }
+    try {
+      const { data: existingUser, error: userError } = await supabase.auth.admin.getUserById(finalUserId);
+      
+      if (userError || !existingUser.user) {
+        console.error('❌ User not found:', userError);
+        return res.status(401).json({ 
+          error: 'Invalid user',
+          message: 'The provided user ID is not valid'
         });
-        
-        if (createError) {
-          console.error('❌ Error creating user:', createError);
-          throw new Error('Failed to create user for custom design order');
-        } else {
-          finalUserId = newUser.user.id;
-          console.log('✅ Created user for custom design order:', finalUserId);
-        }
-      } catch (error) {
-        console.error('❌ Error handling user creation:', error);
-        throw new Error('Failed to get or create user for custom design order');
+      } else {
+        console.log('✅ Using authenticated user:', finalUserId);
       }
+    } catch (error) {
+      console.error('❌ Error verifying user:', error);
+      return res.status(401).json({ 
+        error: 'Authentication failed',
+        message: 'Unable to verify user authentication'
+      });
     }
 
     // Create order data - using existing schema with custom data in JSON fields

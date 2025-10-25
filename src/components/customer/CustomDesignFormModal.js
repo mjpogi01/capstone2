@@ -36,6 +36,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const [validationMessage, setValidationMessage] = useState(null);
   const [showErrors, setShowErrors] = useState(false); // Track if errors should be shown
   const [instantErrors, setInstantErrors] = useState({}); // Real-time validation errors
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false); // Show login prompt for non-logged-in users
   
   const DELIVERY_FEE = 50; // Delivery fee in pesos
 
@@ -117,6 +118,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
     
     // Clear instant errors and show submit errors
     setInstantErrors({});
@@ -606,6 +613,26 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             </div>
           </div>
         </form>
+
+        {showLoginPrompt && (
+          <div className="cdfm-confirm-overlay" onClick={() => setShowLoginPrompt(false)}>
+            <div className="cdfm-confirm-modal" onClick={e => e.stopPropagation()}>
+              <h3>🔐 Login Required</h3>
+              <p>You need to be logged in to place a custom design order.</p>
+              <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px' }}>
+                Please log in to your account to continue with your custom design order.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button onClick={() => setShowLoginPrompt(false)} style={{ background: '#6b7280' }}>
+                  Cancel
+                </button>
+                <button onClick={() => { setShowLoginPrompt(false); onClose(); }} style={{ background: '#3b82f6' }}>
+                  Go to Login
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {confirmation && (
           <div className="cdfm-confirm-overlay" onClick={() => setConfirmation(null)}>
