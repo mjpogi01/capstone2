@@ -46,6 +46,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   const [orderNotes, setOrderNotes] = useState('');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false); // Confirmation dialog
+  const [showOrderComplete, setShowOrderComplete] = useState(false); // Order complete message
 
   // Check for user address when modal opens
   useEffect(() => {
@@ -133,6 +135,11 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
       return;
     }
     
+    // Show confirmation dialog
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmOrder = () => {
     const orderData = {
       deliveryAddress,
       shippingMethod,
@@ -147,6 +154,16 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     };
     
     onPlaceOrder(orderData);
+    setShowConfirmation(false);
+    setShowOrderComplete(true);
+  };
+
+  const handleCancelOrder = () => {
+    setShowConfirmation(false);
+  };
+
+  const handleCloseComplete = () => {
+    setShowOrderComplete(false);
     onClose();
   };
 
@@ -921,6 +938,38 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmation && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal">
+            <h3>Confirm Order</h3>
+            <p>Are you sure you want to place this order?</p>
+            <div className="confirmation-buttons">
+              <button className="confirm-btn yes-btn" onClick={handleConfirmOrder}>
+                Yes
+              </button>
+              <button className="confirm-btn no-btn" onClick={handleCancelOrder}>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Complete Dialog */}
+      {showOrderComplete && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal order-complete-modal">
+            <div className="success-icon">✓</div>
+            <h3>Order Completed!</h3>
+            <p>Your order has been successfully placed.</p>
+            <button className="confirm-btn ok-btn" onClick={handleCloseComplete}>
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
