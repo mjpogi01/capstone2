@@ -278,6 +278,42 @@
   margin-bottom: 0.3rem;
 }
 
+/* ===== PRODUCT STATS (RATING & SOLD) ===== */
+.sportswear-product-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.3rem 0;
+}
+
+.sportswear-product-reviews {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sportswear-review-star {
+  color: var(--sportswear-accent-yellow);
+  font-size: 0.85rem;
+}
+
+.sportswear-review-count {
+  color: var(--sportswear-text-white);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sportswear-product-sold {
+  display: flex;
+  align-items: center;
+}
+
+.sportswear-sold-count {
+  color: #999;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
 /* ===== ADD TO CART / VIEW DETAILS BUTTON ===== */
 .sportswear-action-btn {
   background: var(--sportswear-accent-cyan);
