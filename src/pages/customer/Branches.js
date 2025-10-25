@@ -251,18 +251,22 @@ const Branches = () => {
           // Set route and zoom in one smooth motion
           setRouteCoordinates(routeCoords);
           
-          if (mapRef.current) {
-            const bounds = L.latLngBounds([
-              [userLocation.lat, userLocation.lng],
-              [branch.position.lat, branch.position.lng]
-            ]);
-            mapRef.current.fitBounds(bounds, { 
-              padding: [80, 80],
-              maxZoom: 16,
-              animate: true,
-              duration: 2.0,
-              easeLinearity: 0.05
-            });
+          if (mapRef.current && mapRef.current._loaded) {
+            try {
+              const bounds = L.latLngBounds([
+                [userLocation.lat, userLocation.lng],
+                [branch.position.lat, branch.position.lng]
+              ]);
+              mapRef.current.fitBounds(bounds, { 
+                padding: [80, 80],
+                maxZoom: 16,
+                animate: true,
+                duration: 2.0,
+                easeLinearity: 0.05
+              });
+            } catch (error) {
+              console.error('Error fitting bounds:', error);
+            }
           }
           
           // Calculate travel information using actual distance from API
@@ -283,18 +287,22 @@ const Branches = () => {
           setTravelInfo(info);
           
           // Fit map to show route
-          if (mapRef.current) {
-            const bounds = L.latLngBounds([
-              [userLocation.lat, userLocation.lng],
-              [branch.position.lat, branch.position.lng]
-            ]);
-            mapRef.current.fitBounds(bounds, { 
-              padding: [80, 80],
-              maxZoom: 16,
-              animate: true,
-              duration: 2.0,
-              easeLinearity: 0.05
-            });
+          if (mapRef.current && mapRef.current._loaded) {
+            try {
+              const bounds = L.latLngBounds([
+                [userLocation.lat, userLocation.lng],
+                [branch.position.lat, branch.position.lng]
+              ]);
+              mapRef.current.fitBounds(bounds, { 
+                padding: [80, 80],
+                maxZoom: 16,
+                animate: true,
+                duration: 2.0,
+                easeLinearity: 0.05
+              });
+            } catch (error) {
+              console.error('Error fitting bounds:', error);
+            }
           }
         }
       } catch (error) {
@@ -310,28 +318,36 @@ const Branches = () => {
         setTravelInfo(info);
         
         // Fit map to show route
-        if (mapRef.current) {
-          const bounds = L.latLngBounds([
-            [userLocation.lat, userLocation.lng],
-            [branch.position.lat, branch.position.lng]
-          ]);
-          mapRef.current.fitBounds(bounds, { 
-            padding: [80, 80],
-            animate: true,
-            duration: 2.0,
-            easeLinearity: 0.05
-          });
+        if (mapRef.current && mapRef.current._loaded) {
+          try {
+            const bounds = L.latLngBounds([
+              [userLocation.lat, userLocation.lng],
+              [branch.position.lat, branch.position.lng]
+            ]);
+            mapRef.current.fitBounds(bounds, { 
+              padding: [80, 80],
+              animate: true,
+              duration: 2.0,
+              easeLinearity: 0.05
+            });
+          } catch (error) {
+            console.error('Error fitting bounds fallback:', error);
+          }
         }
       }
     } else {
       // If no user location, just zoom to branch with one smooth animation
       setTravelInfo(null);
-      if (mapRef.current) {
-        mapRef.current.setView(branch.position, 15, { 
-          animate: true, 
-          duration: 2.0,
-          easeLinearity: 0.05
-        });
+      if (mapRef.current && mapRef.current._loaded) {
+        try {
+          mapRef.current.setView(branch.position, 15, { 
+            animate: true, 
+            duration: 2.0,
+            easeLinearity: 0.05
+          });
+        } catch (error) {
+          console.error('Error setting view:', error);
+        }
       }
     }
   };
