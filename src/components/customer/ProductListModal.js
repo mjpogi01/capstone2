@@ -64,15 +64,7 @@ const ProductListModal = ({ isOpen, onClose }) => {
     try {
       setLoading(true);
       const data = await productService.getAllProducts();
-      
-      // Add mock rating and sold data if not present
-      const productsWithStats = data.map(product => ({
-        ...product,
-        average_rating: product.average_rating || (Math.random() * 2 + 3).toFixed(1), // Random rating between 3.0-5.0
-        sold_quantity: product.sold_quantity || Math.floor(Math.random() * 100 + 1) // Random sold between 1-100
-      }));
-      
-      setProducts(productsWithStats);
+      setProducts(data);
       setError(null);
     } catch (err) {
       console.error('Error fetching products:', err);
