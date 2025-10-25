@@ -1535,6 +1535,13 @@ div.checkout-modal div.member-details .detail-label {
   display: inline-block;
   opacity: 1;
   visibility: visible;
+  outline: none;
+  border: none;
+}
+
+.reason-option input[type="radio"]:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .reason-option span {
