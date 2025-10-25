@@ -116,17 +116,17 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       }
     }
 
-    // First, create a user for this custom design order if needed
-    let userId = '00000000-0000-0000-0000-000000000001';
+    // Use an existing user for custom design orders
+    let userId = '6833e7d5-408a-4210-ac68-8e9d793ee5da'; // Use the first custom design user
     
     try {
-      // Try to get an existing user first
+      // Verify the user exists
       const { data: existingUser, error: userError } = await supabase.auth.admin.getUserById(userId);
       
       if (userError || !existingUser.user) {
-        console.log('🔧 Creating default user for custom design orders...');
+        console.log('🔧 User not found, creating new user for custom design orders...');
         
-        // Create a default user for custom design orders
+        // Create a new user for custom design orders
         const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
           email: `custom-design-${Date.now()}@yohanns.com`,
           password: 'CustomDesign123!',
@@ -138,8 +138,7 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
         
         if (createError) {
           console.error('❌ Error creating user:', createError);
-          // Fallback to a hardcoded UUID that we'll handle differently
-          userId = '00000000-0000-0000-0000-000000000001';
+          throw new Error('Failed to create user for custom design order');
         } else {
           userId = newUser.user.id;
           console.log('✅ Created user for custom design order:', userId);
@@ -149,8 +148,7 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       }
     } catch (error) {
       console.error('❌ Error handling user creation:', error);
-      // Use fallback user ID
-      userId = '00000000-0000-0000-0000-000000000001';
+      throw new Error('Failed to get or create user for custom design order');
     }
 
     // Create order data - using existing schema with custom data in JSON fields
@@ -158,7 +156,7 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       user_id: userId,
       order_number: orderNumber,
       status: 'pending',
-      shipping_method: shippingMethod,
+      shipping_method: shippingMethod === 'delivery' ? 'cod' : shippingMethod, // Convert 'delivery' to 'cod'
       pickup_location: shippingMethod === 'pickup' ? branches.find(b => b.id === pickupBranchId)?.name : null,
       delivery_address: shippingMethod === 'delivery' ? { address: deliveryAddress } : null,
       order_notes: orderNotes,
