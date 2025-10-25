@@ -246,29 +246,32 @@
 /* Responsive design - matching FAQs breakpoints */
 @media (max-width: 768px) {
   .contacts-container {
-    padding: 100px 0 2rem 0;
+    padding: 90px 0 2rem 0;
   }
   
   .contacts-wrapper {
-    padding: 0 5%;
+    padding: 0 1.5rem;
     max-width: 100%;
   }
   
   .contacts-hero {
-    padding: 2rem 0;
-    margin-bottom: 3rem;
+    padding: 1.5rem 0;
+    margin-bottom: 2.5rem;
   }
   
   .contacts-title {
-    font-size: clamp(2rem, 5vw, 2.5rem);
-    padding: 0 1rem;
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+    padding: 0 0.5rem;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
   }
   
   .contacts-subtitle {
-    font-size: clamp(0.95rem, 2vw, 1.1rem);
-    padding: 0 1rem;
-    max-width: 90%;
-    margin: 1rem auto;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    padding: 0 0.5rem;
+    max-width: 95%;
+    margin: 0 auto;
+    line-height: 1.5;
   }
   
   .contacts-branches-grid {
@@ -304,7 +307,7 @@
 
 @media (max-width: 480px) {
   .contacts-container {
-    padding: 85px 0 1.5rem 0;
+    padding: 80px 0 1.5rem 0;
   }
   
   .contacts-wrapper {
@@ -312,16 +315,21 @@
   }
   
   .contacts-hero {
-    padding: 1rem 0;
+    padding: 1.25rem 0;
     margin-bottom: 2rem;
   }
   
   .contacts-title {
-    font-size: 1.8rem;
+    font-size: clamp(1.5rem, 7vw, 1.8rem);
+    line-height: 1.15;
+    margin-bottom: 0.65rem;
+    padding: 0 0.25rem;
   }
   
   .contacts-subtitle {
-    font-size: 0.95rem;
+    font-size: clamp(0.9rem, 3.5vw, 1rem);
+    line-height: 1.4;
+    padding: 0 0.25rem;
   }
   
   .contacts-branches-grid {
@@ -365,19 +373,29 @@
 /* Extra small devices */
 @media (max-width: 360px) {
   .contacts-container {
-    padding: 80px 0 1rem 0;
+    padding: 75px 0 1rem 0;
   }
   
   .contacts-wrapper {
     padding: 0 0.75rem;
   }
   
+  .contacts-hero {
+    padding: 1rem 0;
+    margin-bottom: 1.5rem;
+  }
+  
   .contacts-title {
-    font-size: 1.6rem;
+    font-size: clamp(1.35rem, 8vw, 1.6rem);
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    padding: 0;
   }
   
   .contacts-subtitle {
-    font-size: 0.85rem;
+    font-size: clamp(0.85rem, 4vw, 0.95rem);
+    line-height: 1.35;
+    padding: 0;
   }
   
   .contacts-branch-card {

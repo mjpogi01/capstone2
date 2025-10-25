@@ -307,117 +307,217 @@
 /* Responsive - Small Mobile (481px - 767px) */
 @media (max-width: 767px) and (min-width: 481px) {
   .newsletter-content {
-    flex-direction: column;
-    gap: 1.8rem;
-    padding: 2rem 1rem 0 1rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0;
+    padding: 2rem 0.5rem 0 0.5rem;
+    position: relative;
   }
 
   .newsletter-album {
-    flex-direction: row;
-    justify-content: center;
-    gap: 1.5rem;
-    width: auto;
-    height: auto;
+    flex-direction: column;
+    gap: 0;
+    width: 75px;
+    height: 125px;
+    position: relative;
+  }
+
+  .newsletter-album-left {
+    order: 1;
+    margin-right: 0.5rem;
+  }
+
+  .newsletter-album-right {
+    order: 3;
+    margin-left: 0.5rem;
+  }
+
+  .newsletter-text {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+    max-width: 280px;
+    padding: 0 0.5rem;
   }
 
   .album-image {
-    width: 85px;
-    height: 115px;
-    position: relative;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    z-index: 1 !important;
-    border-radius: 8px;
+    width: 65px;
+    height: 85px;
+    position: absolute;
+    border-radius: 6px;
     border-width: 1.5px;
   }
 
-  .album-top-left,
-  .album-bottom-left,
-  .album-top-right,
+  .album-top-left {
+    transform: rotate(-10deg);
+    top: 0;
+    left: 0;
+    z-index: 2;
+  }
+
+  .album-bottom-left {
+    transform: rotate(8deg);
+    top: 45px;
+    left: 10px;
+    z-index: 1;
+  }
+
+  .album-top-right {
+    transform: rotate(10deg);
+    top: 0;
+    right: 0;
+    z-index: 2;
+  }
+
   .album-bottom-right {
-    transform: rotate(0deg) !important;
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
+    transform: rotate(-8deg);
+    top: 45px;
+    right: 10px;
+    z-index: 1;
   }
   
   .newsletter-title {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
   }
   
   .newsletter-subtitle {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
   }
   
   .newsletter-description {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
+    margin-bottom: 1rem;
+  }
+
+  .newsletter-form {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .email-input {
+    min-width: auto;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.65rem;
+    border-radius: 3px;
+  }
+
+  .subscribe-btn {
+    width: 100%;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.65rem;
+    border-radius: 3px;
   }
 }
 
 /* Responsive - Extra Small Mobile (< 481px) */
 @media (max-width: 480px) {
   .newsletter-content {
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.5rem 0.75rem 0 0.75rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0;
+    padding: 1.5rem 0.25rem 0 0.25rem;
+    position: relative;
   }
 
   .newsletter-album {
-    flex-direction: row;
-    justify-content: center;
-    gap: 1rem;
-    width: auto;
-    height: auto;
+    flex-direction: column;
+    gap: 0;
+    width: 65px;
+    height: 110px;
+    position: relative;
+  }
+
+  .newsletter-album-left {
+    order: 1;
+    margin-right: 0.25rem;
+  }
+
+  .newsletter-album-right {
+    order: 3;
+    margin-left: 0.25rem;
+  }
+
+  .newsletter-text {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+    max-width: 220px;
+    padding: 0 0.35rem;
   }
 
   .album-image {
-    width: 70px;
-    height: 95px;
-    position: relative;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    z-index: 1 !important;
-    border-radius: 6px;
+    width: 55px;
+    height: 75px;
+    position: absolute;
+    border-radius: 5px;
     border-width: 1px;
   }
 
-  .album-top-left,
-  .album-bottom-left,
-  .album-top-right,
+  .album-top-left {
+    transform: rotate(-12deg);
+    top: 0;
+    left: 0;
+    z-index: 2;
+  }
+
+  .album-bottom-left {
+    transform: rotate(9deg);
+    top: 38px;
+    left: 8px;
+    z-index: 1;
+  }
+
+  .album-top-right {
+    transform: rotate(12deg);
+    top: 0;
+    right: 0;
+    z-index: 2;
+  }
+
   .album-bottom-right {
-    transform: rotate(0deg) !important;
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
+    transform: rotate(-9deg);
+    top: 38px;
+    right: 8px;
+    z-index: 1;
   }
 
   .newsletter-title {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+    letter-spacing: 1px;
   }
 
   .newsletter-subtitle {
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.68rem;
+    margin-bottom: 0.4rem;
   }
 
   .newsletter-description {
-    font-size: 0.75rem;
-    margin-bottom: 1rem;
+    font-size: 0.65rem;
+    margin-bottom: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .newsletter-form {
+    flex-direction: column;
+    gap: 0.35rem;
   }
 
   .email-input {
     min-width: auto;
-    padding: 0.65rem 0.8rem;
-    font-size: 0.8rem;
+    width: 100%;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.6rem;
+    border-radius: 3px;
   }
 
   .subscribe-btn {
-    padding: 0.65rem 1.2rem;
-    font-size: 0.8rem;
+    width: 100%;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.6rem;
+    border-radius: 3px;
   }
 }
