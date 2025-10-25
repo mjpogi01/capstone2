@@ -135,12 +135,65 @@ router.get('/', async (req, res) => {
 
     console.log(`📦 [Orders API] Returning ${orders?.length} orders, total: ${totalCount}`);
 
+    // Get unique user IDs from orders
+    const userIds = [...new Set(orders.map(order => order.user_id).filter(Boolean))];
+    
+    // Fetch user data for all unique user IDs
+    let userData = {};
+    if (userIds.length > 0) {
+      try {
+        const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+        if (!usersError && users?.users) {
+          users.users.forEach(user => {
+            const firstName = user.user_metadata?.first_name || '';
+            const lastName = user.user_metadata?.last_name || '';
+            const fullName = user.user_metadata?.full_name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
+            
+            userData[user.id] = {
+              email: user.email,
+              full_name: fullName || null
+            };
+          });
+        }
+      } catch (error) {
+        console.warn('Could not fetch user data:', error.message);
+      }
+    }
+
     // Transform data to match expected format
-    const transformedOrders = (orders || []).map(order => ({
-      ...order,
-      customer_email: null, // Will be populated separately if needed
-      customer_name: null   // Will be populated separately if needed
-    }));
+    const transformedOrders = (orders || []).map(order => {
+      // Extract customer info from user data or delivery address
+      let customerName = 'Unknown Customer';
+      let customerEmail = 'N/A';
+      
+      // For custom design orders, use client info from order_items
+      if (order.order_type === 'custom_design' && order.order_items && order.order_items.length > 0) {
+        const firstItem = order.order_items[0];
+        if (firstItem.client_name) {
+          customerName = firstItem.client_name;
+        }
+        if (firstItem.client_email) {
+          customerEmail = firstItem.client_email;
+        }
+      } else {
+        // For regular orders, use user data or delivery address
+        const user = userData[order.user_id];
+        if (user?.email) {
+          customerEmail = user.email;
+        }
+        if (user?.full_name) {
+          customerName = user.full_name;
+        } else if (order.delivery_address?.receiver) {
+          customerName = order.delivery_address.receiver;
+        }
+      }
+      
+      return {
+        ...order,
+        customer_email: customerEmail,
+        customer_name: customerName
+      };
+    });
 
     res.json({
       orders: transformedOrders,
@@ -176,11 +229,58 @@ router.get('/:id', async (req, res) => {
       throw new Error(`Supabase error: ${error.message}`);
     }
 
+    // Fetch user data for this order
+    let userData = null;
+    if (order.user_id) {
+      try {
+        const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+        if (!usersError && users?.users) {
+          const user = users.users.find(u => u.id === order.user_id);
+          if (user) {
+            const firstName = user.user_metadata?.first_name || '';
+            const lastName = user.user_metadata?.last_name || '';
+            const fullName = user.user_metadata?.full_name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
+            
+            userData = {
+              email: user.email,
+              full_name: fullName || null
+            };
+          }
+        }
+      } catch (error) {
+        console.warn('Could not fetch user data:', error.message);
+      }
+    }
+
     // Transform data to match expected format
+    let customerName = 'Unknown Customer';
+    let customerEmail = 'N/A';
+    
+    // For custom design orders, use client info from order_items
+    if (order.order_type === 'custom_design' && order.order_items && order.order_items.length > 0) {
+      const firstItem = order.order_items[0];
+      if (firstItem.client_name) {
+        customerName = firstItem.client_name;
+      }
+      if (firstItem.client_email) {
+        customerEmail = firstItem.client_email;
+      }
+    } else {
+      // For regular orders, use user data or delivery address
+      if (userData?.email) {
+        customerEmail = userData.email;
+      }
+      if (userData?.full_name) {
+        customerName = userData.full_name;
+      } else if (order.delivery_address?.receiver) {
+        customerName = order.delivery_address.receiver;
+      }
+    }
+    
     const transformedOrder = {
       ...order,
-      customer_email: null, // Will be populated separately if needed
-      customer_name: null   // Will be populated separately if needed
+      customer_email: customerEmail,
+      customer_name: customerName
     };
 
     res.json(transformedOrder);
