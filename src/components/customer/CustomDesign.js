@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import CustomDesignFormModal from './CustomDesignFormModal';
+import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import './CustomDesign.css';
 
 const CustomDesign = () => {
   const [clickedImage, setClickedImage] = useState(null);
+  const { isCartOpen } = useCart();
+  const { isWishlistOpen } = useWishlist();
 
   const handleImageClick = (imageType) => {
     setClickedImage(imageType);
@@ -25,14 +29,16 @@ const CustomDesign = () => {
       </div>
     </section>
     
-    {/* Floating Button - Always visible */}
-    <button 
-      className="custom-design-floating-btn"
-      onClick={handleUploadClick}
-      title="Upload Your Dream Design"
-    >
-      UPLOAD YOUR DREAM DESIGN
-    </button>
+    {/* Floating Button - Hidden when cart or wishlist is open */}
+    {!isCartOpen && !isWishlistOpen && (
+      <button 
+        className="custom-design-floating-btn"
+        onClick={handleUploadClick}
+        title="Upload Your Dream Design"
+      >
+        UPLOAD YOUR DREAM DESIGN
+      </button>
+    )}
     
     <CustomDesignFormModal isOpen={!!clickedImage} onClose={() => setClickedImage(null)} />
     </>

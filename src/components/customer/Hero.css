@@ -91,7 +91,7 @@
 .btn-primary {
   background: #00bfff;
   color: #000;
-  border: 2px solid #00bfff;
+  border: 2px solid #00bfff !important;
 }
 
 .btn-primary:hover {
@@ -102,7 +102,7 @@
 .btn-secondary {
   background: transparent;
   color: #00bfff;
-  border: 2px solid #00bfff;
+  border: 2px solid #00bfff !important  ;
   position: relative;
   overflow: hidden;
 }

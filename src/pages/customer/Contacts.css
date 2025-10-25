@@ -4,7 +4,7 @@
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
   color: #ffffff;
   padding: 100px 0 3rem 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .contacts-container {
@@ -27,7 +27,7 @@
   text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
   margin-bottom: 1rem;
   letter-spacing: -0.02em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .contacts-hero p {
@@ -37,7 +37,7 @@
   margin: 0 auto;
   line-height: 1.6;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 /* Branch Cards Grid */
@@ -67,7 +67,7 @@
   font-size: 1.3rem;
   font-weight: 600;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .branch-info {
@@ -99,7 +99,7 @@
 .branch-info-text {
   color: #a9d8ff;
   line-height: 1.6;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
 }
 
@@ -120,7 +120,7 @@
   text-align: center;
   margin-bottom: 2rem;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .form-container {
@@ -142,7 +142,7 @@
   background: #0d0d0d;
   color: #ffffff;
   font-size: 1rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
   transition: border-color 0.3s ease;
 }
@@ -155,7 +155,7 @@
 
 .form-input::placeholder {
   color: #666;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .form-textarea {
@@ -166,7 +166,7 @@
   background: #0d0d0d;
   color: #ffffff;
   font-size: 1rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
   margin-bottom: 1rem;
   resize: vertical;
@@ -182,7 +182,7 @@
 
 .form-textarea::placeholder {
   color: #666;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .submit-button {
@@ -193,7 +193,7 @@
   border: none;
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
@@ -221,7 +221,7 @@
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   border: 2px solid #00bfff;
   transition: all 0.3s ease;
   display: inline-block;

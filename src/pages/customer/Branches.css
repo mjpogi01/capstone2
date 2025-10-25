@@ -7,7 +7,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   overflow-x: hidden;
   position: relative;
 }
@@ -37,7 +37,7 @@
   color: #00bfff;
   text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
   letter-spacing: -0.02em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .yohanns-branches-description {
@@ -46,7 +46,7 @@
   text-align: center;
   font-size: 1.2rem;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   line-height: 1.6;
 }
 
@@ -137,7 +137,7 @@
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-size: 1rem;
 }
 
@@ -145,7 +145,7 @@
   font-size: 0.9rem;
   color: #a9d8ff;
   line-height: 1.6;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
 }
 
@@ -167,7 +167,7 @@
   font-size: 15px;
   color: #00bfff;
   text-shadow: 0 0 8px rgba(0, 191, 255, 0.5);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .yohanns-info-window-address {
@@ -175,7 +175,7 @@
   line-height: 1.4;
   color: #a9d8ff;
   margin-bottom: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
 }
 
@@ -194,7 +194,7 @@
   font-size: 11px;
   color: #00bfff;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .yohanns-directions-button {
@@ -206,7 +206,7 @@
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -236,7 +236,7 @@
   margin-bottom: 1.5rem;
   color: #a9d8ff;
   text-align: center;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 /* Responsive design */
@@ -496,7 +496,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   color: #00bfff;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
 }
 
@@ -550,7 +550,7 @@
   font-size: 0.75rem;
   color: #9ca3af;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -559,7 +559,7 @@
   font-size: 0.7rem;
   color: rgba(156, 163, 175, 0.7);
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   line-height: 1.2;
   font-style: italic;
 }
@@ -568,7 +568,7 @@
   font-size: 0.9rem;
   color: #ffffff;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 @media (max-width: 768px) {

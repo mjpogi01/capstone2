@@ -7,7 +7,7 @@
   padding: 3rem 0 1rem;
   border-top: 2px solid #00bfff;
   box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
-  font-family: 'Poppins', 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   position: relative;
   overflow: hidden;
 }
@@ -49,7 +49,7 @@
 .footer-tagline {
   color: rgba(0, 191, 255, 0.9);
   font-size: 1rem;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -75,7 +75,7 @@
   text-decoration: none;
   font-size: 0.8rem;
   transition: all 0.3s ease;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -111,7 +111,7 @@
   margin-bottom: 1.5rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Oswald', sans-serif;
   text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
 }
 
@@ -155,14 +155,14 @@
 }
 
 .contact-text {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .contact-link {
   color: #ffffff;
   font-size: 0.9rem;
   text-decoration: none;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
   transition: all 0.3s ease;
   line-height: 1.6;
@@ -182,7 +182,7 @@
 .copyright {
   color: rgba(0, 191, 255, 0.7);
   font-size: 0.9rem;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-weight: 400;
   margin: 0;
   line-height: 1.5;

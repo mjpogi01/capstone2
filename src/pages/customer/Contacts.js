@@ -69,7 +69,8 @@ const Contacts = () => {
             fontWeight: 'bold',
             color: '#00bfff',
             textShadow: '0 0 20px rgba(0, 191, 255, 0.5)',
-            marginBottom: '1rem'
+            marginBottom: '1rem',
+            fontFamily: 'Oswald, sans-serif'
           }}>
             Contact Us
           </h1>
@@ -78,7 +79,8 @@ const Contacts = () => {
             color: '#a9d8ff',
             maxWidth: '800px',
             margin: '0 auto',
-            lineHeight: '1.6'
+            lineHeight: '1.6',
+            fontFamily: 'Oswald, sans-serif'
           }}>
             Get in touch with us at any of our convenient locations
           </p>
@@ -103,7 +105,8 @@ const Contacts = () => {
                 color: '#00bfff',
                 marginBottom: '1rem',
                 fontSize: '1.3rem',
-                textShadow: '0 0 10px rgba(0, 191, 255, 0.3)'
+                textShadow: '0 0 10px rgba(0, 191, 255, 0.3)',
+                fontFamily: 'Oswald, sans-serif'
               }}>
                 {branch.name}
               </h3>
@@ -117,7 +120,7 @@ const Contacts = () => {
                   marginBottom: '0.5rem'
                 }}>
                   <span style={{ color: '#00bfff', marginTop: '0.2rem' }}>📍</span>
-                  <span style={{ color: '#a9d8ff', lineHeight: '1.4' }}>
+                  <span style={{ color: '#a9d8ff', lineHeight: '1.4', fontFamily: 'Oswald, sans-serif' }}>
                     {branch.address}
                   </span>
                 </div>
@@ -128,7 +131,7 @@ const Contacts = () => {
                   marginBottom: '0.5rem'
                 }}>
                   <span style={{ color: '#00bfff' }}>📞</span>
-                  <span style={{ color: '#a9d8ff' }}>{branch.phone}</span>
+                  <span style={{ color: '#a9d8ff', fontFamily: 'Oswald, sans-serif' }}>{branch.phone}</span>
                 </div>
                 <div style={{
                   display: 'flex',
@@ -136,7 +139,7 @@ const Contacts = () => {
                   gap: '0.5rem'
                 }}>
                   <span style={{ color: '#00bfff' }}>🕒</span>
-                  <span style={{ color: '#a9d8ff' }}>{branch.hours}</span>
+                  <span style={{ color: '#a9d8ff', fontFamily: 'Oswald, sans-serif' }}>{branch.hours}</span>
                 </div>
               </div>
             </div>
@@ -157,7 +160,8 @@ const Contacts = () => {
             color: '#00bfff',
             textAlign: 'center',
             marginBottom: '2rem',
-            textShadow: '0 0 10px rgba(0, 191, 255, 0.3)'
+            textShadow: '0 0 10px rgba(0, 191, 255, 0.3)',
+            fontFamily: 'Oswald, sans-serif'
           }}>
             Send us a Message
           </h2>
@@ -180,7 +184,8 @@ const Contacts = () => {
                   border: '1px solid #333',
                   background: '#0d0d0d',
                   color: '#ffffff',
-                  fontSize: '1rem'
+                  fontSize: '1rem',
+                  fontFamily: 'Oswald, sans-serif'
                 }}
               />
               <input
@@ -192,7 +197,8 @@ const Contacts = () => {
                   border: '1px solid #333',
                   background: '#0d0d0d',
                   color: '#ffffff',
-                  fontSize: '1rem'
+                  fontSize: '1rem',
+                  fontFamily: 'Oswald, sans-serif'
                 }}
               />
             </div>
@@ -207,7 +213,8 @@ const Contacts = () => {
                 background: '#0d0d0d',
                 color: '#ffffff',
                 fontSize: '1rem',
-                marginBottom: '1rem'
+                marginBottom: '1rem',
+                fontFamily: 'Oswald, sans-serif'
               }}
             />
             <textarea
@@ -222,7 +229,8 @@ const Contacts = () => {
                 color: '#ffffff',
                 fontSize: '1rem',
                 marginBottom: '1rem',
-                resize: 'vertical'
+                resize: 'vertical',
+                fontFamily: 'Oswald, sans-serif'
               }}
             />
             <button
@@ -237,7 +245,8 @@ const Contacts = () => {
                 fontWeight: 'bold',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
-                width: '100%'
+                width: '100%',
+                fontFamily: 'Oswald, sans-serif'
               }}
             >
               Send Message
@@ -258,7 +267,8 @@ const Contacts = () => {
             fontWeight: 'bold',
             border: '2px solid #00bfff',
             transition: 'all 0.3s ease',
-            display: 'inline-block'
+            display: 'inline-block',
+            fontFamily: 'Oswald, sans-serif'
           }}>
             View All Branches on Map
           </a>

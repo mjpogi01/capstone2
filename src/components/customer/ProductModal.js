@@ -596,75 +596,11 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
             )}
 
-            {/* Ball Details Form */}
-            {isBall && (
-              <div className="modal-ball-details-section">
-                <div className="modal-ball-details-label">🏀 BALL DETAILS</div>
-                <div className="modal-ball-details-form">
-                  <select
-                    value={ballDetails.sportType}
-                    onChange={(e) => setBallDetails({...ballDetails, sportType: e.target.value})}
-                    className="modal-ball-details-input"
-                  >
-                    <option value="">Select Sport Type</option>
-                    <option value="Basketball">Basketball</option>
-                    <option value="Volleyball">Volleyball</option>
-                    <option value="Soccer">Soccer</option>
-                    <option value="Football">Football</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Brand (e.g., Molten, Mikasa)"
-                    value={ballDetails.brand}
-                    onChange={(e) => setBallDetails({...ballDetails, brand: e.target.value})}
-                    className="modal-ball-details-input"
-                  />
-                  <select
-                    value={ballDetails.ballSize}
-                    onChange={(e) => setBallDetails({...ballDetails, ballSize: e.target.value})}
-                    className="modal-ball-details-input"
-                  >
-                    <option value="">Select Size</option>
-                    <option value="Size 3 (Kids)">Size 3 (Kids)</option>
-                    <option value="Size 5 (Youth)">Size 5 (Youth)</option>
-                    <option value="Size 6 (Women)">Size 6 (Women)</option>
-                    <option value="Size 7 (Men)">Size 7 (Men)</option>
-                    <option value="Official Size">Official Size</option>
-                  </select>
-                  <select
-                    value={ballDetails.material}
-                    onChange={(e) => setBallDetails({...ballDetails, material: e.target.value})}
-                    className="modal-ball-details-input"
-                  >
-                    <option value="">Select Material</option>
-                    <option value="Rubber">Rubber</option>
-                    <option value="Synthetic Leather">Synthetic Leather</option>
-                    <option value="Genuine Leather">Genuine Leather</option>
-                    <option value="Composite">Composite</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
             {/* Trophy Details Form */}
             {isTrophy && (
               <div className="modal-trophy-details-section">
                 <div className="modal-trophy-details-label">🏆 TROPHY DETAILS</div>
                 <div className="modal-trophy-details-form">
-                  <select
-                    value={trophyDetails.trophyType}
-                    onChange={(e) => setTrophyDetails({...trophyDetails, trophyType: e.target.value})}
-                    className="modal-trophy-details-input"
-                  >
-                    <option value="">Select Trophy Type</option>
-                    <option value="Cup Trophy">Cup Trophy</option>
-                    <option value="Figure Trophy">Figure Trophy</option>
-                    <option value="Plaque">Plaque</option>
-                    <option value="Medal">Medal</option>
-                    <option value="Crystal Trophy">Crystal Trophy</option>
-                    <option value="Wooden Trophy">Wooden Trophy</option>
-                  </select>
                   <select
                     value={trophyDetails.size}
                     onChange={(e) => setTrophyDetails({...trophyDetails, size: e.target.value})}
@@ -676,18 +612,6 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     <option value='14" (Large)'>14" (Large)</option>
                     <option value='18" (Extra Large)'>18" (Extra Large)</option>
                     <option value='24" (Premium)'>24" (Premium)</option>
-                  </select>
-                  <select
-                    value={trophyDetails.material}
-                    onChange={(e) => setTrophyDetails({...trophyDetails, material: e.target.value})}
-                    className="modal-trophy-details-input"
-                  >
-                    <option value="">Select Material</option>
-                    <option value="Plastic">Plastic</option>
-                    <option value="Metal">Metal</option>
-                    <option value="Crystal">Crystal</option>
-                    <option value="Wood">Wood</option>
-                    <option value="Acrylic">Acrylic</option>
                   </select>
                   <textarea
                     placeholder="Engraving Text (Optional)"

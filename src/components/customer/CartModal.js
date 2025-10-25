@@ -214,19 +214,21 @@ const CartModal = () => {
 
                             return (
                               <>
-                                <div 
-                                  className={`mycart-order-type-header ${expandedOrderIndex === index ? 'expanded' : ''}`}
-                                  onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
-                                >
-                                  <span className="mycart-order-type-label">
-                                    {isBall ? '🏀 Ball Details' : isTrophy ? '🏆 Trophy Details' : (item.isTeamOrder ? 'Team Order' : 'Single Order')}
-                                  </span>
-                                  <span className="mycart-dropdown-arrow">
-                                    <FontAwesomeIcon icon={faChevronDown} />
-                                  </span>
-                                </div>
-                                
-                                {expandedOrderIndex === index && (
+                                {!isBall && (
+                                  <>
+                                    <div 
+                                      className={`mycart-order-type-header ${expandedOrderIndex === index ? 'expanded' : ''}`}
+                                      onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                                    >
+                                      <span className="mycart-order-type-label">
+                                        {isTrophy ? '🏆 Trophy Details' : (item.isTeamOrder ? 'Team Order' : 'Single Order')}
+                                      </span>
+                                      <span className="mycart-dropdown-arrow">
+                                        <FontAwesomeIcon icon={faChevronDown} />
+                                      </span>
+                                    </div>
+                                    
+                                    {expandedOrderIndex === index && (
                                   <div className="mycart-order-details-section">
                                     {/* For Apparel - Team Orders */}
                                     {isApparel && item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 ? (
@@ -274,34 +276,6 @@ const CartModal = () => {
                                           <span className="mycart-detail-value">{item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                         </div>
                                       </div>
-                                    ) : isBall ? (
-                                      /* For Balls */
-                                      <div className="mycart-ball-details">
-                                        {item.ballDetails?.sportType && (
-                                          <div className="mycart-detail-line">
-                                            <span className="mycart-detail-label">Sport:</span>
-                                            <span className="mycart-detail-value">{item.ballDetails.sportType}</span>
-                                          </div>
-                                        )}
-                                        {item.ballDetails?.brand && (
-                                          <div className="mycart-detail-line">
-                                            <span className="mycart-detail-label">Brand:</span>
-                                            <span className="mycart-detail-value">{item.ballDetails.brand}</span>
-                                          </div>
-                                        )}
-                                        {item.ballDetails?.ballSize && (
-                                          <div className="mycart-detail-line">
-                                            <span className="mycart-detail-label">Size:</span>
-                                            <span className="mycart-detail-value">{item.ballDetails.ballSize}</span>
-                                          </div>
-                                        )}
-                                        {item.ballDetails?.material && (
-                                          <div className="mycart-detail-line">
-                                            <span className="mycart-detail-label">Material:</span>
-                                            <span className="mycart-detail-value">{item.ballDetails.material}</span>
-                                          </div>
-                                        )}
-                                      </div>
                                     ) : isTrophy ? (
                                       /* For Trophies */
                                       <div className="mycart-trophy-details">
@@ -338,6 +312,8 @@ const CartModal = () => {
                                       </div>
                                     ) : null}
                                   </div>
+                                    )}
+                                  </>
                                 )}
                               </>
                             );

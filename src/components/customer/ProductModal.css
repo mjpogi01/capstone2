@@ -230,7 +230,7 @@
 }
 
 .original-price {
-  color: #888;
+  color: #a0aec0;
   text-decoration: line-through;
   font-size: 1.2rem;
   font-weight: 500;
@@ -357,7 +357,7 @@
 }
 
 .modal-team-name-input::placeholder {
-  color: #888;
+  color: #a0aec0;
   font-weight: 400;
 }
 
@@ -401,7 +401,7 @@
 }
 
 .modal-member-input::placeholder {
-  color: #666;
+  color: #a0aec0;
 }
 
 .modal-member-input.number-input {
@@ -670,7 +670,7 @@
 }
 
 .modal-single-order-input::placeholder {
-  color: #888;
+  color: #a0aec0;
   font-weight: 400;
 }
 
@@ -1017,7 +1017,7 @@
 }
 
 .modal-review-date {
-  color: #666;
+  color: #a0aec0;
   font-size: 0.8rem;
 }
 

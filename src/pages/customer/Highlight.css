@@ -7,7 +7,7 @@
   max-width: 100vw;
   overflow-x: hidden;
   position: relative;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .container {
@@ -35,7 +35,7 @@
   text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
   margin-bottom: 1rem;
   letter-spacing: -0.02em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .title-section p {
@@ -45,7 +45,7 @@
   margin: 0 auto;
   line-height: 1.6;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 /* Album Grid */
@@ -236,7 +236,7 @@
   border-radius: 8px;
   border: none;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 1rem;
@@ -283,7 +283,7 @@
   color: #00bfff;
   margin-bottom: 1rem;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .cta-section p {
@@ -291,7 +291,7 @@
   color: #a9d8ff;
   margin-bottom: 2rem;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 .cta-button {
@@ -301,7 +301,7 @@
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Oswald', sans-serif;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
   display: inline-block;

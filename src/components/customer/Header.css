@@ -37,7 +37,8 @@
 
 .nav-menu {
   display: flex;
-  gap: 2.5rem;
+  margin-left: 50px;
+  gap: 5rem;
 }
 
 .nav-link {

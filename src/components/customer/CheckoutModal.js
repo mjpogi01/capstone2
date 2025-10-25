@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaTruck, FaUsers, FaChevronDown } from 'react-icons/fa';
+import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaPhone, FaChevronUp } from 'react-icons/fa';
 import userService from '../../services/userService';
 import './CheckoutModal.css';
 
@@ -490,7 +490,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
               /* No Address Yet */
               <div className="no-address-section">
                 <div className="no-address-content">
-                  <div className="no-address-icon">📍</div>
+                  <div className="no-address-icon"><FaMapMarkerAlt /></div>
                   <div className="no-address-text">
                     <h3>No address yet</h3>
                     <p>Please add your delivery address to continue</p>
@@ -523,9 +523,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                   <div className="address-card-content">
                     <div className="address-header">
                       <div className="location-icon">
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                        </svg>
+                        <FaMapMarkerAlt />
                       </div>
                       <div className="receiver-info">
                         <div className="receiver-name">{address.full_name}</div>
@@ -572,6 +570,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           <div className="products-table">
             <div className="table-header">
               <div className="header-item">ITEM</div>
+              <div className="header-order">ORDER</div>
               <div className="header-price">PRICE</div>
               <div className="header-quantity">QTY</div>
               <div className="header-total">TOTAL</div>
@@ -599,17 +598,29 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       </div>
                       <div className="item-details">
                         <div className="item-name">{item.name}</div>
-                        <div 
-                          className="item-type clickable"
-                          onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
-                        >
-                          {isBall ? '🏀 Ball' : isTrophy ? '🏆 Trophy' : (item.category === 'team' ? 'Team Order' : 'Single Order')}
-                          <span className="dropdown-arrow">
-                            {expandedOrderIndex === index ? '▲' : '▼'}
-                          </span>
-                        </div>
-                        {expandedOrderIndex === index && (
-                          <div className="order-details-dropdown">
+                      </div>
+                    </div>
+                  </div>
+                  <div 
+                    className="order-cell"
+                    onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                  >
+                    {isBall ? (
+                      <><FaBasketballBall /> Ball</>
+                    ) : isTrophy ? (
+                      <><FaTrophy /> Trophy</>
+                    ) : item.category === 'team' ? (
+                      <><FaUserFriends /> Team Order</>
+                    ) : (
+                      <><FaUser /> Single Order</>
+                    )}
+                    <span className="dropdown-arrow">
+                      {expandedOrderIndex === index ? <FaChevronUp /> : <FaChevronDown />}
+                    </span>
+                  </div>
+                  {expandedOrderIndex === index && (
+                    <div className="order-details-wrapper" style={{ gridColumn: '1 / -1' }}>
+                      <div className="order-details-dropdown">
                             {/* For Apparel - Team Orders */}
                             {isApparel && item.category === 'team' && item.teamMembers && item.teamMembers.length > 0 ? (
                               <div className="team-details">
@@ -728,11 +739,9 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                 </div>
                               </div>
                             ) : null}
-                          </div>
-                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                   <div className="price-cell">₱{(parseFloat(item.price || item.product_price || item.productPrice || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                   <div className="quantity-cell">{item.quantity || 1}</div>
                   <div className="total-cell">₱{((parseFloat(item.price || item.product_price || item.productPrice || 0)) * (item.quantity || 1)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
