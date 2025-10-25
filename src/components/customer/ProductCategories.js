@@ -105,35 +105,18 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
   const loadRatingsAsync = async (products) => {
     try {
       const ratings = {};
-      // Process ratings in smaller batches to avoid overwhelming the API
-      const batchSize = 3; // Reduced from 5 to 3
+      // Process ratings in batches to avoid overwhelming the API
+      const batchSize = 5;
       for (let i = 0; i < products.length; i += batchSize) {
         const batch = products.slice(i, i + batchSize);
-        
-        // Add timeout to prevent hanging
-        const batchPromise = Promise.all(
+        await Promise.all(
           batch.map(async (product) => {
-            try {
-              const averageRating = await Promise.race([
-                calculateAverageRating(product.id),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error('Timeout')), 5000)
-                )
-              ]);
-              ratings[product.id] = averageRating;
-            } catch (error) {
-              console.warn(`Failed to load rating for product ${product.id}:`, error);
-              ratings[product.id] = null;
-            }
+            const averageRating = await calculateAverageRating(product.id);
+            ratings[product.id] = averageRating;
           })
         );
-        
-        await batchPromise;
         // Update ratings progressively
         setProductRatings(prev => ({ ...prev, ...ratings }));
-        
-        // Small delay between batches to prevent overwhelming the server
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
     } catch (error) {
       console.error('Error loading ratings:', error);
@@ -283,16 +266,17 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                   </div>
                   <div className="sportswear-product-info">
                     <p className="sportswear-product-name">{product.name}</p>
-                    <div className="sportswear-product-stats">
-                      <span className="sportswear-sold-count">{product.sold_quantity || 0} sold</span>
-                    </div>
-                    <div className="sportswear-price-rating-row">
-                      <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                      <span className="sportswear-rating">
-                        <span className="sportswear-star">★</span>
-                        {productRatings[product.id] || 'No reviews'}
-                      </span>
-                    </div>
+                    <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                    {(productRatings[product.id] || product.sold_quantity > 0) && (
+                      <div className="sportswear-product-stats">
+                        {productRatings[product.id] && (
+                          <span className="sportswear-stat-item">{productRatings[product.id]} star</span>
+                        )}
+                        {product.sold_quantity > 0 && (
+                          <span className="sportswear-stat-item">{product.sold_quantity} sold</span>
+                        )}
+                      </div>
+                    )}
                     <div className="sportswear-action-buttons">
                       <button 
                         className="sportswear-add-to-cart-btn" 
@@ -355,4 +339,3 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
 };
 
 export default ProductCategories;
-

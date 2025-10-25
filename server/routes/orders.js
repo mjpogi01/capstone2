@@ -340,13 +340,8 @@ router.post('/', async (req, res) => {
 
     const newOrder = inserted;
 
-    // Update sold_quantity for products in this order
-    try {
-      await updateSoldQuantityForOrder(orderItems);
-    } catch (error) {
-      console.error('Error updating sold quantity:', error);
-      // Don't fail the order creation if sold quantity update fails
-    }
+    // Note: sold_quantity will be updated when order status changes to 'picked_up_delivered'
+    // This prevents double-counting when orders are created and then completed
 
     // Send order confirmation email if email is configured
     let emailResult = null;
