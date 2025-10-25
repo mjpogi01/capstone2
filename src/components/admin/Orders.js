@@ -32,7 +32,9 @@ import {
   FaArrowLeft,
   FaArrowRight,
   FaChevronLeft,
-  FaChevronRight
+  FaChevronRight,
+  FaUsers,
+  FaCamera
 } from 'react-icons/fa';
 import './Orders.css';
 import './FloatingButton.css';
@@ -732,7 +734,7 @@ const Orders = () => {
                   <div className="yh-customer-section">
                     <h4 className="yh-customer-heading">
                       <FaUser className="yh-customer-heading-icon" />
-                      Customer Information
+                      {order.orderItems?.[0]?.product_type === 'custom_design' ? 'Custom Design Client Information' : 'Customer Information'}
                     </h4>
                     <div className="yh-customer-info-grid">
                       <div className="yh-customer-info-row">
@@ -740,28 +742,45 @@ const Orders = () => {
                           <FaUser className="yh-customer-icon" />
                           Name:
                         </span>
-                        <span className="yh-customer-value">{order.customerName}</span>
+                        <span className="yh-customer-value">
+                          {order.orderItems?.[0]?.product_type === 'custom_design' 
+                            ? order.orderItems[0]?.client_name || order.customerName
+                            : order.customerName
+                          }
+                        </span>
                       </div>
                       <div className="yh-customer-info-row">
                         <span className="yh-customer-label">
                           <FaEnvelope className="yh-customer-icon" />
                           Email:
                         </span>
-                        <span className="yh-customer-value yh-customer-value-email">{order.customerEmail}</span>
+                        <span className="yh-customer-value yh-customer-value-email">
+                          {order.orderItems?.[0]?.product_type === 'custom_design' 
+                            ? order.orderItems[0]?.client_email || order.customerEmail
+                            : order.customerEmail
+                          }
+                        </span>
                       </div>
                       <div className="yh-customer-info-row">
                         <span className="yh-customer-label">
                           <FaPhone className="yh-customer-icon" />
                           Phone:
                         </span>
-                        <span className="yh-customer-value yh-customer-value-phone">{order.deliveryAddress?.phone || 'N/A'}</span>
+                        <span className="yh-customer-value yh-customer-value-phone">
+                          {order.orderItems?.[0]?.product_type === 'custom_design' 
+                            ? order.orderItems[0]?.client_phone || order.deliveryAddress?.phone || 'N/A'
+                            : order.deliveryAddress?.phone || 'N/A'
+                          }
+                        </span>
                       </div>
                       <div className="yh-customer-info-row">
                         <span className="yh-customer-label">
                           <FaMapMarkerAlt className="yh-customer-icon" />
                           Address:
                         </span>
-                        <span className="yh-customer-value yh-customer-value-address">{order.deliveryAddress?.address || 'N/A'}</span>
+                        <span className="yh-customer-value yh-customer-value-address">
+                          {order.deliveryAddress?.address || 'N/A'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -770,35 +789,111 @@ const Orders = () => {
                     <h4><FaBox className="section-icon" />Order Items</h4>
                     {order.orderItems.map((item, index) => (
                       <div key={index} className="order-item">
-                        <div className="item-header">
-                          <img src={item.image} alt={item.name} className="item-image" />
-                          <div className="item-info">
-                            <div className="item-name">{item.name}</div>
-                            <div className="item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} × {item.quantity}</div>
-                          </div>
-                        </div>
-                        
-                        {item.category === 'team' && item.teamMembers && (
-                          <div className="team-details">
-                            <div className="team-name">Team: {item.teamName}</div>
-                            <div className="team-members">
-                              {item.teamMembers.map((member, memberIndex) => (
-                                <div key={memberIndex} className="member-detail">
-                                  <span>{member.surname} #{member.number} ({member.size})</span>
+                        {item.product_type === 'custom_design' ? (
+                          <div className="custom-design-item">
+                            <div className="custom-design-header">
+                              <div className="custom-design-icon">🎨</div>
+                              <div className="custom-design-info">
+                                <div className="custom-design-title">Custom Design Order</div>
+                                <div className="custom-design-subtitle">Team: {item.team_name}</div>
+                              </div>
+                            </div>
+                            
+                            {/* Team Information */}
+                            <div className="custom-design-team-section">
+                              <h5 className="custom-design-section-title">
+                                <FaUsers className="section-icon" />
+                                Team Information
+                              </h5>
+                              <div className="custom-design-team-name">
+                                <strong>Team Name:</strong> {item.team_name}
+                              </div>
+                              <div className="custom-design-members">
+                                <strong>Team Members ({item.team_members?.length || 0}):</strong>
+                                <div className="custom-design-members-list">
+                                  {item.team_members?.map((member, memberIndex) => (
+                                    <div key={memberIndex} className="custom-design-member">
+                                      <span className="member-number">#{member.number}</span>
+                                      <span className="member-surname">{member.surname}</span>
+                                      <span className="member-size">Size: {member.size}</span>
+                                      <span className="member-sizing-type">({member.sizingType})</span>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
+                              </div>
                             </div>
+
+                            {/* Design Images */}
+                            {item.design_images && item.design_images.length > 0 && (
+                              <div className="custom-design-images-section">
+                                <h5 className="custom-design-section-title">
+                                  <FaCamera className="section-icon" />
+                                  Design Images ({item.design_images.length})
+                                </h5>
+                                <div className="custom-design-images-grid">
+                                  {item.design_images.map((image, imageIndex) => (
+                                    <div key={imageIndex} className="custom-design-image-item">
+                                      <img 
+                                        src={image.url} 
+                                        alt={`Design ${imageIndex + 1}`}
+                                        className="custom-design-image"
+                                        onClick={() => window.open(image.url, '_blank')}
+                                      />
+                                      <div className="custom-design-image-name">
+                                        {image.originalname || `Design ${imageIndex + 1}`}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Pickup Information */}
+                            {item.pickup_branch_id && (
+                              <div className="custom-design-pickup-section">
+                                <h5 className="custom-design-section-title">
+                                  <FaMapMarkerAlt className="section-icon" />
+                                  Pickup Information
+                                </h5>
+                                <div className="custom-design-pickup-details">
+                                  <strong>Pickup Branch:</strong> {item.pickup_branch_id}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        
-                        {item.category === 'single' && item.singleOrderDetails && (
-                          <div className="single-details">
-                            <div className="single-detail">
-                              <span>Team: {item.singleOrderDetails.teamName}</span>
+                        ) : (
+                          <div className="regular-order-item">
+                            <div className="item-header">
+                              <img src={item.image} alt={item.name} className="item-image" />
+                              <div className="item-info">
+                                <div className="item-name">{item.name}</div>
+                                <div className="item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} × {item.quantity}</div>
+                              </div>
                             </div>
-                            <div className="single-detail">
-                              <span>{item.singleOrderDetails.surname} #{item.singleOrderDetails.number} ({item.singleOrderDetails.size})</span>
-                            </div>
+                            
+                            {item.category === 'team' && item.teamMembers && (
+                              <div className="team-details">
+                                <div className="team-name">Team: {item.teamName}</div>
+                                <div className="team-members">
+                                  {item.teamMembers.map((member, memberIndex) => (
+                                    <div key={memberIndex} className="member-detail">
+                                      <span>{member.surname} #{member.number} ({member.size})</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {item.category === 'single' && item.singleOrderDetails && (
+                              <div className="single-details">
+                                <div className="single-detail">
+                                  <span>Team: {item.singleOrderDetails.teamName}</span>
+                                </div>
+                                <div className="single-detail">
+                                  <span>{item.singleOrderDetails.surname} #{item.singleOrderDetails.number} ({item.singleOrderDetails.size})</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

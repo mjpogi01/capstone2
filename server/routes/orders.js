@@ -5,6 +5,52 @@ const router = express.Router();
 
 // Supabase client and query helper are provided by ../lib/db
 
+// Function to update sold_quantity for products in an order
+async function updateSoldQuantityForOrder(orderItems) {
+  try {
+    console.log('📊 Updating sold quantity for order items:', orderItems);
+    
+    for (const item of orderItems) {
+      if (item.id && item.quantity) {
+        const quantityToAdd = parseInt(item.quantity) || 1;
+        
+        // Get current sold_quantity
+        const { data: currentProduct, error: fetchError } = await supabase
+          .from('products')
+          .select('sold_quantity')
+          .eq('id', item.id)
+          .single();
+        
+        if (fetchError) {
+          console.error(`Error fetching current sold quantity for product ${item.id}:`, fetchError);
+          continue;
+        }
+        
+        const currentSoldQuantity = currentProduct?.sold_quantity || 0;
+        const newSoldQuantity = currentSoldQuantity + quantityToAdd;
+        
+        // Update sold_quantity
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ 
+            sold_quantity: newSoldQuantity,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id);
+        
+        if (updateError) {
+          console.error(`Error updating sold quantity for product ${item.id}:`, updateError);
+        } else {
+          console.log(`✅ Updated sold quantity for product ${item.id} from ${currentSoldQuantity} to ${newSoldQuantity}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in updateSoldQuantityForOrder:', error);
+    throw error;
+  }
+}
+
 // Get all orders with filters
 router.get('/', async (req, res) => {
   try {
@@ -89,12 +135,65 @@ router.get('/', async (req, res) => {
 
     console.log(`📦 [Orders API] Returning ${orders?.length} orders, total: ${totalCount}`);
 
+    // Get unique user IDs from orders
+    const userIds = [...new Set(orders.map(order => order.user_id).filter(Boolean))];
+    
+    // Fetch user data for all unique user IDs
+    let userData = {};
+    if (userIds.length > 0) {
+      try {
+        const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+        if (!usersError && users?.users) {
+          users.users.forEach(user => {
+            const firstName = user.user_metadata?.first_name || '';
+            const lastName = user.user_metadata?.last_name || '';
+            const fullName = user.user_metadata?.full_name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
+            
+            userData[user.id] = {
+              email: user.email,
+              full_name: fullName || null
+            };
+          });
+        }
+      } catch (error) {
+        console.warn('Could not fetch user data:', error.message);
+      }
+    }
+
     // Transform data to match expected format
-    const transformedOrders = (orders || []).map(order => ({
-      ...order,
-      customer_email: null, // Will be populated separately if needed
-      customer_name: null   // Will be populated separately if needed
-    }));
+    const transformedOrders = (orders || []).map(order => {
+      // Extract customer info from user data or delivery address
+      let customerName = 'Unknown Customer';
+      let customerEmail = 'N/A';
+      
+      // For all orders, prioritize user account information
+      const user = userData[order.user_id];
+      if (user?.email) {
+        customerEmail = user.email;
+      }
+      if (user?.full_name) {
+        customerName = user.full_name;
+      } else if (order.delivery_address?.receiver) {
+        customerName = order.delivery_address.receiver;
+      }
+      
+      // For custom design orders, if no user name is available, fall back to client info
+      if (order.order_type === 'custom_design' && order.order_items && order.order_items.length > 0 && !user?.full_name) {
+        const firstItem = order.order_items[0];
+        if (firstItem.client_name) {
+          customerName = firstItem.client_name;
+        }
+        if (firstItem.client_email) {
+          customerEmail = firstItem.client_email;
+        }
+      }
+      
+      return {
+        ...order,
+        customer_email: customerEmail,
+        customer_name: customerName
+      };
+    });
 
     res.json({
       orders: transformedOrders,
@@ -130,11 +229,58 @@ router.get('/:id', async (req, res) => {
       throw new Error(`Supabase error: ${error.message}`);
     }
 
+    // Fetch user data for this order
+    let userData = null;
+    if (order.user_id) {
+      try {
+        const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+        if (!usersError && users?.users) {
+          const user = users.users.find(u => u.id === order.user_id);
+          if (user) {
+            const firstName = user.user_metadata?.first_name || '';
+            const lastName = user.user_metadata?.last_name || '';
+            const fullName = user.user_metadata?.full_name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
+            
+            userData = {
+              email: user.email,
+              full_name: fullName || null
+            };
+          }
+        }
+      } catch (error) {
+        console.warn('Could not fetch user data:', error.message);
+      }
+    }
+
     // Transform data to match expected format
+    let customerName = 'Unknown Customer';
+    let customerEmail = 'N/A';
+    
+    // For all orders, prioritize user account information
+    if (userData?.email) {
+      customerEmail = userData.email;
+    }
+    if (userData?.full_name) {
+      customerName = userData.full_name;
+    } else if (order.delivery_address?.receiver) {
+      customerName = order.delivery_address.receiver;
+    }
+    
+    // For custom design orders, if no user name is available, fall back to client info
+    if (order.order_type === 'custom_design' && order.order_items && order.order_items.length > 0 && !userData?.full_name) {
+      const firstItem = order.order_items[0];
+      if (firstItem.client_name) {
+        customerName = firstItem.client_name;
+      }
+      if (firstItem.client_email) {
+        customerEmail = firstItem.client_email;
+      }
+    }
+    
     const transformedOrder = {
       ...order,
-      customer_email: null, // Will be populated separately if needed
-      customer_name: null   // Will be populated separately if needed
+      customer_email: customerEmail,
+      customer_name: customerName
     };
 
     res.json(transformedOrder);
@@ -202,6 +348,17 @@ router.patch('/:id/status', async (req, res) => {
     }
 
     const updatedOrder = updatedOrderData;
+
+    // Update sold_quantity when order is completed (picked_up_delivered)
+    if (status === 'picked_up_delivered' && previousStatus !== 'picked_up_delivered') {
+      try {
+        await updateSoldQuantityForOrder(currentOrder.order_items || []);
+        console.log(`📊 Updated sold quantity for completed order ${updatedOrder.order_number}`);
+      } catch (error) {
+        console.error('Error updating sold quantity for completed order:', error);
+        // Don't fail the status update if sold quantity update fails
+      }
+    }
 
     // Send email notification if not skipped and email is configured
     let emailResult = null;
@@ -282,6 +439,9 @@ router.post('/', async (req, res) => {
     }
 
     const newOrder = inserted;
+
+    // Note: sold_quantity will be updated when order status changes to 'picked_up_delivered'
+    // This prevents double-counting when orders are created and then completed
 
     // Send order confirmation email if email is configured
     let emailResult = null;

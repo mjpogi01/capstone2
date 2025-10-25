@@ -269,56 +269,52 @@
   word-wrap: break-word;
 }
 
-/* ===== PRODUCT STATS (SOLD COUNT) ===== */
-.sportswear-product-stats {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  margin: 0.05rem 0;
-  gap: 0.5rem;
-}
-
-.sportswear-sold-count {
-  color: var(--sportswear-text-white);
-  font-size: 0.85rem;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-  letter-spacing: 0.5px;
-}
-
-/* ===== PRICE & RATING ROW ===== */
-.sportswear-price-rating-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0.1rem 0;
-  gap: 0.5rem;
-}
-
-.sportswear-rating {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  color: var(--sportswear-accent-yellow);
-  font-size: 0.85rem;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-  letter-spacing: 0.5px;
-}
-
-.sportswear-star {
-  color: var(--sportswear-accent-yellow);
-  font-size: 0.9rem;
-  filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5));
-}
-
+/* ===== PRODUCT PRICE ===== */
 .sportswear-product-price {
   color: var(--sportswear-accent-yellow);
   font-size: 1.1rem;
   font-weight: 800;
   font-family: 'Courier New', monospace;
   letter-spacing: 0.8px;
-  margin-bottom: 0.3rem;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ===== PRODUCT STATS (RATING AND SOLD COUNT BELOW PRICE) ===== */
+.sportswear-product-stats {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  gap: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.sportswear-rating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.sportswear-star {
+  color: var(--sportswear-accent-yellow);
+  font-size: 14px;
+}
+
+.sportswear-stats-divider {
+  color: #4b5563;
+  font-weight: 300;
+  margin: 0 2px;
+}
+
+.sportswear-sold-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
 }
 
 /* ===== ADD TO CART / VIEW DETAILS BUTTON ===== */

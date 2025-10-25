@@ -5,7 +5,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import orderTrackingService from '../../services/orderTrackingService';
 import './SimpleOrderReview.css';
 
-const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
+const SimpleOrderReview = ({ orderId, orderNumber, productId = null, onReviewSubmit }) => {
   const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
   const [showReviewPopup, setShowReviewPopup] = useState(false);
@@ -62,7 +62,8 @@ const SimpleOrderReview = ({ orderId, orderNumber, onReviewSubmit }) => {
           userId: user.id,
           rating: newReview.rating,
           comment: newReview.comment,
-          reviewType: 'general'
+          reviewType: 'general',
+          productId: productId // Include product ID for product-specific reviews
         })
       });
 

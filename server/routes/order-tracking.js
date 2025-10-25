@@ -145,7 +145,7 @@ router.get('/review', async (req, res) => {
 // Add order review (Universal - works for ALL orders)
 router.post('/review', async (req, res) => {
   try {
-    const { orderId, userId, rating, comment, reviewType = 'general' } = req.body;
+    const { orderId, userId, rating, comment, reviewType = 'general', productId } = req.body;
     
     // Validate rating
     if (!rating || rating < 1 || rating > 5) {
@@ -171,29 +171,44 @@ router.post('/review', async (req, res) => {
       });
     }
     
-    const { data: reviewData, error: reviewError } = await supabase
+    const reviewData = {
+      order_id: orderId,
+      user_id: userId,
+      rating: rating,
+      comment: comment
+    };
+    
+    // Only add product_id if it's provided
+    if (productId) {
+      reviewData.product_id = productId;
+    }
+    
+    const { data: reviewResult, error: reviewError } = await supabase
       .from('order_reviews')
-      .upsert({
-        order_id: orderId,
-        user_id: userId,
-        rating: rating,
-        comment: comment
-      })
+      .upsert(reviewData)
       .select()
       .single();
 
     if (reviewError) {
-      throw reviewError;
+      console.error('Supabase review insert error:', reviewError);
+      return res.status(500).json({ 
+        error: 'Failed to add order review',
+        details: reviewError.message,
+        code: reviewError.code
+      });
     }
 
     res.json({
       success: true,
       message: 'Review submitted successfully',
-      review: reviewData
+      review: reviewResult
     });
   } catch (error) {
     console.error('Error adding order review:', error);
-    res.status(500).json({ error: 'Failed to add order review' });
+    res.status(500).json({ 
+      error: 'Failed to add order review',
+      details: error.message 
+    });
   }
 });
 

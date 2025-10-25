@@ -266,16 +266,17 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                   </div>
                   <div className="sportswear-product-info">
                     <p className="sportswear-product-name">{product.name}</p>
-                    <div className="sportswear-product-stats">
-                      <span className="sportswear-sold-count">{product.sold_quantity || 0} sold</span>
-                    </div>
-                    <div className="sportswear-price-rating-row">
-                      <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                      <span className="sportswear-rating">
-                        <span className="sportswear-star">★</span>
-                        {productRatings[product.id] || 'No reviews'}
-                      </span>
-                    </div>
+                    <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                    {(productRatings[product.id] || product.sold_quantity > 0) && (
+                      <div className="sportswear-product-stats">
+                        {productRatings[product.id] && (
+                          <span className="sportswear-stat-item">{productRatings[product.id]} star</span>
+                        )}
+                        {product.sold_quantity > 0 && (
+                          <span className="sportswear-stat-item">{product.sold_quantity} sold</span>
+                        )}
+                      </div>
+                    )}
                     <div className="sportswear-action-buttons">
                       <button 
                         className="sportswear-add-to-cart-btn" 
@@ -338,4 +339,3 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
 };
 
 export default ProductCategories;
-

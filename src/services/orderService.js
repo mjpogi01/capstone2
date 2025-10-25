@@ -192,10 +192,9 @@ class OrderService {
 
   // Helper method to format order data for display
   formatOrderForDisplay(order) {
-    // Extract customer info from delivery address if available
-    const deliveryAddress = order.delivery_address || {};
-    const customerName = deliveryAddress.receiver || 'Customer';
-    const customerEmail = order.user?.email || 'N/A';
+    // Use customer info from API response (now populated by backend)
+    const customerName = order.customer_name || 'Customer';
+    const customerEmail = order.customer_email || 'N/A';
     
     return {
       id: order.id,
@@ -291,47 +290,66 @@ class OrderService {
     ];
   }
 
-  // Fetch reviews for a specific product
+  // Fetch reviews for a specific product - HYBRID VERSION (handles both new and old reviews)
   async getProductReviews(productId) {
     try {
-      const { data: orders, error } = await supabase
-        .from('orders')
+      // First, get direct product-specific reviews (new system)
+      const { data: productReviews, error: productError } = await supabase
+        .from('order_reviews')
         .select('*')
-        .eq('status', 'picked_up_delivered');
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching completed orders:', error);
-        return [];
+      if (productError) {
+        console.error('Error fetching product-specific reviews:', productError);
       }
 
-      // For each order, fetch the reviews and filter by product
-      const allProductReviews = [];
+      // Then, get order-level reviews that might contain this product (old system)
+      const { data: orderReviews, error: orderError } = await supabase
+        .from('order_reviews')
+        .select('*')
+        .is('product_id', null)
+        .order('created_at', { ascending: false });
+
+      if (orderError) {
+        console.error('Error fetching order-level reviews:', orderError);
+      }
+
+      // For order-level reviews, we need to check if the order contains this product
+      let relevantOrderReviews = [];
+      if (orderReviews && orderReviews.length > 0) {
+        // Get all completed orders to check which ones contain this product
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select('id, order_items')
+          .eq('status', 'picked_up_delivered');
+
+        if (!ordersError && orders) {
+          // Find orders that contain this product
+          const relevantOrderIds = orders
+            .filter(order => {
+              const orderItems = order.order_items || [];
+              return orderItems.some(item => item.id === productId);
+            })
+            .map(order => order.id);
+
+          // Filter order reviews to only include those from relevant orders
+          relevantOrderReviews = orderReviews.filter(review => 
+            relevantOrderIds.includes(review.order_id)
+          );
+        }
+      }
+
+      // Combine both types of reviews
+      const allReviews = [
+        ...(productReviews || []),
+        ...relevantOrderReviews
+      ];
+
+      // Sort by creation date (newest first)
+      allReviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       
-      await Promise.all(
-        (orders || []).map(async (order) => {
-          try {
-            // Check if this order contains the product we're looking for
-            const orderItems = order.order_items || [];
-            const hasProduct = orderItems.some(item => item.product_id === productId);
-            
-            if (hasProduct) {
-              // Fetch reviews for this order
-              const { data: reviews } = await supabase
-                .from('order_reviews')
-                .select('*')
-                .eq('order_id', order.id);
-
-              if (reviews && reviews.length > 0) {
-                allProductReviews.push(...reviews);
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching reviews for order', order.id, err);
-          }
-        })
-      );
-
-      return allProductReviews;
+      return allReviews;
     } catch (error) {
       console.error('Error in getProductReviews:', error);
       return [];

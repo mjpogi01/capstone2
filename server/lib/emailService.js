@@ -89,6 +89,32 @@ class EmailService {
     }
   }
 
+  // Send custom design order confirmation email
+  async sendCustomDesignConfirmation(orderData, customerEmail, customerName) {
+    try {
+      const emailTemplate = this.getCustomDesignConfirmationEmailTemplate(orderData, customerName);
+
+      const mailOptions = {
+        from: {
+          name: 'Yohanns - No Reply',
+          address: process.env.EMAIL_USER
+        },
+        to: customerEmail,
+        subject: `Custom Design Order Confirmation - ${orderData.order_number}`,
+        html: emailTemplate.html,
+        text: emailTemplate.text
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Custom design confirmation email sent successfully:', result.messageId);
+      return { success: true, messageId: result.messageId };
+
+    } catch (error) {
+      console.error('❌ Failed to send custom design confirmation email:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Get status display name
   getStatusDisplayName(status) {
     const statusMap = {
@@ -525,6 +551,131 @@ class EmailService {
     We'll send you email updates as your order progresses.
     
     Thank you for choosing Yohanns!
+    `;
+
+    return { html, text };
+  }
+
+  // Get custom design confirmation email template
+  getCustomDesignConfirmationEmailTemplate(orderData, customerName) {
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Custom Design Order Confirmation</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+            .content { padding: 20px; }
+            .order-details { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+            .team-members { margin: 15px 0; }
+            .member-item { background: #e9ecef; padding: 10px; margin: 5px 0; border-radius: 5px; }
+            .footer { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; color: #666; }
+            .highlight { color: #667eea; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎨 Custom Design Order Confirmed!</h1>
+                <p>Thank you for choosing Yohanns for your custom team apparel!</p>
+            </div>
+            
+            <div class="content">
+                <p>Dear ${customerName || 'Valued Customer'},</p>
+                
+                <p>We're excited to work on your custom design order! Your order has been confirmed and our design team will begin processing it shortly.</p>
+                
+                <div class="order-details">
+                    <h3>📋 Order Details</h3>
+                    <p><strong>Order Number:</strong> <span class="highlight">${orderData.order_number}</span></p>
+                    <p><strong>Order Date:</strong> ${new Date(orderData.created_at).toLocaleDateString()}</p>
+                    <p><strong>Team Name:</strong> ${orderData.order_items?.[0]?.team_name || 'N/A'}</p>
+                    <p><strong>Total Amount:</strong> <span class="highlight">₱${parseFloat(orderData.total_amount).toFixed(2)}</span></p>
+                    <p><strong>Shipping Method:</strong> ${orderData.shipping_method === 'pickup' ? 'Pickup' : 'Delivery'}</p>
+                    ${orderData.shipping_method === 'delivery' ? `<p><strong>Delivery Address:</strong> ${orderData.delivery_address?.address || 'N/A'}</p>` : ''}
+                </div>
+                
+                <div class="team-members">
+                    <h3>👥 Team Members (${orderData.order_items?.[0]?.team_members?.length || 0})</h3>
+                    ${(orderData.order_items?.[0]?.team_members || []).map(member => `
+                        <div class="member-item">
+                            <strong>Jersey #${member.number}</strong> - ${member.surname} (${member.size} - ${member.sizingType})
+                        </div>
+                    `).join('')}
+                </div>
+                
+                ${orderData.order_items?.[0]?.design_images && orderData.order_items[0].design_images.length > 0 ? `
+                <div class="design-images">
+                    <h3>🎨 Design Images</h3>
+                    <p>We've received ${orderData.order_items[0].design_images.length} design image(s) for your custom order.</p>
+                </div>
+                ` : ''}
+                
+                ${orderData.order_notes ? `
+                <div class="order-notes">
+                    <h3>📝 Special Instructions</h3>
+                    <p>${orderData.order_notes}</p>
+                </div>
+                ` : ''}
+                
+                <div class="next-steps">
+                    <h3>🔄 What's Next?</h3>
+                    <ul>
+                        <li>Our design team will review your requirements and design images</li>
+                        <li>We'll contact you within 2-3 business days to discuss the design details</li>
+                        <li>Once approved, we'll begin production of your custom team apparel</li>
+                        <li>You'll receive updates via email as your order progresses</li>
+                    </ul>
+                </div>
+                
+                <p>If you have any questions or need to make changes to your order, please contact us immediately.</p>
+                
+                <p>Thank you for choosing Yohanns for your custom team apparel needs!</p>
+            </div>
+            
+            <div class="footer">
+                <p><strong>Yohanns - Premium Sports Apparel</strong></p>
+                <p>This is an automated message. Please do not reply to this email.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    const text = `
+    Custom Design Order Confirmation - Yohanns
+    
+    Dear ${customerName || 'Valued Customer'},
+    
+    We're excited to work on your custom design order! Your order has been confirmed and our design team will begin processing it shortly.
+    
+    Order Details:
+    - Order Number: ${orderData.order_number}
+    - Order Date: ${new Date(orderData.created_at).toLocaleDateString()}
+    - Team Name: ${orderData.order_items?.[0]?.team_name || 'N/A'}
+    - Total Amount: ₱${parseFloat(orderData.total_amount).toFixed(2)}
+    - Shipping Method: ${orderData.shipping_method === 'pickup' ? 'Pickup' : 'Delivery'}
+    ${orderData.shipping_method === 'delivery' ? `- Delivery Address: ${orderData.delivery_address?.address || 'N/A'}` : ''}
+    
+    Team Members (${orderData.order_items?.[0]?.team_members?.length || 0}):
+    ${(orderData.order_items?.[0]?.team_members || []).map(member => `- Jersey #${member.number} - ${member.surname} (${member.size} - ${member.sizingType})`).join('\n')}
+    
+    ${orderData.order_items?.[0]?.design_images && orderData.order_items[0].design_images.length > 0 ? `Design Images: We've received ${orderData.order_items[0].design_images.length} design image(s) for your custom order.\n` : ''}
+    ${orderData.order_notes ? `Special Instructions: ${orderData.order_notes}\n` : ''}
+    
+    What's Next:
+    1. Our design team will review your requirements and design images
+    2. We'll contact you within 2-3 business days to discuss the design details
+    3. Once approved, we'll begin production of your custom team apparel
+    4. You'll receive updates via email as your order progresses
+    
+    If you have any questions or need to make changes to your order, please contact us immediately.
+    
+    Thank you for choosing Yohanns for your custom team apparel needs!
     `;
 
     return { html, text };
