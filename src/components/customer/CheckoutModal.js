@@ -48,6 +48,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false); // Confirmation dialog
   const [showOrderComplete, setShowOrderComplete] = useState(false); // Order complete message
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Delete address confirmation
+  const [addressToDelete, setAddressToDelete] = useState(null); // Address ID to delete
 
   // Check for user address when modal opens
   useEffect(() => {
@@ -303,27 +305,40 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     }
   };
 
-  const handleDeleteAddress = async (addressId) => {
-    if (window.confirm('Are you sure you want to delete this address?')) {
-      try {
-        await userService.deleteUserAddress(addressId);
-        // Refresh addresses list
-        await checkUserAddress();
-        
-        // If the deleted address was selected, clear the selection
-        if (selectedAddressId === addressId) {
-          setSelectedAddressId(null);
-          setDeliveryAddress({
-            address: '',
-            receiver: '',
-            phone: ''
-          });
-        }
-      } catch (error) {
-        console.error('Failed to delete address:', error);
-        alert('Failed to delete address. Please try again.');
+  const handleDeleteAddress = (addressId) => {
+    setAddressToDelete(addressId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAddress = async () => {
+    try {
+      await userService.deleteUserAddress(addressToDelete);
+      // Refresh addresses list
+      await checkUserAddress();
+      
+      // If the deleted address was selected, clear the selection
+      if (selectedAddressId === addressToDelete) {
+        setSelectedAddressId(null);
+        setDeliveryAddress({
+          address: '',
+          receiver: '',
+          phone: ''
+        });
       }
+      
+      setShowDeleteConfirm(false);
+      setAddressToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete address:', error);
+      alert('Failed to delete address. Please try again.');
+      setShowDeleteConfirm(false);
+      setAddressToDelete(null);
     }
+  };
+
+  const cancelDeleteAddress = () => {
+    setShowDeleteConfirm(false);
+    setAddressToDelete(null);
   };
 
   const handleChangeAddress = (address = null) => {
@@ -967,6 +982,24 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
             <button className="confirm-btn ok-btn" onClick={handleCloseComplete}>
               OK
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Address Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="confirmation-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="confirmation-modal delete-confirm-modal">
+            <h3>Delete Address</h3>
+            <p>Are you sure you want to delete this address?</p>
+            <div className="confirmation-buttons">
+              <button className="confirm-btn yes-btn" onClick={confirmDeleteAddress}>
+                Yes
+              </button>
+              <button className="confirm-btn no-btn" onClick={cancelDeleteAddress}>
+                No
+              </button>
+            </div>
           </div>
         </div>
       )}
