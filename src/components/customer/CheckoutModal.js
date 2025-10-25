@@ -39,6 +39,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     streetAddress: ''
   });
   const [addressErrors, setAddressErrors] = useState({});
+  const [orderErrors, setOrderErrors] = useState({}); // For order validation
   
   const [shippingMethod, setShippingMethod] = useState('pickup');
   const [selectedLocation, setSelectedLocation] = useState('BATANGAS CITY');
@@ -101,7 +102,37 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     return total + parseInt(item.quantity || 1);
   }, 0);
 
+  const validateOrder = () => {
+    const errors = {};
+    
+    // Validate based on shipping method
+    if (shippingMethod === 'cod') {
+      // For COD (delivery), check if user has selected an address
+      if (!deliveryAddress.receiver || !deliveryAddress.phone || !deliveryAddress.address) {
+        errors.address = 'Please add or select a delivery address';
+      }
+    }
+    
+    // Always require location selection
+    if (!selectedLocation || selectedLocation.trim() === '') {
+      errors.location = 'Please select a branch location';
+    }
+    
+    setOrderErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handlePlaceOrder = () => {
+    // Validate order before placing
+    if (!validateOrder()) {
+      // Scroll to top to show errors
+      const modalContent = document.querySelector('.checkout-modal-content');
+      if (modalContent) {
+        modalContent.scrollTop = 0;
+      }
+      return;
+    }
+    
     const orderData = {
       deliveryAddress,
       shippingMethod,
@@ -397,7 +428,11 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       type="tel"
                       name="phone"
                       value={newAddress.phone}
-                      onChange={handleAddressInputChange}
+                      onChange={(e) => {
+                        // Only allow numbers, spaces, dashes, and plus sign
+                        const value = e.target.value.replace(/[^\d\s\-+]/g, '');
+                        handleAddressInputChange({ target: { name: 'phone', value } });
+                      }}
                       className={addressErrors.phone ? 'error' : ''}
                       placeholder="Phone Number"
                       maxLength={30}
@@ -518,6 +553,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       receiver: address.full_name,
                       phone: address.phone
                     });
+                    setOrderErrors(prev => ({ ...prev, address: '' }));
                   }}
                 >
                   <div className="address-card-content">
@@ -557,6 +593,22 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Show error if COD selected but no address */}
+          {orderErrors.address && shippingMethod === 'cod' && (
+            <div className="error-message" style={{ 
+              display: 'block', 
+              marginTop: '12px', 
+              padding: '12px', 
+              backgroundColor: 'rgba(255, 68, 68, 0.1)', 
+              borderLeft: '4px solid #ff4444', 
+              color: '#ff4444', 
+              fontSize: '14px',
+              borderRadius: '4px'
+            }}>
+              {orderErrors.address}
             </div>
           )}
         </div>
@@ -767,7 +819,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                     name="shipping"
                     value="pickup"
                     checked={shippingMethod === 'pickup'}
-                    onChange={(e) => setShippingMethod(e.target.value)}
+                    onChange={(e) => {
+                      setShippingMethod(e.target.value);
+                      setOrderErrors(prev => ({ ...prev, address: '' }));
+                    }}
                   />
                   <span className="checkmark"></span>
                   <div className="option-content">
@@ -782,7 +837,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                     name="shipping"
                     value="cod"
                     checked={shippingMethod === 'cod'}
-                    onChange={(e) => setShippingMethod(e.target.value)}
+                    onChange={(e) => {
+                      setShippingMethod(e.target.value);
+                      setOrderErrors(prev => ({ ...prev, address: '' }));
+                    }}
                   />
                   <span className="checkmark"></span>
                   <div className="option-content">
@@ -807,12 +865,18 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                           onClick={() => {
                             setSelectedLocation(location);
                             setShowLocationDropdown(false);
+                            setOrderErrors(prev => ({ ...prev, location: '' }));
                           }}
                         >
                           {location}
                         </div>
                       ))}
                     </div>
+                  )}
+                  {orderErrors.location && (
+                    <span className="error-message" style={{ display: 'block', marginTop: '8px', color: '#ff4444', fontSize: '14px' }}>
+                      {orderErrors.location}
+                    </span>
                   )}
                 </div>
               </div>

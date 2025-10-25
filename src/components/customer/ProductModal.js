@@ -29,6 +29,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
   const [sizeType, setSizeType] = useState(existingCartItemData?.sizeType || 'adult'); // 'adult' or 'kids'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [buyNowItem, setBuyNowItem] = useState(null);
@@ -133,6 +134,75 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
       console.log('🛒 handleAddToCart called for product:', product.name, 'ID:', product.id);
 
+      // Clear previous errors
+      const errors = {};
+
+      // Validate order details before adding to cart
+      if (isApparel && !isTeamOrder) {
+        // Validate single order details
+        if (!singleOrderDetails.teamName || !singleOrderDetails.teamName.trim()) {
+          errors.singleTeamName = 'Required';
+        }
+        if (!singleOrderDetails.surname || !singleOrderDetails.surname.trim()) {
+          errors.singleSurname = 'Required';
+        }
+        if (!singleOrderDetails.number || !singleOrderDetails.number.trim()) {
+          errors.singleNumber = 'Required';
+        }
+        
+        if (Object.keys(errors).length > 0) {
+          setValidationErrors(errors);
+          setIsAddingToCart(false);
+          return;
+        }
+      }
+      
+      if (isApparel && isTeamOrder) {
+        // Validate team name
+        if (!teamName || !teamName.trim()) {
+          errors.teamName = 'Required';
+        }
+        // Validate team members
+        if (teamMembers.length === 0) {
+          // Show errors in the input fields
+          if (!newMember.surname.trim()) {
+            errors.teamMemberSurname = 'Required';
+          }
+          if (!newMember.number.trim()) {
+            errors.teamMemberNumberRequired = 'Required';
+          }
+        }
+        
+        if (Object.keys(errors).length > 0) {
+          setValidationErrors(errors);
+          setIsAddingToCart(false);
+          return;
+        }
+      }
+      
+      if (isBall) {
+        // Validate ball details
+        if (!ballDetails.size || !ballDetails.size.trim()) {
+          errors.ballSize = 'Please select ball size';
+          setValidationErrors(errors);
+          setIsAddingToCart(false);
+          return;
+        }
+      }
+      
+      if (isTrophy) {
+        // Validate trophy details
+        if (!trophyDetails.material || !trophyDetails.material.trim()) {
+          errors.trophyMaterial = 'Please select trophy material';
+          setValidationErrors(errors);
+          setIsAddingToCart(false);
+          return;
+        }
+      }
+      
+      // Clear validation errors if all passed
+      setValidationErrors({});
+
       // Calculate price based on size type
       const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
       
@@ -210,6 +280,71 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const handleBuyNow = async () => {
     try {
       console.log('🛒 Buy Now clicked for product:', product.name);
+      
+      // Clear previous errors
+      const errors = {};
+      
+      // Validate order details before proceeding
+      if (isApparel && !isTeamOrder) {
+        // Validate single order details
+        if (!singleOrderDetails.teamName || !singleOrderDetails.teamName.trim()) {
+          errors.singleTeamName = 'Required';
+        }
+        if (!singleOrderDetails.surname || !singleOrderDetails.surname.trim()) {
+          errors.singleSurname = 'Required';
+        }
+        if (!singleOrderDetails.number || !singleOrderDetails.number.trim()) {
+          errors.singleNumber = 'Required';
+        }
+        
+        if (Object.keys(errors).length > 0) {
+          setValidationErrors(errors);
+          return;
+        }
+      }
+      
+      if (isApparel && isTeamOrder) {
+        // Validate team name
+        if (!teamName || !teamName.trim()) {
+          errors.teamName = 'Required';
+        }
+        // Validate team members
+        if (teamMembers.length === 0) {
+          // Show errors in the input fields
+          if (!newMember.surname.trim()) {
+            errors.teamMemberSurname = 'Required';
+          }
+          if (!newMember.number.trim()) {
+            errors.teamMemberNumberRequired = 'Required';
+          }
+        }
+        
+        if (Object.keys(errors).length > 0) {
+          setValidationErrors(errors);
+          return;
+        }
+      }
+      
+      if (isBall) {
+        // Validate ball details
+        if (!ballDetails.size || !ballDetails.size.trim()) {
+          errors.ballSize = 'Please select ball size before you buy';
+          setValidationErrors(errors);
+          return;
+        }
+      }
+      
+      if (isTrophy) {
+        // Validate trophy details
+        if (!trophyDetails.material || !trophyDetails.material.trim()) {
+          errors.trophyMaterial = 'Please select trophy material before you buy';
+          setValidationErrors(errors);
+          return;
+        }
+      }
+      
+      // Clear validation errors if all passed
+      setValidationErrors({});
       
       // Calculate price based on size type
       const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
@@ -320,17 +455,34 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   };
 
   const addTeamMember = () => {
-    if (newMember.surname.trim()) {
-      const member = {
-        id: Date.now(),
-        teamName: teamName,
-        surname: newMember.surname,
-        number: newMember.number,
-        size: newMember.size
-      };
-      setTeamMembers([...teamMembers, member]);
-      setNewMember({ surname: '', number: '', size: 'M' });
+    const errors = {};
+    
+    // Validate team member fields
+    if (!newMember.surname.trim()) {
+      errors.teamMemberSurname = 'Required';
     }
+    if (!newMember.number.trim()) {
+      errors.teamMemberNumberRequired = 'Required';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors({...validationErrors, ...errors});
+      return;
+    }
+    
+    // Clear validation errors
+    setValidationErrors({...validationErrors, teamMemberSurname: '', teamMemberNumberRequired: ''});
+    
+    // Add member
+    const member = {
+      id: Date.now(),
+      teamName: teamName,
+      surname: newMember.surname,
+      number: newMember.number,
+      size: newMember.size
+    };
+    setTeamMembers([...teamMembers, member]);
+    setNewMember({ surname: '', number: '', size: 'M' });
   };
 
   const removeTeamMember = (id) => {
@@ -417,13 +569,21 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 <div className="modal-switch-container">
                   <button
                     className={`modal-switch-option ${!isTeamOrder ? 'active' : ''}`}
-                    onClick={() => setIsTeamOrder(false)}
+                    onClick={() => {
+                      setIsTeamOrder(false);
+                      // Clear team order errors when switching to single order
+                      setValidationErrors({});
+                    }}
                   >
                     <span className="modal-switch-text">Single Order</span>
                   </button>
                   <button
                     className={`modal-switch-option ${isTeamOrder ? 'active' : ''}`}
-                    onClick={() => setIsTeamOrder(true)}
+                    onClick={() => {
+                      setIsTeamOrder(true);
+                      // Clear single order errors when switching to team order
+                      setValidationErrors({});
+                    }}
                   >
                     <FaUsers className="modal-switch-icon" />
                     <span className="modal-switch-text">Team Order</span>
@@ -466,32 +626,75 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 
                 {/* Team Name Input */}
                 <div className="modal-team-name-section">
-                  <input
-                    type="text"
-                    placeholder="Team Name"
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    className="modal-team-name-input"
-                  />
+                  <div className="modal-input-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Team Name"
+                      value={teamName}
+                      onChange={(e) => {
+                        setTeamName(e.target.value);
+                        if (validationErrors.teamName && e.target.value.trim()) {
+                          setValidationErrors({...validationErrors, teamName: ''});
+                        }
+                      }}
+                      className={`modal-team-name-input ${validationErrors.teamName ? 'error' : ''}`}
+                    />
+                    {validationErrors.teamName && (
+                      <span className="modal-error-message">{validationErrors.teamName}</span>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Add New Member */}
                 <div className="modal-add-member-form">
                   <div className="modal-member-inputs">
-                    <input
-                      type="text"
-                      placeholder="Surname"
-                      value={newMember.surname}
-                      onChange={(e) => setNewMember({...newMember, surname: e.target.value})}
-                      className="modal-member-input"
-                    />
-                    <input
-                      type="text"
-                      placeholder="#"
-                      value={newMember.number}
-                      onChange={(e) => setNewMember({...newMember, number: e.target.value})}
-                      className="modal-member-input number-input"
-                    />
+                    <div className="modal-input-wrapper modal-member-wrapper">
+                      <input
+                        type="text"
+                        placeholder="Surname"
+                        value={newMember.surname}
+                        onChange={(e) => {
+                          setNewMember({...newMember, surname: e.target.value});
+                          if (validationErrors.teamMemberSurname && e.target.value.trim()) {
+                            setValidationErrors({...validationErrors, teamMemberSurname: ''});
+                          }
+                        }}
+                        className={`modal-member-input ${validationErrors.teamMemberSurname ? 'error' : ''}`}
+                      />
+                      {validationErrors.teamMemberSurname && (
+                        <span className="modal-error-message">{validationErrors.teamMemberSurname}</span>
+                      )}
+                    </div>
+                    <div className="modal-input-wrapper modal-member-wrapper">
+                      <input
+                        type="text"
+                        placeholder="#"
+                        value={newMember.number}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          // Check if user tried to enter non-numeric characters
+                          if (inputValue && /[^\d]/.test(inputValue)) {
+                            setValidationErrors({...validationErrors, teamMemberNumber: 'Numbers only', teamMemberNumberRequired: ''});
+                            setTimeout(() => {
+                              setValidationErrors({...validationErrors, teamMemberNumber: ''});
+                            }, 2000);
+                          }
+                          // Only allow numbers
+                          const value = inputValue.replace(/[^\d]/g, '');
+                          setNewMember({...newMember, number: value});
+                          // Clear required error when typing
+                          if (validationErrors.teamMemberNumberRequired && value.trim()) {
+                            setValidationErrors({...validationErrors, teamMemberNumberRequired: ''});
+                          }
+                        }}
+                        className={`modal-member-input number-input ${(validationErrors.teamMemberNumber || validationErrors.teamMemberNumberRequired) ? 'error' : ''}`}
+                      />
+                      {(validationErrors.teamMemberNumber || validationErrors.teamMemberNumberRequired) && (
+                        <span className="modal-error-message">
+                          {validationErrors.teamMemberNumber || validationErrors.teamMemberNumberRequired}
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={newMember.size}
                       onChange={(e) => setNewMember({...newMember, size: e.target.value})}
@@ -504,7 +707,6 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     <button 
                       className="modal-add-member-button"
                       onClick={addTeamMember}
-                      disabled={!newMember.surname.trim()}
                     >
                       <FaPlus />
                     </button>
@@ -562,27 +764,67 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               <div className="modal-single-order-section">
                 <div className="modal-single-order-label">Order Details</div>
                 <div className="modal-single-order-form">
-                  <input
-                    type="text"
-                    placeholder="Team Name"
-                    value={singleOrderDetails.teamName}
-                    onChange={(e) => setSingleOrderDetails({...singleOrderDetails, teamName: e.target.value})}
-                    className="modal-single-order-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Surname"
-                    value={singleOrderDetails.surname}
-                    onChange={(e) => setSingleOrderDetails({...singleOrderDetails, surname: e.target.value})}
-                    className="modal-single-order-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Number"
-                    value={singleOrderDetails.number}
-                    onChange={(e) => setSingleOrderDetails({...singleOrderDetails, number: e.target.value})}
-                    className="modal-single-order-input"
-                  />
+                  <div className="modal-input-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Team Name"
+                      value={singleOrderDetails.teamName}
+                      onChange={(e) => {
+                        setSingleOrderDetails({...singleOrderDetails, teamName: e.target.value});
+                        if (validationErrors.singleTeamName) {
+                          setValidationErrors({...validationErrors, singleTeamName: ''});
+                        }
+                      }}
+                      className={`modal-single-order-input ${validationErrors.singleTeamName ? 'error' : ''}`}
+                    />
+                    {validationErrors.singleTeamName && (
+                      <span className="modal-error-message">{validationErrors.singleTeamName}</span>
+                    )}
+                  </div>
+                  <div className="modal-input-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Surname"
+                      value={singleOrderDetails.surname}
+                      onChange={(e) => {
+                        setSingleOrderDetails({...singleOrderDetails, surname: e.target.value});
+                        if (validationErrors.singleSurname) {
+                          setValidationErrors({...validationErrors, singleSurname: ''});
+                        }
+                      }}
+                      className={`modal-single-order-input ${validationErrors.singleSurname ? 'error' : ''}`}
+                    />
+                    {validationErrors.singleSurname && (
+                      <span className="modal-error-message">{validationErrors.singleSurname}</span>
+                    )}
+                  </div>
+                  <div className="modal-input-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Number"
+                      value={singleOrderDetails.number}
+                      onChange={(e) => {
+                        const inputValue = e.target.value;
+                        // Check if user tried to enter non-numeric characters
+                        if (inputValue && /[^\d]/.test(inputValue)) {
+                          setValidationErrors({...validationErrors, singleNumber: 'Numbers only'});
+                        } else if (validationErrors.singleNumber === 'Numbers only') {
+                          setValidationErrors({...validationErrors, singleNumber: ''});
+                        }
+                        // Only allow numbers
+                        const value = inputValue.replace(/[^\d]/g, '');
+                        setSingleOrderDetails({...singleOrderDetails, number: value});
+                        // Clear required error when typing
+                        if (validationErrors.singleNumber === 'Required' && value) {
+                          setValidationErrors({...validationErrors, singleNumber: ''});
+                        }
+                      }}
+                      className={`modal-single-order-input ${validationErrors.singleNumber ? 'error' : ''}`}
+                    />
+                    {validationErrors.singleNumber && (
+                      <span className="modal-error-message">{validationErrors.singleNumber}</span>
+                    )}
+                  </div>
                   <select
                     value={singleOrderDetails.size}
                     onChange={(e) => setSingleOrderDetails({...singleOrderDetails, size: e.target.value})}

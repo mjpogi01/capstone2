@@ -16,7 +16,6 @@
   background: linear-gradient(135deg, #1a1a2e 0%, #0d0d0d 100%);
   border: 2px solid #00bfff;
   border-radius: 12px;
-  box-shadow: 0 8px 40px rgba(0, 191, 255, 0.4);
   color: #ffffff;
   max-height: 90vh;
   overflow: hidden;
@@ -66,7 +65,7 @@
 .cdfm-form {
   overflow: auto;
   max-height: calc(90vh - 56px);
-  padding: 1rem 1.25rem 5rem 1.25rem;
+  padding: 1rem 1.25rem 12rem 1.25rem;
 }
 
 .cdfm-form::-webkit-scrollbar {
@@ -89,8 +88,9 @@
   border-radius: 12px;
   padding: 1rem 1.25rem;
   margin-bottom: 1rem;
-  box-shadow: 0 4px 15px rgba(0, 191, 255, 0.2);
   backdrop-filter: blur(10px);
+  overflow: visible;
+  position: relative;
 }
 
 .card-title { 
@@ -107,7 +107,13 @@
 .grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 @media (max-width: 768px) { .grid.two { grid-template-columns: 1fr; } }
 
-.field { display: flex; flex-direction: column; gap: 0.35rem; }
+.field { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 0.35rem; 
+  position: relative;
+  overflow: visible;
+}
 .field label { 
   font-size: 0.9rem; 
   color: #00bfff;
@@ -118,6 +124,13 @@
   margin-left: 0.25rem;
   font-weight: 700;
 }
+
+/* Input wrapper for inline error positioning */
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
 .field input {
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(0, 191, 255, 0.2);
@@ -127,20 +140,159 @@
   outline: none;
   transition: all 0.3s ease;
   backdrop-filter: blur(5px);
+  width: 100%;
 }
 .field input::placeholder {
   color: #666;
 }
 .field input:focus { 
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
   border-color: #00bfff;
   background: rgba(0, 0, 0, 0.5);
 }
-.field.error input { border-color: #ff6b6b; animation: shake 0.2s linear; }
-.error-text { color: #ff6b6b; font-size: 0.8rem; font-weight: 600; }
+
+/* Error styling for inputs */
+input.error { 
+  border-color: #ff6b6b !important; 
+  background: rgba(255, 107, 107, 0.05);
+  animation: shake 0.2s linear;
+  padding-right: 80px !important; /* Make room for error message */
+}
+
+input.error::placeholder {
+  color: #ff6b6b !important;
+  opacity: 1;
+}
+
+/* Inline error message inside input */
+.inline-error {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ff6b6b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: fadeIn 0.3s ease;
+  background: rgba(26, 26, 46, 0.9);
+  padding: 4px 8px;
+  border-radius: 4px;
+  z-index: 1;
+}
 
 /* Select dropdown */
 .field .select {
+  background: #1a1a2e;
+  border: 2px solid rgba(0, 191, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  color: #ffffff;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  position: relative;
+  z-index: 1;
+}
+.field .select:focus {
+  border-color: #00bfff;
+  background: #0d0d0d;
+  z-index: 10;
+}
+
+/* Dark background for dropdown options */
+.field .select option {
+  background: #1a1a2e;
+  color: #ffffff;
+  padding: 8px;
+}
+.select.error { 
+  border-color: #ff6b6b !important; 
+  background: rgba(255, 107, 107, 0.05);
+}
+
+.helper { color: #999; margin-top: 0.3rem; display: inline-block; }
+
+/* Shipping and Notes Container */
+.shipping-notes-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.shipping-notes-container .card {
+  margin-bottom: 0;
+}
+
+/* Shipping Methods */
+.shipping-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.shipping-option {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(0, 191, 255, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.shipping-option:hover {
+  border-color: #00bfff;
+  background: rgba(0, 191, 255, 0.05);
+}
+
+.shipping-option.active {
+  background: rgba(0, 191, 255, 0.1);
+  border-color: #00bfff;
+}
+
+/* Notes Textarea */
+.notes-textarea {
+  width: 100%;
+  min-height: 100px;
+  background: #1a1a2e;
+  border: 2px solid rgba(0, 191, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  color: #ffffff;
+  resize: vertical;
+  font-family: 'Oswald', sans-serif;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.notes-textarea:focus {
+  border-color: #00bfff;
+  background: #0d0d0d;
+}
+
+.notes-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+.shipping-option-title {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.shipping-option-desc {
+  color: #00bfff;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Delivery Textarea */
+.delivery-textarea {
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(0, 191, 255, 0.2);
   border-radius: 8px;
@@ -149,14 +301,45 @@
   outline: none;
   transition: all 0.3s ease;
   backdrop-filter: blur(5px);
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
 }
-.field .select:focus {
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
+
+.delivery-textarea::placeholder {
+  color: #666;
+}
+
+.delivery-textarea:focus {
   border-color: #00bfff;
   background: rgba(0, 0, 0, 0.5);
 }
-.field.error .select { border-color: #ff6b6b; }
-.helper { color: #999; margin-top: 0.3rem; display: inline-block; }
+
+.delivery-textarea.error {
+  border-color: #ff6b6b !important;
+  background: rgba(255, 107, 107, 0.05);
+  animation: shake 0.2s linear;
+  padding-right: 80px !important;
+}
+
+.delivery-textarea.error::placeholder {
+  color: #ff6b6b !important;
+  opacity: 1;
+}
+
+/* Specific styles for roster inputs with inline errors */
+.roster-row .input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.roster-row input.error {
+  padding-right: 70px !important; /* Smaller padding for roster fields */
+}
+
+.roster-row .inline-error {
+  font-size: 0.7rem; /* Smaller error text for roster */
+}
 
 @keyframes shake { 0%,100%{ transform: translateX(0); } 25%{ transform: translateX(-2px);} 75%{ transform: translateX(2px);} }
 
@@ -194,7 +377,6 @@
 }
 .preview-item:hover {
   border-color: #00bfff;
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
 }
 .preview-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .delete-thumb {
@@ -216,7 +398,7 @@
 
 /* Roster */
 .roster-table { display: grid; gap: 0.5rem; }
-.roster-head, .roster-row { display: grid; grid-template-columns: 120px 1fr 80px; align-items: start; gap: 0.5rem; }
+.roster-head, .roster-row { display: grid; grid-template-columns: 180px 1fr 80px; align-items: start; gap: 0.5rem; }
 .roster-head { color: #00bfff; font-size: 0.85rem; font-weight: 600; }
 .add-row {
   background: linear-gradient(135deg, #00bfff 0%, #0099cc 100%);
@@ -234,7 +416,6 @@
 .add-row:hover {
   background: linear-gradient(135deg, #00d4ff 0%, #00bfff 100%);
   transform: scale(1.1);
-  box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
 }
 .remove-row {
   background: transparent;
@@ -278,7 +459,6 @@
 }
 .branch.selected {
   border-color: #00bfff;
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.4);
   background: rgba(0, 191, 255, 0.1);
 }
 .branch-name { color: #ffffff; font-weight: 600; }
@@ -379,7 +559,6 @@
 .summary-toggle:hover {
   background: rgba(0, 0, 0, 0.4);
   border-color: #00bfff;
-  box-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
 }
 .summary-content { margin-top: 0.75rem; color: #ffffff; font-size: 0.95rem; }
 
@@ -491,6 +670,22 @@
   background: linear-gradient(135deg, #00d4ff 0%, #00bfff 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 191, 255, 0.6);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .shipping-notes-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .shipping-notes-container .card {
+    margin-bottom: 1rem;
+  }
+  
+  .shipping-notes-container .card:last-child {
+    margin-bottom: 0;
+  }
 }
 
 
