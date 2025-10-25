@@ -291,47 +291,44 @@ class OrderService {
     ];
   }
 
-  // Fetch reviews for a specific product
+  // Fetch reviews for a specific product - SIMPLIFIED VERSION
   async getProductReviews(productId) {
     try {
-      const { data: orders, error } = await supabase
+      // Get all completed orders first
+      const { data: orders, error: ordersError } = await supabase
         .from('orders')
-        .select('*')
+        .select('id, order_items')
         .eq('status', 'picked_up_delivered');
 
-      if (error) {
-        console.error('Error fetching completed orders:', error);
+      if (ordersError) {
+        console.error('Error fetching completed orders:', ordersError);
         return [];
       }
 
-      // For each order, fetch the reviews and filter by product
-      const allProductReviews = [];
-      
-      await Promise.all(
-        (orders || []).map(async (order) => {
-          try {
-            // Check if this order contains the product we're looking for
-            const orderItems = order.order_items || [];
-            const hasProduct = orderItems.some(item => item.product_id === productId);
-            
-            if (hasProduct) {
-              // Fetch reviews for this order
-              const { data: reviews } = await supabase
-                .from('order_reviews')
-                .select('*')
-                .eq('order_id', order.id);
-
-              if (reviews && reviews.length > 0) {
-                allProductReviews.push(...reviews);
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching reviews for order', order.id, err);
-          }
+      // Find orders that contain this product
+      const relevantOrderIds = (orders || [])
+        .filter(order => {
+          const orderItems = order.order_items || [];
+          return orderItems.some(item => item.product_id === productId);
         })
-      );
+        .map(order => order.id);
 
-      return allProductReviews;
+      if (relevantOrderIds.length === 0) {
+        return [];
+      }
+
+      // Get reviews for those orders
+      const { data: reviews, error: reviewsError } = await supabase
+        .from('order_reviews')
+        .select('*')
+        .in('order_id', relevantOrderIds);
+
+      if (reviewsError) {
+        console.error('Error fetching reviews:', reviewsError);
+        return [];
+      }
+
+      return reviews || [];
     } catch (error) {
       console.error('Error in getProductReviews:', error);
       return [];

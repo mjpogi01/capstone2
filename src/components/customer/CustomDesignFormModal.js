@@ -15,7 +15,7 @@ const branches = [
   { id: 'lipa', name: 'LIPA BRANCH', address: 'Lipa City, Batangas' },
 ];
 
-const initialMember = { number: '', surname: '' };
+const initialMember = { number: '', surname: '', size: '' };
 
 export default function CustomDesignFormModal({ isOpen, onClose }) {
   const [clientName, setClientName] = useState('');
@@ -59,6 +59,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     members.forEach((m, idx) => {
       if (!m.number) e[`member_number_${idx}`] = 'Required';
       if (!m.surname?.trim()) e[`member_surname_${idx}`] = 'Required';
+      if (!m.size?.trim()) e[`member_size_${idx}`] = 'Required';
       if (m.number) {
         if (numbers.has(m.number)) e[`member_number_${idx}`] = 'Duplicate jersey number';
         numbers.add(m.number);
@@ -158,12 +159,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
 
         <form className="cdfm-form" onSubmit={handleSubmit}>
           {/* Client Information */}
-          <section className="card">
-            <h3 className="card-title">Client Information</h3>
-            <div className="grid two">
-              <div className="field">
-                <label>Client Name <span className="required">*</span></label>
-                <div className="input-wrapper">
+          <section className="cdfm-card">
+            <h3 className="cdfm-card-title">Client Information</h3>
+            <div className="cdfm-grid-two">
+              <div className="cdfm-field">
+                <label>Client Name <span className="cdfm-required">*</span></label>
+                <div className="cdfm-input-wrapper">
                   <input 
                     className={showErrors && errors.clientName ? 'error' : ''} 
                     value={clientName} 
@@ -176,12 +177,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                     }}
                     placeholder="Full name" 
                   />
-                  {showErrors && errors.clientName && <span className="inline-error">{errors.clientName}</span>}
+                  {showErrors && errors.clientName && <span className="cdfm-inline-error">{errors.clientName}</span>}
                 </div>
               </div>
-              <div className="field">
-                <label>Contact Email <span className="required">*</span></label>
-                <div className="input-wrapper">
+              <div className="cdfm-field">
+                <label>Contact Email <span className="cdfm-required">*</span></label>
+                <div className="cdfm-input-wrapper">
                   <input 
                     className={(showErrors && errors.email) || instantErrors.email ? 'error' : ''} 
                     value={email} 
@@ -204,13 +205,13 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                     placeholder="name@example.com" 
                   />
                   {((showErrors && errors.email) || instantErrors.email) && (
-                    <span className="inline-error">{instantErrors.email || errors.email}</span>
+                    <span className="cdfm-inline-error">{instantErrors.email || errors.email}</span>
                   )}
                 </div>
               </div>
-              <div className="field">
-                <label>Phone Number <span className="required">*</span></label>
-                <div className="input-wrapper">
+              <div className="cdfm-field">
+                <label>Phone Number <span className="cdfm-required">*</span></label>
+                <div className="cdfm-input-wrapper">
                   <input 
                     className={(showErrors && errors.phone) || instantErrors.phone ? 'error' : ''} 
                     value={phone} 
@@ -233,7 +234,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                     placeholder="e.g. +63 912 345 6789" 
                   />
                   {((showErrors && errors.phone) || instantErrors.phone) && (
-                    <span className="inline-error">{instantErrors.phone || errors.phone}</span>
+                    <span className="cdfm-inline-error">{instantErrors.phone || errors.phone}</span>
                   )}
                 </div>
               </div>
@@ -241,14 +242,14 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           </section>
 
           {/* Team Details */}
-          <section className="card">
-            <div className="card-title-row">
-              <h3 className="card-title">Team Details</h3>
-              <span className="char-count">{teamName.length}/50</span>
+          <section className="cdfm-card">
+            <div className="cdfm-card-title-row">
+              <h3 className="cdfm-card-title">Team Details</h3>
+              <span className="cdfm-char-count">{teamName.length}/50</span>
             </div>
-            <div className="field">
-              <label>Team Name <span className="required">*</span></label>
-              <div className="input-wrapper">
+            <div className="cdfm-field">
+              <label>Team Name <span className="cdfm-required">*</span></label>
+              <div className="cdfm-input-wrapper">
                 <input 
                   className={showErrors && errors.teamName ? 'error' : ''} 
                   maxLength={50} 
@@ -262,29 +263,29 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                   }}
                   placeholder="Enter team name" 
                 />
-                {showErrors && errors.teamName && <span className="inline-error">{errors.teamName}</span>}
+                {showErrors && errors.teamName && <span className="cdfm-inline-error">{errors.teamName}</span>}
               </div>
             </div>
           </section>
 
           {/* Image Upload */}
-          <section className="card">
-            <h3 className="card-title">Design Image Upload</h3>
-            <div className="upload-area"
+          <section className="cdfm-card">
+            <h3 className="cdfm-card-title">Design Image Upload</h3>
+            <div className="cdfm-upload-area"
                  onDrop={handleDrop}
                  onDragOver={(e) => e.preventDefault()}>
               <input id="file-input" type="file" accept="image/*" multiple onChange={handleFileInput} />
-              <label htmlFor="file-input" className="upload-label">
-                <span className="upload-icon">⬆️</span>
+              <label htmlFor="file-input" className="cdfm-upload-label">
+                <span className="cdfm-upload-icon">⬆️</span>
                 Drag & drop images here or click to upload
               </label>
             </div>
             {images.length > 0 && (
-              <div className="preview-grid">
+              <div className="cdfm-preview-grid">
                 {images.map((img, i) => (
-                  <div key={i} className="preview-item">
+                  <div key={i} className="cdfm-preview-item">
                     <img src={img.url} alt={`design-${i}`} />
-                    <button type="button" className="delete-thumb" onClick={() => removeImage(i)}>✕</button>
+                    <button type="button" className="cdfm-delete-thumb" onClick={() => removeImage(i)}>✕</button>
                   </div>
                 ))}
               </div>
@@ -292,23 +293,24 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           </section>
 
           {/* Team Members Roster */}
-          <section className="card">
-            <div className="card-title-row">
-              <h3 className="card-title">Team Members Roster</h3>
-              <button type="button" className="add-row" onClick={addMemberRow} aria-label="Add row" title="Add row">
+          <section className="cdfm-card">
+            <div className="cdfm-card-title-row">
+              <h3 className="cdfm-card-title">Team Members Roster</h3>
+              <button type="button" className="cdfm-add-row" onClick={addMemberRow} aria-label="Add row" title="Add row">
                 <FontAwesomeIcon icon={faPlus} />
               </button>
             </div>
-            <div className="roster-table">
-              <div className="roster-head">
-                <div>Jersey # <span className="required">*</span></div>
-                <div>Surname <span className="required">*</span></div>
+            <div className="cdfm-roster-table">
+              <div className="cdfm-roster-head">
+                <div>Jersey # <span className="cdfm-required">*</span></div>
+                <div>Surname <span className="cdfm-required">*</span></div>
+                <div>Size <span className="cdfm-required">*</span></div>
                 <div></div>
               </div>
               {members.map((m, idx) => (
-                <div key={idx} className="roster-row">
-                  <div className="field">
-                    <div className="input-wrapper">
+                <div key={idx} className="cdfm-roster-row">
+                  <div className="cdfm-field">
+                    <div className="cdfm-input-wrapper">
                       <input 
                         className={(showErrors && errors[`member_number_${idx}`]) || instantErrors[`member_number_${idx}`] ? 'error' : ''}
                         type="text" 
@@ -335,12 +337,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                         placeholder="e.g. 23" 
                       />
                       {((showErrors && errors[`member_number_${idx}`]) || instantErrors[`member_number_${idx}`]) && (
-                        <span className="inline-error">{instantErrors[`member_number_${idx}`] || errors[`member_number_${idx}`]}</span>
+                        <span className="cdfm-inline-error">{instantErrors[`member_number_${idx}`] || errors[`member_number_${idx}`]}</span>
                       )}
                     </div>
                   </div>
-                  <div className="field">
-                    <div className="input-wrapper">
+                  <div className="cdfm-field">
+                    <div className="cdfm-input-wrapper">
                       <input 
                         className={showErrors && errors[`member_surname_${idx}`] ? 'error' : ''}
                         value={m.surname}
@@ -353,12 +355,37 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                         }}
                         placeholder="Surname" 
                       />
-                      {showErrors && errors[`member_surname_${idx}`] && <span className="inline-error">{errors[`member_surname_${idx}`]}</span>}
+                      {showErrors && errors[`member_surname_${idx}`] && <span className="cdfm-inline-error">{errors[`member_surname_${idx}`]}</span>}
                     </div>
                   </div>
-                  <div className="row-actions">
+                  <div className="cdfm-field">
+                    <div className="cdfm-input-wrapper">
+                      <select
+                        className={showErrors && errors[`member_size_${idx}`] ? 'error' : ''}
+                        value={m.size}
+                        onChange={(e) => {
+                          updateMember(idx, 'size', e.target.value);
+                          // Clear error when user selects a size
+                          if (showErrors && e.target.value) {
+                            setShowErrors(false);
+                          }
+                        }}
+                      >
+                        <option value="">Select Size</option>
+                        <option value="XS">XS</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="XXL">XXL</option>
+                        <option value="XXXL">XXXL</option>
+                      </select>
+                      {showErrors && errors[`member_size_${idx}`] && <span className="cdfm-inline-error">{errors[`member_size_${idx}`]}</span>}
+                    </div>
+                  </div>
+                  <div className="cdfm-row-actions">
                     {members.length > 1 && (
-                      <button type="button" className="remove-row" aria-label="Delete row" title="Delete row" onClick={() => removeMemberRow(idx)}>
+                      <button type="button" className="cdfm-remove-row" aria-label="Delete row" title="Delete row" onClick={() => removeMemberRow(idx)}>
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
                     )}
@@ -369,40 +396,40 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           </section>
 
           {/* Shipping Method and Notes Container */}
-          <div className="shipping-notes-container">
+          <div className="cdfm-shipping-notes-container">
             {/* Shipping Method */}
-            <section className="card shipping-section">
-              <h3 className="card-title">Shipping Method</h3>
-              <div className="field">
-                <div className="shipping-methods">
+            <section className="cdfm-card cdfm-shipping-section">
+              <h3 className="cdfm-card-title">Shipping Method</h3>
+              <div className="cdfm-field">
+                <div className="cdfm-shipping-methods">
                   <button
                     type="button"
-                    className={`shipping-option ${shippingMethod === 'pickup' ? 'active' : ''}`}
+                    className={`cdfm-shipping-option ${shippingMethod === 'pickup' ? 'active' : ''}`}
                     onClick={() => setShippingMethod('pickup')}
                   >
-                    <div className="shipping-option-title">Store Pickup</div>
-                    <div className="shipping-option-desc">Free</div>
+                    <div className="cdfm-shipping-option-title">Store Pickup</div>
+                    <div className="cdfm-shipping-option-desc">Free</div>
                   </button>
                   <button
                     type="button"
-                    className={`shipping-option ${shippingMethod === 'delivery' ? 'active' : ''}`}
+                    className={`cdfm-shipping-option ${shippingMethod === 'delivery' ? 'active' : ''}`}
                     onClick={() => setShippingMethod('delivery')}
                   >
-                    <div className="shipping-option-title">Delivery</div>
-                    <div className="shipping-option-desc">₱{DELIVERY_FEE}</div>
+                    <div className="cdfm-shipping-option-title">Delivery</div>
+                    <div className="cdfm-shipping-option-desc">₱{DELIVERY_FEE}</div>
                   </button>
                 </div>
               </div>
             </section>
 
             {/* Notes/Message Section */}
-            <section className="card notes-section">
-              <h3 className="card-title">Notes/Message to Yohanns</h3>
+            <section className="cdfm-card cdfm-notes-section">
+              <h3 className="cdfm-card-title">Notes/Message to Yohanns</h3>
               <textarea
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
                 placeholder="Please Leave A Message ......"
-                className="notes-textarea"
+                className="cdfm-notes-textarea"
                 rows="4"
               />
             </section>
@@ -410,12 +437,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
 
           {/* Pickup Location - Show only if pickup is selected */}
           {shippingMethod === 'pickup' && (
-            <section className="card">
-              <h3 className="card-title">Pickup Location</h3>
-              <div className="field">
-                <label>Select a branch <span className="required">*</span></label>
+            <section className="cdfm-card">
+              <h3 className="cdfm-card-title">Pickup Location</h3>
+              <div className="cdfm-field">
+                <label>Select a branch <span className="cdfm-required">*</span></label>
                 <select
-                  className={`select ${showErrors && errors.pickup ? 'error' : ''}`}
+                  className={`cdfm-field select ${showErrors && errors.pickup ? 'error' : ''}`}
                   value={pickupBranchId}
                   onChange={(e) => {
                     setPickupBranchId(e.target.value);
@@ -431,7 +458,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                   ))}
                 </select>
                 {pickupBranchId && (
-                  <small className="helper">{branches.find(b => b.id === pickupBranchId)?.address}</small>
+                  <small className="cdfm-helper">{branches.find(b => b.id === pickupBranchId)?.address}</small>
                 )}
               </div>
             </section>
@@ -439,13 +466,13 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
 
           {/* Delivery Address - Show only if delivery is selected */}
           {shippingMethod === 'delivery' && (
-            <section className="card">
-              <h3 className="card-title">Delivery Address</h3>
-              <div className="field">
-                <label>Complete Address <span className="required">*</span></label>
-                <div className="input-wrapper">
+            <section className="cdfm-card">
+              <h3 className="cdfm-card-title">Delivery Address</h3>
+              <div className="cdfm-field">
+                <label>Complete Address <span className="cdfm-required">*</span></label>
+                <div className="cdfm-input-wrapper">
                   <textarea
-                    className={`delivery-textarea ${showErrors && errors.deliveryAddress ? 'error' : ''}`}
+                    className={`cdfm-delivery-textarea ${showErrors && errors.deliveryAddress ? 'error' : ''}`}
                     value={deliveryAddress}
                     onChange={(e) => {
                       setDeliveryAddress(e.target.value);
@@ -457,9 +484,9 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                     placeholder="Enter your complete delivery address"
                     rows="3"
                   />
-                  {showErrors && errors.deliveryAddress && <span className="inline-error">{errors.deliveryAddress}</span>}
+                  {showErrors && errors.deliveryAddress && <span className="cdfm-inline-error">{errors.deliveryAddress}</span>}
                 </div>
-                <small className="helper" style={{color: '#00bfff', marginTop: '8px', display: 'block'}}>
+                <small className="cdfm-helper" style={{color: '#00bfff', marginTop: '8px', display: 'block'}}>
                   Delivery Fee: ₱{DELIVERY_FEE}
                 </small>
               </div>
@@ -467,12 +494,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           )}
 
           {/* Summary */}
-          <section className="card">
-            <button type="button" className="summary-toggle" onClick={() => setShowSummary(s => !s)}>
+          <section className="cdfm-card">
+            <button type="button" className="cdfm-summary-toggle" onClick={() => setShowSummary(s => !s)}>
               {showSummary ? 'Hide' : 'Show'} Order Summary
             </button>
             {showSummary && (
-              <div className="summary-content">
+              <div className="cdfm-summary-content">
                 <div><strong>Team Name:</strong> {teamName || '-'}</div>
                 <div><strong>Team Members:</strong> {members.length} {members.length === 1 ? 'member' : 'members'}</div>
                 <div><strong>Shipping:</strong> {shippingMethod === 'pickup' ? 'Store Pickup (Free)' : `Delivery (₱${DELIVERY_FEE})`}</div>
@@ -482,24 +509,24 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           </section>
 
           {/* Submit */}
-          <div className="submit-bar">
-            <div className="submit-bar-inner">
+          <div className="cdfm-submit-bar">
+            <div className="cdfm-submit-bar-inner">
               <button 
-                className="submit-btn" 
+                className="cdfm-submit-btn" 
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Order'}
               </button>
               {showErrors && hasErrors && (
-                <span className="submit-hint">Complete all required fields to submit</span>
+                <span className="cdfm-submit-hint">Complete all required fields to submit</span>
               )}
             </div>
           </div>
         </form>
 
         {confirmation && (
-          <div className="confirm-overlay" onClick={() => setConfirmation(null)}>
-            <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+          <div className="cdfm-confirm-overlay" onClick={() => setConfirmation(null)}>
+            <div className="cdfm-confirm-modal" onClick={e => e.stopPropagation()}>
               <h3>Order Submitted</h3>
               <p>Reference Number: <strong>{confirmation.reference}</strong></p>
               {confirmation.shippingMethod === 'pickup' && (

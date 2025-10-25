@@ -105,18 +105,35 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
   const loadRatingsAsync = async (products) => {
     try {
       const ratings = {};
-      // Process ratings in batches to avoid overwhelming the API
-      const batchSize = 5;
+      // Process ratings in smaller batches to avoid overwhelming the API
+      const batchSize = 3; // Reduced from 5 to 3
       for (let i = 0; i < products.length; i += batchSize) {
         const batch = products.slice(i, i + batchSize);
-        await Promise.all(
+        
+        // Add timeout to prevent hanging
+        const batchPromise = Promise.all(
           batch.map(async (product) => {
-            const averageRating = await calculateAverageRating(product.id);
-            ratings[product.id] = averageRating;
+            try {
+              const averageRating = await Promise.race([
+                calculateAverageRating(product.id),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Timeout')), 5000)
+                )
+              ]);
+              ratings[product.id] = averageRating;
+            } catch (error) {
+              console.warn(`Failed to load rating for product ${product.id}:`, error);
+              ratings[product.id] = null;
+            }
           })
         );
+        
+        await batchPromise;
         // Update ratings progressively
         setProductRatings(prev => ({ ...prev, ...ratings }));
+        
+        // Small delay between batches to prevent overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     } catch (error) {
       console.error('Error loading ratings:', error);
