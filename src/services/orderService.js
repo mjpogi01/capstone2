@@ -291,44 +291,66 @@ class OrderService {
     ];
   }
 
-  // Fetch reviews for a specific product - SIMPLIFIED VERSION
+  // Fetch reviews for a specific product - HYBRID VERSION (handles both new and old reviews)
   async getProductReviews(productId) {
     try {
-      // Get all completed orders first
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('id, order_items')
-        .eq('status', 'picked_up_delivered');
-
-      if (ordersError) {
-        console.error('Error fetching completed orders:', ordersError);
-        return [];
-      }
-
-      // Find orders that contain this product
-      const relevantOrderIds = (orders || [])
-        .filter(order => {
-          const orderItems = order.order_items || [];
-          return orderItems.some(item => item.product_id === productId);
-        })
-        .map(order => order.id);
-
-      if (relevantOrderIds.length === 0) {
-        return [];
-      }
-
-      // Get reviews for those orders
-      const { data: reviews, error: reviewsError } = await supabase
+      // First, get direct product-specific reviews (new system)
+      const { data: productReviews, error: productError } = await supabase
         .from('order_reviews')
         .select('*')
-        .in('order_id', relevantOrderIds);
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false });
 
-      if (reviewsError) {
-        console.error('Error fetching reviews:', reviewsError);
-        return [];
+      if (productError) {
+        console.error('Error fetching product-specific reviews:', productError);
       }
 
-      return reviews || [];
+      // Then, get order-level reviews that might contain this product (old system)
+      const { data: orderReviews, error: orderError } = await supabase
+        .from('order_reviews')
+        .select('*')
+        .is('product_id', null)
+        .order('created_at', { ascending: false });
+
+      if (orderError) {
+        console.error('Error fetching order-level reviews:', orderError);
+      }
+
+      // For order-level reviews, we need to check if the order contains this product
+      let relevantOrderReviews = [];
+      if (orderReviews && orderReviews.length > 0) {
+        // Get all completed orders to check which ones contain this product
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select('id, order_items')
+          .eq('status', 'picked_up_delivered');
+
+        if (!ordersError && orders) {
+          // Find orders that contain this product
+          const relevantOrderIds = orders
+            .filter(order => {
+              const orderItems = order.order_items || [];
+              return orderItems.some(item => item.id === productId);
+            })
+            .map(order => order.id);
+
+          // Filter order reviews to only include those from relevant orders
+          relevantOrderReviews = orderReviews.filter(review => 
+            relevantOrderIds.includes(review.order_id)
+          );
+        }
+      }
+
+      // Combine both types of reviews
+      const allReviews = [
+        ...(productReviews || []),
+        ...relevantOrderReviews
+      ];
+
+      // Sort by creation date (newest first)
+      allReviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+      return allReviews;
     } catch (error) {
       console.error('Error in getProductReviews:', error);
       return [];

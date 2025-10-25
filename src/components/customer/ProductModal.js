@@ -105,6 +105,18 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     }
   }, [isOpen, product?.id, loadProductReviews]);
 
+  // Refresh reviews when modal opens (in case new reviews were added)
+  useEffect(() => {
+    if (isOpen && product?.id) {
+      // Small delay to ensure any recent review submissions are processed
+      const refreshTimer = setTimeout(() => {
+        loadProductReviews();
+      }, 1000);
+      
+      return () => clearTimeout(refreshTimer);
+    }
+  }, [isOpen, product?.id, loadProductReviews]);
+
   if (!isOpen || !product) return null;
 
   // Determine product category
