@@ -10,6 +10,7 @@ import Highlights from './pages/customer/Highlights';
 import FAQs from './pages/customer/FAQs';
 import Contacts from './pages/customer/Contacts';
 import Profile from './pages/customer/Profile';
+import LogoutPage from './pages/customer/LogoutPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import Inventory from './pages/admin/Inventory';
@@ -31,11 +32,12 @@ const AppContent = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/inventory');
   const isOwnerRoute = location.pathname.startsWith('/owner');
+  const isLogoutPage = location.pathname === '/logout';
 
   return (
     <>
       <RoleRedirect />
-      {!isAdminRoute && !isOwnerRoute && <Header />}
+      {!isAdminRoute && !isOwnerRoute && !isLogoutPage && <Header />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
@@ -43,6 +45,7 @@ const AppContent = () => {
         <Route path="/branches" element={<Branches />} />
         <Route path="/faqs" element={<FAQs />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/logout" element={<LogoutPage />} />
         <Route 
           path="/profile" 
           element={
@@ -140,7 +143,7 @@ const AppContent = () => {
           } 
         />
       </Routes>
-      {!isAdminRoute && !isOwnerRoute && <Footer />}
+      {!isAdminRoute && !isOwnerRoute && !isLogoutPage && <Footer />}
     </>
   );
 };

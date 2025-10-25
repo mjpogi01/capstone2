@@ -116,6 +116,7 @@ const Header = () => {
   const handleLogout = () => {
     logout();
     setShowProfileDropdown(false);
+    navigate('/logout');
   };
 
   // Search products as user types

@@ -109,7 +109,8 @@ const Orders = () => {
 
   // Apply filters and sorting
   useEffect(() => {
-    let filtered = [...orders];
+    // Safety check to ensure orders is always an array
+    let filtered = Array.isArray(orders) ? [...orders] : [];
 
     // Search filter
     if (filters.searchTerm) {
@@ -588,7 +589,7 @@ const Orders = () => {
         </div>
         
         <div className="yh-orders-table-body">
-          {filteredOrders.map((order, index) => {
+          {(filteredOrders || []).map((order, index) => {
             const dateInfo = formatDate(order.orderDate);
             return (
               <div key={order.id} className={`yh-orders-table-row ${index % 2 === 0 ? 'yh-orders-row-even' : 'yh-orders-row-odd'}`}>
