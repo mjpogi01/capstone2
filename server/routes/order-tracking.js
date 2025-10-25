@@ -186,6 +186,13 @@ router.post('/review', async (req, res) => {
       throw reviewError;
     }
 
+    // Update product statistics after review is submitted
+    const productStatsService = require('../services/productStatsService');
+    productStatsService.updateStatsForOrder(orderId).catch(err => {
+      console.error('Failed to update product stats:', err);
+      // Don't fail the request if stats update fails
+    });
+
     res.json({
       success: true,
       message: 'Review submitted successfully',
