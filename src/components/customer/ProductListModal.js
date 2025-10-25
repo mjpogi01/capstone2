@@ -464,15 +464,13 @@ const ProductListModal = ({ isOpen, onClose }) => {
                           })}
                         </div>
                         
-                        {/* Average Rating and Sold Quantity */}
-                        {((product.average_rating > 0) || (product.sold_quantity > 0)) && (
+                        {/* Review Count and Sold Quantity */}
+                        {((product.review_count > 0) || (product.sold_quantity > 0)) && (
                           <div className="product-stats">
-                            {product.average_rating > 0 && (
+                            {product.review_count > 0 && (
                               <div className="product-reviews">
                                 <FaStar className="review-star" />
-                                <span className="review-count">
-                                  {parseFloat(product.average_rating).toFixed(1)}
-                                </span>
+                                <span className="review-count">{product.review_count}</span>
                               </div>
                             )}
                             {product.sold_quantity > 0 && (

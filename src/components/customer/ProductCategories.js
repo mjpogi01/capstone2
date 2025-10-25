@@ -3,7 +3,7 @@ import './ProductCategories.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
-import { FaChevronLeft, FaChevronRight, FaStar, FaShoppingCart } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProductModal from './ProductModal'; // Add this import
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
@@ -11,6 +11,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
+import { FaShoppingCart } from "react-icons/fa";
 
 const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, setSearchQuery }) => {
   const [showAll, setShowAll] = useState(false);
@@ -224,26 +225,6 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                   <div className="sportswear-product-info">
                     <p className="sportswear-product-name">{product.name}</p>
                     <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                    
-                    {/* Average Rating and Sold Quantity */}
-                    {((product.average_rating > 0) || (product.sold_quantity > 0)) && (
-                      <div className="sportswear-product-stats">
-                        {product.average_rating > 0 && (
-                          <div className="sportswear-product-reviews">
-                            <FaStar className="sportswear-review-star" />
-                            <span className="sportswear-review-count">
-                              {parseFloat(product.average_rating).toFixed(1)}
-                            </span>
-                          </div>
-                        )}
-                        {product.sold_quantity > 0 && (
-                          <div className="sportswear-product-sold">
-                            <span className="sportswear-sold-count">{product.sold_quantity} sold</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
                     <div className="sportswear-action-buttons">
                       <button 
                         className="sportswear-add-to-cart-btn" 
