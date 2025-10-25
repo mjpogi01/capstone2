@@ -5,6 +5,52 @@ const router = express.Router();
 
 // Supabase client and query helper are provided by ../lib/db
 
+// Function to update sold_quantity for products in an order
+async function updateSoldQuantityForOrder(orderItems) {
+  try {
+    console.log('📊 Updating sold quantity for order items:', orderItems);
+    
+    for (const item of orderItems) {
+      if (item.id && item.quantity) {
+        const quantityToAdd = parseInt(item.quantity) || 1;
+        
+        // Get current sold_quantity
+        const { data: currentProduct, error: fetchError } = await supabase
+          .from('products')
+          .select('sold_quantity')
+          .eq('id', item.id)
+          .single();
+        
+        if (fetchError) {
+          console.error(`Error fetching current sold quantity for product ${item.id}:`, fetchError);
+          continue;
+        }
+        
+        const currentSoldQuantity = currentProduct?.sold_quantity || 0;
+        const newSoldQuantity = currentSoldQuantity + quantityToAdd;
+        
+        // Update sold_quantity
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ 
+            sold_quantity: newSoldQuantity,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id);
+        
+        if (updateError) {
+          console.error(`Error updating sold quantity for product ${item.id}:`, updateError);
+        } else {
+          console.log(`✅ Updated sold quantity for product ${item.id} from ${currentSoldQuantity} to ${newSoldQuantity}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in updateSoldQuantityForOrder:', error);
+    throw error;
+  }
+}
+
 // Get all orders with filters
 router.get('/', async (req, res) => {
   try {
@@ -203,6 +249,17 @@ router.patch('/:id/status', async (req, res) => {
 
     const updatedOrder = updatedOrderData;
 
+    // Update sold_quantity when order is completed (picked_up_delivered)
+    if (status === 'picked_up_delivered' && previousStatus !== 'picked_up_delivered') {
+      try {
+        await updateSoldQuantityForOrder(currentOrder.order_items || []);
+        console.log(`📊 Updated sold quantity for completed order ${updatedOrder.order_number}`);
+      } catch (error) {
+        console.error('Error updating sold quantity for completed order:', error);
+        // Don't fail the status update if sold quantity update fails
+      }
+    }
+
     // Send email notification if not skipped and email is configured
     let emailResult = null;
     if (!skipEmail && currentOrder.customer_email && process.env.EMAIL_USER) {
@@ -282,6 +339,14 @@ router.post('/', async (req, res) => {
     }
 
     const newOrder = inserted;
+
+    // Update sold_quantity for products in this order
+    try {
+      await updateSoldQuantityForOrder(orderItems);
+    } catch (error) {
+      console.error('Error updating sold quantity:', error);
+      // Don't fail the order creation if sold quantity update fails
+    }
 
     // Send order confirmation email if email is configured
     let emailResult = null;

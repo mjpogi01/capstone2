@@ -15,7 +15,7 @@ const branches = [
   { id: 'lipa', name: 'LIPA BRANCH', address: 'Lipa City, Batangas' },
 ];
 
-const initialMember = { number: '', surname: '', size: '' };
+const initialMember = { number: '', surname: '', size: '', sizingType: 'adults' };
 
 export default function CustomDesignFormModal({ isOpen, onClose }) {
   const [clientName, setClientName] = useState('');
@@ -60,6 +60,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       if (!m.number) e[`member_number_${idx}`] = 'Required';
       if (!m.surname?.trim()) e[`member_surname_${idx}`] = 'Required';
       if (!m.size?.trim()) e[`member_size_${idx}`] = 'Required';
+      if (!m.sizingType) e[`member_sizing_type_${idx}`] = 'Required';
       if (m.number) {
         if (numbers.has(m.number)) e[`member_number_${idx}`] = 'Duplicate jersey number';
         numbers.add(m.number);
@@ -127,19 +128,57 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     
     setIsSubmitting(true);
     try {
-      // Simulate submit
-      await new Promise(res => setTimeout(res, 1200));
-      const ref = 'CD-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add form fields
+      formData.append('clientName', clientName);
+      formData.append('email', email);
+      formData.append('phone', phone);
+      formData.append('teamName', teamName);
+      formData.append('members', JSON.stringify(members));
+      formData.append('shippingMethod', shippingMethod);
+      formData.append('pickupBranchId', pickupBranchId);
+      formData.append('deliveryAddress', deliveryAddress);
+      formData.append('orderNotes', orderNotes);
+      
+      // Add design images if any
+      images.forEach((image, index) => {
+        if (image.file) {
+          formData.append('designImages', image.file);
+        }
+      });
+      
+      // Submit to backend
+      const response = await fetch('http://localhost:4000/api/custom-design', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit custom design order');
+      }
+      
+      // Show confirmation with real order data
       setConfirmation({ 
-        reference: ref, 
+        reference: result.order.order_number, 
         shippingMethod: shippingMethod,
         pickup: shippingMethod === 'pickup' ? branches.find(b => b.id === pickupBranchId)?.name : null,
         deliveryAddress: shippingMethod === 'delivery' ? deliveryAddress : null,
-        deliveryFee: shippingMethod === 'delivery' ? DELIVERY_FEE : 0
+        deliveryFee: shippingMethod === 'delivery' ? DELIVERY_FEE : 0,
+        emailSent: result.emailSent
       });
       
       // Clear the form after successful submission
       resetForm();
+    } catch (error) {
+      console.error('Custom design submission error:', error);
+      setValidationMessage({
+        type: 'error',
+        message: error.message || 'Failed to submit custom design order. Please try again.'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -305,6 +344,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                 <div>Jersey # <span className="cdfm-required">*</span></div>
                 <div>Surname <span className="cdfm-required">*</span></div>
                 <div>Size <span className="cdfm-required">*</span></div>
+                <div>Sizing Type <span className="cdfm-required">*</span></div>
                 <div></div>
               </div>
               {members.map((m, idx) => (
@@ -382,6 +422,41 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                       </select>
                       {showErrors && errors[`member_size_${idx}`] && <span className="cdfm-inline-error">{errors[`member_size_${idx}`]}</span>}
                     </div>
+                  </div>
+                  <div className="cdfm-field">
+                    <div className="cdfm-radio-group">
+                      <label className={`cdfm-radio-option ${m.sizingType === 'kids' ? 'selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name={`sizingType_${idx}`}
+                          value="kids"
+                          checked={m.sizingType === 'kids'}
+                          onChange={(e) => {
+                            updateMember(idx, 'sizingType', e.target.value);
+                            if (showErrors && e.target.value) {
+                              setShowErrors(false);
+                            }
+                          }}
+                        />
+                        <span className="cdfm-radio-label">Kids</span>
+                      </label>
+                      <label className={`cdfm-radio-option ${m.sizingType === 'adults' ? 'selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name={`sizingType_${idx}`}
+                          value="adults"
+                          checked={m.sizingType === 'adults'}
+                          onChange={(e) => {
+                            updateMember(idx, 'sizingType', e.target.value);
+                            if (showErrors && e.target.value) {
+                              setShowErrors(false);
+                            }
+                          }}
+                        />
+                        <span className="cdfm-radio-label">Adults</span>
+                      </label>
+                    </div>
+                    {showErrors && errors[`member_sizing_type_${idx}`] && <span className="cdfm-inline-error">{errors[`member_sizing_type_${idx}`]}</span>}
                   </div>
                   <div className="cdfm-row-actions">
                     {members.length > 1 && (
@@ -527,7 +602,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
         {confirmation && (
           <div className="cdfm-confirm-overlay" onClick={() => setConfirmation(null)}>
             <div className="cdfm-confirm-modal" onClick={e => e.stopPropagation()}>
-              <h3>Order Submitted</h3>
+              <h3>🎨 Custom Design Order Submitted!</h3>
               <p>Reference Number: <strong>{confirmation.reference}</strong></p>
               {confirmation.shippingMethod === 'pickup' && (
                 <p>Pickup Location: <strong>{confirmation.pickup}</strong></p>
@@ -538,6 +613,14 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                   <p>Delivery Fee: <strong>₱{confirmation.deliveryFee}</strong></p>
                 </>
               )}
+              {confirmation.emailSent !== undefined && (
+                <p style={{ color: confirmation.emailSent ? '#4CAF50' : '#FF9800' }}>
+                  {confirmation.emailSent ? '✅ Confirmation email sent' : '⚠️ Email notification failed'}
+                </p>
+              )}
+              <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px' }}>
+                Our design team will contact you within 2-3 business days to discuss your custom design requirements.
+              </p>
               <button onClick={() => { setConfirmation(null); onClose(); }}>Close</button>
             </div>
           </div>
