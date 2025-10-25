@@ -810,23 +810,84 @@
   width: 100%;
 }
 
-/* Product Stats - Review Count & Sold Quantity */
-.product-stats {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  margin-top: 2px;
-  margin-bottom: 4px;
-  width: 100%;
-  font-size: 11px;
-  color: #9ca3af;
+/* Product Card Info - Contains name, price, stats (like homepage) */
+.product-card-info {
+  padding: 8px;
+  position: relative;
+  flex: 1;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  gap: 4px !important;
+  background-color: #0a0a0a;
 }
 
-.product-stats .stat-item {
-  font-size: 11px;
-  font-weight: 500;
-  color: #9ca3af;
+.product-card-name {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  margin: 0;
+  min-height: 40px;
+}
+
+.product-card-price {
+  color: #e9c00b;
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+  margin: 4px 0 !important;
+}
+
+/* Product Stats - Copied from Homepage */
+.product-card-info .product-stats {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  margin-bottom: 4px !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  color: #9ca3af !important;
+  font-family: 'Oswald', sans-serif !important;
+  line-height: 1.2 !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  flex-direction: row !important;
+  overflow: visible !important;
+}
+
+.product-card-info .product-stats .stat-item {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: #9ca3af !important;
+  font-family: 'Oswald', sans-serif !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  line-height: 1 !important;
+  letter-spacing: 0.3px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.product-card-info .product-stats .stat-item .rating-number {
+  display: inline-block !important;
+  line-height: 1 !important;
+}
+
+.product-card-info .product-stats .stat-item .star-icon {
+  color: #fbbf24 !important;
+  font-size: 12px !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
 }
 
 .review-count {
@@ -1096,22 +1157,37 @@
   }
 
   .product-card-name {
-    font-size: 12px;
+    font-size: 13px;
+    min-height: 36px;
   }
 
   .product-card-price {
     font-size: 17px;
   }
 
-  .product-stats {
-    gap: 10px;
-    padding: 0;
-    margin-top: -1px;
-    margin-bottom: 2px;
+  .product-card-info .product-stats {
+    gap: 8px !important;
+    margin-bottom: 4px !important;
+    font-size: 12px !important;
+  }
+  
+  .product-card-info .product-stats .stat-item {
+    font-size: 12px !important;
+    gap: 3px !important;
+    line-height: 1 !important;
+  }
+  
+  .product-card-info .product-stats .stat-item .rating-number {
+    line-height: 1 !important;
+  }
+  
+  .product-card-info .product-stats .stat-item .star-icon {
+    font-size: 12px !important;
+    line-height: 1 !important;
   }
 
   .review-star {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .review-count,
@@ -1278,20 +1354,39 @@
     gap: 6px;
   }
 
+  .product-card-name {
+    font-size: 12px;
+    min-height: 34px;
+  }
+
   .product-card-price {
     font-size: 15px;
     font-weight: 800;
   }
 
-  .product-stats {
-    gap: 8px;
-    padding: 0;
-    margin-top: -1px;
-    margin-bottom: 2px;
+  .product-card-info .product-stats {
+    gap: 8px !important;
+    margin-bottom: 4px !important;
+    font-size: 11px !important;
+  }
+  
+  .product-card-info .product-stats .stat-item {
+    font-size: 11px !important;
+    gap: 3px !important;
+    line-height: 1 !important;
+  }
+  
+  .product-card-info .product-stats .stat-item .rating-number {
+    line-height: 1 !important;
+  }
+  
+  .product-card-info .product-stats .stat-item .star-icon {
+    font-size: 11px !important;
+    line-height: 1 !important;
   }
 
   .review-star {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .review-count,
@@ -1363,3 +1458,4 @@
   overflow: hidden;
   box-shadow: none;
 }
+

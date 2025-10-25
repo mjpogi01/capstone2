@@ -3,7 +3,7 @@ import './ProductCategories.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaStar } from "react-icons/fa";
 import ProductModal from './ProductModal'; // Add this import
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
@@ -270,7 +270,10 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                     {(productRatings[product.id] || product.sold_quantity > 0) && (
                       <div className="sportswear-product-stats">
                         {productRatings[product.id] && (
-                          <span className="sportswear-stat-item">{productRatings[product.id]} star</span>
+                          <span className="sportswear-stat-item">
+                            <span className="rating-number">{productRatings[product.id]}</span>
+                            <FaStar className="star-icon" />
+                          </span>
                         )}
                         {product.sold_quantity > 0 && (
                           <span className="sportswear-stat-item">{product.sold_quantity} sold</span>

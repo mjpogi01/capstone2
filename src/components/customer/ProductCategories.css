@@ -282,13 +282,46 @@
 
 /* ===== PRODUCT STATS (RATING AND SOLD COUNT BELOW PRICE) ===== */
 .sportswear-product-stats {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  margin-bottom: 0.5rem;
-  gap: 6px;
-  font-size: 12px;
-  color: #9ca3af;
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  margin-bottom: 0.5rem !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  color: #9ca3af !important;
+  font-family: 'Oswald', sans-serif !important;
+  line-height: 1.2 !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  flex-direction: row !important;
+  overflow: visible !important;
+}
+
+.sportswear-stat-item {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: #9ca3af !important;
+  font-family: 'Oswald', sans-serif !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  line-height: 1 !important;
+  letter-spacing: 0.3px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.sportswear-stat-item .rating-number {
+  display: inline-block !important;
+  line-height: 1 !important;
+}
+
+.sportswear-stat-item .star-icon {
+  color: #fbbf24 !important;
+  font-size: 12px !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
 }
 
 .sportswear-rating {

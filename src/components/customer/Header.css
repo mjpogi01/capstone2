@@ -885,6 +885,46 @@
   letter-spacing: 0.3px;
 }
 
+.yohanns-result-stats {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 4px !important;
+  font-family: 'Oswald', sans-serif !important;
+  line-height: 1.2 !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  flex-direction: row !important;
+  overflow: visible !important;
+}
+
+.yohanns-result-stats .yohanns-stat-item {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: #9ca3af !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  font-family: 'Oswald', sans-serif !important;
+  line-height: 1 !important;
+  letter-spacing: 0.3px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.yohanns-result-stats .yohanns-stat-item .rating-number {
+  display: inline-block !important;
+  line-height: 1 !important;
+}
+
+.yohanns-result-stats .yohanns-stat-item .star-icon {
+  color: #fbbf24 !important;
+  font-size: 12px !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
+}
+
 /* No Results Message */
 .yohanns-search-no-results {
   padding: 16px;

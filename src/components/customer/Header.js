@@ -14,6 +14,7 @@ import { useWishlist } from '../../contexts/WishlistContext';
 import { useNavigate } from 'react-router-dom';
 import orderService from '../../services/orderService';
 import productService from '../../services/productService';
+import { FaStar } from 'react-icons/fa';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -574,6 +575,19 @@ const Header = () => {
                           <p className="yohanns-result-price">₱{parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                           {product.category && (
                             <p className="yohanns-result-category">{product.category}</p>
+                          )}
+                          {(product.average_rating > 0 || product.sold_quantity > 0) && (
+                            <div className="yohanns-result-stats">
+                              {product.average_rating > 0 && (
+                                <span className="yohanns-stat-item">
+                                  <span className="rating-number">{product.average_rating}</span>
+                                  <FaStar className="star-icon" />
+                                </span>
+                              )}
+                              {product.sold_quantity > 0 && (
+                                <span className="yohanns-stat-item">{product.sold_quantity} sold</span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
