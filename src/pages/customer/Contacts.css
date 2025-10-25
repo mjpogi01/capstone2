@@ -1,5 +1,5 @@
-/* Contact Us Page Styles */
-.contacts {
+/* Main container styles - matching FAQs structure */
+.contacts-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
   color: #ffffff;
@@ -7,20 +7,20 @@
   font-family: 'Oswald', sans-serif;
 }
 
-.contacts-container {
+.contacts-wrapper {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
 }
 
-/* Hero Section */
+/* Hero section styles - matching FAQs */
 .contacts-hero {
   text-align: center;
   margin-bottom: 4rem;
   padding: 2rem 0;
 }
 
-.contacts-hero h1 {
+.contacts-title {
   font-size: 2.5rem;
   font-weight: 700;
   color: #00bfff;
@@ -30,7 +30,7 @@
   font-family: 'Oswald', sans-serif;
 }
 
-.contacts-hero p {
+.contacts-subtitle {
   font-size: 1.2rem;
   color: #a9d8ff;
   max-width: 800px;
@@ -40,71 +40,69 @@
   font-family: 'Oswald', sans-serif;
 }
 
-/* Branch Cards Grid */
-.branches-grid {
+/* Branch cards grid */
+.contacts-branches-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 2rem;
   margin-bottom: 4rem;
 }
 
-.branch-card {
+/* Branch card - similar to FAQ item */
+.contacts-branch-card {
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
   border-radius: 15px;
   padding: 2rem;
   border: 1px solid #333;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-.branch-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 191, 255, 0.2);
+.contacts-branch-card:hover {
+  border-color: #00bfff;
+  box-shadow: 0 4px 20px rgba(0, 191, 255, 0.2);
+  transform: translateY(-2px);
 }
 
-.branch-card h3 {
+.contacts-branch-name {
   color: #00bfff;
   margin-bottom: 1rem;
   font-size: 1.3rem;
-  font-weight: 600;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
   font-family: 'Oswald', sans-serif;
+  font-weight: 700;
 }
 
-.branch-info {
+.contacts-branch-details {
   margin-bottom: 1rem;
 }
 
-.branch-info-item {
+.contacts-branch-detail-row {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
-.branch-info-item.address {
-  align-items: flex-start;
+.contacts-branch-detail-row:last-child {
+  margin-bottom: 0;
 }
 
-.branch-info-item.phone,
-.branch-info-item.hours {
-  align-items: center;
-}
-
-.branch-info-icon {
+.contacts-branch-icon {
   color: #00bfff;
   margin-top: 0.2rem;
-  font-size: 1.1rem;
+  font-size: 16px;
+  min-width: 20px;
 }
 
-.branch-info-text {
+.contacts-branch-text {
   color: #a9d8ff;
-  line-height: 1.6;
+  line-height: 1.4;
   font-family: 'Oswald', sans-serif;
   font-weight: 400;
 }
 
-/* Contact Form */
-.contact-form {
+/* Contact form section - matching FAQs contact section */
+.contacts-form-section {
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
   border-radius: 15px;
   padding: 3rem;
@@ -113,29 +111,29 @@
   margin-bottom: 4rem;
 }
 
-.contact-form h2 {
+.contacts-form-title {
   font-size: 2rem;
-  font-weight: 700;
   color: #00bfff;
   text-align: center;
   margin-bottom: 2rem;
   text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
   font-family: 'Oswald', sans-serif;
+  font-weight: 700;
 }
 
-.form-container {
+.contacts-form {
   max-width: 600px;
   margin: 0 auto;
 }
 
-.form-row {
+.contacts-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1rem;
 }
 
-.form-input {
+.contacts-form-input {
   padding: 12px;
   border-radius: 8px;
   border: 1px solid #333;
@@ -143,22 +141,21 @@
   color: #ffffff;
   font-size: 1rem;
   font-family: 'Oswald', sans-serif;
-  font-weight: 400;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-.form-input:focus {
+.contacts-form-input:focus {
   outline: none;
   border-color: #00bfff;
-  box-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.2);
 }
 
-.form-input::placeholder {
-  color: #666;
-  font-family: 'Oswald', sans-serif;
+.contacts-form-input-full {
+  width: 100%;
+  margin-bottom: 1rem;
 }
 
-.form-textarea {
+.contacts-form-textarea {
   width: 100%;
   padding: 12px;
   border-radius: 8px;
@@ -166,81 +163,93 @@
   background: #0d0d0d;
   color: #ffffff;
   font-size: 1rem;
-  font-family: 'Oswald', sans-serif;
-  font-weight: 400;
   margin-bottom: 1rem;
   resize: vertical;
-  min-height: 120px;
-  transition: border-color 0.3s ease;
+  font-family: 'Oswald', sans-serif;
+  transition: all 0.3s ease;
 }
 
-.form-textarea:focus {
+.contacts-form-textarea:focus {
   outline: none;
   border-color: #00bfff;
-  box-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.2);
 }
 
-.form-textarea::placeholder {
-  color: #666;
-  font-family: 'Oswald', sans-serif;
-}
-
-.submit-button {
+.contacts-form-button {
   background: #00bfff;
   color: #000;
-  padding: 12px 28px;
+  padding: 12px 24px;
   border-radius: 8px;
   border: none;
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Oswald', sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
+  font-family: 'Oswald', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.submit-button:hover {
+.contacts-form-button:hover {
   background: #0099cc;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 191, 255, 0.4);
 }
 
-.submit-button:active {
+.contacts-form-button:active {
   transform: translateY(0);
 }
 
-/* Map Link */
-.map-link-container {
+.contacts-form-icon {
+  font-size: 16px;
+}
+
+/* Map link section */
+.contacts-map-link-section {
   text-align: center;
 }
 
-.map-link {
+.contacts-map-link {
   background: transparent;
   color: #00bfff;
-  padding: 12px 28px;
+  padding: 12px 24px;
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
-  font-family: 'Oswald', sans-serif;
   border: 2px solid #00bfff;
   transition: all 0.3s ease;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Oswald', sans-serif;
+  cursor: pointer;
 }
 
-.map-link:hover {
+.contacts-map-link:hover {
   background: #00bfff;
   color: #000;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 191, 255, 0.4);
 }
 
-/* Responsive Design */
+.contacts-map-link:active {
+  transform: translateY(0);
+}
+
+.contacts-map-icon {
+  font-size: 18px;
+}
+
+/* Responsive design - matching FAQs breakpoints */
 @media (max-width: 768px) {
-  .contacts {
+  .contacts-container {
     padding: 100px 0 2rem 0;
   }
   
-  .contacts-container {
+  .contacts-wrapper {
     padding: 0 5%;
     max-width: 100%;
   }
@@ -250,54 +259,55 @@
     margin-bottom: 3rem;
   }
   
-  .contacts-hero h1 {
+  .contacts-title {
     font-size: clamp(2rem, 5vw, 2.5rem);
     padding: 0 1rem;
   }
   
-  .contacts-hero p {
+  .contacts-subtitle {
     font-size: clamp(0.95rem, 2vw, 1.1rem);
     padding: 0 1rem;
     max-width: 90%;
     margin: 1rem auto;
   }
   
-  .branches-grid {
+  .contacts-branches-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
-    padding: 0 5%;
-  }
-  
-  .branch-card {
-    padding: 1.5rem;
-    width: 90%;
-    max-width: 400px;
-    margin: 0 auto;
-    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.15);
-  }
-  
-  .contact-form {
-    padding: 2rem 1.5rem;
     margin-bottom: 3rem;
   }
   
-  .contact-form h2 {
+  .contacts-branch-card {
+    padding: 1.5rem;
+  }
+  
+  .contacts-form-section {
+    padding: 2rem;
+    margin-bottom: 3rem;
+  }
+  
+  .contacts-form-title {
     font-size: 1.5rem;
     margin-bottom: 1.5rem;
   }
   
-  .form-row {
+  .contacts-form-row {
     grid-template-columns: 1fr;
-    gap: 1rem;
+  }
+  
+  .contacts-map-link {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
   }
 }
 
 @media (max-width: 480px) {
-  .contacts {
+  .contacts-container {
     padding: 85px 0 1.5rem 0;
   }
   
-  .contacts-container {
+  .contacts-wrapper {
     padding: 0 1rem;
   }
   
@@ -306,93 +316,110 @@
     margin-bottom: 2rem;
   }
   
-  .contacts-hero h1 {
+  .contacts-title {
     font-size: 1.8rem;
   }
   
-  .contacts-hero p {
+  .contacts-subtitle {
     font-size: 0.95rem;
   }
   
-  .branch-card {
-    padding: 1rem;
-  }
-  
-  .branch-card h3 {
-    font-size: 1.1rem;
-  }
-  
-  .contact-form {
-    padding: 1.5rem 1rem;
+  .contacts-branches-grid {
+    gap: 1rem;
     margin-bottom: 2rem;
   }
   
-  .contact-form h2 {
+  .contacts-branch-card {
+    padding: 1.25rem;
+  }
+  
+  .contacts-branch-name {
+    font-size: 1.1rem;
+  }
+  
+  .contacts-branch-text {
+    font-size: 0.9rem;
+  }
+  
+  .contacts-form-section {
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .contacts-form-title {
     font-size: 1.3rem;
     margin-bottom: 1rem;
   }
   
-  .form-input,
-  .form-textarea {
-    padding: 10px;
-    font-size: 0.9rem;
+  .contacts-form-input,
+  .contacts-form-textarea {
+    font-size: 0.95rem;
   }
   
-  .submit-button {
-    padding: 10px 24px;
-    font-size: 0.9rem;
+  .contacts-form-button {
+    padding: 10px 20px;
+    font-size: 0.95rem;
   }
 }
 
 /* Extra small devices */
 @media (max-width: 360px) {
-  .contacts {
+  .contacts-container {
     padding: 80px 0 1rem 0;
   }
   
-  .contacts-container {
+  .contacts-wrapper {
     padding: 0 0.75rem;
   }
   
-  .contacts-hero h1 {
+  .contacts-title {
     font-size: 1.6rem;
   }
   
-  .contacts-hero p {
+  .contacts-subtitle {
     font-size: 0.85rem;
   }
   
-  .branch-card {
-    padding: 0.75rem;
+  .contacts-branch-card {
+    padding: 1rem;
   }
   
-  .branch-card h3 {
+  .contacts-branch-name {
     font-size: 1rem;
   }
   
-  .contact-form {
-    padding: 1rem 0.75rem;
+  .contacts-branch-text {
+    font-size: 0.85rem;
   }
   
-  .contact-form h2 {
+  .contacts-form-section {
+    padding: 1rem;
+  }
+  
+  .contacts-form-title {
     font-size: 1.2rem;
   }
   
-  .form-input,
-  .form-textarea {
-    padding: 8px;
-    font-size: 0.85rem;
+  .contacts-form-input,
+  .contacts-form-textarea {
+    font-size: 0.9rem;
+    padding: 10px;
   }
   
-  .submit-button {
+  .contacts-form-button {
+    padding: 10px 18px;
+    font-size: 0.9rem;
+  }
+  
+  .contacts-map-link {
     padding: 10px 20px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 }
 
 /* Landscape orientation on mobile */
 @media (max-height: 500px) and (orientation: landscape) {
-  .contacts {
+  .contacts-container {
     padding: 70px 0 1rem 0;
   }
   
@@ -401,15 +428,16 @@
     margin-bottom: 1rem;
   }
   
-  .contacts-hero h1 {
+  .contacts-title {
     font-size: 1.5rem;
   }
   
-  .branch-card {
-    padding: 0.75rem;
+  .contacts-branches-grid {
+    margin-bottom: 1.5rem;
   }
   
-  .contact-form {
+  .contacts-form-section {
     padding: 1rem;
+    margin-bottom: 1.5rem;
   }
 }
