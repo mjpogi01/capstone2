@@ -1479,6 +1479,8 @@ div.checkout-modal div.member-details .detail-label {
   border-color: #ffa500;
   box-shadow: 0 10px 50px rgba(255, 165, 0, 0.3);
   max-width: 500px;
+  position: relative;
+  z-index: 10001;
 }
 
 .cancel-reason-modal h3 {
@@ -1489,18 +1491,22 @@ div.checkout-modal div.member-details .detail-label {
   text-align: left;
   margin-bottom: 1.5rem;
   font-size: 1rem;
+  color: #e2e8f0;
 }
 
 .cancel-reasons {
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   gap: 0.75rem;
   margin-bottom: 2rem;
   text-align: left;
+  width: 100%;
+  opacity: 1;
+  visibility: visible;
 }
 
 .reason-option {
-  display: flex;
+  display: flex !important;
   align-items: center;
   padding: 0.85rem 1rem;
   background: rgba(255, 255, 255, 0.05);
@@ -1508,6 +1514,9 @@ div.checkout-modal div.member-details .detail-label {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 100%;
+  opacity: 1;
+  visibility: visible;
 }
 
 .reason-option:hover {
@@ -1522,6 +1531,10 @@ div.checkout-modal div.member-details .detail-label {
   margin-right: 12px;
   cursor: pointer;
   accent-color: #ffa500;
+  flex-shrink: 0;
+  display: inline-block;
+  opacity: 1;
+  visibility: visible;
 }
 
 .reason-option span {
