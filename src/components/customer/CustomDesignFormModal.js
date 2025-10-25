@@ -79,6 +79,18 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const removeMemberRow = (index) => setMembers(prev => prev.filter((_, i) => i !== index));
   const updateMember = (index, field, value) => setMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
 
+  const resetForm = () => {
+    setClientName('');
+    setEmail('');
+    setPhone('');
+    setTeamName('');
+    setImages([]);
+    setMembers([{ ...initialMember }]);
+    setPickupBranchId('');
+    setValidationMessage(null);
+    setShowSummary(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -114,6 +126,9 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       await new Promise(res => setTimeout(res, 1200));
       const ref = 'CD-' + Math.random().toString(36).slice(2, 8).toUpperCase();
       setConfirmation({ reference: ref, pickup: branches.find(b => b.id === pickupBranchId)?.name });
+      
+      // Clear the form after successful submission
+      resetForm();
     } finally {
       setIsSubmitting(false);
     }
