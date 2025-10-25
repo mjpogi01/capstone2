@@ -648,8 +648,19 @@
   line-height: 1.4;
 }
 
+/* Additional specificity for item name - OVERRIDE ALL OTHER STYLES */
+.checkout-modal .item-name,
+.checkout-modal .products-table .item-name,
+.checkout-modal .table-row .item-name,
+.checkout-modal .item-details .item-name,
+.checkout-modal div.item-details div.item-name,
+div.checkout-modal div.table-row div.item-details div.item-name {
+  color: #ffffff !important;
+  --text-primary: #ffffff !important;
+}
+
 .item-type {
-  color: #a0aec0;
+  color: #ffffff !important;
   font-size: 0.8125rem;
   font-weight: 500;
   display: flex;
@@ -778,14 +789,14 @@
 }
 
 .detail-label {
-  color: #a0aec0;
+  color: #ffffff !important;
   font-size: 0.8125rem;
   font-weight: 500;
   min-width: 90px;
 }
 
 .detail-value {
-  color: #e2e8f0 !important;
+  color: #ffffff !important;
   font-size: 0.8125rem;
   font-weight: 600;
   text-align: right;
@@ -794,8 +805,34 @@
 
 .team-name-detail,
 .surname-detail {
-  color: #e2e8f0 !important;
+  color: #ffffff !important;
   font-weight: 600;
+}
+
+/* Additional specificity for all detail text - OVERRIDE ALL OTHER STYLES */
+.checkout-modal .detail-value,
+.checkout-modal .team-name-detail,
+.checkout-modal .surname-detail,
+.checkout-modal .detail-label,
+div.checkout-modal .detail-value,
+div.checkout-modal .team-name-detail,
+div.checkout-modal .surname-detail,
+div.checkout-modal .detail-label {
+  color: #ffffff !important;
+  --text-primary: #ffffff !important;
+}
+
+/* Ensure all text in order details is white - OVERRIDE ALL OTHER STYLES */
+.checkout-modal .order-details-dropdown .detail-value,
+.checkout-modal .order-details-dropdown .detail-label,
+.checkout-modal .member-details .detail-value,
+.checkout-modal .member-details .detail-label,
+div.checkout-modal div.order-details-dropdown .detail-value,
+div.checkout-modal div.order-details-dropdown .detail-label,
+div.checkout-modal div.member-details .detail-value,
+div.checkout-modal div.member-details .detail-label {
+  color: #ffffff !important;
+  --text-primary: #ffffff !important;
 }
 
 .engraving-text {
@@ -808,7 +845,7 @@
 .price-cell,
 .quantity-cell,
 .total-cell {
-  color: #e2e8f0;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 0.9375rem;
   text-align: center;
@@ -1298,4 +1335,31 @@
     padding: 14px 24px;
     font-size: 0.9375rem;
   }
+}
+
+/* ============================================
+   ULTIMATE OVERRIDE - ENSURE ALL PRODUCT TEXT IS WHITE
+   ============================================ */
+
+/* Force all text in the products table to be white */
+.checkout-modal .products-table * {
+  --text-primary: #ffffff !important;
+}
+
+.checkout-modal .products-table .item-name,
+.checkout-modal .products-table .detail-value,
+.checkout-modal .products-table .detail-label,
+.checkout-modal .products-table .team-name-detail,
+.checkout-modal .products-table .surname-detail,
+.checkout-modal .products-table div,
+.checkout-modal .products-table span {
+  color: #ffffff !important;
+}
+
+/* Additional override for any span or div with text in order details */
+.checkout-modal .order-details-dropdown span,
+.checkout-modal .order-details-dropdown div,
+.checkout-modal .member-details span,
+.checkout-modal .member-details div {
+  color: #ffffff !important;
 }

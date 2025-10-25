@@ -456,24 +456,12 @@ const ProductListModal = ({ isOpen, onClose }) => {
                       </div>
                       
                       <div className="product-card-footer">
-                        <div className="product-footer-top">
-                          <div className="product-card-price">
-                            ₱{parseFloat(product.price).toLocaleString('en-US', {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0
-                            })}
-                          </div>
-                          <button
-                            className="product-wishlist-btn"
-                            onClick={(e) => handleToggleWishlist(product, e)}
-                            aria-label="Add to wishlist"
-                          >
-                            {isInWishlist(product.id) ? (
-                              <AiFillHeart className="wishlist-icon filled" />
-                            ) : (
-                              <AiOutlineHeart className="wishlist-icon" />
-                            )}
-                          </button>
+                        {/* Price Section */}
+                        <div className="product-card-price">
+                          ₱{parseFloat(product.price).toLocaleString('en-US', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                          })}
                         </div>
                         
                         {/* Review Count and Sold Quantity */}
@@ -493,13 +481,27 @@ const ProductListModal = ({ isOpen, onClose }) => {
                           </div>
                         )}
                         
-                        <button
-                          className="add-to-cart-btn"
-                          onClick={(e) => handleAddToCart(product, e)}
-                          aria-label="Add to cart"
-                        >
-                          Add to Cart
-                        </button>
+                        {/* Add to Cart Button and Wishlist Heart - Side by Side */}
+                        <div className="product-footer-top">
+                          <button
+                            className="add-to-cart-btn"
+                            onClick={(e) => handleAddToCart(product, e)}
+                            aria-label="Add to cart"
+                          >
+                            Add to Cart
+                          </button>
+                          <button
+                            className="product-wishlist-btn"
+                            onClick={(e) => handleToggleWishlist(product, e)}
+                            aria-label="Add to wishlist"
+                          >
+                            {isInWishlist(product.id) ? (
+                              <AiFillHeart className="wishlist-icon filled" />
+                            ) : (
+                              <AiOutlineHeart className="wishlist-icon" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

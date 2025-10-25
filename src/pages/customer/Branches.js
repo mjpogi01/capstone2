@@ -182,7 +182,7 @@ const Branches = () => {
     return distance; // Distance in km
   };
 
-  // Calculate travel time based on mode of transport
+  // Calculate travel time based on mode of transport (Google Maps-like estimation)
   const calculateTravelInfo = (userLoc, branchPos) => {
     const distance = calculateDistance(
       userLoc.lat,
@@ -191,12 +191,13 @@ const Branches = () => {
       branchPos.lng
     );
 
-    // Average speeds in km/h
+    // More realistic average speeds (km/h) accounting for real-world conditions
+    // These match Google Maps estimates more closely
     const speeds = {
-      walking: 5,      // 5 km/h
-      bicycle: 15,     // 15 km/h
-      motorcycle: 40,  // 40 km/h
-      car: 50          // 50 km/h (considering city traffic)
+      walking: 4.5,      // 4.5 km/h (includes stops, crossings)
+      bicycle: 12,       // 12 km/h (realistic city cycling with traffic)
+      motorcycle: 35,    // 35 km/h (city roads with traffic)
+      car: 40            // 40 km/h (includes traffic, stops, turns in Philippines)
     };
 
     const formatTime = (hours) => {
@@ -209,6 +210,20 @@ const Branches = () => {
       }
     };
 
+    // Add overhead time for short trips (stops, intersections, etc.)
+    const addOverhead = (baseTime, distance) => {
+      if (distance < 5) {
+        // Short trips: add 15% overhead for traffic lights, turns
+        return baseTime * 1.15;
+      } else if (distance < 15) {
+        // Medium trips: add 10% overhead
+        return baseTime * 1.10;
+      } else {
+        // Long trips: add 8% overhead (highway portions)
+        return baseTime * 1.08;
+      }
+    };
+
     // Detect water crossing between Batangas and Mindoro
     // Batangas branches: lat > 13.7
     // Mindoro branches: lat < 13.5
@@ -218,22 +233,31 @@ const Branches = () => {
     const crossesWater = (isBatangas(userLoc.lat) && isMindoro(branchPos.lat)) ||
                          (isMindoro(userLoc.lat) && isBatangas(branchPos.lat));
 
+    // Calculate base travel times and add realistic overhead
+    const baseWalkingTime = distance / speeds.walking;
+    const baseBicycleTime = distance / speeds.bicycle;
+    const baseMotorcycleTime = distance / speeds.motorcycle;
+    const baseCarTime = distance / speeds.car;
+
     const travelInfo = {
       distance: distance.toFixed(1),
-      walking: formatTime(distance / speeds.walking),
-      bicycle: formatTime(distance / speeds.bicycle),
-      motorcycle: formatTime(distance / speeds.motorcycle),
-      car: formatTime(distance / speeds.car),
+      walking: formatTime(addOverhead(baseWalkingTime, distance)),
+      bicycle: formatTime(addOverhead(baseBicycleTime, distance)),
+      motorcycle: formatTime(addOverhead(baseMotorcycleTime, distance)),
+      car: formatTime(addOverhead(baseCarTime, distance)),
       crossesWater: crossesWater
     };
 
     // Add ferry travel time if crossing water
     if (crossesWater) {
-      // Ferry from Batangas to Calapan: ~1.5-2 hours
-      // Plus additional time for land travel on both sides
-      const ferryTime = 1.75; // 1 hour 45 minutes for ferry
-      const additionalLandTime = distance / speeds.car; // Estimate land portion
-      travelInfo.ferry = formatTime(ferryTime + additionalLandTime * 0.3);
+      // Ferry from Batangas to Calapan: ~2 hours actual crossing
+      // Plus port waiting time (30 min) and land travel to/from ports
+      const ferryTime = 2.0; // 2 hours for ferry crossing
+      const portWaitTime = 0.5; // 30 minutes buffer for boarding/waiting
+      // Estimate 30% of total distance is land travel (to/from ports)
+      const estimatedLandDistance = distance * 0.3;
+      const landTravelTime = addOverhead(estimatedLandDistance / speeds.car, estimatedLandDistance);
+      travelInfo.ferry = formatTime(ferryTime + portWaitTime + landTravelTime);
     }
 
     return travelInfo;
@@ -262,24 +286,60 @@ const Branches = () => {
           // Set route and zoom in one smooth motion
           setRouteCoordinates(routeCoords);
           
-          if (mapRef.current) {
-            const bounds = L.latLngBounds([
-              [userLocation.lat, userLocation.lng],
-              [branch.position.lat, branch.position.lng]
-            ]);
-            mapRef.current.fitBounds(bounds, { 
-              padding: [80, 80],
-              maxZoom: 16,
-              animate: true,
-              duration: 2.0,
-              easeLinearity: 0.05
-            });
+          if (mapRef.current && mapRef.current._loaded) {
+            try {
+              const bounds = L.latLngBounds([
+                [userLocation.lat, userLocation.lng],
+                [branch.position.lat, branch.position.lng]
+              ]);
+              mapRef.current.fitBounds(bounds, { 
+                padding: [80, 80],
+                maxZoom: 16,
+                animate: true,
+                duration: 2.0,
+                easeLinearity: 0.05
+              });
+            } catch (error) {
+              console.error('Error fitting bounds:', error);
+            }
           }
           
-          // Calculate travel information using actual distance from API
-          const info = calculateTravelInfo(userLocation, branch.position);
-          // Update with actual distance from route API
-          info.distance = (data.routes[0].distance / 1000).toFixed(1);
+          // Calculate travel information using actual distance from OSRM API
+          const actualDistance = data.routes[0].distance / 1000; // Convert meters to km
+          
+          // Recalculate with actual road distance (more accurate than straight line)
+          const speeds = {
+            walking: 4.5,
+            bicycle: 12,
+            motorcycle: 35,
+            car: 40
+          };
+          
+          const addOverhead = (baseTime, distance) => {
+            if (distance < 5) return baseTime * 1.15;
+            else if (distance < 15) return baseTime * 1.10;
+            else return baseTime * 1.08;
+          };
+          
+          const formatTime = (hours) => {
+            if (hours < 1) {
+              return `${Math.round(hours * 60)} min`;
+            } else {
+              const hrs = Math.floor(hours);
+              const mins = Math.round((hours - hrs) * 60);
+              return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+            }
+          };
+          
+          const info = {
+            distance: actualDistance.toFixed(1),
+            walking: formatTime(addOverhead(actualDistance / speeds.walking, actualDistance)),
+            bicycle: formatTime(addOverhead(actualDistance / speeds.bicycle, actualDistance)),
+            motorcycle: formatTime(addOverhead(actualDistance / speeds.motorcycle, actualDistance)),
+            car: formatTime(addOverhead(actualDistance / speeds.car, actualDistance)),
+            crossesWater: false // OSRM doesn't provide water routes
+          };
+          
           setTravelInfo(info);
         } else {
           // Fallback to straight line if routing fails
@@ -294,18 +354,22 @@ const Branches = () => {
           setTravelInfo(info);
           
           // Fit map to show route
-          if (mapRef.current) {
-            const bounds = L.latLngBounds([
-              [userLocation.lat, userLocation.lng],
-              [branch.position.lat, branch.position.lng]
-            ]);
-            mapRef.current.fitBounds(bounds, { 
-              padding: [80, 80],
-              maxZoom: 16,
-              animate: true,
-              duration: 2.0,
-              easeLinearity: 0.05
-            });
+          if (mapRef.current && mapRef.current._loaded) {
+            try {
+              const bounds = L.latLngBounds([
+                [userLocation.lat, userLocation.lng],
+                [branch.position.lat, branch.position.lng]
+              ]);
+              mapRef.current.fitBounds(bounds, { 
+                padding: [80, 80],
+                maxZoom: 16,
+                animate: true,
+                duration: 2.0,
+                easeLinearity: 0.05
+              });
+            } catch (error) {
+              console.error('Error fitting bounds:', error);
+            }
           }
         }
       } catch (error) {
@@ -321,28 +385,36 @@ const Branches = () => {
         setTravelInfo(info);
         
         // Fit map to show route
-        if (mapRef.current) {
-          const bounds = L.latLngBounds([
-            [userLocation.lat, userLocation.lng],
-            [branch.position.lat, branch.position.lng]
-          ]);
-          mapRef.current.fitBounds(bounds, { 
-            padding: [80, 80],
-            animate: true,
-            duration: 2.0,
-            easeLinearity: 0.05
-          });
+        if (mapRef.current && mapRef.current._loaded) {
+          try {
+            const bounds = L.latLngBounds([
+              [userLocation.lat, userLocation.lng],
+              [branch.position.lat, branch.position.lng]
+            ]);
+            mapRef.current.fitBounds(bounds, { 
+              padding: [80, 80],
+              animate: true,
+              duration: 2.0,
+              easeLinearity: 0.05
+            });
+          } catch (error) {
+            console.error('Error fitting bounds fallback:', error);
+          }
         }
       }
     } else {
       // If no user location, just zoom to branch with one smooth animation
       setTravelInfo(null);
-      if (mapRef.current) {
-        mapRef.current.setView(branch.position, 15, { 
-          animate: true, 
-          duration: 2.0,
-          easeLinearity: 0.05
-        });
+      if (mapRef.current && mapRef.current._loaded) {
+        try {
+          mapRef.current.setView(branch.position, 15, { 
+            animate: true, 
+            duration: 2.0,
+            easeLinearity: 0.05
+          });
+        } catch (error) {
+          console.error('Error setting view:', error);
+        }
       }
     }
   };

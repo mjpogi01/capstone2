@@ -54,6 +54,12 @@ const Contacts = () => {
       address: 'Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines',
       phone: '(043) 789-0123',
       hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+    },
+    {
+      name: 'PINAMALAYAN BRANCH',
+      address: 'Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines',
+      phone: '0917 139 5661',
+      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
     }
   ];
 
