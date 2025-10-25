@@ -167,6 +167,8 @@
   .hero-content {
     gap: 1.5rem;
     padding: 0 1rem;
+    margin-left: 15px;
+    margin-right: 15px;
   }
   
   .hero-subtitle {

@@ -571,14 +571,19 @@
     padding: 3rem 0;
   }
   
+  .sportswear-category-nav-wrapper {
+    max-width: 700px;
+    padding: 0 0.75rem;
+  }
+  
   .sportswear-category-nav {
-    gap: 1.2rem;
-    padding: 1rem 2rem;
+    gap: 1rem;
+    padding: 0.8rem 1.5rem;
   }
   
   .sportswear-category-btn {
-    padding: 0.65rem 1.5rem;
-    font-size: 0.85rem;
+    padding: 0.55rem 1.2rem;
+    font-size: 0.8rem;
   }
   
   .sportswear-products-container {
@@ -597,14 +602,21 @@
     padding: 2rem 0;
   }
   
+  .sportswear-category-nav-wrapper {
+    max-width: 600px;
+    padding: 0 0.5rem;
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+  
   .sportswear-category-nav {
-    gap: 1rem;
-    padding: 1rem 1.5rem;
+    gap: 0.8rem;
+    padding: 0.7rem 1.2rem;
   }
 
   .sportswear-category-btn {
-    padding: 0.55rem 1.2rem;
-    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.72rem;
   }
 
   .sportswear-products-container {
@@ -632,14 +644,21 @@
     padding: 1.5rem 0;
   }
   
+  .sportswear-category-nav-wrapper {
+    max-width: 500px;
+    padding: 0 0.4rem;
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+  
   .sportswear-category-nav {
-    gap: 0.8rem;
-    padding: 0.8rem 1rem;
+    gap: 0.7rem;
+    padding: 0.6rem 0.9rem;
   }
 
   .sportswear-category-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.7rem;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.68rem;
   }
 
   .sportswear-products-container {
@@ -740,14 +759,21 @@
     padding: 1.5rem 0;
   }
   
+  .sportswear-category-nav-wrapper {
+    max-width: 400px;
+    padding: 0 0.3rem;
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  
   .sportswear-category-nav {
-    gap: 0.6rem;
-    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
   }
   
   .sportswear-category-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.7rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.65rem;
   }
   
   .sportswear-products-container {

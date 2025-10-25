@@ -188,19 +188,36 @@
   line-height: 1.5;
 }
 
-/* Tablet styles */
-@media (max-width: 1024px) {
+/* Tablet styles - Keep desktop layout for tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
   .footer-content {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 2.5rem;
+    padding: 0 1.5rem;
   }
   
   .footer-nav {
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
   
   .footer-logo-image {
     height: 55px;
+  }
+  
+  .footer-tagline {
+    font-size: 0.95rem;
+  }
+  
+  .footer-link {
+    font-size: 0.75rem;
+  }
+  
+  .contact-title {
+    font-size: 1.1rem;
+  }
+  
+  .contact-link {
+    font-size: 0.85rem;
   }
 }
 
@@ -367,7 +384,7 @@
   .footer-link {
     font-size: 0.75rem;
     padding: 0.6rem 0.8rem;
-    max-width: 240px;
+    max-width: 150px;
     min-height: 44px;
     letter-spacing: 0.3px;
   }
