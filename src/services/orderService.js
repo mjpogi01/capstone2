@@ -192,10 +192,9 @@ class OrderService {
 
   // Helper method to format order data for display
   formatOrderForDisplay(order) {
-    // Extract customer info from delivery address if available
-    const deliveryAddress = order.delivery_address || {};
-    const customerName = deliveryAddress.receiver || 'Customer';
-    const customerEmail = order.user?.email || 'N/A';
+    // Use customer info from API response (now populated by backend)
+    const customerName = order.customer_name || 'Customer';
+    const customerEmail = order.customer_email || 'N/A';
     
     return {
       id: order.id,
