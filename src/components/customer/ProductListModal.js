@@ -201,7 +201,9 @@ const ProductListModal = ({ isOpen, onClose }) => {
       openSignIn();
       return;
     }
-    await addToCart(product, 1, null, null); // product, quantity, size, customization
+    // Open ProductModal instead of adding directly to cart
+    setSelectedProduct(product);
+    setShowProductModal(true);
   };
 
   // Pagination

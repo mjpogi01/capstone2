@@ -1161,7 +1161,7 @@ div.checkout-modal div.member-details .detail-label {
    RESPONSIVE DESIGN
    ============================================ */
 
-@media (max-width: 768px) {
+@media only screen and (max-width: 768px) {
   .checkout-modal-overlay {
     padding: 10px;
   }
@@ -1280,6 +1280,98 @@ div.checkout-modal div.member-details .detail-label {
   .delete-address-btn {
     flex: 1;
     min-width: 100px;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  .checkout-modal-overlay {
+    padding: 8px;
+  }
+
+  .checkout-modal {
+    max-width: 100%;
+    max-height: 95vh;
+    border-radius: 10px;
+  }
+  
+  .checkout-header {
+    padding: 20px 18px 18px;
+  }
+  
+  .checkout-header h1 {
+    font-size: 1.4rem;
+  }
+  
+  .checkout-section {
+    padding: 18px 18px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .add-address-header-btn {
+    width: 100%;
+  }
+
+  .address-form-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .shipping-notes-container {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .shipping-method {
+    flex-direction: column;
+  }
+
+  .shipping-option {
+    min-width: auto;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+
+  .item-cell {
+    flex-direction: row;
+  }
+
+  .item-content {
+    flex-direction: row;
+  }
+
+  .order-cell,
+  .price-cell,
+  .quantity-cell,
+  .total-cell {
+    text-align: left;
+    padding: 7px 0;
+    justify-content: flex-start;
+  }
+
+  .address-actions {
+    padding-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .edit-address-btn,
+  .delete-address-btn {
+    flex: 1;
+    min-width: 95px;
   }
 }
 
@@ -1633,5 +1725,107 @@ div.checkout-modal div.member-details .detail-label {
 
   .reason-option:hover {
     transform: translateX(0);
+  }
+}
+
+@media (max-width: 280px) {
+  .checkout-modal-overlay {
+    padding: 8px;
+  }
+
+  .checkout-modal {
+    border-radius: 6px;
+  }
+
+  .checkout-header {
+    padding: 16px 12px 12px;
+  }
+  
+  .checkout-header h1 {
+    font-size: 1.1rem;
+  }
+  
+  .checkout-section {
+    padding: 12px;
+  }
+
+  .section-header h2 {
+    font-size: 0.95rem;
+  }
+
+  .address-card {
+    padding: 14px;
+  }
+
+  .address-details {
+    padding-left: 24px;
+  }
+
+  .address-actions {
+    padding-left: 0;
+    width: 100%;
+  }
+
+  .edit-address-btn,
+  .delete-address-btn {
+    flex: 1;
+  }
+
+  .item-image {
+    width: 44px;
+    height: 44px;
+  }
+
+  .item-name {
+    font-size: 0.8rem;
+  }
+
+  .place-order-btn {
+    padding: 12px 20px;
+    font-size: 0.875rem;
+  }
+
+  .confirmation-modal {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .confirmation-modal h3 {
+    font-size: 1.4rem;
+  }
+
+  .confirmation-modal p {
+    font-size: 0.95rem;
+  }
+
+  .confirmation-buttons {
+    flex-direction: column;
+  }
+
+  .confirm-btn {
+    width: 100%;
+    padding: 0.8rem 1.25rem;
+  }
+
+  .success-icon {
+    width: 65px;
+    height: 65px;
+    font-size: 2.3rem;
+  }
+
+  .cancel-reason-modal {
+    max-width: 96%;
+    padding: 1.25rem 0.875rem;
+  }
+
+  .cancel-reason-modal h3 {
+    font-size: 1.2rem;
+  }
+
+  .reason-option {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .reason-option span {
+    font-size: 0.85rem;
   }
 }

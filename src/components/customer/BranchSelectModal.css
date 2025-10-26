@@ -119,7 +119,13 @@
   }
 }
 
-@media (max-width: 768px) {
+@media only screen and (max-width: 768px) {
+  .branch-select-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media only screen and (max-width: 600px) {
   .branch-select-content {
     grid-template-columns: 1fr;
   }
@@ -268,7 +274,7 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media only screen and (max-width: 768px) {
   .branch-select-modal {
     border-radius: 16px;
     max-height: 95vh;
@@ -322,6 +328,60 @@
   }
 }
 
+@media only screen and (max-width: 600px) {
+  .branch-select-modal {
+    border-radius: 14px;
+    max-height: 95vh;
+  }
+
+  .branch-select-header {
+    padding: 28px 22px 22px;
+  }
+
+  .branch-select-title {
+    font-size: 22px;
+  }
+
+  .branch-select-description {
+    font-size: 13.5px;
+  }
+
+  .branch-select-content {
+    padding: 18px 22px;
+    gap: 14px;
+  }
+
+  .branch-card {
+    padding: 18px;
+  }
+
+  .branch-card-title {
+    font-size: 15.5px;
+  }
+
+  .branch-card-address {
+    font-size: 12.5px;
+  }
+
+  .branch-facebook-btn {
+    font-size: 13.5px;
+    padding: 9px 18px;
+  }
+
+  .branch-select-footer {
+    padding: 22px 22px 28px;
+  }
+
+  .branch-select-footer-text {
+    font-size: 13.5px;
+  }
+
+  .branch-main-page-btn {
+    font-size: 13.5px;
+    padding: 9px 22px;
+  }
+}
+
 @media (max-width: 480px) {
   .branch-select-overlay {
     padding: 10px;
@@ -354,6 +414,63 @@
 
   .branch-select-footer {
     padding: 20px 20px 24px;
+  }
+}
+
+@media (max-width: 280px) {
+  .branch-select-overlay {
+    padding: 8px;
+  }
+
+  .branch-select-modal {
+    border-radius: 10px;
+  }
+
+  .branch-select-header {
+    padding: 20px 16px 16px;
+  }
+
+  .branch-select-title {
+    font-size: 18px;
+  }
+
+  .branch-select-description {
+    font-size: 12px;
+  }
+
+  .branch-select-content {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .branch-card {
+    padding: 14px;
+  }
+
+  .branch-card-title {
+    font-size: 15px;
+  }
+
+  .branch-card-address {
+    font-size: 12px;
+  }
+
+  .branch-facebook-btn {
+    font-size: 13px;
+    padding: 9px 18px;
+  }
+
+  .branch-select-footer {
+    padding: 18px 16px 20px;
+  }
+
+  .branch-select-footer-text {
+    font-size: 13px;
+  }
+
+  .branch-main-page-btn {
+    font-size: 13px;
+    padding: 9px 20px;
   }
 }
 

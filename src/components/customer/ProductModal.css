@@ -1270,6 +1270,24 @@
     padding: 12px 20px;
     font-size: 0.9rem;
   }
+
+  /* Hide error messages on mobile - show only red borders */
+  .modal-error-message {
+    display: none !important;
+  }
+
+  /* Adjust padding since we're not showing error messages */
+  .modal-member-input.error {
+    padding-right: 12px !important;
+  }
+
+  .modal-team-name-input.error {
+    padding-right: 12px !important;
+  }
+
+  .modal-single-order-input.error {
+    padding-right: 12px !important;
+  }
 }
 
 /* Small mobile styles */
@@ -1340,6 +1358,24 @@
   .modal-member-form .modal-form-group {
     margin-bottom: 8px;
   }
+
+  /* Hide error messages on mobile - show only red borders */
+  .modal-error-message {
+    display: none !important;
+  }
+
+  /* Adjust padding since we're not showing error messages */
+  .modal-member-input.error {
+    padding-right: 12px !important;
+  }
+
+  .modal-team-name-input.error {
+    padding-right: 12px !important;
+  }
+
+  .modal-single-order-input.error {
+    padding-right: 12px !important;
+  }
 }
 
 /* Extra small mobile styles */
@@ -1409,5 +1445,23 @@
   
   .modal-member-form .modal-form-group {
     margin-bottom: 6px;
+  }
+
+  /* Hide error messages on mobile - show only red borders */
+  .modal-error-message {
+    display: none !important;
+  }
+
+  /* Adjust padding since we're not showing error messages */
+  .modal-member-input.error {
+    padding-right: 10px !important;
+  }
+
+  .modal-team-name-input.error {
+    padding-right: 10px !important;
+  }
+
+  .modal-single-order-input.error {
+    padding-right: 10px !important;
   }
 }

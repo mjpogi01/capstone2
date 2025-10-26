@@ -364,7 +364,14 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
               </div>
               {members.map((m, idx) => (
                 <div key={idx} className="cdfm-roster-row">
+                  {/* Member Badge (visible on mobile) */}
+                  <span className="cdfm-roster-member-badge">Member #{idx + 1}</span>
+                  
+                  {/* Jersey Number */}
                   <div className="cdfm-field">
+                    <label className="cdfm-roster-field-label">
+                      Jersey # <span className="cdfm-required">*</span>
+                    </label>
                     <div className="cdfm-input-wrapper">
                       <input 
                         className={(showErrors && errors[`member_number_${idx}`]) || instantErrors[`member_number_${idx}`] ? 'error' : ''}
@@ -396,7 +403,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                       )}
                     </div>
                   </div>
+                  
+                  {/* Surname */}
                   <div className="cdfm-field">
+                    <label className="cdfm-roster-field-label">
+                      Surname <span className="cdfm-required">*</span>
+                    </label>
                     <div className="cdfm-input-wrapper">
                       <input 
                         className={showErrors && errors[`member_surname_${idx}`] ? 'error' : ''}
@@ -413,7 +425,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                       {showErrors && errors[`member_surname_${idx}`] && <span className="cdfm-inline-error">{errors[`member_surname_${idx}`]}</span>}
                     </div>
                   </div>
+                  
+                  {/* Size */}
                   <div className="cdfm-field">
+                    <label className="cdfm-roster-field-label">
+                      Size <span className="cdfm-required">*</span>
+                    </label>
                     <div className="cdfm-input-wrapper">
                       <select
                         className={showErrors && errors[`member_size_${idx}`] ? 'error' : ''}
@@ -438,7 +455,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                       {showErrors && errors[`member_size_${idx}`] && <span className="cdfm-inline-error">{errors[`member_size_${idx}`]}</span>}
                     </div>
                   </div>
+                  
+                  {/* Sizing Type */}
                   <div className="cdfm-field">
+                    <label className="cdfm-roster-field-label">
+                      Sizing Type <span className="cdfm-required">*</span>
+                    </label>
                     <div className="cdfm-radio-group">
                       <label className={`cdfm-radio-option ${m.sizingType === 'kids' ? 'selected' : ''}`}>
                         <input
@@ -473,6 +495,8 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                     </div>
                     {showErrors && errors[`member_sizing_type_${idx}`] && <span className="cdfm-inline-error">{errors[`member_sizing_type_${idx}`]}</span>}
                   </div>
+                  
+                  {/* Row Actions */}
                   <div className="cdfm-row-actions">
                     {members.length > 1 && (
                       <button type="button" className="cdfm-remove-row" aria-label="Delete row" title="Delete row" onClick={() => removeMemberRow(idx)}>

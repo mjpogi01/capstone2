@@ -222,7 +222,7 @@
 }
 
 /* Mobile styles */
-@media (max-width: 768px) {
+@media only screen and (max-width: 768px) {
   .footer {
     padding: 2.5rem 0 1.5rem;
   }
@@ -363,6 +363,62 @@
     font-size: 0.85rem;
     padding: 0 1rem;
     line-height: 1.8;
+  }
+}
+
+/* Mobile styles - 600px and below */
+@media only screen and (max-width: 600px) {
+  .footer {
+    padding: 2.25rem 0 1.35rem;
+  }
+  
+  .footer-content {
+    gap: 2.25rem;
+    padding: 0 1.25rem;
+  }
+  
+  .footer-logo-image {
+    height: 52px;
+  }
+  
+  .footer-tagline {
+    font-size: 0.9rem;
+    max-width: 270px;
+  }
+  
+  .footer-link {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.3rem;
+    flex: 0 0 calc(25% - 0.1rem);
+    max-width: calc(25% - 0.1rem);
+  }
+  
+  .contact-title {
+    font-size: 1.1rem;
+    margin-bottom: 1.15rem;
+  }
+  
+  .contact-info {
+    gap: 1.75rem;
+  }
+  
+  .contact-item {
+    padding: 0.45rem;
+  }
+  
+  .contact-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .contact-icon svg {
+    width: 23px;
+    height: 23px;
+  }
+  
+  .copyright {
+    font-size: 0.82rem;
+    line-height: 1.7;
   }
 }
 
@@ -563,6 +619,74 @@
   
   .copyright {
     font-size: 0.7rem;
+  }
+}
+
+/* Extra ultra small screens - 280px */
+@media (max-width: 280px) {
+  .footer {
+    padding: 1.25rem 0 0.875rem;
+  }
+  
+  .footer-content {
+    gap: 1.25rem;
+    padding: 0 0.5rem;
+  }
+  
+  .footer-logo-image {
+    height: 38px;
+  }
+  
+  .footer-tagline {
+    font-size: 0.7rem;
+    max-width: 200px;
+    line-height: 1.4;
+  }
+  
+  .footer-nav {
+    gap: 0.1rem;
+  }
+  
+  .footer-link {
+    font-size: 0.58rem;
+    padding: 0.2rem 0.25rem;
+    margin: 0;
+    letter-spacing: 0.1px;
+    border: none;
+    flex: 0 0 calc(25% - 0.08rem);
+    max-width: calc(25% - 0.08rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .contact-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .contact-info {
+    gap: 0.875rem;
+  }
+  
+  .contact-item {
+    padding: 0.25rem;
+  }
+  
+  .contact-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .contact-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .copyright {
+    font-size: 0.65rem;
+    line-height: 1.5;
+    padding: 0 0.5rem;
   }
 }
 

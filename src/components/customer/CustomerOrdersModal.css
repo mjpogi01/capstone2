@@ -1000,7 +1000,7 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media only screen and (max-width: 768px) {
   .customer-orders-modal-overlay {
     padding: 1rem;
   }
@@ -1070,6 +1070,70 @@
     min-width: unset;
   }
 
+  .ball-info-grid,
+  .trophy-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 600px and below responsive */
+@media only screen and (max-width: 600px) {
+  .customer-orders-modal-overlay {
+    padding: 0.75rem;
+  }
+  
+  .customer-orders-modal-content {
+    max-width: 100%;
+    max-height: 95vh;
+  }
+  
+  .customer-orders-modal-header {
+    padding: 0.9rem 1.15rem;
+  }
+  
+  .customer-orders-count-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.7rem;
+  }
+  
+  .customer-orders-modal-body {
+    padding: 1.15rem;
+  }
+  
+  .customer-order-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+  
+  .customer-order-toggle {
+    position: absolute;
+    top: 1.15rem;
+    right: 1.15rem;
+  }
+  
+  .review-modal-content {
+    max-width: 100%;
+  }
+  
+  .review-modal-header {
+    padding: 0.9rem 1.15rem;
+  }
+  
+  .review-modal-body {
+    padding: 1.15rem;
+  }
+  
+  .review-modal-actions {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  
+  .cancel-review-btn,
+  .submit-review-btn {
+    width: 100%;
+  }
+  
   .ball-info-grid,
   .trophy-info-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1290,6 +1354,62 @@
   }
 }
 
+@media (max-width: 280px) {
+  .customer-orders-modal-overlay {
+    padding: 0.4rem;
+  }
+  
+  .customer-orders-modal-header {
+    padding: 0.75rem 0.875rem;
+  }
+  
+  .customer-orders-modal-title {
+    font-size: 1.15rem;
+  }
+  
+  .customer-orders-modal-body {
+    padding: 0.875rem;
+  }
+  
+  .customer-order-details {
+    padding: 0.875rem;
+  }
+
+  .ball-info-grid,
+  .trophy-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmation-modal {
+    padding: 1.5rem 1rem;
+  }
+
+  .confirmation-modal h3 {
+    font-size: 1.3rem;
+  }
+
+  .confirmation-modal p {
+    font-size: 0.9rem;
+  }
+
+  .cancel-reason-modal {
+    max-width: 96%;
+    padding: 1.25rem 0.75rem;
+  }
+
+  .cancel-reason-modal h3 {
+    font-size: 1.2rem;
+  }
+
+  .reason-option {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .reason-option span {
+    font-size: 0.8rem;
+  }
+}
+
 /* ============================================ 
    CUSTOM DESIGN ORDER STYLES FOR CUSTOMER VIEW
    ============================================ */
@@ -1460,7 +1580,7 @@
 }
 
 /* Responsive Design for Custom Design Orders in Customer View */
-@media (max-width: 768px) {
+@media only screen and (max-width: 768px) {
   .custom-design-order-item {
     padding: 16px;
     margin: 12px 0;
@@ -1482,5 +1602,31 @@
   
   .custom-design-image {
     height: 100px;
+  }
+}
+
+/* Custom design 600px and below */
+@media only screen and (max-width: 600px) {
+  .custom-design-order-item {
+    padding: 14px;
+    margin: 10px 0;
+  }
+  
+  .custom-design-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+  }
+  
+  .custom-design-members-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .custom-design-images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  }
+  
+  .custom-design-image {
+    height: 95px;
   }
 }
