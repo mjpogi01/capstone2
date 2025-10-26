@@ -1057,8 +1057,8 @@
 }
 
 .hamburger-menu svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   color: #00bfff;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: block;
@@ -1066,10 +1066,10 @@
 
 .hamburger-menu:hover svg {
   color: #87ceeb;
+  transform: scale(1.1);
 }
 
 .hamburger-menu.active svg {
-  transform: rotate(90deg);
   color: #00bfff;
 }
 
@@ -1118,7 +1118,7 @@
     gap: 1rem;
     padding: 1rem 1.25rem;
     background: none;
-    border: 2px solid transparent;
+    border: none !important;
     border-radius: 8px;
     color: rgba(255, 255, 255, 0.9);
     font-size: 1.05rem;
@@ -1131,6 +1131,15 @@
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  .mobile-action-link:focus,
+  .mobile-action-link:focus-visible {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
   
   .mobile-action-link svg {
@@ -1146,9 +1155,18 @@
   
   .mobile-action-link:hover {
     background: rgba(0, 191, 255, 0.1);
-    border-color: rgba(0, 191, 255, 0.3);
     color: #00bfff;
     transform: translateX(-4px);
+  }
+  
+  /* Logout button - Red color */
+  .mobile-logout-link {
+    color: #ff6b6b !important;
+  }
+  
+  .mobile-logout-link:hover {
+    background: rgba(255, 107, 107, 0.1) !important;
+    color: #ff4444 !important;
   }
   
   .mobile-action-badge {
@@ -1212,39 +1230,70 @@
   .nav-link {
     width: 100%;
     padding: 1.25rem 2rem;
+    border: none;
     border-bottom: 1px solid rgba(0, 191, 255, 0.1);
     font-size: 1.1rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    outline: none !important;
+    box-shadow: none !important;
+    display: flex;
+    align-items: center;
+  }
+  
+  .nav-link:focus,
+  .nav-link:focus-visible,
+  .nav-link:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  
+  /* Hide any ::after indicator on mobile */
+  .nav-link::after {
+    display: none !important;
   }
   
   .nav-link::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 0;
-    height: 100%;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0);
+    height: 60%;
     width: 4px;
     background: linear-gradient(180deg, #00bfff 0%, #87ceeb 100%);
-    transform: scaleY(0);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .nav-link:hover {
     background: rgba(0, 191, 255, 0.08);
-    padding-left: 2.5rem;
-    color: #87ceeb;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
   }
   
+  /* Don't show indicator on hover - only on active */
   .nav-link:hover::before {
-    transform: scaleY(1);
+    transform: translateY(-50%) scaleY(0);
   }
   
   .nav-link.active {
     background: rgba(0, 191, 255, 0.15);
-    border-left: 4px solid #00bfff;
     padding-left: 2rem;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+  
+  /* Only active state shows the indicator */
+  .nav-link.active::before {
+    transform: translateY(-50%) scaleY(1);
+  }
+  
+  .nav-link.active::after {
+    display: none !important;
   }
   
   .yohanns-search-toggle {
@@ -1456,6 +1505,7 @@
   .hamburger-menu svg {
     width: 20px;
     height: 20px;
+    transition: all 0.3s ease;
   }
   
   /* Utility icons container */
@@ -1552,15 +1602,7 @@
     text-align: left !important;
     border-radius: 8px !important;
     transition: all 0.3s ease !important;
-    border: 2px solid transparent !important;
-  }
-  
-  .nav-menu .nav-link:hover,
-  .nav-menu .nav-link.active {
-    background: rgba(0, 191, 255, 0.1) !important;
-    border-color: rgba(0, 191, 255, 0.3) !important;
-    color: #00bfff !important;
-    transform: translateX(-4px) !important;
+    border: none !important;
   }
   
   
@@ -1679,6 +1721,7 @@
   .hamburger-menu svg {
     width: 18px;
     height: 18px;
+    transition: all 0.3s ease;
   }
   
   .utility-icons .yohanns-search-toggle {
@@ -1808,6 +1851,7 @@
   .hamburger-menu svg {
     width: 16px;
     height: 16px;
+    transition: all 0.3s ease;
   }
   
   .utility-icons {

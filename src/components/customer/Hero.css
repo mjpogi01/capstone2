@@ -289,6 +289,24 @@
   }
 }
 
+/* Medium mobile styles (720px with height constraint) */
+@media (max-width: 720px) and (max-height: 1600px) {
+  .hero-buttons {
+    margin-bottom: 10px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.8rem;
+  }
+  
+  .hero-buttons .btn {
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+    padding: 0.75rem 1.2rem;
+    font-size: 0.85rem;
+  }
+}
+
 /* Small mobile styles */
 @media (max-width: 480px) {
   .hero {

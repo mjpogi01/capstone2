@@ -648,10 +648,10 @@
   font-family: var(--shopee-font-family);
 }
 
-/* Checkout Button - Shopee Style */
+/* Checkout Button - Clean Blue Style */
 .mycart-checkout-btn-clean {
   padding: 10px 16px;
-  background: var(--shopee-primary);
+  background: #3b82f6;
   color: white;
   border: none;
   border-radius: 4px;
@@ -661,14 +661,14 @@
   letter-spacing: 0.3px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: var(--shopee-shadow-md);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
   width: 100%;
   font-family: var(--shopee-font-family);
 }
 
 .mycart-checkout-btn-clean:hover:not(:disabled) {
-  background: var(--shopee-primary-hover);
-  box-shadow: 0 6px 16px rgba(238, 77, 45, 0.3);
+  background: #2563eb;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
   transform: translateY(-1px);
 }
 

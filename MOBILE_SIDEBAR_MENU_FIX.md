@@ -205,3 +205,4 @@ The mobile navigation sidebar code was accidentally removed, causing the burger 
 
 The burger menu now opens a beautiful sliding sidebar with all navigation links and utility icons visible!
 
+

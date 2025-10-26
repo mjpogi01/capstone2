@@ -14,7 +14,7 @@ import { useWishlist } from '../../contexts/WishlistContext';
 import { useNavigate } from 'react-router-dom';
 import orderService from '../../services/orderService';
 import productService from '../../services/productService';
-import { FaStar } from 'react-icons/fa';
+import { FaStar, FaBars, FaTimes } from 'react-icons/fa';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -196,14 +196,10 @@ const Header = () => {
           aria-label="Toggle navigation menu"
           aria-expanded={mobileMenuOpen}
         >
-          <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-            <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
+          {mobileMenuOpen ? <FaTimes /> : <FaBars />}
         </button>
         
-        <nav className={`nav-menu ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+        <nav className={`nav-menu ${mobileMenuOpen ? 'mobile-open' : ''}`} key={location.pathname}>
           <Link 
             to="/" 
             className={`nav-link ${isActive('/') ? 'active' : ''}`}
@@ -320,6 +316,21 @@ const Header = () => {
               </svg>
               <span>{isAuthenticated ? 'Account' : 'Sign In'}</span>
             </button>
+            
+            {isAuthenticated && (
+              <button 
+                className="mobile-action-link mobile-logout-link" 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+              >
+                <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                  <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" fill="currentColor" />
+                </svg>
+                <span>Logout</span>
+              </button>
+            )}
           </div>
         </nav>
         

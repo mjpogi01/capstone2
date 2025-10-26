@@ -1087,6 +1087,40 @@
     grid-template-columns: repeat(5, 1fr);
     gap: 10px;
   }
+
+  /* Large Desktop Horizontal Stats Alignment */
+  .product-card-info .product-stats {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    margin-bottom: 4px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  .product-card-info .product-stats .stat-item {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    font-size: 12px !important;
+    gap: 3px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .product-card-info .product-stats .stat-item .rating-number {
+    display: inline-block !important;
+    line-height: 1 !important;
+  }
+
+  .product-card-info .product-stats .stat-item .star-icon {
+    font-size: 12px !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+  }
 }
 
 /* Desktop (1200px - 1399px) - 5 columns */
@@ -1094,6 +1128,40 @@
   .product-grid {
     grid-template-columns: repeat(5, 1fr);
     gap: 8px;
+  }
+
+  /* Desktop Horizontal Stats Alignment */
+  .product-card-info .product-stats {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    margin-bottom: 4px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  .product-card-info .product-stats .stat-item {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    font-size: 12px !important;
+    gap: 3px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .product-card-info .product-stats .stat-item .rating-number {
+    display: inline-block !important;
+    line-height: 1 !important;
+  }
+
+  .product-card-info .product-stats .stat-item .star-icon {
+    font-size: 12px !important;
+    line-height: 1 !important;
+    display: inline-block !important;
   }
 }
 
@@ -1201,8 +1269,177 @@
   }
 }
 
+/* ============================================
+   MOBILE FILTER BUTTON AND MODAL
+   ============================================ */
+
+/* Mobile Filter Row - Hidden on desktop, shown on mobile */
+.mobile-filter-row {
+  display: none;
+}
+
+/* Mobile Filter Overlay */
+.mobile-filter-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 3000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mobile Filter Drawer - Slides up from bottom */
+.mobile-filter-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0a0a0a;
+  border-radius: 20px 20px 0 0;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Filter Header */
+.mobile-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.mobile-filter-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.mobile-filter-close {
+  background: #1a1a1a;
+  border: 1px solid #262626;
+  color: #9ca3af;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.mobile-filter-close:hover {
+  background: #262626;
+  color: #ffffff;
+}
+
+/* Mobile Filter Content - Scrollable */
+.mobile-filter-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* Mobile Filter Footer */
+.mobile-filter-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #1a1a1a;
+  background: #0a0a0a;
+}
+
+.mobile-filter-apply {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.mobile-filter-apply:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.mobile-filter-apply:active {
+  transform: translateY(0);
+}
+
 /* Mobile (below 768px) - 2 columns */
 @media (max-width: 767px) {
+  /* Show mobile filter row */
+  .mobile-filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #0a0a0a;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  .mobile-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #1a1a1a;
+    border: 1px solid #262626;
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-filter-btn:hover {
+    background: #262626;
+    border-color: #3b82f6;
+    color: #3b82f6;
+  }
+
+  .mobile-filter-btn .filter-icon {
+    font-size: 12px;
+  }
+
+  .mobile-results-text {
+    color: #9ca3af;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
   .shop-header {
     padding: 12px 16px;
   }
@@ -1291,6 +1528,41 @@
     gap: 6px;
   }
 
+  /* Mobile Horizontal Stats Alignment - Unique Product List Modal Classes */
+  .product-card-info .product-stats {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    margin-bottom: 2px !important;
+    font-size: 10px !important;
+    min-height: 16px !important;
+    white-space: nowrap !important;
+  }
+
+  .product-card-info .product-stats .stat-item {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    font-size: 10px !important;
+    gap: 2px !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+  }
+
+  .product-card-info .product-stats .stat-item .star-icon {
+    font-size: 10px !important;
+    display: inline-block !important;
+    line-height: 1 !important;
+  }
+
+  .product-card-info .product-stats .stat-item .rating-number {
+    display: inline-block !important;
+    line-height: 1 !important;
+  }
+
   .shop-pagination {
     gap: 4px;
   }
@@ -1364,25 +1636,39 @@
     font-weight: 800;
   }
 
+  /* Extra Small Mobile Horizontal Stats - Unique Product List Modal Classes */
   .product-card-info .product-stats {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
     gap: 8px !important;
     margin-bottom: 4px !important;
     font-size: 11px !important;
+    white-space: nowrap !important;
+    min-height: 14px !important;
   }
   
   .product-card-info .product-stats .stat-item {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
     font-size: 11px !important;
     gap: 3px !important;
     line-height: 1 !important;
+    white-space: nowrap !important;
   }
   
   .product-card-info .product-stats .stat-item .rating-number {
+    display: inline-block !important;
     line-height: 1 !important;
   }
   
   .product-card-info .product-stats .stat-item .star-icon {
     font-size: 11px !important;
     line-height: 1 !important;
+    display: inline-block !important;
   }
 
   .review-star {
