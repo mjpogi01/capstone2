@@ -111,6 +111,7 @@ export const AuthProvider = ({ children }) => {
   // Role-based helper functions
   const isOwner = () => user?.user_metadata?.role === 'owner';
   const isAdmin = () => user?.user_metadata?.role === 'admin';
+  const isArtist = () => user?.user_metadata?.role === 'artist';
   const isCustomer = () => user?.user_metadata?.role === 'customer';
   const hasAdminAccess = () => user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'owner';
   const canAccessAdmin = () => hasAdminAccess();
@@ -125,6 +126,7 @@ export const AuthProvider = ({ children }) => {
     refreshUser,
     isOwner,
     isAdmin,
+    isArtist,
     isCustomer,
     hasAdminAccess,
     canAccessAdmin

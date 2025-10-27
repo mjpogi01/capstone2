@@ -13,6 +13,7 @@ import Profile from './pages/customer/Profile';
 import LogoutPage from './pages/customer/LogoutPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
+import ArtistDashboard from './pages/artist/ArtistDashboard';
 import Inventory from './pages/admin/Inventory';
 import Accounts from './pages/admin/Accounts';
 import Orders from './pages/admin/Orders';
@@ -32,12 +33,13 @@ const AppContent = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/inventory');
   const isOwnerRoute = location.pathname.startsWith('/owner');
+  const isArtistRoute = location.pathname.startsWith('/artist');
   const isLogoutPage = location.pathname === '/logout';
 
   return (
     <>
       <RoleRedirect />
-      {!isAdminRoute && !isOwnerRoute && !isLogoutPage && <Header />}
+      {!isAdminRoute && !isOwnerRoute && !isArtistRoute && !isLogoutPage && <Header />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
@@ -67,6 +69,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute requireOwner={true}>
               <OwnerDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/artist" 
+          element={
+            <ProtectedRoute requireArtist={true}>
+              <ArtistDashboard />
             </ProtectedRoute>
           } 
         />
@@ -143,7 +153,7 @@ const AppContent = () => {
           } 
         />
       </Routes>
-      {!isAdminRoute && !isOwnerRoute && !isLogoutPage && <Footer />}
+      {!isAdminRoute && !isOwnerRoute && !isArtistRoute && !isLogoutPage && <Footer />}
     </>
   );
 };
