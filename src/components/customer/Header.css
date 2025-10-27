@@ -42,7 +42,7 @@
 }
 
 .nav-link {
-  color: #00bfff;
+  color: #00bfff !important;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
@@ -58,27 +58,10 @@
   outline-color: transparent !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
-  background: linear-gradient(90deg, #87ceeb, #00bfff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: #00bfff; /* Fallback color for browsers that don't support background-clip */
 }
 
 .nav-link:hover {
-  background: linear-gradient(
-    90deg,
-    #0d47a1 0%,
-    #00bfff 25%,
-    #87ceeb 50%,
-    #00bfff 75%,
-    #0d47a1 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: #00bfff; /* Fallback color for browsers that don't support background-clip */
+  color: #87ceeb !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
@@ -104,33 +87,12 @@
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
-  background: linear-gradient(
-    90deg,
-    #0d47a1 0%,
-    #00bfff 25%,
-    #87ceeb 50%,
-    #00bfff 75%,
-    #0d47a1 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: #00bfff; /* Fallback color for browsers that don't support background-clip */
-  animation: shiningGradient 0.6s linear 1, clickPulse 0.3s ease;
+  color: #4fc3f7 !important;
+  animation: clickPulse 0.3s ease;
 }
 
 .nav-link.active {
-  background: linear-gradient(
-    90deg,
-    #0d47a1 0%,
-    #00bfff 50%,
-    #87ceeb 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: #00bfff; /* Fallback color for browsers that don't support background-clip */
+  color: #ffffff !important;
   font-weight: 700;
   border: none !important;
   outline: none !important;
@@ -1273,23 +1235,21 @@
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  .nav-link:hover {
-    background: rgba(0, 191, 255, 0.08);
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-  }
+   .nav-link:hover {
+     background: rgba(0, 191, 255, 0.08);
+     color: #ffffff !important;
+   }
   
   /* Don't show indicator on hover - only on active */
   .nav-link:hover::before {
     transform: translateY(-50%) scaleY(0);
   }
   
-  .nav-link.active {
-    background: rgba(0, 191, 255, 0.15);
-    padding-left: 2rem;
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-  }
+   .nav-link.active {
+     background: rgba(0, 191, 255, 0.15);
+     padding-left: 2rem;
+     color: #ffffff !important;
+   }
   
   /* Only active state shows the indicator */
   .nav-link.active::before {
