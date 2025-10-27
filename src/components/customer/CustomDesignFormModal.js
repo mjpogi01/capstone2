@@ -94,9 +94,19 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const addMemberRow = () => setMembers(prev => [...prev, { ...initialMember }]);
-  const removeMemberRow = (index) => setMembers(prev => prev.filter((_, i) => i !== index));
-  const updateMember = (index, field, value) => setMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
+  const addMemberRow = () => {
+    setMembers(prev => [...prev, { ...initialMember }]);
+    console.log('✅ New team member row added');
+  };
+  
+  const removeMemberRow = (index) => {
+    setMembers(prev => prev.filter((_, i) => i !== index));
+    console.log('✅ Team member row removed');
+  };
+  
+  const updateMember = (index, field, value) => {
+    setMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
+  };
 
   const resetForm = () => {
     // Pre-populate with user data if logged in
@@ -350,7 +360,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           <section className="cdfm-card">
             <div className="cdfm-card-title-row">
               <h3 className="cdfm-card-title">Team Members Roster</h3>
-              <button type="button" className="cdfm-add-row" onClick={addMemberRow} aria-label="Add row" title="Add row">
+              <button type="button" className="cdfm-add-row" onClick={addMemberRow} aria-label="Add Team Member" title="Add Team Member">
                 <FontAwesomeIcon icon={faPlus} />
               </button>
             </div>
@@ -499,7 +509,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                   {/* Row Actions */}
                   <div className="cdfm-row-actions">
                     {members.length > 1 && (
-                      <button type="button" className="cdfm-remove-row" aria-label="Delete row" title="Delete row" onClick={() => removeMemberRow(idx)}>
+                      <button type="button" className="cdfm-remove-row" aria-label="Remove Team Member" title="Remove Team Member" onClick={() => removeMemberRow(idx)}>
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
                     )}

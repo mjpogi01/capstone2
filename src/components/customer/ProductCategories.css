@@ -256,7 +256,7 @@
 .sportswear-product-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   border-radius: 0;
   border: none;
@@ -341,11 +341,16 @@
   letter-spacing: 0.3px !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
 }
 
 .product-card-info .product-stats .stat-item .rating-number {
   display: inline-block !important;
   line-height: 1 !important;
+  background: transparent !important;
+  padding: 0 !important;
 }
 
 .sportswear-product-card .sportswear-product-stats .sportswear-stat-item .star-icon {
@@ -355,6 +360,8 @@
   display: inline-block !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
+  background: transparent !important;
+  padding: 0 !important;
 }
 
 .sportswear-sold-count {
@@ -821,7 +828,7 @@
     height: 100%;
     border-radius: 0;
     border: none;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
   }
   
@@ -971,7 +978,7 @@
     height: 100%;
     border-radius: 0;
     border: none;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
   }
   
@@ -1116,7 +1123,7 @@
     height: 100%;
     border-radius: 0;
     border: none;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
   }
   
@@ -1409,7 +1416,7 @@
     height: 100%;
     border-radius: 0;
     border: none;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
   }
   
@@ -1464,12 +1471,17 @@
     line-height: 1.2 !important;
     letter-spacing: 0.3px !important;
     white-space: nowrap !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
   }
   
   .sportswear-product-card .sportswear-product-stats .sportswear-stat-item .star-icon {
     font-size: 0.7rem !important;
     margin-left: .5px !important;
     line-height: 1.2 !important;
+    background: transparent !important;
+    padding: 0 !important;
   }
   
   .product-card-info .product-stats .stat-item {
@@ -1478,11 +1490,16 @@
     gap: 0.25rem !important;
     line-height: 1.2 !important;
     letter-spacing: 0.3px !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
   }
   
   .product-card-info .product-stats .stat-item .rating-number {
     font-size: 0.65rem !important;
     line-height: 1.2 !important;
+    background: transparent !important;
+    padding: 0 !important;
   }
   
   .sportswear-sold-count {
