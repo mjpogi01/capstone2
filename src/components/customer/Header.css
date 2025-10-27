@@ -62,6 +62,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: #00bfff; /* Fallback color for browsers that don't support background-clip */
 }
 
 .nav-link:hover {
@@ -77,6 +78,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: #00bfff; /* Fallback color for browsers that don't support background-clip */
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
@@ -114,6 +116,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: #00bfff; /* Fallback color for browsers that don't support background-clip */
   animation: shiningGradient 0.6s linear 1, clickPulse 0.3s ease;
 }
 
@@ -127,6 +130,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: #00bfff; /* Fallback color for browsers that don't support background-clip */
   font-weight: 700;
   border: none !important;
   outline: none !important;
