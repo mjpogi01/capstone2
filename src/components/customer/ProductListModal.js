@@ -30,6 +30,7 @@ const ProductListModal = ({ isOpen, onClose }) => {
   const [selectedRating, setSelectedRating] = useState(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
@@ -58,6 +59,8 @@ const ProductListModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     filterAndSortProducts();
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
   }, [products, searchTerm, selectedCategory, selectedCategories, sortBy, priceMin, priceMax, selectedRating]);
 
   const fetchProducts = async () => {
@@ -109,13 +112,13 @@ const ProductListModal = ({ isOpen, onClose }) => {
       });
     }
 
-    // Filter by rating (if ratings are available in product data)
-    // Note: Assuming products might have a 'rating' field
+    // Filter by rating
     if (selectedRating !== null) {
       filtered = filtered.filter(product => {
-        const rating = product.rating || product.average_rating || 0;
+        const rating = product.average_rating || 0;
         return rating >= selectedRating;
       });
+      console.log(`✨ Rating filter (>= ${selectedRating}): ${filtered.length} products match`);
     }
 
     // Sort products
@@ -198,7 +201,9 @@ const ProductListModal = ({ isOpen, onClose }) => {
       openSignIn();
       return;
     }
-    await addToCart(product, 1, null, null); // product, quantity, size, customization
+    // Open ProductModal instead of adding directly to cart
+    setSelectedProduct(product);
+    setShowProductModal(true);
   };
 
   // Pagination
@@ -305,6 +310,21 @@ const ProductListModal = ({ isOpen, onClose }) => {
               >
                 <FaChevronRight />
               </button>
+            </div>
+          </div>
+
+          {/* Mobile Filter Button Row - Only visible on mobile */}
+          <div className="mobile-filter-row">
+            <button 
+              className="mobile-filter-btn"
+              onClick={() => setShowMobileFilters(true)}
+              aria-label="Open filters"
+            >
+              <FaFilter className="filter-icon" />
+              <span>Filters</span>
+            </button>
+            <div className="mobile-results-text">
+              {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
             </div>
           </div>
 
@@ -452,30 +472,31 @@ const ProductListModal = ({ isOpen, onClose }) => {
                         
                         <div className="product-card-info">
                           <h3 className="product-card-name">{product.name}</h3>
-                        </div>
-                      </div>
-                      
-                      <div className="product-card-footer">
-                        {/* Price Section */}
-                        <div className="product-card-price">
-                          ₱{parseFloat(product.price).toLocaleString('en-US', {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                          })}
-                        </div>
-                        
-                        {/* Review Count and Sold Quantity - Show only if data exists */}
-                        {(product.average_rating > 0 || product.sold_quantity > 0) && (
+                          
+                          {/* Price Section */}
+                          <div className="product-card-price">
+                            ₱{parseFloat(product.price).toLocaleString('en-US', {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            })}
+                          </div>
+                          
+                          {/* Review Count and Sold Quantity - Same as Homepage */}
                           <div className="product-stats">
                             {product.average_rating > 0 && (
-                              <span className="stat-item">{product.average_rating} star</span>
+                              <span className="stat-item">
+                                <span className="rating-number">{product.average_rating}</span>
+                                <FaStar className="star-icon" />
+                              </span>
                             )}
                             {product.sold_quantity > 0 && (
                               <span className="stat-item">{product.sold_quantity} sold</span>
                             )}
                           </div>
-                        )}
-                        
+                        </div>
+                      </div>
+                      
+                      <div className="product-card-footer">
                         {/* Add to Cart Button and Wishlist Heart - Side by Side */}
                         <div className="product-footer-top">
                           <button
@@ -554,6 +575,140 @@ const ProductListModal = ({ isOpen, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Filter Modal */}
+      {showMobileFilters && (
+        <div className="mobile-filter-overlay" onClick={() => setShowMobileFilters(false)}>
+          <div className="mobile-filter-drawer" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="mobile-filter-header">
+              <h2 className="mobile-filter-title">Filters</h2>
+              <button 
+                className="mobile-filter-close"
+                onClick={() => setShowMobileFilters(false)}
+                aria-label="Close filters"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Filter Content - Same as sidebar */}
+            <div className="mobile-filter-content">
+              <div className="sidebar-section">
+                <h3 className="sidebar-title">All Filters</h3>
+                <button className="clear-filters-btn" onClick={clearAllFilters}>
+                  Clear All
+                </button>
+              </div>
+
+              {/* By Category */}
+              <div className="sidebar-section">
+                <h4 className="sidebar-section-title">By Category</h4>
+                <div className="category-list">
+                  {getCategoriesForSidebar()
+                    .slice(0, showAllCategories ? undefined : 3)
+                    .map(category => (
+                      <label key={category} className="category-item">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(category)}
+                          onChange={() => handleCategoryToggle(category)}
+                          className="category-checkbox"
+                        />
+                        <span className="category-label">{category}</span>
+                      </label>
+                    ))}
+                </div>
+                {getCategoriesForSidebar().length > 3 && (
+                  <button
+                    className="show-more-btn"
+                    onClick={() => setShowAllCategories(!showAllCategories)}
+                  >
+                    {showAllCategories ? (
+                      <>
+                        Less <FaChevronUp className="arrow-icon" />
+                      </>
+                    ) : (
+                      <>
+                        More <FaChevronDown className="arrow-icon" />
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Price Range */}
+              <div className="sidebar-section">
+                <h4 className="sidebar-section-title">Price Range</h4>
+                <div className="price-inputs">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={priceMin}
+                    onChange={(e) => setPriceMin(e.target.value)}
+                    className="price-input"
+                    min="0"
+                  />
+                  <span className="price-separator">-</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={priceMax}
+                    onChange={(e) => setPriceMax(e.target.value)}
+                    className="price-input"
+                    min="0"
+                  />
+                </div>
+                {(priceMin !== '' || priceMax !== '') && (
+                  <div className="price-filter-active">
+                    {priceMin && priceMax ? (
+                      <span>₱{parseFloat(priceMin).toLocaleString()} - ₱{parseFloat(priceMax).toLocaleString()}</span>
+                    ) : priceMin ? (
+                      <span>From ₱{parseFloat(priceMin).toLocaleString()}</span>
+                    ) : (
+                      <span>Up to ₱{parseFloat(priceMax).toLocaleString()}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Rating Filter */}
+              <div className="sidebar-section">
+                <h4 className="sidebar-section-title">Rating</h4>
+                <div className="rating-list">
+                  {[5, 4, 3, 2, 1].map(rating => (
+                    <button
+                      key={rating}
+                      className={`rating-item ${selectedRating === rating ? 'active' : ''}`}
+                      onClick={() => setSelectedRating(selectedRating === rating ? null : rating)}
+                    >
+                      <div className="rating-stars">
+                        {[...Array(5)].map((_, index) => (
+                          <FaStar
+                            key={index}
+                            className={index < rating ? 'star-filled' : 'star-empty'}
+                          />
+                        ))}
+                      </div>
+                      {rating < 5 && <span className="rating-up">& Up</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="mobile-filter-footer">
+              <button 
+                className="mobile-filter-apply"
+                onClick={() => setShowMobileFilters(false)}
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Product Detail Modal */}
       {showProductModal && selectedProduct && (

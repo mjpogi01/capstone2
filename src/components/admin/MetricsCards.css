@@ -204,6 +204,10 @@
 }
 
 @media (max-width: 768px) {
+  .metrics-cards-container {
+    margin-bottom: 1.5rem;
+  }
+
   .metrics-cards {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -211,21 +215,35 @@
   
   .metric-card {
     padding: 1.25rem;
-    min-height: 120px;
+    min-height: 115px;
+    border-radius: 10px;
+  }
+
+  .metric-header {
+    margin-bottom: 0.875rem;
   }
   
   .metric-value {
-    font-size: 1.5rem;
+    font-size: 1.625rem;
+  }
+
+  .metric-title {
+    font-size: 0.875rem;
   }
   
   .metric-icon {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.875rem;
+    height: 1.875rem;
   }
   
   .metric-icon svg {
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+
+  .metric-change {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
   }
 }
 

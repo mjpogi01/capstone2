@@ -188,24 +188,41 @@
   line-height: 1.5;
 }
 
-/* Tablet styles */
-@media (max-width: 1024px) {
+/* Tablet styles - Keep desktop layout for tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
   .footer-content {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 2.5rem;
+    padding: 0 1.5rem;
   }
   
   .footer-nav {
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
   
   .footer-logo-image {
     height: 55px;
   }
+  
+  .footer-tagline {
+    font-size: 0.95rem;
+  }
+  
+  .footer-link {
+    font-size: 0.75rem;
+  }
+  
+  .contact-title {
+    font-size: 1.1rem;
+  }
+  
+  .contact-link {
+    font-size: 0.85rem;
+  }
 }
 
 /* Mobile styles */
-@media (max-width: 768px) {
+@media only screen and (max-width: 768px) {
   .footer {
     padding: 2.5rem 0 1.5rem;
   }
@@ -237,12 +254,12 @@
     margin: 0 auto;
   }
   
-  /* 3-Column Navigation Layout */
+  /* Simple Text Navigation - No Background */
   .footer-nav {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.15rem;
     max-width: 100%;
   }
   
@@ -251,24 +268,32 @@
   }
   
   .footer-link {
-    font-size: 0.7rem;
-    padding: 0.7rem 0.6rem;
-    min-height: 44px;
-    display: flex;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.3rem;
+    min-height: auto;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 calc(33.333% - 0.35rem);
-    max-width: calc(33.333% - 0.35rem);
-    border-radius: 6px;
-    background: rgba(0, 191, 255, 0.08);
+    flex: 0 0 calc(25% - 0.1rem);
+    max-width: calc(25% - 0.1rem);
+    border-radius: 4px;
+    background: none;
+    border: none;
     margin: 0;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
     text-align: center;
-    line-height: 1.3;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.3s ease;
   }
   
   .footer-link:hover {
-    background: rgba(0, 191, 255, 0.12);
+    background: none;
+    color: #00bfff;
+    text-shadow: 0 0 10px rgba(0, 191, 255, 0.8);
+    transform: translateY(-2px);
   }
   
   .footer-link::after {
@@ -280,24 +305,26 @@
     margin-bottom: 1.25rem;
   }
   
-  /* Horizontal Contact Icons */
+  /* Horizontal Contact Icons - Centered with Even Spacing */
   .contact-info {
     flex-direction: row;
     justify-content: center;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 2rem;
+    padding: 0 1rem;
   }
   
   .contact-item {
     justify-content: center;
     align-items: center;
-    padding: 0.75rem;
-    flex-direction: row;
+    padding: 0.5rem;
+    flex-direction: column;
     gap: 0;
     transition: all 0.3s ease;
   }
   
   .contact-item:hover {
-    transform: translateY(-3px) scale(1.1);
+    transform: translateY(-5px) scale(1.1);
   }
   
   .contact-icon {
@@ -305,17 +332,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    background: rgba(0, 191, 255, 0.1);
-    border: 2px solid rgba(0, 191, 255, 0.3);
+    background: rgba(0, 191, 255, 0.05);
+    border: 2px solid rgba(0, 191, 255, 0.4);
   }
   
   .contact-item:hover .contact-icon {
-    background: rgba(0, 191, 255, 0.2);
-    border-color: rgba(0, 191, 255, 0.5);
-    box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
+    background: rgba(0, 191, 255, 0.15);
+    border-color: #00bfff;
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.6);
   }
   
   .contact-icon svg {
@@ -336,6 +363,62 @@
     font-size: 0.85rem;
     padding: 0 1rem;
     line-height: 1.8;
+  }
+}
+
+/* Mobile styles - 600px and below */
+@media only screen and (max-width: 600px) {
+  .footer {
+    padding: 2.25rem 0 1.35rem;
+  }
+  
+  .footer-content {
+    gap: 2.25rem;
+    padding: 0 1.25rem;
+  }
+  
+  .footer-logo-image {
+    height: 52px;
+  }
+  
+  .footer-tagline {
+    font-size: 0.9rem;
+    max-width: 270px;
+  }
+  
+  .footer-link {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.3rem;
+    flex: 0 0 calc(25% - 0.1rem);
+    max-width: calc(25% - 0.1rem);
+  }
+  
+  .contact-title {
+    font-size: 1.1rem;
+    margin-bottom: 1.15rem;
+  }
+  
+  .contact-info {
+    gap: 1.75rem;
+  }
+  
+  .contact-item {
+    padding: 0.45rem;
+  }
+  
+  .contact-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .contact-icon svg {
+    width: 23px;
+    height: 23px;
+  }
+  
+  .copyright {
+    font-size: 0.82rem;
+    line-height: 1.7;
   }
 }
 
@@ -362,14 +445,20 @@
   
   .footer-nav {
     max-width: 100%;
+    gap: 0.15rem;
   }
   
   .footer-link {
-    font-size: 0.75rem;
-    padding: 0.6rem 0.8rem;
-    max-width: 240px;
-    min-height: 44px;
-    letter-spacing: 0.3px;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.3rem;
+    margin: 0;
+    letter-spacing: 0.4px;
+    border: none;
+    flex: 0 0 calc(25% - 0.1rem);
+    max-width: calc(25% - 0.1rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .contact-title {
@@ -377,20 +466,22 @@
     margin-bottom: 1rem;
   }
   
+  .contact-info {
+    gap: 1.5rem;
+  }
+  
   .contact-item {
-    font-size: 0.85rem;
-    gap: 0.4rem;
-    padding: 0.7rem 0.5rem;
+    padding: 0.4rem;
+  }
+  
+  .contact-icon {
+    width: 45px;
+    height: 45px;
   }
   
   .contact-icon svg {
-    width: 20px;
-    height: 20px;
-  }
-  
-  .contact-link {
-    font-size: 0.85rem;
-    word-break: break-word;
+    width: 22px;
+    height: 22px;
   }
   
   .copyright {
@@ -420,12 +511,21 @@
     line-height: 1.5;
   }
   
+  .footer-nav {
+    gap: 0.15rem;
+  }
+  
   .footer-link {
-    font-size: 0.72rem;
-    padding: 0.6rem 0.75rem;
-    max-width: 220px;
-    min-height: 42px;
+    font-size: 0.65rem;
+    padding: 0.25rem 0.3rem;
+    margin: 0;
     letter-spacing: 0.3px;
+    border: none;
+    flex: 0 0 calc(25% - 0.1rem);
+    max-width: calc(25% - 0.1rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .contact-title {
@@ -433,19 +533,22 @@
     margin-bottom: 0.875rem;
   }
   
+  .contact-info {
+    gap: 1.25rem;
+  }
+  
   .contact-item {
-    font-size: 0.8rem;
-    gap: 0.4rem;
-    padding: 0.65rem 0.5rem;
+    padding: 0.35rem;
+  }
+  
+  .contact-icon {
+    width: 42px;
+    height: 42px;
   }
   
   .contact-icon svg {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .contact-link {
-    font-size: 0.8rem;
+    width: 20px;
+    height: 20px;
   }
   
   .copyright {
@@ -475,21 +578,104 @@
     max-width: 220px;
   }
   
+  .footer-nav {
+    gap: 0.15rem;
+  }
+  
   .footer-link {
-    font-size: 0.7rem;
-    padding: 0.55rem 0.7rem;
-    max-width: 200px;
-    min-height: 42px;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.3rem;
+    margin: 0;
     letter-spacing: 0.2px;
+    border: none;
+    flex: 0 0 calc(25% - 0.1rem);
+    max-width: calc(25% - 0.1rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .contact-title {
     font-size: 0.95rem;
   }
   
+  .contact-info {
+    gap: 1rem;
+  }
+  
   .contact-item {
-    font-size: 0.75rem;
-    padding: 0.6rem 0.4rem;
+    padding: 0.3rem;
+  }
+  
+  .contact-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .contact-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .copyright {
+    font-size: 0.7rem;
+  }
+}
+
+/* Extra ultra small screens - 280px */
+@media (max-width: 280px) {
+  .footer {
+    padding: 1.25rem 0 0.875rem;
+  }
+  
+  .footer-content {
+    gap: 1.25rem;
+    padding: 0 0.5rem;
+  }
+  
+  .footer-logo-image {
+    height: 38px;
+  }
+  
+  .footer-tagline {
+    font-size: 0.7rem;
+    max-width: 200px;
+    line-height: 1.4;
+  }
+  
+  .footer-nav {
+    gap: 0.1rem;
+  }
+  
+  .footer-link {
+    font-size: 0.58rem;
+    padding: 0.2rem 0.25rem;
+    margin: 0;
+    letter-spacing: 0.1px;
+    border: none;
+    flex: 0 0 calc(25% - 0.08rem);
+    max-width: calc(25% - 0.08rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .contact-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .contact-info {
+    gap: 0.875rem;
+  }
+  
+  .contact-item {
+    padding: 0.25rem;
+  }
+  
+  .contact-icon {
+    width: 36px;
+    height: 36px;
   }
   
   .contact-icon svg {
@@ -497,12 +683,10 @@
     height: 16px;
   }
   
-  .contact-link {
-    font-size: 0.75rem;
-  }
-  
   .copyright {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+    line-height: 1.5;
+    padding: 0 0.5rem;
   }
 }
 

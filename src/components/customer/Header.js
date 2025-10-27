@@ -14,6 +14,7 @@ import { useWishlist } from '../../contexts/WishlistContext';
 import { useNavigate } from 'react-router-dom';
 import orderService from '../../services/orderService';
 import productService from '../../services/productService';
+import { FaStar, FaBars, FaTimes } from 'react-icons/fa';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -195,12 +196,10 @@ const Header = () => {
           aria-label="Toggle navigation menu"
           aria-expanded={mobileMenuOpen}
         >
-          <span className="hamburger-line"></span>
-          <span className="hamburger-line"></span>
-          <span className="hamburger-line"></span>
+          {mobileMenuOpen ? <FaTimes /> : <FaBars />}
         </button>
         
-        <nav className={`nav-menu ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+        <nav className={`nav-menu ${mobileMenuOpen ? 'mobile-open' : ''}`} key={location.pathname}>
           <Link 
             to="/" 
             className={`nav-link ${isActive('/') ? 'active' : ''}`}
@@ -237,6 +236,102 @@ const Header = () => {
           >
             CONTACTS
           </Link>
+          
+          {/* Mobile Menu Actions - Text Links */}
+          <div className="mobile-menu-actions">
+            <button 
+              className="mobile-action-link" 
+              onClick={() => {
+                openCart();
+                setMobileMenuOpen(false);
+              }}
+            >
+              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                <path d="M3 3h2l3 12h10l3-8H6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="9" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
+                <circle cx="17" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              <span>Cart</span>
+              {getCartItemsCount() > 0 && (
+                <span className="mobile-action-badge">{getCartItemsCount()}</span>
+              )}
+            </button>
+            
+            <button 
+              className="mobile-action-link" 
+              onClick={() => {
+                openWishlist();
+                setMobileMenuOpen(false);
+              }}
+            >
+              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>Wishlist</span>
+              {wishlistItems.length > 0 && (
+                <span className="mobile-action-badge">{wishlistItems.length}</span>
+              )}
+            </button>
+            
+            {isAuthenticated && !isAdmin() && !isOwner() && (
+              <button 
+                className="mobile-action-link" 
+                onClick={async () => {
+                  if (user) {
+                    try {
+                      const userOrders = await orderService.getUserOrders(user.id);
+                      setOrdersCount(userOrders.length);
+                    } catch (error) {
+                      console.error('Error refreshing orders count:', error);
+                    }
+                  }
+                  setMobileMenuOpen(false);
+                  setShowOrdersModal(true);
+                }}
+              >
+                <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor" />
+                </svg>
+                <span>Orders</span>
+                {ordersCount > 0 && (
+                  <span className="mobile-action-badge">{ordersCount}</span>
+                )}
+              </button>
+            )}
+            
+            <button 
+              className="mobile-action-link" 
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (!isAuthenticated) {
+                  openSignIn();
+                } else {
+                  navigate('/profile');
+                }
+              }}
+            >
+              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>{isAuthenticated ? 'Account' : 'Sign In'}</span>
+            </button>
+            
+            {isAuthenticated && (
+              <button 
+                className="mobile-action-link mobile-logout-link" 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+              >
+                <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                  <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" fill="currentColor" />
+                </svg>
+                <span>Logout</span>
+              </button>
+            )}
+          </div>
         </nav>
         
         <div className="header-right">
@@ -491,6 +586,19 @@ const Header = () => {
                           <p className="yohanns-result-price">₱{parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                           {product.category && (
                             <p className="yohanns-result-category">{product.category}</p>
+                          )}
+                          {(product.average_rating > 0 || product.sold_quantity > 0) && (
+                            <div className="yohanns-result-stats">
+                              {product.average_rating > 0 && (
+                                <span className="yohanns-stat-item">
+                                  <span className="rating-number">{product.average_rating}</span>
+                                  <FaStar className="star-icon" />
+                                </span>
+                              )}
+                              {product.sold_quantity > 0 && (
+                                <span className="yohanns-stat-item">{product.sold_quantity} sold</span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>

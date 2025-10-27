@@ -12,10 +12,82 @@ class ProductService {
         throw new Error(`Failed to fetch products: ${error.message}`);
       }
       
-      return data || [];
+      // Fetch ratings for all products
+      const productsWithRatings = await Promise.all(
+        (data || []).map(async (product) => {
+          const rating = await this.getProductAverageRating(product.id);
+          return {
+            ...product,
+            average_rating: rating.average,
+            review_count: rating.count
+          };
+        })
+      );
+      
+      return productsWithRatings;
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
+    }
+  }
+
+  // Get average rating for a product
+  async getProductAverageRating(productId) {
+    try {
+      // Get product-specific reviews
+      const { data: productReviews, error: productError } = await supabase
+        .from('order_reviews')
+        .select('rating')
+        .eq('product_id', productId);
+
+      if (productError) {
+        console.error('Error fetching product reviews:', productError);
+      }
+
+      // Get order-level reviews for orders containing this product
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, order_items')
+        .eq('status', 'picked_up_delivered');
+
+      let orderReviews = [];
+      if (!ordersError && orders) {
+        const relevantOrderIds = orders
+          .filter(order => {
+            const orderItems = order.order_items || [];
+            return orderItems.some(item => item.id === productId);
+          })
+          .map(order => order.id);
+
+        if (relevantOrderIds.length > 0) {
+          const { data: reviews } = await supabase
+            .from('order_reviews')
+            .select('rating')
+            .is('product_id', null)
+            .in('order_id', relevantOrderIds);
+          
+          orderReviews = reviews || [];
+        }
+      }
+
+      // Combine all ratings
+      const allRatings = [
+        ...(productReviews || []),
+        ...orderReviews
+      ].map(r => r.rating).filter(r => r !== null && r !== undefined);
+
+      if (allRatings.length === 0) {
+        return { average: 0, count: 0 };
+      }
+
+      const average = allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length;
+      return {
+        average: Math.round(average * 10) / 10, // Round to 1 decimal
+        count: allRatings.length
+      };
+    } catch (error) {
+      console.error('Error calculating product rating:', error);
+      return { average: 0, count: 0 };
     }
   }
 

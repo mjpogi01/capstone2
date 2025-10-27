@@ -108,6 +108,40 @@ class AuthService {
   onAuthStateChange(callback) {
     return supabase.auth.onAuthStateChange(callback);
   }
+
+  // Change user password
+  async changePassword(currentPassword, newPassword) {
+    try {
+      // First verify the current password by attempting to sign in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Verify current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword
+      });
+
+      if (signInError) {
+        throw new Error('Current password is incorrect');
+      }
+
+      // Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Failed to update password');
+      }
+
+      return { success: true };
+    } catch (error) {
+      throw new Error(error.message || 'Failed to change password');
+    }
+  }
 }
 
 export default new AuthService();
