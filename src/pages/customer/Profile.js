@@ -4,6 +4,8 @@ import { useNotification } from '../../contexts/NotificationContext';
 import profileImageService from '../../services/profileImageService';
 import userProfileService from '../../services/userProfileService';
 import userService from '../../services/userService';
+import authService from '../../services/authService';
+import ChangePasswordModal from '../../components/customer/ChangePasswordModal';
 import './Profile.css';
 
 const Profile = () => {
@@ -14,6 +16,7 @@ const Profile = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profileImage, setProfileImage] = useState(null);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -145,8 +148,8 @@ const Profile = () => {
       return;
     }
 
-    if (formData.phone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/\s/g, ''))) {
-      showNotification('Please enter a valid phone number', 'error');
+    if (formData.phone && !/^[\+]?[\d][\d\s\-\(\)]{5,20}$/.test(formData.phone.trim())) {
+      showNotification('Please enter a valid phone number (minimum 6 digits)', 'error');
       return;
     }
 
@@ -218,6 +221,19 @@ const Profile = () => {
       } catch (error) {
         console.error('Error reloading profile data:', error);
       }
+    }
+  };
+
+  const handlePasswordChange = async (passwordData) => {
+    try {
+      await authService.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
+      showNotification('Password changed successfully!', 'success');
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw error; // Re-throw to be handled by the modal
     }
   };
 
@@ -373,7 +389,7 @@ const Profile = () => {
                     <span style={{ color: '#cccccc', fontSize: '14px' }}>••••••••••••••••</span>
                     <button 
                       className="yohanns-change-password-btn"
-                      onClick={() => showNotification('Password change functionality coming soon!', 'info')}
+                      onClick={() => setIsPasswordModalOpen(true)}
                     >
                       Change Password
                     </button>
@@ -384,6 +400,13 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onPasswordChange={handlePasswordChange}
+      />
     </div>
   );
 };
