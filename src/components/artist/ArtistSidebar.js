@@ -96,11 +96,12 @@ const ArtistSidebar = ({
             {menuItems.map((item) => (
               <li key={item.id} className="nav-item">
                 <button
-                  className={`nav-link ${activePage === item.id ? 'active' : ''}`}
+                  className={`artist-nav-link ${activePage === item.id ? 'active' : ''}`}
                   onClick={() => {
                     setActivePage(item.id);
                     setIsMobileOpen(false);
                   }}
+                  data-tooltip={item.label}
                 >
                   <FontAwesomeIcon icon={item.icon} className="nav-icon" />
                   {!isCollapsed && <span className="nav-label">{item.label}</span>}
