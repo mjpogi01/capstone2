@@ -318,8 +318,8 @@
   .newsletter-album {
     flex-direction: column;
     gap: 0;
-    width: 75px;
-    height: 125px;
+    width: 55px;
+    height: 95px;
     position: relative;
   }
 
@@ -342,10 +342,10 @@
   }
 
   .album-image {
-    width: 65px;
-    height: 85px;
+    width: 45px;
+    height: 60px;
     position: absolute;
-    border-radius: 6px;
+    border-radius: 5px;
     border-width: 1.5px;
   }
 
@@ -358,8 +358,8 @@
 
   .album-bottom-left {
     transform: rotate(8deg);
-    top: 45px;
-    left: 10px;
+    top: 35px;
+    left: 8px;
     z-index: 1;
   }
 
@@ -372,8 +372,8 @@
 
   .album-bottom-right {
     transform: rotate(-8deg);
-    top: 45px;
-    right: 10px;
+    top: 35px;
+    right: 8px;
     z-index: 1;
   }
   
@@ -425,8 +425,8 @@
   .newsletter-album {
     flex-direction: column;
     gap: 0;
-    width: 65px;
-    height: 110px;
+    width: 50px;
+    height: 85px;
     position: relative;
   }
 
@@ -449,10 +449,10 @@
   }
 
   .album-image {
-    width: 55px;
-    height: 75px;
+    width: 40px;
+    height: 55px;
     position: absolute;
-    border-radius: 5px;
+    border-radius: 4px;
     border-width: 1px;
   }
 
@@ -465,8 +465,8 @@
 
   .album-bottom-left {
     transform: rotate(9deg);
-    top: 38px;
-    left: 8px;
+    top: 30px;
+    left: 6px;
     z-index: 1;
   }
 
@@ -479,8 +479,8 @@
 
   .album-bottom-right {
     transform: rotate(-9deg);
-    top: 38px;
-    right: 8px;
+    top: 30px;
+    right: 6px;
     z-index: 1;
   }
 
@@ -519,5 +519,46 @@
     padding: 0.4rem 0.7rem;
     font-size: 0.6rem;
     border-radius: 3px;
+  }
+}
+
+/* ===== SPECIFIC MOBILE RESPONSIVE - 1 ROW LAYOUT ===== */
+@media only screen and (max-width: 768px) {
+  .newsletter-form {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .email-input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .subscribe-btn {
+    flex-shrink: 0;
+    width: auto;
+    padding: 0.35rem 0.8rem;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  .newsletter-form {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .email-input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    padding: 0.3rem 0.55rem;
+  }
+
+  .subscribe-btn {
+    flex-shrink: 0;
+    width: auto;
+    padding: 0.3rem 0.7rem;
   }
 }

@@ -51,7 +51,7 @@
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  overflow: hidden;
+  overflow-y: auto;
   padding: 20px;
   animation: cdfm-fadeIn 0.3s ease-out;
 }
@@ -735,14 +735,20 @@
    ============================================ */
 
 .cdfm-submit-bar {
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
   background: #1a202c;
   border-top: 1px solid #2d3748;
   padding: 20px 24px;
-  z-index: 10;
+}
+
+/* Sticky positioning only on desktop */
+@media only screen and (min-width: 769px) {
+  .cdfm-submit-bar {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+  }
 }
 
 .cdfm-submit-bar-inner {
@@ -858,10 +864,17 @@
    MOBILE RESPONSIVE - TABLET (768px and below)
    ============================================ */
 @media only screen and (max-width: 768px) {
+  .cdfm-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+  }
+
   .cdfm-modal {
-    margin: 10px;
+    margin: auto;
     max-height: calc(100vh - 20px);
     border-radius: 12px;
+    align-self: center;
   }
   
   .cdfm-form {
@@ -1007,10 +1020,17 @@
    MOBILE RESPONSIVE - PHONE (600px and below)
    ============================================ */
 @media only screen and (max-width: 600px) {
+  .cdfm-overlay {
+    padding: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+
   .cdfm-modal {
-    margin: 8px;
+    margin: auto;
     max-height: calc(100vh - 16px);
     border-radius: 10px;
+    align-self: center;
   }
   
   .cdfm-form {
@@ -1092,10 +1112,14 @@
 @media (max-width: 480px) {
   .cdfm-overlay {
     padding: 10px;
+    align-items: center;
+    justify-content: center;
   }
 
   .cdfm-modal {
+    margin: auto;
     border-radius: 8px;
+    align-self: center;
   }
 
   .cdfm-card {
@@ -1161,9 +1185,16 @@
    MOBILE RESPONSIVE - EXTRA SMALL (280px and below)
    ============================================ */
 @media (max-width: 280px) {
+  .cdfm-overlay {
+    padding: 6px;
+    align-items: center;
+    justify-content: center;
+  }
+
   .cdfm-modal {
-    margin: 6px;
+    margin: auto;
     max-height: calc(100vh - 12px);
+    align-self: center;
   }
   
   .cdfm-form {
