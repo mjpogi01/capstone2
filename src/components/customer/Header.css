@@ -46,7 +46,7 @@
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   font-family: 'Oswald', sans-serif;
   text-transform: uppercase;
@@ -62,10 +62,11 @@
 
 .nav-link:hover {
   color: #87ceeb !important;
+  transform: translateY(-2px);
+  animation: modernGlow 2s ease-in-out infinite;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
-  animation: shiningGradient 1.5s linear infinite;
 }
 
 .nav-link:focus,
@@ -80,20 +81,21 @@
   -webkit-tap-highlight-color: transparent !important;
 }
 
-/* Click indication - press down effect with single animation */
+/* Click indication - modern press effect */
 .nav-link:active {
-  transform: scale(0.95) translateY(2px);
+  transform: scale(0.95) translateY(1px);
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
   color: #4fc3f7 !important;
-  animation: clickPulse 0.3s ease;
+  animation: modernBounce 0.6s ease;
 }
 
 .nav-link.active {
   color: #ffffff !important;
   font-weight: 700;
+  animation: modernGlow 3s ease-in-out infinite;
   border: none !important;
   outline: none !important;
   outline-width: 0 !important;
@@ -102,26 +104,58 @@
   box-shadow: none !important;
 }
 
-/* Shining Gradient Animation */
-@keyframes shiningGradient {
+/* Modern Glow Animation */
+@keyframes modernGlow {
   0% {
-    background-position: 0% center;
+    text-shadow: 0 0 5px rgba(0, 191, 255, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(0, 191, 255, 0.8), 0 0 30px rgba(135, 206, 235, 0.6);
   }
   100% {
-    background-position: 200% center;
+    text-shadow: 0 0 5px rgba(0, 191, 255, 0.5);
   }
 }
 
-/* Click Pulse Animation - visual feedback when clicked */
-@keyframes clickPulse {
+/* Modern Pulse Animation */
+@keyframes modernPulse {
   0% {
+    transform: scale(1);
     opacity: 1;
   }
   50% {
-    opacity: 0.7;
+    transform: scale(1.05);
+    opacity: 0.8;
   }
   100% {
+    transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* Smooth Slide Animation */
+@keyframes smoothSlide {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Modern Bounce Animation */
+@keyframes modernBounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-3px);
+  }
+  60% {
+    transform: translateY(-1px);
   }
 }
 
@@ -150,9 +184,9 @@
 .icon {
   font-size: 1.05rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0.45rem;
-  border-radius: 4px;
+  border-radius: 8px;
   
   background: rgba(0, 191, 255, 0.1);
   border: 1px solid rgba(0, 191, 255, 0.3);
@@ -176,10 +210,11 @@
 }
 
 .cart-icon:hover {
-  transform: scale(1.1) !important;
-  background: rgba(0, 191, 255, 0.2) !important;
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.5) !important;
+  transform: translateY(-2px) scale(1.1) !important;
+  background: rgba(0, 191, 255, 0.3) !important;
+  box-shadow: 0 6px 20px rgba(0, 191, 255, 0.6) !important;
   color: #00bfff !important;
+  animation: modernBounce 0.8s ease !important;
 }
 
 .y-wishlist-icon {
@@ -244,10 +279,11 @@
 }
 
 .icon:hover {
-  transform: scale(1.1);
+  transform: translateY(-3px) scale(1.05);
   background: rgba(0, 191, 255, 0.2);
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.5);
+  box-shadow: 0 8px 25px rgba(0, 191, 255, 0.4);
   color: #ff6b6b;
+  animation: modernPulse 1.5s ease-in-out infinite;
 }
 
 /* Profile Dropdown */
@@ -590,19 +626,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: all 0.3s ease;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
 }
 
 .yohanns-search-toggle:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #4fc3f7;
-  transform: scale(1.1);
+  transform: translateY(-2px) scale(1.1);
+  animation: modernGlow 2s ease-in-out infinite;
 }
 
 .yohanns-search-toggle:active {
-  transform: scale(0.95);
+  transform: translateY(0) scale(0.95);
+  animation: modernBounce 0.4s ease;
 }
 
 .yohanns-search-toggle svg {
@@ -999,7 +1037,7 @@
   height: 36px;
   background: rgba(0, 191, 255, 0.1);
   border: 1px solid rgba(0, 191, 255, 0.3);
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   padding: 0.4rem;
   z-index: 1001;
@@ -1010,11 +1048,13 @@
 .hamburger-menu:hover {
   background: rgba(0, 191, 255, 0.2);
   border-color: rgba(0, 191, 255, 0.5);
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.05);
+  animation: modernGlow 2s ease-in-out infinite;
 }
 
 .hamburger-menu:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0) scale(0.95);
+  animation: modernBounce 0.4s ease;
 }
 
 .hamburger-menu.active {
