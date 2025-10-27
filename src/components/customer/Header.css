@@ -203,10 +203,19 @@
   color: #00bfff !important;
   background: rgba(0, 191, 255, 0.1) !important;
   border: 1px solid rgba(0, 191, 255, 0.3) !important;
-  background: rgba(0, 191, 255, 0.2) !important;
   width: 34px !important;
   height: 34px !important;
+}
 
+.cart-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  color: #00bfff !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
 }
 
 .cart-icon:hover {
@@ -219,6 +228,17 @@
 .y-wishlist-icon {
   position: relative;
   color: #00bfff;
+}
+
+.y-wishlist-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  color: #00bfff !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
 }
 
 .cart-badge {
@@ -275,6 +295,12 @@
   width: 18px;
   height: 18px;
   display: block;
+  color: inherit;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .icon:hover {
@@ -288,6 +314,17 @@
 .profile-icon {
   position: relative;
   z-index: 102;
+}
+
+.profile-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  color: #00bfff !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
 }
 
 .profile-dropdown {
@@ -649,7 +686,10 @@
 .yohanns-search-toggle svg {
   width: 20px;
   height: 20px;
+  color: #00bfff;
+  fill: none;
   stroke: currentColor;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: none;
