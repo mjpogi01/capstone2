@@ -1000,6 +1000,19 @@
   }
 }
 
+/* Mobile Menu Actions - Hidden on Desktop */
+.mobile-menu-actions {
+  display: none;
+}
+
+.mobile-action-link {
+  display: none;
+}
+
+.mobile-action-badge {
+  display: none;
+}
+
 /* ============================================
    MOBILE RESPONSIVE DESIGN
    ============================================ */
@@ -1033,6 +1046,68 @@
   
   .logo-image {
     height: 30px;
+  }
+  
+  /* Show mobile menu actions on tablet and mobile */
+  .mobile-menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+  }
+
+  .mobile-action-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: rgba(0, 191, 255, 0.05);
+    border: 1px solid rgba(0, 191, 255, 0.2);
+    border-radius: 8px;
+    color: #00bfff;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .mobile-action-link:hover {
+    background: rgba(0, 191, 255, 0.15);
+    border-color: rgba(0, 191, 255, 0.4);
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+  }
+
+  .mobile-action-link svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .mobile-action-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: pulse 2s infinite;
   }
 }
 
