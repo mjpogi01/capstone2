@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import './CustomDesignFormModal.css';
 
 const branches = [
@@ -20,6 +21,7 @@ const initialMember = { number: '', surname: '', size: '', sizingType: 'adults' 
 
 export default function CustomDesignFormModal({ isOpen, onClose }) {
   const { user } = useAuth();
+  const { openSignIn } = useModal();
   const [clientName, setClientName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -656,11 +658,15 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
               <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px' }}>
                 Please log in to your account to continue with your custom design order.
               </p>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                <button onClick={() => setShowLoginPrompt(false)} style={{ background: '#6b7280' }}>
+              <div className="cdfm-button-container">
+                <button className="cdfm-cancel-button" onClick={() => setShowLoginPrompt(false)}>
                   Cancel
                 </button>
-                <button onClick={() => { setShowLoginPrompt(false); onClose(); }} style={{ background: '#3b82f6' }}>
+                <button className="cdfm-login-button" onClick={() => { 
+                  setShowLoginPrompt(false); 
+                  onClose(); 
+                  openSignIn(); 
+                }}>
                   Go to Login
                 </button>
               </div>

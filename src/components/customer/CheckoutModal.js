@@ -671,8 +671,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
         {/* Products Ordered Section - ORDER DETAILS */}
         <div className="checkout-section products-section">
           <div className="section-header">
-            <FaUsers className="section-icon" />
-            <h2>ORDER DETAILS</h2>
+            <div className="section-header-left">
+              <FaUsers className="section-icon" />
+              <h2>ORDER DETAILS</h2>
+            </div>
           </div>
           <div className="products-table">
             <div className="table-header">
@@ -864,8 +866,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
             {/* Shipping Options */}
             <div className="shipping-options">
               <div className="section-header">
-                <FaTruck className="section-icon" />
-                <h2>SHIPPING OPTIONS</h2>
+                <div className="section-header-left">
+                  <FaTruck className="section-icon" />
+                  <h2>SHIPPING OPTIONS</h2>
+                </div>
               </div>
               <div className="shipping-method">
                 <label className="shipping-option">

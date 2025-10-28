@@ -469,6 +469,8 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  fill: currentColor;
+  stroke: none;
 }
 
 .profile-menu-item.logout {
@@ -1462,6 +1464,16 @@
   background: rgba(0, 191, 255, 0.25);
   border-color: #00bfff;
   box-shadow: 0 0 15px rgba(0, 191, 255, 0.5);
+}
+
+.hamburger-menu.disabled,
+.hamburger-menu:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+  pointer-events: none;
+  background: rgba(0, 191, 255, 0.05) !important;
+  border-color: rgba(0, 191, 255, 0.15) !important;
+  box-shadow: none !important;
 }
 
 /* Mobile Menu Toggle - Already defined in main breakpoints above */

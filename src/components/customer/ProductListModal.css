@@ -185,7 +185,7 @@
   color: #d1d5db;
   font-size: 14px;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', sans-serif !important;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -224,6 +224,9 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
 }
 
 .price-arrow {

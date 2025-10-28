@@ -830,7 +830,7 @@
 }
 
 .cdfm-confirm-modal {
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+  background: #000000;
   color: #ffffff;
   border: 1px solid #00bfff;
   border-radius: 12px;
@@ -840,6 +840,7 @@
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 191, 255, 0.3);
   animation: cdfm-slideUp 0.4s ease;
+  font-family: 'Inter', sans-serif;
 }
 
 .cdfm-confirm-modal h3 {
@@ -853,6 +854,52 @@
   color: #e0e0e0;
   margin-bottom: 12px;
   line-height: 1.5;
+}
+
+.cdfm-button-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+.cdfm-cancel-button,
+.cdfm-login-button {
+  background: linear-gradient(135deg, #00bfff 0%, #0099cc 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+}
+
+.cdfm-cancel-button {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
+}
+
+.cdfm-login-button {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.cdfm-cancel-button:hover {
+  background: linear-gradient(135deg, #7c8896 0%, #6b7280 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+}
+
+.cdfm-login-button:hover {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .cdfm-confirm-modal button {

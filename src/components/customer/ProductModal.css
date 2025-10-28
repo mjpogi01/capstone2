@@ -83,28 +83,14 @@
   align-items: center;
   justify-content: center;
   border-right: 1px solid rgba(0, 191, 255, 0.2);
-}
-
-.modal-image-container {
-  width: fit-content;
-  height: fit-content;
-  background: #000000;
-  border-radius: 8px;
-  border: 1px solid #00bfff;
-  overflow: hidden;
-  position: relative;
-  margin: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
+  box-shadow: none !important;
 }
 
 .modal-image {
-  max-width: 100% !important;
-  max-height: 100% !important;
-  width: auto !important;
-  height: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 500px !important;
+  max-height: 500px !important;
   object-fit: contain !important;
   object-position: center;
   border-radius: 8px;
@@ -117,6 +103,7 @@
   justify-content: unset !important;
   flex-shrink: unset !important;
   background: transparent !important;
+  box-shadow: none !important;
 }
 
 .modal-image-placeholder {
@@ -127,6 +114,7 @@
   height: 100%;
   background: #2e2e2e;
   border-radius: 8px;
+  box-shadow: none !important;
 }
 
 .modal-image-emoji {
@@ -221,7 +209,7 @@
   font-weight: 900 !important;
   text-transform: uppercase !important;
   letter-spacing: 2px !important;
-  font-family: 'Arial Black', sans-serif !important;
+  font-family: 'Oswald', sans-serif !important;
   line-height: 1.1 !important;
   filter: contrast(1.2);
 }
@@ -1225,10 +1213,6 @@
     padding: 20px;
   }
   
-  .modal-image-container {
-    min-height: 200px;
-  }
-  
   .modal-product-title {
     font-size: 2rem;
   }
@@ -1308,8 +1292,11 @@
     padding: 15px;
   }
   
-  .modal-image-container {
-    min-height: 200px;
+  .modal-image {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 400px !important;
+    max-height: 400px !important;
   }
   
   .modal-product-title {
@@ -1380,8 +1367,11 @@
     padding: 12px;
   }
   
-  .modal-image-container {
-    min-height: 150px;
+  .modal-image {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 300px !important;
+    max-height: 300px !important;
   }
   
   .modal-product-title {
@@ -1468,8 +1458,11 @@
     padding: 10px;
   }
   
-  .modal-image-container {
-    min-height: 120px;
+  .modal-image {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 250px !important;
+    max-height: 250px !important;
   }
   
   .modal-product-title {
