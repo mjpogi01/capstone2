@@ -3,6 +3,12 @@ const { supabase, query } = require('../lib/db');
 const emailService = require('../lib/emailService');
 const router = express.Router();
 
+// Test endpoint to verify server is working
+router.get('/test', (req, res) => {
+  console.log('🧪 Test endpoint called');
+  res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+
 // Supabase client and query helper are provided by ../lib/db
 
 // Function to update sold_quantity for products in an order
@@ -293,6 +299,10 @@ router.get('/:id', async (req, res) => {
 
 // Update order status
 router.patch('/:id/status', async (req, res) => {
+  console.log('🚀 STATUS UPDATE ROUTE CALLED');
+  console.log('🚀 Request params:', req.params);
+  console.log('🚀 Request body:', req.body);
+  
   try {
     const { id } = req.params;
     const { status, skipEmail = false } = req.body;
@@ -348,6 +358,92 @@ router.patch('/:id/status', async (req, res) => {
     }
 
     const updatedOrder = updatedOrderData;
+
+    // Debug: Log all status changes
+    console.log(`🔄 Order ${updatedOrder.order_number} status changed: ${previousStatus} → ${status}`);
+
+    // Assign artist task when order moves to 'layout' status
+    if (status === 'layout' && previousStatus !== 'layout') {
+      try {
+        console.log(`🎨 Assigning artist task for order ${updatedOrder.order_number}`);
+        console.log(`🎨 Order ID: ${currentOrder.id}`);
+        console.log(`🎨 Order Type: ${currentOrder.order_type}`);
+        console.log(`🎨 Order Items:`, JSON.stringify(currentOrder.order_items, null, 2));
+        
+        // Determine order type and assign appropriate task
+        let taskId = null;
+        
+        if (currentOrder.order_type === 'custom_design') {
+          // Custom design order
+          const { data: customTaskData, error: customError } = await supabase.rpc('assign_custom_design_task', {
+            p_order_id: currentOrder.id,
+            p_product_name: currentOrder.order_items?.[0]?.name || 'Custom Design',
+            p_quantity: currentOrder.total_items || 1,
+            p_customer_requirements: currentOrder.order_notes || null,
+            p_priority: 'medium',
+            p_deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+            p_product_id: currentOrder.order_items?.[0]?.id || null
+          });
+          
+          if (customError) {
+            console.error('❌ Error assigning custom design task:', customError);
+            console.error('❌ Custom task error details:', JSON.stringify(customError, null, 2));
+          } else {
+            taskId = customTaskData;
+            console.log(`✅ Custom design task assigned: ${taskId}`);
+          }
+        } else if (currentOrder.order_number?.startsWith('WALKIN-')) {
+          // Walk-in order
+          const { data: walkInTaskData, error: walkInError } = await supabase.rpc('assign_walk_in_order_task', {
+            p_product_name: currentOrder.order_items?.[0]?.name || 'Walk-in Product',
+            p_quantity: currentOrder.total_items || 1,
+            p_customer_requirements: currentOrder.order_notes || null,
+            p_priority: 'high',
+            p_deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
+            p_order_id: currentOrder.id,
+            p_product_id: currentOrder.order_items?.[0]?.id || null
+          });
+          
+          if (walkInError) {
+            console.error('❌ Error assigning walk-in order task:', walkInError);
+            console.error('❌ Walk-in task error details:', JSON.stringify(walkInError, null, 2));
+          } else {
+            taskId = walkInTaskData;
+            console.log(`✅ Walk-in order task assigned: ${taskId}`);
+          }
+        } else {
+          // Regular order (store products)
+          const { data: regularTaskData, error: regularError } = await supabase.rpc('assign_regular_order_task', {
+            p_product_name: currentOrder.order_items?.[0]?.name || 'Store Product',
+            p_quantity: currentOrder.total_items || 1,
+            p_customer_requirements: currentOrder.order_notes || null,
+            p_priority: 'medium',
+            p_deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+            p_order_id: currentOrder.id,
+            p_product_id: currentOrder.order_items?.[0]?.id || null,
+            p_order_source: 'online'
+          });
+          
+          if (regularError) {
+            console.error('❌ Error assigning regular order task:', regularError);
+            console.error('❌ Regular task error details:', JSON.stringify(regularError, null, 2));
+          } else {
+            taskId = regularTaskData;
+            console.log(`✅ Regular order task assigned: ${taskId}`);
+          }
+        }
+        
+        if (taskId) {
+          console.log(`🎨 Artist task successfully assigned for order ${updatedOrder.order_number}`);
+        } else {
+          console.warn(`⚠️ Failed to assign artist task for order ${updatedOrder.order_number}`);
+        }
+        
+      } catch (error) {
+        console.error('❌ Error in artist task assignment:', error);
+        // Don't fail the entire request if artist assignment fails
+      }
+    }
 
     // Update sold_quantity when order is completed (picked_up_delivered)
     if (status === 'picked_up_delivered' && previousStatus !== 'picked_up_delivered') {

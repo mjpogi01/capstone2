@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import OrderTrackingStatus from '../../components/customer/OrderTrackingStatus';
+import orderService from '../../services/orderService';
 import './OrderTracking.css';
 
 const OrderTracking = () => {
@@ -20,7 +21,14 @@ const OrderTracking = () => {
       setLoading(true);
       setError(null);
 
-      // Mock order data - in real app, fetch from API
+      // Fetch real order data with artist information
+      const orderWithArtist = await orderService.getOrderWithArtist(orderId);
+      setOrder(orderWithArtist);
+    } catch (err) {
+      console.error('Error fetching order details:', err);
+      setError('Failed to load order details. Please try again.');
+      
+      // Fallback to mock data if API fails
       const mockOrder = {
         id: orderId,
         orderNumber: `ORD-${orderId}`,
@@ -34,13 +42,10 @@ const OrderTracking = () => {
           { name: 'Football Jersey', quantity: 1, price: 44.00 }
         ],
         createdAt: new Date().toISOString(),
-        status: 'in_store'
+        status: 'in_store',
+        assignedArtist: null
       };
-
       setOrder(mockOrder);
-    } catch (err) {
-      console.error('Error fetching order details:', err);
-      setError('Failed to load order details');
     } finally {
       setLoading(false);
     }
@@ -129,6 +134,12 @@ const OrderTracking = () => {
               <label>Order Date</label>
               <span>{new Date(order.createdAt).toLocaleDateString()}</span>
             </div>
+            {order.assignedArtist && (
+              <div className="order-detail artist-detail">
+                <label>Assigned Artist</label>
+                <span className="artist-name">{order.assignedArtist.artist_name}</span>
+              </div>
+            )}
           </div>
         </div>
 

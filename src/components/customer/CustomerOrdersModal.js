@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaEye, FaTruck, FaMapMarkerAlt, FaCalendarAlt, FaShoppingBag, FaUsers, FaBan, FaRoute, FaCheckCircle, FaStar, FaCamera, FaLocationArrow } from 'react-icons/fa';
+import { FaTimes, FaEye, FaTruck, FaMapMarkerAlt, FaCalendarAlt, FaShoppingBag, FaUsers, FaBan, FaRoute, FaCheckCircle, FaStar, FaCamera, FaLocationArrow, FaComments } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import orderTrackingService from '../../services/orderTrackingService';
 import SimpleOrderReview from './SimpleOrderReview';
+import DesignChat from './DesignChat';
 import './CustomerOrdersModal.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
@@ -25,6 +26,8 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const [showCancelReason, setShowCancelReason] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [orderToCancel, setOrderToCancel] = useState(null);
+  const [showChat, setShowChat] = useState(false);
+  const [selectedOrderForChat, setSelectedOrderForChat] = useState(null);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -61,6 +64,7 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const loadOrderDetails = async (userOrders) => {
     const trackingData = {};
     const reviewsData = {};
+    const artistData = {};
 
     for (const order of userOrders) {
       try {
@@ -71,6 +75,15 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
         // Load review data
         const review = await orderTrackingService.getOrderReview(order.id);
         reviewsData[order.id] = review;
+
+        // Load assigned artist data
+        try {
+          const orderWithArtist = await orderService.getOrderWithArtist(order.id);
+          artistData[order.id] = orderWithArtist.assignedArtist;
+        } catch (artistError) {
+          console.log(`No artist assigned to order ${order.id}`);
+          artistData[order.id] = null;
+        }
       } catch (error) {
         console.error(`Error loading details for order ${order.id}:`, error);
       }
@@ -78,6 +91,14 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
 
     setOrderTracking(trackingData);
     setOrderReviews(reviewsData);
+    
+    // Update orders with artist information
+    setOrders(prevOrders => 
+      prevOrders.map(order => ({
+        ...order,
+        assignedArtist: artistData[order.id] || null
+      }))
+    );
   };
 
   const formatDate = (dateString) => {
@@ -166,6 +187,36 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     setShowCancelReason(false);
     setOrderToCancel(null);
     setCancelReason('');
+  };
+
+  const handleOpenChat = (order) => {
+    setSelectedOrderForChat(order);
+    setShowChat(true);
+  };
+
+  const handleCloseChat = () => {
+    setShowChat(false);
+    setSelectedOrderForChat(null);
+  };
+
+  const hasCustomDesign = (order) => {
+    // Check both order_items and orderItems for compatibility
+    const items = order.order_items || order.orderItems || [];
+    const hasDesign = items.some(item => 
+      item.design_images && item.design_images.length > 0
+    );
+    
+    // Debug logging
+    console.log(`🔍 Order ${order.orderNumber || order.order_number}:`, {
+      hasOrderItems: !!order.order_items,
+      hasOrderItemsAlt: !!order.orderItems,
+      itemsLength: items.length,
+      hasDesignImages: items.some(item => item.design_images && item.design_images.length > 0),
+      hasDesign: hasDesign,
+      orderKeys: Object.keys(order)
+    });
+    
+    return hasDesign;
   };
 
   const toggleOrderExpansion = (orderId) => {
@@ -325,6 +376,11 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                       <div className="customer-order-total">
                         Total: ₱{parseFloat(order.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </div>
+                      {order.assignedArtist && (
+                        <div className="customer-order-artist">
+                          <FaUsers /> Assigned Artist: {order.assignedArtist.artist_name}
+                        </div>
+                      )}
                     </div>
                     <div className="customer-order-status">
                       <span className={`status-badge ${getStatusColor(order.status)}`}>
@@ -610,6 +666,12 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
 
                       <div className="customer-order-summary">
                         <h4>Order Summary</h4>
+                        {order.assignedArtist && (
+                          <div className="summary-row artist-info">
+                            <span><FaUsers /> Assigned Artist:</span>
+                            <span className="artist-name">{order.assignedArtist.artist_name}</span>
+                          </div>
+                        )}
                         <div className="summary-row">
                           <span>Subtotal:</span>
                           <span>₱{parseFloat(order.subtotalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
@@ -644,6 +706,20 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                           />
                         </div>
                       )}
+
+                       {/* Chat Button - Show for orders with custom designs */}
+                       {hasCustomDesign(order) && (
+                         <div className="customer-order-chat-actions">
+                           <button
+                             className="customer-chat-with-artist-btn"
+                             onClick={() => handleOpenChat(order)}
+                             title="Chat with artist about design"
+                           >
+                             <FaComments />
+                             Chat with Artist
+                           </button>
+                         </div>
+                       )}
 
                       {/* Cancel Button - Only show for pending orders */}
                       {order.status.toLowerCase() === 'pending' && (
@@ -803,6 +879,15 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Design Chat Modal */}
+      {showChat && selectedOrderForChat && (
+        <DesignChat
+          orderId={selectedOrderForChat.id}
+          isOpen={showChat}
+          onClose={handleCloseChat}
+        />
       )}
     </div>
   );

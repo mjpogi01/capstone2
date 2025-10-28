@@ -10,19 +10,14 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function createArtistAccounts() {
   try {
-    console.log('🎨 Creating 18 Missing Artist Accounts...\n');
+    console.log('🎨 Creating All 20 Artist Accounts...\n');
     
     const artistAccounts = [];
     
-    // Generate 18 artist accounts (we already have 2)
+    // Generate all 20 artist accounts
     for (let i = 1; i <= 20; i++) {
       const email = `artist${i}@yohanns.com`;
       const artistName = `Artist ${i}`;
-      
-      // Skip if this is one of the existing accounts
-      if (i === 1 || i === 2) {
-        continue; // Skip artist1 and artist2 as they might already exist
-      }
       
       artistAccounts.push({
         email,

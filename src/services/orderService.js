@@ -123,6 +123,47 @@ class OrderService {
     }
   }
 
+  // Get order with assigned artist information
+  async getOrderWithArtist(orderId) {
+    try {
+      console.log('🎨 Getting order with artist info:', orderId);
+      
+      // Get order details
+      const order = await this.getOrderById(orderId);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Get assigned artist
+      const { data: artistTask, error: taskError } = await supabase
+        .from('artist_tasks')
+        .select(`
+          artist_id,
+          artist_profiles!inner(
+            id,
+            artist_name,
+            is_active
+          )
+        `)
+        .eq('order_id', orderId)
+        .eq('artist_profiles.is_active', true)
+        .single();
+
+      if (taskError && taskError.code !== 'PGRST116') {
+        console.error('❌ Error getting artist task:', taskError);
+        // Don't throw error, just return order without artist info
+      }
+
+      return {
+        ...order,
+        assignedArtist: artistTask?.artist_profiles || null
+      };
+    } catch (error) {
+      console.error('❌ Error getting order with artist:', error);
+      throw error;
+    }
+  }
+
   async updateOrderStatus(orderId, status) {
     try {
       // Use backend API to trigger email automation
