@@ -25,6 +25,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
   const navRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [activeScrollSection, setActiveScrollSection] = useState(0);
   const { openSignIn } = useModal();
   // const { addToCart } = useCart(); // Removed unused import
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -141,6 +142,27 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
       setCanScrollRight(
         navRef.current.scrollWidth > navRef.current.clientWidth + navRef.current.scrollLeft
       );
+      
+      // Calculate which section (0, 1, or 2) based on scroll position
+      const scrollWidth = navRef.current.scrollWidth;
+      const clientWidth = navRef.current.clientWidth;
+      const scrollLeft = navRef.current.scrollLeft;
+      const maxScroll = scrollWidth - clientWidth;
+      
+      if (maxScroll > 0) {
+        const scrollPercentage = (scrollLeft / maxScroll) * 100;
+        
+        // Divide into 3 sections
+        if (scrollPercentage < 33) {
+          setActiveScrollSection(0); // Left section
+        } else if (scrollPercentage < 66) {
+          setActiveScrollSection(1); // Middle section
+        } else {
+          setActiveScrollSection(2); // Right section
+        }
+      } else {
+        setActiveScrollSection(0);
+      }
     }
   };
 
@@ -178,6 +200,13 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
     <section className="product-categories">
       {/* Category Nav */}
       <div className="sportswear-category-nav-wrapper">
+        {/* Scroll Radio Indicators - Mobile only */}
+        <div className="sportswear-scroll-radio-indicators">
+          <span className={`sportswear-radio-dot ${activeScrollSection === 0 ? 'active' : ''}`} />
+          <span className={`sportswear-radio-dot ${activeScrollSection === 1 ? 'active' : ''}`} />
+          <span className={`sportswear-radio-dot ${activeScrollSection === 2 ? 'active' : ''}`} />
+        </div>
+        
         {/* LEFT ARROW */}
         <button
           className="sportswear-scroll-btn left"

@@ -1,3 +1,6 @@
+/* Import Modern Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 /* Notification Container */
 .notification-container {
   position: fixed;
@@ -9,14 +12,15 @@
   gap: 10px;
   max-width: 400px;
   pointer-events: none;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 /* Individual Notification */
 .notification {
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  background: #1a202c;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid #333;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid #2d3748;
   overflow: hidden;
   cursor: pointer;
   pointer-events: auto;
@@ -25,6 +29,7 @@
   position: relative;
   min-width: 300px;
   max-width: 400px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 .notification:hover {
@@ -34,35 +39,35 @@
 
 /* Notification Types */
 .notification-success {
-  border-left: 4px solid #00ff88;
+  border-left: 4px solid #48bb78;
 }
 
 .notification-success .notification-icon {
-  color: #00ff88;
+  color: #68d391;
 }
 
 .notification-error {
-  border-left: 4px solid #ff4444;
+  border-left: 4px solid #fc8181;
 }
 
 .notification-error .notification-icon {
-  color: #ff4444;
+  color: #fc8181;
 }
 
 .notification-warning {
-  border-left: 4px solid #ffaa00;
+  border-left: 4px solid #f6ad55;
 }
 
 .notification-warning .notification-icon {
-  color: #ffaa00;
+  color: #f6ad55;
 }
 
 .notification-info {
-  border-left: 4px solid #00bfff;
+  border-left: 4px solid #63b3ed;
 }
 
 .notification-info .notification-icon {
-  color: #00bfff;
+  color: #63b3ed;
 }
 
 /* Notification Content */
@@ -83,19 +88,24 @@
 .notification-text {
   flex: 1;
   color: #ffffff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 .notification-title {
-  font-weight: bold;
-  font-size: 16px;
+  font-weight: 700 !important;
+  font-size: 0.9375rem !important;
   margin-bottom: 4px;
-  color: #ffffff;
+  color: #ffffff !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  letter-spacing: -0.015em !important;
 }
 
 .notification-message {
-  font-size: 14px;
-  line-height: 1.4;
-  color: #a9d8ff;
+  font-size: 0.8125rem !important;
+  line-height: 1.5 !important;
+  color: #cbd5e0 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 400 !important;
 }
 
 .notification-close {
@@ -244,19 +254,24 @@
 
 .notification-center-text {
   text-align: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 .notification-center-title {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
   margin-bottom: 4px;
-  color: #ffffff;
+  color: #ffffff !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  letter-spacing: -0.015em !important;
 }
 
 .notification-center-message {
-  font-size: 14px;
-  color: #cccccc;
-  line-height: 1.4;
+  font-size: 0.8125rem !important;
+  color: #cbd5e0 !important;
+  line-height: 1.5 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 400 !important;
 }
 
 .notification-center-progress {
@@ -332,11 +347,13 @@
   }
   
   .notification-title {
-    font-size: 15px;
+    font-size: 0.875rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
   
   .notification-message {
-    font-size: 13px;
+    font-size: 0.75rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
 
   .notification-center {
@@ -346,11 +363,13 @@
   }
 
   .notification-center-title {
-    font-size: 15px;
+    font-size: 0.875rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
 
   .notification-center-message {
-    font-size: 13px;
+    font-size: 0.75rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
 }
 
@@ -371,11 +390,13 @@
   }
   
   .notification-title {
-    font-size: 14px;
+    font-size: 0.8125rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
   
   .notification-message {
-    font-size: 12px;
+    font-size: 0.6875rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
 
   .notification-center {
@@ -396,10 +417,12 @@
   }
 
   .notification-center-title {
-    font-size: 14px;
+    font-size: 0.8125rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
 
   .notification-center-message {
-    font-size: 12px;
+    font-size: 0.6875rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
 }

@@ -23,9 +23,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [selectedSize, setSelectedSize] = useState(existingCartItemData?.size || 'M');
   const [quantity, setQuantity] = useState(existingCartItemData?.quantity || 1);
   const [isTeamOrder, setIsTeamOrder] = useState(existingCartItemData?.isTeamOrder || false);
-  const [teamMembers, setTeamMembers] = useState(existingCartItemData?.teamMembers || []);
+  const [teamMembers, setTeamMembers] = useState(
+    existingCartItemData?.teamMembers && existingCartItemData.teamMembers.length > 0
+      ? existingCartItemData.teamMembers
+      : [{ id: Date.now(), teamName: '', surname: '', number: '', size: 'M' }]
+  );
   const [teamName, setTeamName] = useState(existingCartItemData?.teamMembers?.[0]?.teamName || '');
-  const [newMember, setNewMember] = useState({ surname: '', number: '', size: 'M' });
   const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
   const [sizeType, setSizeType] = useState(existingCartItemData?.sizeType || 'adult'); // 'adult' or 'kids'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -174,16 +177,15 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         if (!teamName || !teamName.trim()) {
           errors.teamName = 'Required';
         }
-        // Validate team members
-        if (teamMembers.length === 0) {
-          // Show errors in the input fields
-          if (!newMember.surname.trim()) {
-            errors.teamMemberSurname = 'Required';
+        // Validate team members - check if all members have required fields
+        teamMembers.forEach((member, index) => {
+          if (!member.surname || !member.surname.trim()) {
+            errors[`teamMember_${index}_surname`] = 'Required';
           }
-          if (!newMember.number.trim()) {
-            errors.teamMemberNumberRequired = 'Required';
+          if (!member.number || !member.number.trim()) {
+            errors[`teamMember_${index}_number`] = 'Required';
           }
-        }
+        });
         
         if (Object.keys(errors).length > 0) {
           setValidationErrors(errors);
@@ -320,16 +322,15 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         if (!teamName || !teamName.trim()) {
           errors.teamName = 'Required';
         }
-        // Validate team members
-        if (teamMembers.length === 0) {
-          // Show errors in the input fields
-          if (!newMember.surname.trim()) {
-            errors.teamMemberSurname = 'Required';
+        // Validate team members - check if all members have required fields
+        teamMembers.forEach((member, index) => {
+          if (!member.surname || !member.surname.trim()) {
+            errors[`teamMember_${index}_surname`] = 'Required';
           }
-          if (!newMember.number.trim()) {
-            errors.teamMemberNumberRequired = 'Required';
+          if (!member.number || !member.number.trim()) {
+            errors[`teamMember_${index}_number`] = 'Required';
           }
-        }
+        });
         
         if (Object.keys(errors).length > 0) {
           setValidationErrors(errors);
@@ -467,38 +468,26 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   };
 
   const addTeamMember = () => {
-    const errors = {};
-    
-    // Validate team member fields
-    if (!newMember.surname.trim()) {
-      errors.teamMemberSurname = 'Required';
-    }
-    if (!newMember.number.trim()) {
-      errors.teamMemberNumberRequired = 'Required';
-    }
-    
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors({...validationErrors, ...errors});
-      return;
-    }
-    
-    // Clear validation errors
-    setValidationErrors({...validationErrors, teamMemberSurname: '', teamMemberNumberRequired: ''});
-    
-    // Add member
-    const member = {
+    const newMember = {
       id: Date.now(),
       teamName: teamName,
-      surname: newMember.surname,
-      number: newMember.number,
-      size: newMember.size
+      surname: '',
+      number: '',
+      size: 'M'
     };
-    setTeamMembers([...teamMembers, member]);
-    setNewMember({ surname: '', number: '', size: 'M' });
+    setTeamMembers([...teamMembers, newMember]);
+    console.log('✅ New team member row added');
+  };
+
+  const updateTeamMember = (index, field, value) => {
+    setTeamMembers(prev => prev.map((member, i) => 
+      i === index ? { ...member, [field]: value } : member
+    ));
   };
 
   const removeTeamMember = (id) => {
     setTeamMembers(teamMembers.filter(member => member.id !== id));
+    console.log('✅ Team member row removed');
   };
 
   const toggleDescription = () => {
@@ -513,9 +502,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return Array.from({ length: 5 }, (_, index) => (
       <span key={index}>
         {index < rating ? (
-          <AiFillStar className="star filled" />
+          <AiFillStar className="modal-star filled" />
         ) : (
-          <AiOutlineStar className="star" />
+          <AiOutlineStar className="modal-star" />
         )}
       </span>
     ));
@@ -613,7 +602,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
                     onClick={() => {
                       setSizeType('adult');
-                      setNewMember({...newMember, size: 'M'});
+                      setSingleOrderDetails({...singleOrderDetails, size: 'M'});
                     }}
                   >
                     Adult
@@ -622,7 +611,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     className={`modal-size-type-button ${sizeType === 'kids' ? 'active' : ''}`}
                     onClick={() => {
                       setSizeType('kids');
-                      setNewMember({...newMember, size: 'M'});
+                      setSingleOrderDetails({...singleOrderDetails, size: 'M'});
                     }}
                   >
                     Kids
@@ -634,7 +623,17 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
             {/* Team Members Section - Only for Apparel */}
             {isApparel && isTeamOrder && (
               <div className="modal-team-section">
-                <div className="modal-team-label">Team Members</div>
+                <div className="modal-team-header">
+                  <div className="modal-team-label">Team Members</div>
+                  <button 
+                    type="button"
+                    className="modal-add-member-button"
+                    onClick={addTeamMember}
+                    title="Add Team Member"
+                  >
+                    <FaPlus />
+                  </button>
+                </div>
                 
                 {/* Team Name Input */}
                 <div className="modal-team-name-section">
@@ -656,88 +655,69 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     )}
                   </div>
                 </div>
-                
-                {/* Add New Member */}
-                <div className="modal-add-member-form">
-                  <div className="modal-member-inputs">
-                    <div className="modal-input-wrapper modal-member-wrapper">
-                      <input
-                        type="text"
-                        placeholder="Surname"
-                        value={newMember.surname}
-                        onChange={(e) => {
-                          setNewMember({...newMember, surname: e.target.value});
-                          if (validationErrors.teamMemberSurname && e.target.value.trim()) {
-                            setValidationErrors({...validationErrors, teamMemberSurname: ''});
-                          }
-                        }}
-                        className={`modal-member-input ${validationErrors.teamMemberSurname ? 'error' : ''}`}
-                      />
-                      {validationErrors.teamMemberSurname && (
-                        <span className="modal-error-message">{validationErrors.teamMemberSurname}</span>
-                      )}
-                    </div>
-                    <div className="modal-input-wrapper modal-member-wrapper">
-                      <input
-                        type="text"
-                        placeholder="#"
-                        value={newMember.number}
-                        onChange={(e) => {
-                          const inputValue = e.target.value;
-                          // Check if user tried to enter non-numeric characters
-                          if (inputValue && /[^\d]/.test(inputValue)) {
-                            setValidationErrors({...validationErrors, teamMemberNumber: 'Numbers only', teamMemberNumberRequired: ''});
-                            setTimeout(() => {
-                              setValidationErrors({...validationErrors, teamMemberNumber: ''});
-                            }, 2000);
-                          }
-                          // Only allow numbers
-                          const value = inputValue.replace(/[^\d]/g, '');
-                          setNewMember({...newMember, number: value});
-                          // Clear required error when typing
-                          if (validationErrors.teamMemberNumberRequired && value.trim()) {
-                            setValidationErrors({...validationErrors, teamMemberNumberRequired: ''});
-                          }
-                        }}
-                        className={`modal-member-input number-input ${(validationErrors.teamMemberNumber || validationErrors.teamMemberNumberRequired) ? 'error' : ''}`}
-                      />
-                      {(validationErrors.teamMemberNumber || validationErrors.teamMemberNumberRequired) && (
-                        <span className="modal-error-message">
-                          {validationErrors.teamMemberNumber || validationErrors.teamMemberNumberRequired}
-                        </span>
-                      )}
-                    </div>
-                    <select
-                      value={newMember.size}
-                      onChange={(e) => setNewMember({...newMember, size: e.target.value})}
-                      className="modal-member-select"
-                    >
-                      {sizes.map(size => (
-                        <option key={size} value={size}>{size}</option>
-                      ))}
-                    </select>
-                    <button 
-                      className="modal-add-member-button"
-                      onClick={addTeamMember}
-                    >
-                      <FaPlus />
-                    </button>
-                  </div>
-                </div>
 
-                {/* Team Members List */}
-                <div className="modal-members-list">
-                  {teamMembers.map(member => (
-                    <div key={member.id} className="modal-member-item">
-                      <span className="modal-member-name">{member.surname}</span>
-                      <span className="modal-member-number">#{member.number}</span>
-                      <span className="modal-member-size">Size: {member.size}</span>
-                      <button 
-                        className="modal-remove-member-button"
-                        onClick={() => removeTeamMember(member.id)}
+                {/* Team Members Roster - Multiple Input Rows */}
+                <div className="modal-members-roster">
+                  {teamMembers.map((member, index) => (
+                    <div key={member.id} className="modal-member-row">
+                      <div className="modal-input-wrapper modal-member-wrapper">
+                        <input
+                          type="text"
+                          placeholder="Surname"
+                          value={member.surname}
+                          onChange={(e) => {
+                            updateTeamMember(index, 'surname', e.target.value);
+                            if (validationErrors[`teamMember_${index}_surname`]) {
+                              const newErrors = {...validationErrors};
+                              delete newErrors[`teamMember_${index}_surname`];
+                              setValidationErrors(newErrors);
+                            }
+                          }}
+                          className={`modal-member-input ${validationErrors[`teamMember_${index}_surname`] ? 'error' : ''}`}
+                        />
+                        {validationErrors[`teamMember_${index}_surname`] && (
+                          <span className="modal-error-message">{validationErrors[`teamMember_${index}_surname`]}</span>
+                        )}
+                      </div>
+                      <div className="modal-input-wrapper modal-member-wrapper">
+                        <input
+                          type="text"
+                          placeholder="#"
+                          value={member.number}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^\d]/g, '');
+                            updateTeamMember(index, 'number', value);
+                            if (validationErrors[`teamMember_${index}_number`]) {
+                              const newErrors = {...validationErrors};
+                              delete newErrors[`teamMember_${index}_number`];
+                              setValidationErrors(newErrors);
+                            }
+                          }}
+                          className={`modal-member-input number-input ${validationErrors[`teamMember_${index}_number`] ? 'error' : ''}`}
+                        />
+                        {validationErrors[`teamMember_${index}_number`] && (
+                          <span className="modal-error-message">{validationErrors[`teamMember_${index}_number`]}</span>
+                        )}
+                      </div>
+                      <select
+                        value={member.size}
+                        onChange={(e) => updateTeamMember(index, 'size', e.target.value)}
+                        className="modal-member-select"
                       >
-                        <FaTrash />
-                      </button>
+                        {sizes.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                      {teamMembers.length > 1 && (
+                        <button 
+                          type="button"
+                          className="modal-remove-member-button"
+                          onClick={() => removeTeamMember(member.id)}
+                          title="Remove Team Member"
+                        >
+                          <FaTrash />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

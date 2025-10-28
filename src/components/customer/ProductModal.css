@@ -369,25 +369,72 @@
   font-weight: 400;
 }
 
+.modal-team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .modal-team-label {
   display: block;
   color: #fff;
   font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
-.modal-add-member-form {
-  margin-bottom: 15px;
+.modal-members-roster {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 5px;
+  margin-top: 15px;
 }
 
-.modal-member-inputs {
-  display: grid;
-  grid-template-columns: 2fr 1fr 100px 50px;
-  gap: 10px;
-  align-items: stretch;
+.modal-members-roster::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-members-roster::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.modal-members-roster::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+.modal-members-roster::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+.modal-member-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.modal-member-row .modal-member-wrapper {
+  flex: 1;
+}
+
+.modal-member-row .modal-member-wrapper:first-child {
+  flex: 2;
+}
+
+.modal-member-row .modal-member-select {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.modal-member-row .modal-remove-member-button {
+  flex-shrink: 0;
 }
 
 .modal-member-input {
@@ -451,25 +498,35 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   font-size: 1rem;
   font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.3);
+  flex-shrink: 0;
 }
 
 .modal-add-member-button:hover {
   background: #0099cc;
   transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.5);
+}
+
+.modal-add-member-button:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 4px rgba(0, 191, 255, 0.4);
 }
 
 .modal-add-member-button:disabled {
   background: #666;
   cursor: not-allowed;
   transform: none;
+  opacity: 0.5;
 }
 
 .modal-members-list {
   max-height: 200px;
   overflow-y: auto;
+  margin-top: 12px;
 }
 
 .modal-member-item {
@@ -483,6 +540,18 @@
   margin-bottom: 8px;
   color: #fff;
   font-size: 0.9rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal-member-name {
@@ -1047,12 +1116,12 @@
 
 .modal-stars-display {
   display: flex;
-  gap: 2px;
+  gap: 3px;
 }
 
 .modal-star {
   color: #ffd700;
-  font-size: 1rem;
+  font-size: 1.4rem;
 }
 
 .modal-star.filled {
@@ -1113,7 +1182,7 @@
 
 .modal-review-rating {
   display: flex;
-  gap: 2px;
+  gap: 3px;
 }
 
 .modal-review-comment {
