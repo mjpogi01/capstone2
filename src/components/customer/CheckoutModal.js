@@ -736,33 +736,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                           </div>
                         </div>
                       </div>
-                    </div>
-<<<<<<< HEAD
                   </div>
-                  <div 
-                    className="order-cell"
-                    onClick={isBall ? undefined : () => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
-                    style={isBall ? { cursor: 'default' } : {}}
-                  >
-                    {isBall ? (
-                      <><FaBasketballBall /> Ball</>
-                    ) : isTrophy ? (
-                      <><FaTrophy /> Trophy</>
-                    ) : item.category === 'team' ? (
-                      <><FaUserFriends /> Team Order</>
-                    ) : (
-                      <><FaUser /> Single Order</>
-                    )}
-                    {!isBall && (
-                      <span className="dropdown-arrow">
-                        {expandedOrderIndex === index ? <FaChevronUp /> : <FaChevronDown />}
-                      </span>
-                    )}
-                  </div>
-                  {!isBall && expandedOrderIndex === index && (
-                    <div className="order-details-wrapper" style={{ gridColumn: '1 / -1' }}>
-                      <div className="order-details-dropdown">
-=======
                     <div 
                       className="checkout-modal-perfect-content-order"
                       onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
@@ -794,7 +768,6 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                     {expandedOrderIndex === index && (
                       <div className="checkout-modal-perfect-dropdown-wrapper">
                         <div className="checkout-modal-perfect-dropdown">
->>>>>>> fe2f3141dacb652d2f0319d453a7b3d7618e4ff7
                             {/* For Apparel - Team Orders */}
                             {isApparel && item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 ? (
                               <div className="checkout-modal-perfect-team-details">

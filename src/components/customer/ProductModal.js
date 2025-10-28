@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
+import SizeChartModal from './SizeChartModal';
 import { useCart } from '../../contexts/CartContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
@@ -36,6 +37,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [buyNowItem, setBuyNowItem] = useState(null);
+  const [showSizeChart, setShowSizeChart] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -597,7 +599,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
             {/* Size Type Toggle for Team Orders - Only for Apparel */}
             {isApparel && isTeamOrder && (
               <div className="modal-size-type-section">
-                <div className="modal-size-type-label">SIZE TYPE</div>
+                <div className="modal-size-type-label">SIZE TYPE <a href="#" onClick={(e) => { e.preventDefault(); setShowSizeChart(true); }} className="modal-size-chart-link">Size chart</a></div>
                 <div className="modal-size-type-buttons">
                   <button
                     className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
@@ -735,7 +737,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
             {/* Size Type Toggle - Only for Apparel */}
             {isApparel && !isTeamOrder && (
               <div className="modal-size-type-section">
-                <div className="modal-size-type-label">SIZE TYPE</div>
+                <div className="modal-size-type-label">SIZE TYPE <a href="#" onClick={(e) => { e.preventDefault(); setShowSizeChart(true); }} className="modal-size-chart-link">Size chart</a></div>
                 <div className="modal-size-type-buttons">
                   <button
                     className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
@@ -975,6 +977,11 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         onClose={() => setShowCheckout(false)}
         cartItems={buyNowItem ? [buyNowItem] : cartItems.filter(item => selectedItems.has(item.uniqueId || item.id))}
         onPlaceOrder={handlePlaceOrder}
+      />
+      {/* Size Chart Modal */}
+      <SizeChartModal
+        isOpen={showSizeChart}
+        onClose={() => setShowSizeChart(false)}
       />
     </div>
   );

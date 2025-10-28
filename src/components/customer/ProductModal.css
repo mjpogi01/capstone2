@@ -447,9 +447,7 @@
   color: #a0aec0;
 }
 
-.modal-member-input.number-input {
-  /* No need for flex override with grid */
-}
+.modal-member-input.number-input { min-width: 0; }
 
 .modal-member-select {
   background: #2a2a3e;
@@ -852,13 +850,25 @@
 }
 
 .modal-size-type-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   color: #fff;
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.modal-size-chart-link {
+  color: #00bfff;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.modal-size-chart-link:hover {
+  color: #ffd700;
 }
 
 .modal-size-type-buttons {

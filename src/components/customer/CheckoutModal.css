@@ -486,12 +486,40 @@
   margin: 0;
 }
 
+/* Address form dark input overrides (ensure dark bg + white text) */
+.checkout-modal .address-form .form-group input {
+  background: #0f1419;
+  color: #ffffff;
+  border-color: #4a5568;
+  caret-color: #ffffff;
+}
+
+.checkout-modal .address-form .form-group input::placeholder {
+  color: #cbd5e0;
+  opacity: 0.85;
+}
+
+.checkout-modal .address-form .form-group input:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+}
+
+/* Autofill fixes for dark theme */
+.checkout-modal .address-form .form-group input:-webkit-autofill,
+.checkout-modal .address-form .form-group input:-webkit-autofill:hover,
+.checkout-modal .address-form .form-group input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: 0 0 0px 1000px #0f1419 inset;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
-  background: transparent;
-  padding-top: 20px;
+  background: #0f1419 !important;
+  padding-top: 3px !important;
   border-top: 1px solid #4a5568;
 }
 
