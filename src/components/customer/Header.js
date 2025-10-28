@@ -341,38 +341,6 @@ const Header = () => {
         
         <div className="header-right">
           <div className="utility-icons">
-          {/* Inline Search Box - Desktop Only */}
-          <div className="yohanns-search-inline">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="yohanns-search-input-inline"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  navigate(`/?search=${encodeURIComponent(searchQuery)}`);
-                }
-              }}
-            />
-            <button 
-              className="yohanns-search-btn-inline" 
-              aria-label="Search" 
-              title="Search"
-              onClick={() => {
-                if (searchQuery.trim()) {
-                  navigate(`/?search=${encodeURIComponent(searchQuery)}`);
-                }
-              }}
-            >
-              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                <circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
-                <line x1="15.5" y1="15.5" x2="20" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* Search Icon Button - Mobile Only */}
           <div className="yohanns-search-wrapper">
             <button 
               className="yohanns-search-toggle" 
@@ -538,7 +506,7 @@ const Header = () => {
       </div>
       
       
-      {/* Dark Minimalist Search Dropdown - Mobile Only */}
+      {/* Dark Minimalist Search Dropdown - Below Icon */}
       {showSearchDropdown && (
         <div 
           className={`yohanns-search-dropdown-wrapper`}

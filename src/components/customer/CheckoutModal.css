@@ -6,119 +6,27 @@
 /* Import Modern Font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ALL ANIMATIONS DISABLED - User Request */
-/* Removed all @keyframes animations */
-
-/* UNIVERSAL RULE: Disable ALL animations, transitions, transforms in checkout modal */
-/* This overrides ALL global styles including index.css and App.css */
-.checkout-modal,
-.checkout-modal *,
-.checkout-modal *:hover,
-.checkout-modal *:focus,
-.checkout-modal *:active,
-.checkout-modal *::before,
-.checkout-modal *::after {
-  animation: none !important;
-  transition: none !important;
-  transition-property: none !important;
-  transition-duration: 0s !important;
-  transition-delay: 0s !important;
-  transform: none !important;
-  will-change: auto !important;
+/* Smooth Animations */
+@keyframes chkout-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Specifically disable ALL hover effects that could cause perceived animation or zoom */
-.checkout-modal *:hover,
-.checkout-modal *:focus,
-.checkout-modal *:active {
-  opacity: inherit !important;
-  filter: none !important;
-  scale: 1 !important;
-  transform: none !important;
-  transition: none !important;
-  transition-property: none !important;
-  transition-duration: 0s !important;
-  animation: none !important;
-  box-shadow: none !important;
-  will-change: auto !important;
-}
-
-/* Force cursor to be default on all items in products table to prevent interaction feel */
-/* AGGRESSIVE: Override ALL possible animation sources */
-.checkout-modal .products-table,
-.checkout-modal .products-table *,
-.checkout-modal .table-row,
-.checkout-modal .table-row *,
-.checkout-modal .item-cell,
-.checkout-modal .item-cell *,
-.checkout-modal .item-content,
-.checkout-modal .item-content *,
-.checkout-modal .item-image,
-.checkout-modal .item-image *,
-.checkout-modal .item-details,
-.checkout-modal .item-details *,
-.checkout-modal .item-name,
-.checkout-modal .item-type,
-.checkout-modal .price-cell,
-.checkout-modal .quantity-cell,
-.checkout-modal .total-cell {
-  cursor: default !important;
-  pointer-events: auto !important;
-  transition: none !important;
-  transition-property: none !important;
-  transition-duration: 0s !important;
-  transition-delay: 0s !important;
-  animation: none !important;
-  animation-duration: 0s !important;
-  transform: none !important;
-  will-change: auto !important;
-  backface-visibility: visible !important;
-}
-
-/* Extra aggressive: disable on hover/focus/active for products table */
-/* BUT keep the border-left for column dividers */
-.checkout-modal .products-table *:hover,
-.checkout-modal .products-table *:focus,
-.checkout-modal .products-table *:active,
-.checkout-modal .table-row:hover,
-.checkout-modal .table-row *:hover,
-.checkout-modal .item-cell:hover,
-.checkout-modal .item-cell *:hover,
-.checkout-modal .item-content:hover,
-.checkout-modal .item-content *:hover {
-  transition: none !important;
-  transition-property: none !important;
-  transition-duration: 0s !important;
-  animation: none !important;
-  transform: none !important;
-  scale: 1 !important;
-  filter: none !important;
-  opacity: inherit !important;
-  box-shadow: none !important;
-  will-change: auto !important;
-}
-
-/* FORCE: Ensure column dividers stay visible and cells stay in correct columns */
-.checkout-modal .price-cell,
-.checkout-modal .quantity-cell,
-.checkout-modal .total-cell {
-  border-left: 2px solid #4a5568 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-}
-
-.checkout-modal .price-cell {
-  grid-column: 3 !important;
-}
-
-.checkout-modal .quantity-cell {
-  grid-column: 4 !important;
-}
-
-.checkout-modal .total-cell {
-  grid-column: 5 !important;
+@keyframes chkout-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ============================================
@@ -154,7 +62,7 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  animation: none !important;
+  animation: chkout-fadeIn 0.3s ease-out;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   border: 1px solid #2d3748;
 }
@@ -198,14 +106,14 @@
   align-items: center;
   justify-content: center;
   z-index: 10;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .checkout-close-button:hover {
   background: #4a5568;
   color: #ffffff;
-  /* Removed transform - no zoom animations per user request */
+  transform: scale(1.05);
 }
 
 /* ============================================
@@ -282,13 +190,14 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
 }
 
 .add-address-header-btn:hover {
   background: #63b3ed;
   color: #1a202c;
-  /* Removed transform and shadow - no animations per user request */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 179, 237, 0.3);
 }
 
 /* Address Card */
@@ -321,12 +230,14 @@
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
-  /* Removed all transitions and animations per user request */
+  transition: all 0.2s ease;
+  animation: chkout-slideUp 0.3s ease-out;
 }
 
 .address-card:hover {
   border-color: #718096;
-  /* Removed transform and shadow animations per user request */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
 }
 
 .address-card.selected {
@@ -401,7 +312,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
 }
 
 .edit-address-btn {
@@ -413,7 +324,7 @@
 .edit-address-btn:hover {
   background: #63b3ed;
   color: #1a202c;
-  /* Removed transform - no animations per user request */
+  transform: translateY(-1px);
 }
 
 .delete-address-btn {
@@ -425,7 +336,7 @@
 .delete-address-btn:hover {
   background: #fc8181;
   color: #1a202c;
-  /* Removed transform - no animations per user request */
+  transform: translateY(-1px);
 }
 
 /* No Address Section */
@@ -475,13 +386,14 @@
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
   margin-top: 8px;
 }
 
 .add-address-btn:hover {
   background: #4299e1;
-  /* Removed transform and shadow - no animations per user request */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 179, 237, 0.3);
 }
 
 /* Address Form */
@@ -490,7 +402,7 @@
   border: 1px solid #4a5568;
   border-radius: 12px;
   padding: 24px;
-  animation: none !important;
+  animation: chkout-slideUp 0.3s ease-out;
   max-height: 500px;
   overflow-y: auto;
 }
@@ -550,7 +462,7 @@
   font-size: 0.9375rem;
   color: #e2e8f0;
   font-family: 'Inter', sans-serif;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
   outline: none;
 }
 
@@ -593,52 +505,18 @@
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
 }
 
 .save-address-btn:hover {
   background: #4299e1;
-  /* Removed transform and shadow - no animations per user request */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 179, 237, 0.3);
 }
 
 /* ============================================
    ORDER DETAILS SECTION
    ============================================ */
-
-/* NUCLEAR OPTION: Completely disable ALL animations in ITEMS section */
-.checkout-section.products-section,
-.checkout-section.products-section *,
-.checkout-section.products-section *:hover,
-.checkout-section.products-section *:focus,
-.checkout-section.products-section *:active,
-.checkout-section.products-section *::before,
-.checkout-section.products-section *::after,
-.products-section,
-.products-section *,
-.products-section *:hover,
-.products-section *:focus,
-.products-section *:active,
-.products-table,
-.products-table *,
-.products-table *:hover,
-.products-table *:focus,
-.products-table *:active {
-  transition: none !important;
-  transition-property: none !important;
-  transition-duration: 0s !important;
-  transition-delay: 0s !important;
-  transition-timing-function: none !important;
-  animation: none !important;
-  animation-name: none !important;
-  animation-duration: 0s !important;
-  animation-delay: 0s !important;
-  animation-iteration-count: 0 !important;
-  transform: none !important;
-  transform-origin: 50% 50% !important;
-  will-change: auto !important;
-  backface-visibility: visible !important;
-  perspective: none !important;
-}
 
 .checkout-section.products-section {
   padding: 24px 32px;
@@ -656,13 +534,12 @@
   overflow: hidden;
 }
 
-/* ===== TABLE HEADER - MASTER GRID STRUCTURE ===== */
+/* Table Header */
 .table-header {
   display: grid;
   grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;
-  gap: 0;
-  padding: 0;
-  margin: 0;
+  gap: 16px;
+  padding: 14px 20px;
   background: #0f1419 !important;
   border-bottom: 1px solid #4a5568;
   font-weight: 700;
@@ -670,146 +547,56 @@
   font-size: 0.8125rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  align-items: center;
-  height: 50px;
 }
 
-/* ITEM Header - Column 1 */
 .header-item {
-  grid-column: 1;
   text-align: left;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0 20px;
-  height: 100%;
-  box-sizing: border-box;
 }
 
-/* ORDER Header - Column 2 */
 .header-order {
-  grid-column: 2;
   text-align: left;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0 20px;
-  height: 100%;
-  box-sizing: border-box;
 }
 
-/* PRICE Header - Column 3 */
-.header-price {
-  grid-column: 3;
-  text-align: center !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-left: 2px solid #4a5568 !important;
-  padding: 14px 20px;
-  height: 100%;
-  box-sizing: border-box;
-  margin: 0;
-}
-
-/* QTY Header - Column 4 */
-.header-quantity {
-  grid-column: 4;
-  text-align: center !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-left: 2px solid #4a5568 !important;
-  padding: 14px 20px;
-  height: 100%;
-  box-sizing: border-box;
-  margin: 0;
-}
-
-/* TOTAL Header - Column 5 */
+.header-price,
+.header-quantity,
 .header-total {
-  grid-column: 5;
-  text-align: center !important;
+  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-left: 2px solid #4a5568 !important;
-  padding: 14px 20px;
-  height: 100%;
-  box-sizing: border-box;
-  margin: 0;
 }
 
-/* ===== TABLE ROW - EXACT MATCH WITH HEADER GRID ===== */
+/* Table Row */
 .table-row {
   display: grid;
   grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 0;
-  padding: 0;
-  margin: 0;
+  gap: 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid #2d3748;
   align-items: center;
   justify-items: stretch;
-  background: transparent !important;
-  cursor: default !important;
-  min-height: 70px;
-  /* Removed transition to eliminate all animations per user request */
+  transition: all 0.2s ease;
 }
 
 .table-row:last-child {
   border-bottom: none;
 }
 
-/* Completely disable all hover effects on table rows */
-.table-row:hover,
-.table-row:hover *,
-.table-row:focus,
-.table-row:active,
-.table-row:hover::before,
-.table-row:hover::after {
-  background: transparent !important;
-  background-color: transparent !important;
-  transform: none !important;
-  box-shadow: none !important;
-  transition: none !important;
-  animation: none !important;
-  scale: 1 !important;
-  filter: none !important;
-  opacity: 1 !important;
-  cursor: default !important;
+.table-row:hover {
+  background: #2d3748 !important;
 }
 
-/* ===== ITEM CELL - Column 1 - PERFECTLY ALIGNED ===== */
+/* Item Cell */
 .item-cell {
-  grid-column: 1;
-  grid-row: 1;
   display: flex;
   flex-direction: row;
   gap: 12px;
   align-items: center;
   justify-content: flex-start;
-  background: transparent !important;
-  cursor: default !important;
-  text-align: left;
-  padding: 16px 20px;
-  box-sizing: border-box;
-}
-
-.item-cell:hover,
-.item-cell:hover *,
-.item-cell:hover::before,
-.item-cell:hover::after {
-  background: transparent !important;
-  background-color: transparent !important;
-  transform: none !important;
-  animation: none !important;
-  scale: 1 !important;
-  filter: none !important;
-  opacity: 1 !important;
-  box-shadow: none !important;
-  transition: none !important;
-  cursor: default !important;
 }
 
 .item-content {
@@ -818,29 +605,6 @@
   gap: 12px;
   align-items: center;
   width: 100%;
-  background: transparent !important;
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  cursor: default !important;
-}
-
-.item-content:hover,
-.item-content:hover *,
-.item-content:focus,
-.item-content:active,
-.item-content:hover::before,
-.item-content:hover::after {
-  background: transparent !important;
-  background-color: transparent !important;
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  box-shadow: none !important;
-  scale: 1 !important;
-  filter: none !important;
-  opacity: 1 !important;
-  cursor: default !important;
 }
 
 .item-image {
@@ -854,45 +618,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  cursor: default !important;
-  pointer-events: none;
-}
-
-.item-image:hover,
-.item-image:focus,
-.item-image:active {
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  box-shadow: none !important;
-  scale: 1 !important;
-  filter: none !important;
-  opacity: 1 !important;
-  cursor: default !important;
 }
 
 .item-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  cursor: default !important;
-  pointer-events: none;
-}
-
-.item-image img:hover {
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  scale: 1 !important;
-  filter: none !important;
-  opacity: 1 !important;
-  cursor: default !important;
 }
 
 .item-details {
@@ -901,25 +632,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  cursor: default !important;
-}
-
-.item-details:hover,
-.item-details:hover *,
-.item-details:focus,
-.item-details:active {
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  scale: 1 !important;
-  filter: none !important;
-  opacity: 1 !important;
-  cursor: default !important;
 }
 
 .item-name {
@@ -934,24 +646,6 @@
   line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.4;
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  cursor: default !important;
-}
-
-.item-name:hover,
-.item-name:focus,
-.item-name:active {
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  box-shadow: none !important;
-  color: #ffffff !important;
-  scale: 1 !important;
-  filter: none !important;
-  opacity: 1 !important;
-  cursor: default !important;
 }
 
 /* Additional specificity for item name - OVERRIDE ALL OTHER STYLES */
@@ -972,58 +666,28 @@ div.checkout-modal div.table-row div.item-details div.item-name {
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-}
-
-.item-type:hover,
-.item-type:focus,
-.item-type:active {
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  box-shadow: none !important;
-  color: #ffffff !important;
 }
 
 .item-type.clickable {
   cursor: pointer;
   color: #63b3ed;
-  /* Removed transition to eliminate animation per user request */
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
+  transition: all 0.2s ease;
 }
 
-.item-type.clickable:hover,
-.item-type.clickable:focus,
-.item-type.clickable:active {
-  transition: none !important;
-  transform: none !important;
-  animation: none !important;
-  box-shadow: none !important;
-  color: #63b3ed !important;
+.item-type.clickable:hover {
+  color: #4299e1;
 }
 
-/* Removed hover color change per user request */
-
-/* ===== ORDER CELL - Column 2 - PERFECTLY ALIGNED ===== */
+/* Order Cell */
 .order-cell {
-  grid-column: 2;
-  grid-row: 1;
   color: #63b3ed;
   font-size: 0.875rem;
   font-weight: 500;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 6px;
   cursor: pointer;
-  text-align: left;
-  padding: 16px 20px;
-  box-sizing: border-box;
-  /* Removed transition to eliminate all animations per user request */
+  transition: all 0.2s ease;
 }
 
 .order-cell svg {
@@ -1031,39 +695,33 @@ div.checkout-modal div.table-row div.item-details div.item-name {
   flex-shrink: 0;
 }
 
-/* Removed hover color change per user request */
+.order-cell:hover {
+  color: #4299e1;
+}
 
 .dropdown-arrow {
   font-size: 0.625rem;
-  /* Removed transition - no animations per user request */
+  transition: transform 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-left: auto;
-  animation: none !important;
-  transform: none !important;
-  transition: none !important;
 }
 
-/* ===== ORDER DETAILS WRAPPER - Row 2, Span Columns 1-2 ===== */
+/* Order Details Wrapper */
 .order-details-wrapper {
-  grid-column: 1 / span 2;
-  grid-row: 2;
-  padding: 0 20px;
-  margin-top: 8px;
-  box-sizing: border-box;
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 /* Order Details Dropdown */
 .order-details-dropdown {
+  margin-top: 12px;
   padding: 12px;
   background: #2d3748;
   border-radius: 8px;
   border: 1px solid #4a5568;
-  /* Removed all animations - no animations per user request */
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
+  animation: chkout-slideUp 0.2s ease-out;
 }
 
 .team-details,
@@ -1183,101 +841,17 @@ div.checkout-modal div.member-details .detail-label {
   font-weight: 600;
 }
 
-/* ===== PRICE CELL - Column 3 - PERFECTLY ALIGNED ===== */
-.price-cell {
-  grid-column: 3 !important;
-  grid-row: 1 !important;
-  color: #ffffff !important;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  text-align: center !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  align-self: center !important;
-  justify-self: stretch !important;
-  background: transparent !important;
-  border-left: 2px solid #4a5568 !important;
-  padding: 16px 20px;
-  margin: 0;
-  box-sizing: border-box;
-}
-
-/* ===== QTY CELL - Column 4 - PERFECTLY ALIGNED ===== */
-.quantity-cell {
-  grid-column: 4 !important;
-  grid-row: 1 !important;
-  color: #ffffff !important;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  text-align: center !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  align-self: center !important;
-  justify-self: stretch !important;
-  background: transparent !important;
-  border-left: 2px solid #4a5568 !important;
-  padding: 16px 20px;
-  margin: 0;
-  box-sizing: border-box;
-}
-
-/* ===== TOTAL CELL - Column 5 - PERFECTLY ALIGNED ===== */
+/* Price, Quantity, Total Cells */
+.price-cell,
+.quantity-cell,
 .total-cell {
-  grid-column: 5 !important;
-  grid-row: 1 !important;
   color: #ffffff !important;
   font-weight: 600;
   font-size: 0.9375rem;
-  text-align: center !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  align-self: center !important;
-  justify-self: stretch !important;
-  background: transparent !important;
-  border-left: 2px solid #4a5568 !important;
-  padding: 16px 20px;
-  margin: 0;
-  box-sizing: border-box;
-}
-
-/* Disable all hover effects on cells - keep borders and positioning */
-.price-cell:hover,
-.quantity-cell:hover,
-.total-cell:hover {
-  background: transparent !important;
-  background-color: transparent !important;
-  color: inherit !important;
-  transform: none !important;
-  animation: none !important;
-  transition: none !important;
-  border-left: 2px solid #4a5568 !important;
-  grid-column: unset !important;
-  justify-content: center !important;
-  align-items: center !important;
-}
-
-.price-cell:hover {
-  grid-column: 3 !important;
-}
-
-.quantity-cell:hover {
-  grid-column: 4 !important;
-}
-
-.total-cell:hover {
-  grid-column: 5 !important;
-}
-
-.order-cell:hover {
-  background: transparent !important;
-  background-color: transparent !important;
-  color: inherit !important;
-  transform: none !important;
-  animation: none !important;
-  transition: none !important;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ============================================
@@ -1333,14 +907,14 @@ div.checkout-modal div.member-details .detail-label {
   border-radius: 8px;
   border: 1.5px solid #4a5568;
   background: #1a202c;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
   flex: 1;
   min-width: 200px;
 }
 
 .shipping-option:hover {
   border-color: #718096;
-  /* Removed shadow - no animations per user request */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .shipping-option input[type="radio"] {
@@ -1355,7 +929,7 @@ div.checkout-modal div.member-details .detail-label {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
@@ -1422,7 +996,7 @@ div.checkout-modal div.member-details .detail-label {
   border-radius: 8px;
   color: #e2e8f0;
   font-size: 0.9375rem;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
 }
 
 .location-dropdown:hover {
@@ -1437,7 +1011,7 @@ div.checkout-modal div.member-details .detail-label {
 .location-dropdown .dropdown-arrow {
   color: #a0aec0;
   font-size: 0.875rem;
-  /* Removed transition - no animations per user request */
+  transition: transform 0.2s ease;
 }
 
 .location-options {
@@ -1470,7 +1044,7 @@ div.checkout-modal div.member-details .detail-label {
   cursor: pointer;
   color: #e2e8f0;
   font-size: 0.9375rem;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
   border-bottom: 1px solid #4a5568;
 }
 
@@ -1495,7 +1069,7 @@ div.checkout-modal div.member-details .detail-label {
   color: #e2e8f0;
   resize: vertical;
   font-family: 'Inter', sans-serif;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
   outline: none;
 }
 
@@ -1568,18 +1142,19 @@ div.checkout-modal div.member-details .detail-label {
   font-weight: 700;
   letter-spacing: 0.5px;
   cursor: pointer;
-  /* Removed transition - no animations per user request */
+  transition: all 0.2s ease;
   width: 100%;
   text-transform: uppercase;
 }
 
 .place-order-btn:hover {
   background: #4299e1;
-  /* Removed transform and shadow - no animations per user request */
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 179, 237, 0.3);
 }
 
 .place-order-btn:active {
-  /* Removed transform - no animations per user request */
+  transform: translateY(0);
 }
 
 /* ============================================
@@ -1649,27 +1224,26 @@ div.checkout-modal div.member-details .detail-label {
     font-size: 0.8125rem;
   }
 
-  /* Remove table layout - Use vertical card layout on mobile */
+  /* Vertical card-style on mobile - Remove table structure */
   .table-header {
-    display: none;
+    display: none !important;
   }
 
   .table-row {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     padding: 16px;
     border: 1px solid #4a5568;
     border-radius: 8px;
     margin-bottom: 12px;
-    background: #2d3748;
+    background: #2d3748 !important;
   }
 
   .item-cell {
     display: flex;
     flex-direction: row;
     gap: 12px;
-    align-items: flex-start;
     width: 100%;
   }
 
@@ -1677,79 +1251,100 @@ div.checkout-modal div.member-details .detail-label {
     display: flex;
     flex-direction: row;
     gap: 12px;
-    align-items: center;
     flex: 1;
   }
-  
+
   .item-image {
     width: 60px;
     height: 60px;
     flex-shrink: 0;
   }
-  
+
   .item-details {
     flex: 1;
   }
-  
+
   .item-name {
     font-size: 0.9375rem;
     font-weight: 600;
-    line-height: 1.4;
   }
 
+  /* Order cell - vertical layout */
   .order-cell {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    gap: 8px;
-    padding: 10px;
-    background: #1a202c;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #1a202c !important;
     border-radius: 6px;
-    width: 100%;
     cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .order-cell:hover {
-    background: #243447;
+    width: 100%;
   }
 
+  .order-cell::before {
+    content: none;
+  }
+
+  /* Price, Quantity, Total - vertical info cards */
   .price-cell,
   .quantity-cell,
   .total-cell {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #4a5568;
-    width: 100%;
-  }
-  
-  .total-cell {
-    border-bottom: none;
-    font-weight: 700;
-    font-size: 1.125rem;
-    color: #63b3ed;
+    padding: 8px 12px;
+    background: #1a202c;
+    border-radius: 6px;
   }
 
   .price-cell::before {
     content: 'Price:';
     color: #a0aec0;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.875rem;
   }
 
   .quantity-cell::before {
     content: 'Quantity:';
     color: #a0aec0;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.875rem;
   }
 
   .total-cell::before {
-    content: 'Item Total:';
-    color: #a0aec0;
+    content: 'Total:';
+    color: #63b3ed;
     font-weight: 700;
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
+  }
+
+  .price-cell,
+  .quantity-cell {
+    font-size: 0.9375rem;
+    color: #ffffff;
+  }
+
+  .total-cell {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #63b3ed;
+  }
+
+  /* Ensure vertical alignment and equal widths for order/price/qty/total */
+  .order-cell,
+  .price-cell,
+  .quantity-cell,
+  .total-cell {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 40px;
+  }
+  .price-cell,
+  .quantity-cell,
+  .total-cell {
+    margin: 0;
   }
 
   .address-actions {
@@ -1832,13 +1427,13 @@ div.checkout-modal div.member-details .detail-label {
   }
 
   .table-header {
-    display: none;
+    display: none !important;
   }
 
   .table-row {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     padding: 14px;
     border: 1px solid #4a5568;
     border-radius: 8px;
@@ -1859,57 +1454,94 @@ div.checkout-modal div.member-details .detail-label {
     gap: 10px;
     flex: 1;
   }
-  
+
   .item-image {
-    width: 56px;
-    height: 56px;
+    width: 55px;
+    height: 55px;
+    flex-shrink: 0;
   }
-  
+
+  .item-details {
+    flex: 1;
+  }
+
   .item-name {
     font-size: 0.875rem;
+    font-weight: 600;
   }
 
+  /* Order cell - vertical layout */
   .order-cell {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 10px;
+    background: #1a202c;
+    border-radius: 6px;
+    cursor: pointer;
     width: 100%;
-    padding: 9px;
   }
 
+  /* Price, Quantity, Total - vertical info cards */
   .price-cell,
   .quantity-cell,
   .total-cell {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 7px 0;
-    border-bottom: 1px solid #4a5568;
-    width: 100%;
+    padding: 7px 10px;
+    background: #1a202c;
+    border-radius: 6px;
   }
-  
-  .total-cell {
-    border-bottom: none;
-    font-weight: 700;
-    font-size: 1.0625rem;
-  }
-  
+
   .price-cell::before {
     content: 'Price:';
     color: #a0aec0;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.8125rem;
   }
 
   .quantity-cell::before {
     content: 'Quantity:';
     color: #a0aec0;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.8125rem;
   }
 
   .total-cell::before {
-    content: 'Item Total:';
-    color: #a0aec0;
+    content: 'Total:';
+    color: #63b3ed;
     font-weight: 700;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
+  }
+
+  .price-cell,
+  .quantity-cell {
+    font-size: 0.875rem;
+    color: #ffffff;
+  }
+
+  .total-cell {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #63b3ed;
+  }
+
+  /* Ensure vertical alignment and equal widths for order/price/qty/total */
+  .order-cell,
+  .price-cell,
+  .quantity-cell,
+  .total-cell {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 38px;
+  }
+  .price-cell,
+  .quantity-cell,
+  .total-cell {
+    margin: 0;
   }
 
   .address-actions {
@@ -1964,40 +1596,12 @@ div.checkout-modal div.member-details .detail-label {
   }
 
   .item-image {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
   }
 
   .item-name {
-    font-size: 0.8125rem;
-    line-height: 1.3;
-  }
-  
-  .table-row {
-    gap: 10px;
-    padding: 12px;
-  }
-  
-  .order-cell {
-    padding: 8px;
     font-size: 0.875rem;
-  }
-  
-  .price-cell,
-  .quantity-cell,
-  .total-cell {
-    padding: 6px 0;
-    font-size: 0.875rem;
-  }
-  
-  .total-cell {
-    font-size: 1rem;
-  }
-  
-  .price-cell::before,
-  .quantity-cell::before,
-  .total-cell::before {
-    font-size: 0.75rem;
   }
 
   .place-order-btn {
@@ -2059,7 +1663,7 @@ div.checkout-modal div.member-details .detail-label {
 }
 
 /* ============================================
-   CLEAN & SIMPLE CONFIRMATION DIALOGS
+   CONFIRMATION DIALOGS
    ============================================ */
 
 .confirmation-overlay {
@@ -2068,113 +1672,92 @@ div.checkout-modal div.member-details .detail-label {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 .confirmation-modal {
-  background: #1a202c;
-  border: 1px solid #2d3748;
-  border-radius: 16px;
+  background: #161616;
+  border: 1px solid #2d2d2d;
+  border-radius: 12px;
   padding: 2rem;
-  max-width: 440px;
+  max-width: 420px;
   width: 90%;
   text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 .confirmation-modal h3 {
-  color: #ffffff !important;
-  font-size: 1.125rem !important;
-  font-weight: 700 !important;
-  margin: 0 0 0.625rem 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  letter-spacing: -0.015em !important;
-  text-transform: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  font-family: 'Inter', sans-serif;
 }
 
 .confirmation-modal p {
-  color: #cbd5e0 !important;
-  font-size: 0.9375rem !important;
-  margin: 0 0 1.75rem 0;
-  line-height: 1.5 !important;
-  font-weight: 400 !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  color: #a0aec0;
+  font-size: 0.95rem;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
 }
 
 .confirmation-buttons {
   display: flex;
   gap: 0.75rem;
   justify-content: center;
-  margin-top: 1rem;
 }
 
 .confirm-btn {
-  padding: 0.625rem 1.75rem;
-  font-size: 0.9375rem !important;
-  font-weight: 600 !important;
+  padding: 0.7rem 2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s ease;
   min-width: 100px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  letter-spacing: 0.015em !important;
-  text-transform: capitalize;
+  font-family: 'Inter', sans-serif;
 }
 
 .yes-btn {
-  background: #63b3ed;
+  background: #00bfff;
   color: #ffffff;
 }
 
 .yes-btn:hover {
-  background: #4299e1;
+  background: #00a8e6;
 }
 
 .no-btn {
-  background: #2d3748;
-  color: #e2e8f0;
-  border: 1px solid #4a5568;
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid #4a5568;
 }
 
 .no-btn:hover {
-  background: #374151;
-  border-color: #63b3ed;
+  background: #1a1a1a;
+  border-color: #718096;
 }
 
-/* Order Complete Modal - Clean Green Theme */
+/* Order Complete Modal */
 .order-complete-modal {
-  border: 2px solid #48bb78;
+  border-color: #48bb78;
 }
 
 .order-complete-modal h3 {
-  color: #68d391 !important;
-  font-size: 1.25rem !important;
-  font-weight: 700 !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  color: #48bb78;
 }
 
-/* Delete Confirmation Modal - Clean Red Theme */
+/* Delete Confirmation Modal */
 .delete-confirm-modal {
-  border: 2px solid #fc8181;
+  border-color: #f56565;
 }
 
 .delete-confirm-modal h3 {
-  color: #fc8181 !important;
-  font-size: 1.125rem !important;
-  font-weight: 700 !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  color: #f56565;
 }
 
 /* Cancel Reason Modal */
@@ -2182,24 +1765,17 @@ div.checkout-modal div.member-details .detail-label {
   max-width: 500px;
   position: relative;
   z-index: 10001;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 .cancel-reason-modal h3 {
-  color: #ffffff !important;
-  font-size: 1.125rem !important;
-  font-weight: 700 !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  color: #ffffff;
 }
 
 .cancel-reason-modal p {
   text-align: left;
   margin-bottom: 1.5rem;
-  font-size: 0.9375rem !important;
-  color: #cbd5e0 !important;
-  font-weight: 400 !important;
-  line-height: 1.5 !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 0.9rem;
+  color: #a0aec0;
 }
 
 .cancel-reasons {
@@ -2216,27 +1792,28 @@ div.checkout-modal div.member-details .detail-label {
 .reason-option {
   display: flex !important;
   align-items: center;
-  padding: 0.875rem 1rem;
-  background: #2d3748;
-  border: 1px solid #4a5568;
-  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: #1f1f1f;
+  border: 1px solid #2d2d2d;
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s ease;
   width: 100%;
   opacity: 1;
   visibility: visible;
 }
 
 .reason-option:hover {
-  background: #374151;
-  border-color: #63b3ed;
+  background: #252525;
+  border-color: #00bfff;
 }
 
 .reason-option input[type="radio"] {
   width: 18px;
   height: 18px;
-  margin-right: 12px;
+  margin-right: 10px;
   cursor: pointer;
-  accent-color: #63b3ed;
+  accent-color: #00bfff;
   flex-shrink: 0;
   display: inline-block;
   opacity: 1;
@@ -2251,112 +1828,88 @@ div.checkout-modal div.member-details .detail-label {
 }
 
 .reason-option span {
-  color: #e2e8f0 !important;
-  font-size: 0.9375rem !important;
-  font-weight: 500 !important;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 500;
   flex: 1;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  line-height: 1.4 !important;
 }
 
 .reason-option input[type="radio"]:checked + span {
-  color: #63b3ed;
+  color: #00bfff;
   font-weight: 600;
 }
 
 .submit-cancel-btn {
-  background: #63b3ed;
+  background: #00bfff;
   color: #ffffff;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 0.9375rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.015em !important;
 }
 
 .submit-cancel-btn:hover {
-  background: #4299e1;
+  background: #00a8e6;
 }
 
 .back-btn {
-  background: #2d3748;
-  color: #e2e8f0;
-  border: 1px solid #4a5568;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 0.9375rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.015em !important;
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid #4a5568;
 }
 
 .back-btn:hover {
-  background: #374151;
-  border-color: #63b3ed;
+  background: #1a1a1a;
+  border-color: #718096;
 }
 
 .success-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 1.25rem;
-  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 1.5rem;
+  background: #48bb78;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 2.5rem;
   color: #ffffff;
   font-weight: bold;
-  box-shadow: 0 8px 24px rgba(72, 187, 120, 0.3);
 }
 
 .ok-btn {
-  background: #63b3ed;
+  background: #48bb78;
   color: #ffffff;
-  padding: 0.625rem 2.25rem;
-  border-radius: 8px;
-  font-weight: 600 !important;
-  font-size: 0.9375rem !important;
-  letter-spacing: 0.015em !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  text-transform: capitalize;
+  padding: 0.7rem 2.5rem;
 }
 
 .ok-btn:hover {
-  background: #4299e1;
+  background: #38a169;
 }
 
 /* Responsive */
 @media (max-width: 480px) {
   .confirmation-modal {
-    padding: 1.75rem 1.25rem;
+    padding: 2rem 1.5rem;
   }
 
   .confirmation-modal h3 {
-    font-size: 1.0625rem !important;
-    font-weight: 700 !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 1.5rem;
   }
 
   .confirmation-modal p {
-    font-size: 0.875rem !important;
-    margin-bottom: 1.25rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 1rem;
   }
 
   .confirmation-buttons {
     flex-direction: column;
-    gap: 0.625rem;
   }
 
   .confirm-btn {
     width: 100%;
-    padding: 0.75rem 1.25rem;
-    font-size: 0.875rem !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    padding: 0.85rem 1.5rem;
   }
 
   .success-icon {
-    width: 56px;
-    height: 56px;
-    font-size: 1.75rem;
+    width: 70px;
+    height: 70px;
+    font-size: 2.5rem;
   }
 
   .cancel-reason-modal {
@@ -2365,27 +1918,19 @@ div.checkout-modal div.member-details .detail-label {
   }
 
   .cancel-reason-modal h3 {
-    font-size: 1.0625rem !important;
-    font-weight: 700 !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  }
-
-  .cancel-reason-modal p {
-    font-size: 0.875rem !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 1.3rem;
   }
 
   .reason-option {
-    padding: 0.75rem 0.875rem;
+    padding: 0.75rem 0.85rem;
   }
 
   .reason-option span {
-    font-size: 0.875rem !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 0.95rem;
   }
 
   .reason-option:hover {
-    /* Removed transform - no animations per user request */
+    transform: translateX(0);
   }
 }
 
@@ -2433,40 +1978,12 @@ div.checkout-modal div.member-details .detail-label {
   }
 
   .item-image {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
   }
 
   .item-name {
-    font-size: 0.75rem;
-    line-height: 1.3;
-  }
-  
-  .table-row {
-    gap: 8px;
-    padding: 10px;
-  }
-  
-  .order-cell {
-    padding: 7px;
-    font-size: 0.8125rem;
-  }
-  
-  .price-cell,
-  .quantity-cell,
-  .total-cell {
-    padding: 5px 0;
-    font-size: 0.8125rem;
-  }
-  
-  .total-cell {
-    font-size: 0.9375rem;
-  }
-  
-  .price-cell::before,
-  .quantity-cell::before,
-  .total-cell::before {
-    font-size: 0.6875rem;
+    font-size: 0.8rem;
   }
 
   .place-order-btn {
@@ -2503,38 +2020,30 @@ div.checkout-modal div.member-details .detail-label {
   }
 
   .confirmation-modal {
-    padding: 1.5rem 1rem;
+    padding: 1.75rem 1.25rem;
   }
 
   .confirmation-modal h3 {
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 1.4rem;
   }
 
   .confirmation-modal p {
-    font-size: 0.8125rem !important;
-    margin-bottom: 1rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 0.95rem;
   }
 
   .confirmation-buttons {
     flex-direction: column;
-    gap: 0.5rem;
   }
 
   .confirm-btn {
     width: 100%;
-    padding: 0.625rem 1rem;
-    font-size: 0.8125rem !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    padding: 0.8rem 1.25rem;
   }
 
   .success-icon {
-    width: 52px;
-    height: 52px;
-    font-size: 1.625rem;
-    margin-bottom: 1rem;
+    width: 65px;
+    height: 65px;
+    font-size: 2.3rem;
   }
 
   .cancel-reason-modal {
@@ -2543,22 +2052,14 @@ div.checkout-modal div.member-details .detail-label {
   }
 
   .cancel-reason-modal h3 {
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  }
-
-  .cancel-reason-modal p {
-    font-size: 0.8125rem !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 1.2rem;
   }
 
   .reason-option {
-    padding: 0.625rem 0.75rem;
+    padding: 0.65rem 0.75rem;
   }
 
   .reason-option span {
-    font-size: 0.8125rem !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 0.85rem;
   }
 }

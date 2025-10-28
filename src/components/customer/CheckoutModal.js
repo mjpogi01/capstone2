@@ -119,8 +119,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
       }
     }
     
-    // Require location selection only for pickup, NOT for COD
-    if (shippingMethod === 'pickup' && (!selectedLocation || selectedLocation.trim() === '')) {
+    // Always require location selection
+    if (!selectedLocation || selectedLocation.trim() === '') {
       errors.location = 'Please select a branch location';
     }
     
@@ -712,7 +712,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                   </div>
                   <div 
                     className="order-cell"
-                    onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                    onClick={isBall ? undefined : () => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                    style={isBall ? { cursor: 'default' } : {}}
                   >
                     {isBall ? (
                       <><FaBasketballBall /> Ball</>
@@ -723,12 +724,14 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                     ) : (
                       <><FaUser /> Single Order</>
                     )}
-                    <span className="dropdown-arrow">
-                      {expandedOrderIndex === index ? <FaChevronUp /> : <FaChevronDown />}
-                    </span>
+                    {!isBall && (
+                      <span className="dropdown-arrow">
+                        {expandedOrderIndex === index ? <FaChevronUp /> : <FaChevronDown />}
+                      </span>
+                    )}
                   </div>
-                  {expandedOrderIndex === index && (
-                    <div className="order-details-wrapper">
+                  {!isBall && expandedOrderIndex === index && (
+                    <div className="order-details-wrapper" style={{ gridColumn: '1 / -1' }}>
                       <div className="order-details-dropdown">
                             {/* For Apparel - Team Orders */}
                             {isApparel && item.category === 'team' && item.teamMembers && item.teamMembers.length > 0 ? (
@@ -908,38 +911,36 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                   </div>
                 </label>
                 
-                {/* Location selector shown only for pickup, NOT for COD */}
-                {shippingMethod === 'pickup' && (
-                  <div className="location-selector">
-                    <label className="location-label">Select Branch Location:</label>
-                    <div className="location-dropdown" onClick={() => setShowLocationDropdown(!showLocationDropdown)}>
-                      <span className="location-text">{selectedLocation}</span>
-                      <FaChevronDown className="dropdown-arrow" />
-                    </div>
-                    {showLocationDropdown && (
-                      <div className="location-options">
-                        {locations.map((location, index) => (
-                          <div
-                            key={index}
-                            className="location-option"
-                            onClick={() => {
-                              setSelectedLocation(location);
-                              setShowLocationDropdown(false);
-                              setOrderErrors(prev => ({ ...prev, location: '' }));
-                            }}
-                          >
-                            {location}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {orderErrors.location && (
-                      <span className="error-message" style={{ display: 'block', marginTop: '8px', color: '#ff4444', fontSize: '14px' }}>
-                        {orderErrors.location}
-                      </span>
-                    )}
+                {/* Location selector shown for both pickup and COD */}
+                <div className="location-selector">
+                  <label className="location-label">Select Branch Location:</label>
+                  <div className="location-dropdown" onClick={() => setShowLocationDropdown(!showLocationDropdown)}>
+                    <span className="location-text">{selectedLocation}</span>
+                    <FaChevronDown className="dropdown-arrow" />
                   </div>
-                )}
+                  {showLocationDropdown && (
+                    <div className="location-options">
+                      {locations.map((location, index) => (
+                        <div
+                          key={index}
+                          className="location-option"
+                          onClick={() => {
+                            setSelectedLocation(location);
+                            setShowLocationDropdown(false);
+                            setOrderErrors(prev => ({ ...prev, location: '' }));
+                          }}
+                        >
+                          {location}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {orderErrors.location && (
+                    <span className="error-message" style={{ display: 'block', marginTop: '8px', color: '#ff4444', fontSize: '14px' }}>
+                      {orderErrors.location}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
