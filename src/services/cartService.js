@@ -56,6 +56,7 @@ class CartService {
           size: item.size,
           isTeamOrder: item.is_team_order,
           teamMembers: item.team_members,
+          teamName: item.team_name, // Add team_name from database
           singleOrderDetails: item.single_order_details,
           uniqueId: item.id, // Use database ID as unique identifier
           createdAt: item.created_at,
@@ -112,6 +113,7 @@ class CartService {
           size: cartItem.size,
           is_team_order: cartItem.isTeamOrder,
           team_members: cartItem.teamMembers,
+          team_name: cartItem.teamName, // Add team_name to database
           single_order_details: cartItem.singleOrderDetails
         })
         .select()

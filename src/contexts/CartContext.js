@@ -73,6 +73,7 @@ export const CartProvider = ({ children }) => {
       isTeamOrder = false,
       teamMembers = null,
       singleOrderDetails = null,
+      teamName = null, // Add teamName from options
       isReplacement = false // New flag to indicate if this is replacing an existing item
     } = options;
 
@@ -85,6 +86,7 @@ export const CartProvider = ({ children }) => {
       quantity,
       isTeamOrder,
       teamMembers: isTeamOrder ? teamMembers : null,
+      teamName: isTeamOrder ? teamName : null, // Add teamName to cart item
       singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
       addedAt: new Date().toISOString(),
       uniqueId: Date.now() + Math.random() // Generate a simple unique ID
