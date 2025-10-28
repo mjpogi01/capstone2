@@ -12,6 +12,8 @@ import {
   faTasks
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import artistService from '../../services/artistService';
+import { supabase } from '../../lib/supabase';
 
 const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
   const [tasks, setTasks] = useState([]);
@@ -28,67 +30,32 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
     try {
       setLoading(true);
       
-      // Simulate API call - replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data - replace with actual data from your API
-      const mockTasks = [
-        {
-          id: '1',
-          task_title: 'Custom Basketball Jersey Design',
-          task_description: 'Create custom design for Team Phoenix basketball jersey',
-          order_type: 'custom_design',
-          priority: 'high',
-          status: 'in_progress',
-          deadline: '2024-01-15T10:00:00Z',
-          assigned_at: '2024-01-10T09:00:00Z',
-          order_id: 'ORD-123',
-          product_name: 'Basketball Jersey'
-        },
-        {
-          id: '2',
-          task_title: 'Layout Store Product: T-Shirt',
-          task_description: 'Prepare layout for store product. Quantity: 25 units',
-          order_type: 'regular',
-          priority: 'medium',
-          status: 'pending',
-          deadline: '2024-01-18T15:00:00Z',
-          assigned_at: '2024-01-12T14:00:00Z',
-          order_id: 'ORD-124',
-          product_name: 'T-Shirt'
-        },
-        {
-          id: '3',
-          task_title: 'Walk-in Order: Hoodie',
-          task_description: 'Process walk-in order. Quantity: 10 units',
-          order_type: 'walk_in',
-          priority: 'urgent',
-          status: 'completed',
-          deadline: '2024-01-13T12:00:00Z',
-          assigned_at: '2024-01-12T10:00:00Z',
-          completed_at: '2024-01-13T11:30:00Z',
-          order_id: 'WALKIN-125',
-          product_name: 'Hoodie'
-        },
-        {
-          id: '4',
-          task_title: 'Custom Soccer Jersey Design',
-          task_description: 'Create custom design for Eagles FC soccer jersey',
-          order_type: 'custom_design',
-          priority: 'medium',
-          status: 'submitted',
-          deadline: '2024-01-20T16:00:00Z',
-          assigned_at: '2024-01-14T08:00:00Z',
-          submitted_at: '2024-01-16T15:00:00Z',
-          order_id: 'ORD-126',
-          product_name: 'Soccer Jersey'
-        }
-      ];
-      
-      const limitedTasks = limit ? mockTasks.slice(0, limit) : mockTasks;
+      if (!user?.id) {
+        console.warn('No user ID available');
+        setTasks([]);
+        return;
+      }
+
+      // Get artist profile first to get the artist_id
+      const { data: artistProfile, error: profileError } = await supabase
+        .from('artist_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError || !artistProfile) {
+        console.error('Error fetching artist profile:', profileError);
+        setTasks([]);
+        return;
+      }
+
+      // Fetch tasks for this artist
+      const tasksData = await artistService.getArtistTasks(artistProfile.id);
+      const limitedTasks = limit ? tasksData.slice(0, limit) : tasksData;
       setTasks(limitedTasks);
     } catch (error) {
       console.error('Error fetching artist tasks:', error);
+      setTasks([]);
     } finally {
       setLoading(false);
     }
@@ -141,8 +108,7 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
 
   const handleStatusUpdate = async (taskId, newStatus) => {
     try {
-      // Simulate API call - replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await artistService.updateTaskStatus(taskId, newStatus);
       
       setTasks(tasks.map(task => 
         task.id === taskId 
@@ -153,6 +119,7 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
       setShowTaskModal(false);
     } catch (error) {
       console.error('Error updating task status:', error);
+      alert('Failed to update task status. Please try again.');
     }
   };
 

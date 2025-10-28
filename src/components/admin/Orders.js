@@ -17,9 +17,6 @@ import {
   FaClock,
   FaCheck,
   FaTimes,
-  FaUpload,
-  FaDownload,
-  FaTrash,
   FaFileAlt,
   FaPalette,
   FaRuler,
@@ -39,7 +36,6 @@ import {
 import './Orders.css';
 import './FloatingButton.css';
 import orderService from '../../services/orderService';
-import designUploadService from '../../services/designUploadService';
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -47,8 +43,6 @@ const Orders = () => {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
-  const [uploadingDesign, setUploadingDesign] = useState(null);
-  const [designFiles, setDesignFiles] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: 'orderDate', direction: 'desc' });
   const [showFilters, setShowFilters] = useState(false);
   
@@ -272,53 +266,11 @@ const Orders = () => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
-  const handleDesignFileUpload = async (orderId, files) => {
-    try {
-      setUploadingDesign(orderId);
-      
-      const result = await designUploadService.uploadDesignFiles(orderId, files);
-      
-      setOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === orderId
-            ? { 
-                ...order, 
-                designFiles: result.designFiles 
-              }
-            : order
-        )
-      );
-      setFilteredOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === orderId
-            ? { 
-                ...order, 
-                designFiles: result.designFiles 
-              }
-            : order
-        )
-      );
-      
-      alert(`Layout files uploaded successfully! You can now proceed to sizing.`);
-    } catch (error) {
-      console.error('Error uploading design files:', error);
-      alert(`Failed to upload design files: ${error.message}`);
-    } finally {
-      setUploadingDesign(null);
-    }
-  };
-
-  const handleFileChange = (orderId, event) => {
-    const files = Array.from(event.target.files);
-    setDesignFiles(prev => ({
-      ...prev,
-      [orderId]: files
-    }));
-  };
-
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
+      console.log(`🔄 Frontend: Updating order ${orderId} to status: ${newStatus}`);
       await orderService.updateOrderStatus(orderId, newStatus);
+      console.log(`✅ Frontend: Order status update successful`);
       
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -339,97 +291,6 @@ const Orders = () => {
     } catch (error) {
       console.error('Error updating order status:', error);
       alert(`Failed to update order status: ${error.message}`);
-    }
-  };
-
-  const handleDownloadFile = async (file) => {
-    try {
-      const response = await fetch(file.url);
-      const blob = await response.blob();
-      
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = file.filename;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-    } catch (error) {
-      console.error('Error downloading file:', error);
-      alert('Failed to download file. Please try again.');
-    }
-  };
-
-  const handleDownloadAll = async (files) => {
-    try {
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        try {
-          const response = await fetch(file.url);
-          const blob = await response.blob();
-          zip.file(file.filename, blob);
-        } catch (error) {
-          console.error(`Error downloading file ${file.filename}:`, error);
-        }
-      }
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      
-      const url = window.URL.createObjectURL(zipBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `design-files-${new Date().toISOString().split('T')[0]}.zip`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-    } catch (error) {
-      console.error('Error creating zip file:', error);
-      alert('Failed to create zip file. Please try downloading files individually.');
-    }
-  };
-
-  const handleRemoveDesignFile = async (orderId, file) => {
-    if (!window.confirm(`Are you sure you want to remove "${file.filename}"?`)) {
-      return;
-    }
-
-    try {
-      await designUploadService.deleteDesignFile(orderId, file.publicId);
-      
-      setOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === orderId
-            ? {
-                ...order,
-                designFiles: (order.designFiles || []).filter(f => f.publicId !== file.publicId)
-              }
-            : order
-        )
-      );
-      setFilteredOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === orderId
-            ? {
-                ...order,
-                designFiles: (order.designFiles || []).filter(f => f.publicId !== file.publicId)
-              }
-            : order
-        )
-      );
-
-      alert('File removed successfully!');
-    } catch (error) {
-      console.error('Error removing design file:', error);
-      alert(`Failed to remove file: ${error.message}`);
     }
   };
 
@@ -958,100 +819,6 @@ const Orders = () => {
                       <p className="status-description">
                         Update the order status as it progresses through fulfillment.
                       </p>
-
-                      {/* Design Upload Section (for Layout Stage Only) */}
-                      {order.status === 'layout' && (
-                        <div className="design-upload-section">
-                          <h5 className="upload-section-title">
-                            <FaPalette className="upload-icon" /> Upload Final Layout Files
-                          </h5>
-                          <p className="upload-description">
-                            Upload the final layout/design files to proceed to sizing stage.
-                          </p>
-                          <div className="file-upload-area">
-                            <input
-                              type="file"
-                              id={`design-files-${order.id}`}
-                              multiple
-                              accept=".pdf,.ai,.psd,.png,.jpg,.jpeg"
-                              onChange={(e) => handleFileChange(order.id, e)}
-                              style={{ display: 'none' }}
-                            />
-                            <label 
-                              htmlFor={`design-files-${order.id}`}
-                              className="file-upload-label"
-                            >
-                              Choose Design Files
-                            </label>
-                            {designFiles[order.id] && designFiles[order.id].length > 0 && (
-                              <div className="selected-files">
-                                <p>Selected files:</p>
-                                <ul>
-                                  {designFiles[order.id].map((file, index) => (
-                                    <li key={index}>{file.name}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            <button
-                              className="upload-design-btn"
-                              onClick={() => handleDesignFileUpload(order.id, designFiles[order.id])}
-                              disabled={!designFiles[order.id] || designFiles[order.id].length === 0 || uploadingDesign === order.id}
-                            >
-                              {uploadingDesign === order.id ? 'Uploading...' : 'Upload Layout Files'}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* View Design Files (for all production stages) */}
-                      {['confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(order.status) && order.designFiles && order.designFiles.length > 0 && (
-                        <div className="design-files-section">
-                          <div className="files-header">
-                            <h5><FaFileAlt className="files-icon" /> Design Files</h5>
-                            <button 
-                              className="download-all-btn"
-                              onClick={() => handleDownloadAll(order.designFiles)}
-                            >
-                              <FaDownload className="download-icon" /> Download All
-                            </button>
-                          </div>
-                          <div className="design-files-list">
-                            {order.designFiles.map((file, index) => (
-                              <div key={index} className="design-file-item">
-                                <div className="file-info">
-                                  <span className="file-icon">
-                                    {designUploadService.getFileTypeIcon(file.filename)}
-                                  </span>
-                                  <div className="file-details">
-                                    <span className="file-name">{file.filename}</span>
-                                    <span className="file-date">
-                                      Uploaded: {new Date(file.uploadedAt).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="file-actions">
-                                  <button 
-                                    className="download-btn"
-                                    onClick={() => handleDownloadFile(file)}
-                                  >
-                                    <FaDownload className="action-icon" /> Download
-                                  </button>
-                                  {order.status === 'layout' && (
-                                    <button 
-                                      className="remove-file-btn"
-                                      onClick={() => handleRemoveDesignFile(order.id, file)}
-                                      title="Remove this file"
-                                    >
-                                      <FaTrash className="action-icon" /> Remove
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                       
                       <div className="status-buttons">
                         {/* Pending Orders */}
@@ -1086,27 +853,14 @@ const Orders = () => {
                           </button>
                         )}
                         
-                        {/* Layout - Move to Sizing (requires design files) */}
+                        {/* Layout - Move to Sizing */}
                         {order.status === 'layout' && (
-                          <>
-                            <button 
-                              className="status-update-btn process-btn"
-                              onClick={() => {
-                                if (!order.designFiles || order.designFiles.length === 0) {
-                                  alert('⚠️ Please upload design files before moving to Sizing stage.');
-                                  return;
-                                }
-                                handleStatusUpdate(order.id, 'sizing');
-                              }}
-                            >
-                              <FaRuler className="status-icon" /> Move to Sizing
-                            </button>
-                            {(!order.designFiles || order.designFiles.length === 0) && (
-                              <div className="status-note">
-                                <small><FaUpload className="note-icon" /> Upload design files above before proceeding to sizing</small>
-                              </div>
-                            )}
-                          </>
+                          <button 
+                            className="status-update-btn process-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'sizing')}
+                          >
+                            <FaRuler className="status-icon" /> Move to Sizing
+                          </button>
                         )}
                         
                         {/* Sizing - Move to Printing */}
