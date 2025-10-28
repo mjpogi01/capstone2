@@ -225,6 +225,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
+        teamName: isTeamOrder ? teamName : null, // Add teamName for team orders
         singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
         price: finalPrice, // Use discounted price for kids
@@ -643,8 +644,15 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       placeholder="Team Name"
                       value={teamName}
                       onChange={(e) => {
-                        setTeamName(e.target.value);
-                        if (validationErrors.teamName && e.target.value.trim()) {
+                        const newTeamName = e.target.value;
+                        setTeamName(newTeamName);
+                        // Update the first team member's teamName
+                        if (teamMembers.length > 0) {
+                          setTeamMembers(prev => prev.map((member, index) => 
+                            index === 0 ? { ...member, teamName: newTeamName } : member
+                          ));
+                        }
+                        if (validationErrors.teamName && newTeamName.trim()) {
                           setValidationErrors({...validationErrors, teamName: ''});
                         }
                       }}

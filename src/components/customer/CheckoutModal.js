@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaPhone, FaChevronUp } from 'react-icons/fa';
+import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaChevronUp, FaTshirt } from 'react-icons/fa';
 import userService from '../../services/userService';
 import './CheckoutModal.css';
 
@@ -674,84 +674,122 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
             <FaUsers className="section-icon" />
             <h2>ORDER DETAILS</h2>
           </div>
-          <div className="products-table">
-            <div className="table-header">
-              <div className="header-item">ITEM</div>
-              <div className="header-order">ORDER</div>
-              <div className="header-price">PRICE</div>
-              <div className="header-quantity">QTY</div>
-              <div className="header-total">TOTAL</div>
-            </div>
-            {cartItems.map((item, index) => {
-              console.log('Cart item:', item); // Debug log
-              // Determine product category
-              const isBall = item.category?.toLowerCase() === 'balls';
-              const isTrophy = item.category?.toLowerCase() === 'trophies';
-              const isApparel = !isBall && !isTrophy;
+          <div className="checkout-modal-perfect-table-container">
+            <div className="checkout-modal-perfect-table">
+              <div className="checkout-modal-perfect-header">
+                <div className="checkout-modal-perfect-header-row">
+                  <div className="checkout-modal-perfect-header-item">ITEM</div>
+                  <div className="checkout-modal-perfect-header-order">ORDER</div>
+                  <div className="checkout-modal-perfect-header-price">PRICE</div>
+                  <div className="checkout-modal-perfect-header-qty">QTY</div>
+                  <div className="checkout-modal-perfect-header-total">TOTAL</div>
+                </div>
+              </div>
+              {cartItems.map((item, index) => {
+                // Determine product category first
+                const isBall = item.category?.toLowerCase() === 'balls';
+                const isTrophy = item.category?.toLowerCase() === 'trophies';
+                const isApparel = !isBall && !isTrophy;
+                
+                console.log('🛒 CheckoutModal Cart item:', item); // Debug log
+                console.log('🛒 Team Members:', item.teamMembers);
+                console.log('🛒 Team Members Length:', item.teamMembers?.length);
+                console.log('🛒 Team Name (item.teamName):', item.teamName);
+                console.log('🛒 First Team Member:', item.teamMembers?.[0]);
+                console.log('🛒 First Team Member Team Name:', item.teamMembers?.[0]?.teamName);
+                console.log('🛒 First Team Member Team Name (snake_case):', item.teamMembers?.[0]?.team_name);
+                console.log('🛒 Single Order Details:', item.singleOrderDetails);
+                console.log('🛒 Single Order Team Name:', item.singleOrderDetails?.teamName);
+                console.log('🛒 Single Order Team Name (snake_case):', item.singleOrderDetails?.team_name);
+                console.log('🛒 Ball Details:', item.ballDetails);
+                console.log('🛒 Trophy Details:', item.trophyDetails);
+                console.log('🛒 Is Team Order:', item.isTeamOrder);
+                console.log('🛒 Is Apparel:', isApparel);
+                console.log('🛒 Will show team details:', isApparel && item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0);
 
-              return (
-                <div key={index} className="table-row">
-                  <div className="item-cell">
-                    <div className="item-content">
-                      <div className="item-image">
-                        <img 
-                          src={item.main_image || item.image || item.imageUrl || item.photo || item.image_url || item.product_image || item.thumbnail || '/image_highlights/image.png'} 
-                          alt={item.name}
-                          onError={(e) => {
-                            console.log('Image failed to load:', e.target.src);
-                            e.target.src = '/image_highlights/image.png';
-                          }}
-                        />
-                      </div>
-                      <div className="item-details">
-                        <div className="item-name">{item.name}</div>
+                return (
+                  <div key={index} className="checkout-modal-perfect-content-row">
+                    <div className="checkout-modal-perfect-content-item">
+                      <div className="checkout-modal-perfect-item-content">
+                        <div className="checkout-modal-perfect-item-image">
+                          <img 
+                            src={item.main_image || item.image || item.imageUrl || item.photo || item.image_url || item.product_image || item.thumbnail || '/image_highlights/image.png'} 
+                            alt={item.name}
+                            onError={(e) => {
+                              console.log('Image failed to load:', e.target.src);
+                              e.target.src = '/image_highlights/image.png';
+                            }}
+                          />
+                        </div>
+                        <div className="checkout-modal-perfect-item-details">
+                          <div className="checkout-modal-perfect-item-name">{item.name}</div>
+                          <div className="checkout-modal-perfect-item-type">
+                            {isBall ? (
+                              <><FaBasketballBall /> Basketball</>
+                            ) : isTrophy ? (
+                              <><FaTrophy /> Trophy</>
+                            ) : (
+                              <><FaTshirt /> {item.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : 'Apparel'}</>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div 
-                    className="order-cell"
-                    onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
-                  >
-                    {isBall ? (
-                      <><FaBasketballBall /> Ball</>
-                    ) : isTrophy ? (
-                      <><FaTrophy /> Trophy</>
-                    ) : item.category === 'team' ? (
-                      <><FaUserFriends /> Team Order</>
-                    ) : (
-                      <><FaUser /> Single Order</>
-                    )}
-                    <span className="dropdown-arrow">
-                      {expandedOrderIndex === index ? <FaChevronUp /> : <FaChevronDown />}
-                    </span>
-                  </div>
-                  {expandedOrderIndex === index && (
-                    <div className="order-details-wrapper">
-                      <div className="order-details-dropdown">
+                    <div 
+                      className="checkout-modal-perfect-content-order"
+                      onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                    >
+                      <div className="checkout-modal-perfect-order-type">
+                        {isBall ? (
+                          <><FaBasketballBall /> Ball</>
+                        ) : isTrophy ? (
+                          <><FaTrophy /> Trophy</>
+                        ) : item.isTeamOrder ? (
+                          <><FaUserFriends /> Team Order</>
+                        ) : (
+                          <><FaUser /> Single Order</>
+                        )}
+                        <span className={`checkout-modal-perfect-dropdown-arrow ${expandedOrderIndex === index ? 'expanded' : ''}`}>
+                          {expandedOrderIndex === index ? <FaChevronUp /> : <FaChevronDown />}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="checkout-modal-perfect-content-price">
+                      ₱{parseFloat(item.price).toFixed(2)}
+                    </div>
+                    <div className="checkout-modal-perfect-content-qty">
+                      {item.quantity}
+                    </div>
+                    <div className="checkout-modal-perfect-content-total">
+                      ₱{(parseFloat(item.price) * item.quantity).toFixed(2)}
+                    </div>
+                    {expandedOrderIndex === index && (
+                      <div className="checkout-modal-perfect-dropdown-wrapper">
+                        <div className="checkout-modal-perfect-dropdown">
                             {/* For Apparel - Team Orders */}
-                            {isApparel && item.category === 'team' && item.teamMembers && item.teamMembers.length > 0 ? (
-                              <div className="team-details">
-                                <div className="team-name-header">
-                                  <div className="detail-row">
-                                    <span className="detail-label">Team:</span>
-                                    <span className="detail-value team-name-detail">{item.teamMembers[0]?.teamName || 'N/A'}</span>
+                            {isApparel && item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 ? (
+                              <div className="checkout-modal-perfect-team-details">
+                                <div className="checkout-modal-perfect-team-header">
+                                  <div className="checkout-modal-perfect-detail-row">
+                                    <span className="checkout-modal-perfect-detail-label">Team:</span>
+                                    <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-team-name-detail">{item.teamMembers[0]?.teamName || item.teamMembers[0]?.team_name || item.teamName || 'N/A'}</span>
                                   </div>
                                 </div>
-                                <div className="team-divider"></div>
-                                <div className="team-members-list">
+                                <div className="checkout-modal-perfect-team-divider"></div>
+                                <div className="checkout-modal-perfect-members-list">
                                   {item.teamMembers.map((member, memberIndex) => (
-                                    <div key={memberIndex} className="member-details">
-                                      <div className="detail-row">
-                                        <span className="detail-label">Surname:</span>
-                                        <span className="detail-value surname-detail">{member.surname || 'N/A'}</span>
+                                    <div key={memberIndex} className="checkout-modal-perfect-member-details">
+                                      <div className="checkout-modal-perfect-detail-row">
+                                        <span className="checkout-modal-perfect-detail-label">Surname:</span>
+                                        <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-surname-detail">{member.surname || member.lastName || 'N/A'}</span>
                                       </div>
-                                      <div className="detail-row">
-                                        <span className="detail-label">Jersey No:</span>
-                                        <span className="detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                      <div className="checkout-modal-perfect-detail-row">
+                                        <span className="checkout-modal-perfect-detail-label">Jersey No:</span>
+                                        <span className="checkout-modal-perfect-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
                                       </div>
-                                      <div className="detail-row">
-                                        <span className="detail-label">Size:</span>
-                                        <span className="detail-value">{member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                      <div className="checkout-modal-perfect-detail-row">
+                                        <span className="checkout-modal-perfect-detail-label">Size:</span>
+                                        <span className="checkout-modal-perfect-detail-value">{member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
                                       </div>
                                     </div>
                                   ))}
@@ -759,102 +797,100 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                               </div>
                             ) : isApparel ? (
                               /* For Apparel - Single Orders */
-                              <div className="single-order-details">
-                                <div className="member-details">
-                                  <div className="detail-row">
-                                    <span className="detail-label">Team:</span>
-                                    <span className="detail-value team-name-detail">{item.singleOrderDetails?.teamName || 'N/A'}</span>
+                              <div className="checkout-modal-perfect-single-order-details">
+                                <div className="checkout-modal-perfect-member-details">
+                                  <div className="checkout-modal-perfect-detail-row">
+                                    <span className="checkout-modal-perfect-detail-label">Team:</span>
+                                    <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-team-name-detail">{item.singleOrderDetails?.teamName || item.singleOrderDetails?.team_name || item.teamName || 'N/A'}</span>
                                   </div>
-                                  <div className="detail-row">
-                                    <span className="detail-label">Surname:</span>
-                                    <span className="detail-value surname-detail">{item.singleOrderDetails?.surname || item.surname || 'N/A'}</span>
+                                  <div className="checkout-modal-perfect-detail-row">
+                                    <span className="checkout-modal-perfect-detail-label">Surname:</span>
+                                    <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-surname-detail">{item.singleOrderDetails?.surname || item.singleOrderDetails?.lastName || 'N/A'}</span>
                                   </div>
-                                  <div className="detail-row">
-                                    <span className="detail-label">Jersey No:</span>
-                                    <span className="detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || item.jerseyNo || item.jerseyNumber || 'N/A'}</span>
+                                  <div className="checkout-modal-perfect-detail-row">
+                                    <span className="checkout-modal-perfect-detail-label">Jersey No:</span>
+                                    <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                   </div>
-                                  <div className="detail-row">
-                                    <span className="detail-label">Size:</span>
-                                    <span className="detail-value">{item.singleOrderDetails?.size || item.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                  <div className="checkout-modal-perfect-detail-row">
+                                    <span className="checkout-modal-perfect-detail-label">Size:</span>
+                                    <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
                                   </div>
                                 </div>
                               </div>
                             ) : isBall ? (
                               /* For Balls */
-                              <div className="ball-details-checkout">
-                                <div className="member-details">
+                              <div className="checkout-modal-perfect-ball-details">
+                                <div className="checkout-modal-perfect-member-details">
                                   {item.ballDetails?.sportType && (
-                                    <div className="detail-row">
-                                      <span className="detail-label">Sport:</span>
-                                      <span className="detail-value">{item.ballDetails.sportType}</span>
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Sport:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.ballDetails.sportType}</span>
                                     </div>
                                   )}
                                   {item.ballDetails?.brand && (
-                                    <div className="detail-row">
-                                      <span className="detail-label">Brand:</span>
-                                      <span className="detail-value">{item.ballDetails.brand}</span>
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Brand:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.ballDetails.brand}</span>
                                     </div>
                                   )}
-                                  {item.ballDetails?.ballSize && (
-                                    <div className="detail-row">
-                                      <span className="detail-label">Size:</span>
-                                      <span className="detail-value">{item.ballDetails.ballSize}</span>
+                                  {item.ballDetails?.size && (
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Size:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.ballDetails.size}</span>
                                     </div>
                                   )}
                                   {item.ballDetails?.material && (
-                                    <div className="detail-row">
-                                      <span className="detail-label">Material:</span>
-                                      <span className="detail-value">{item.ballDetails.material}</span>
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Material:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.ballDetails.material}</span>
                                     </div>
                                   )}
                                 </div>
                               </div>
                             ) : isTrophy ? (
                               /* For Trophies */
-                              <div className="trophy-details-checkout">
-                                <div className="member-details">
-                                  {item.trophyDetails?.trophyType && (
-                                    <div className="detail-row">
-                                      <span className="detail-label">Type:</span>
-                                      <span className="detail-value">{item.trophyDetails.trophyType}</span>
+                              <div className="checkout-modal-perfect-trophy-details">
+                                <div className="checkout-modal-perfect-member-details">
+                                  {item.trophyDetails?.type && (
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Type:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.trophyDetails.type}</span>
                                     </div>
                                   )}
                                   {item.trophyDetails?.size && (
-                                    <div className="detail-row">
-                                      <span className="detail-label">Size:</span>
-                                      <span className="detail-value">{item.trophyDetails.size}</span>
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Size:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.trophyDetails.size}</span>
                                     </div>
                                   )}
                                   {item.trophyDetails?.material && (
-                                    <div className="detail-row">
-                                      <span className="detail-label">Material:</span>
-                                      <span className="detail-value">{item.trophyDetails.material}</span>
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Material:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.trophyDetails.material}</span>
                                     </div>
                                   )}
-                                  {item.trophyDetails?.engravingText && (
-                                    <div className="detail-row detail-row-full">
-                                      <span className="detail-label">Engraving:</span>
-                                      <span className="detail-value engraving-text">{item.trophyDetails.engravingText}</span>
+                                  {item.trophyDetails?.engraving && (
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Engraving:</span>
+                                      <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-engraving-text">{item.trophyDetails.engraving}</span>
                                     </div>
                                   )}
                                   {item.trophyDetails?.occasion && (
-                                    <div className="detail-row">
-                                      <span className="detail-label">Occasion:</span>
-                                      <span className="detail-value">{item.trophyDetails.occasion}</span>
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Occasion:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.trophyDetails.occasion}</span>
                                     </div>
                                   )}
                                 </div>
                               </div>
                             ) : null}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <div className="price-cell">₱{(parseFloat(item.price || item.product_price || item.productPrice || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                  <div className="quantity-cell">{item.quantity || 1}</div>
-                  <div className="total-cell">₱{((parseFloat(item.price || item.product_price || item.productPrice || 0)) * (item.quantity || 1)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                </div>
-              );
-            })}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
