@@ -833,6 +833,29 @@
   font-family: 'Inter', sans-serif;
 }
 
+/* Icon at top of confirm modal */
+.cdfm-confirm-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin-bottom: 12px;
+  box-shadow: 0 8px 24px rgba(0, 191, 255, 0.25);
+}
+.cdfm-confirm-icon.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+.cdfm-confirm-icon.warning {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
 .cdfm-confirm-modal h3 {
   color: #00bfff;
   margin-bottom: 16px;

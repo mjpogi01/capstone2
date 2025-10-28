@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 20000;
   padding: 1.5rem;
   animation: fadeIn 0.2s ease;
 }
@@ -37,6 +37,7 @@
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 179, 237, 0.1);
   overflow: hidden;
   animation: slideUp 0.3s ease;
+  z-index: 20001;
 }
 
 @keyframes slideUp {
@@ -57,7 +58,7 @@
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: #0b0f19;
+  background: #000000 !important;
   color: #f1f1f1;
 }
 
@@ -421,7 +422,7 @@
 .customer-order-summary h4 {
   margin: 0 0 1rem 0;
   color: #f1f1f1;
-  font-size: 0.75rem;
+    font-size: 1rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -590,16 +591,16 @@
 .order-notes {
   margin-top: 1rem;
   padding: 1rem;
-  background: rgba(99, 179, 237, 0.05);
-  border: 1px solid rgba(99, 179, 237, 0.15);
+  background: #0b0f19 !important;
+  border: 1px solid rgba(99, 179, 237, 0.2);
   border-radius: 8px;
   font-size: 0.875rem;
   line-height: 1.5;
-  color: #cfd2dc;
+  color: #ffffff !important;
 }
 
 .order-notes strong {
-  color: #f1f1f1;
+  color: #ffffff !important;
   display: block;
   margin-bottom: 0.375rem;
 }
@@ -1580,6 +1581,15 @@
   filter: drop-shadow(0 4px 8px rgba(99, 179, 237, 0.4));
 }
 
+/* Force custom design icons to white (override gradients) */
+.custom-design-icon,
+.customer-orders-modal .custom-design-icon {
+  color: #ffffff !important;
+  background: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-clip: initial !important;
+}
+
 .custom-design-info {
   flex: 1;
   min-width: 0;
@@ -1593,37 +1603,47 @@
 .custom-design-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #63b3ed;
+  color: #ffffff !important;
   margin-bottom: 6px;
-  text-shadow: 0 2px 4px rgba(99, 179, 237, 0.2);
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.2);
   letter-spacing: 0.5px;
 }
 
 .customer-orders-modal .custom-design-title {
   font-size: 1.75rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #63b3ed 0%, #3182ce 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff !important;
   margin-bottom: 8px;
   letter-spacing: 0.75px;
-  text-shadow: none;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.2);
+}
+
+/* Custom design header icons */
+.custom-design-header .icon,
+.custom-design-header svg,
+.custom-design-header i {
+  color: #ffffff !important;
+}
+
+.customer-orders-modal .custom-design-header .icon,
+.customer-orders-modal .custom-design-header svg,
+.customer-orders-modal .custom-design-header i {
+  color: #ffffff !important;
 }
 
 .custom-design-subtitle {
   font-size: 1.1rem;
-  color: #a0aec0;
+  color: #ffffff !important;
   font-weight: 500;
   opacity: 0.9;
 }
 
 .customer-orders-modal .custom-design-subtitle {
   font-size: 1.2rem;
-  color: #cbd5e1;
+  color: #ffffff !important;
   font-weight: 600;
   opacity: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 .custom-design-section-title {
@@ -1632,7 +1652,7 @@
   gap: 12px;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #63b3ed;
+  color: #ffffff !important;
   margin: 24px 0 16px 0;
   padding: 12px 16px;
   padding-bottom: 12px;
@@ -1645,6 +1665,7 @@
 .customer-orders-modal .custom-design-section-title {
   font-size: 1.25rem;
   font-weight: 700;
+  color: #ffffff !important;
   margin: 28px 0 20px 0;
   padding: 16px 20px;
   background: linear-gradient(135deg, rgba(99, 179, 237, 0.08) 0%, rgba(99, 179, 237, 0.02) 100%);
@@ -1655,7 +1676,12 @@
 
 .customer-orders-modal .custom-design-section-title .section-icon {
   font-size: 1.2rem;
+  color: #ffffff !important;
   filter: drop-shadow(0 2px 4px rgba(99, 179, 237, 0.3));
+}
+
+.custom-design-section-title .section-icon {
+  color: #ffffff !important;
 }
 
 .custom-design-team-info,
@@ -1674,18 +1700,19 @@
 
 .custom-design-team-name {
   font-size: 1.1rem;
-  color: #e2e8f0;
+  color: #63b3ed !important;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: rgba(99, 179, 237, 0.05);
+  background: #0b0f19 !important;
   border-radius: 8px;
   border-left: 4px solid #63b3ed;
 }
 
 .customer-orders-modal .custom-design-team-name {
   font-size: 1.2rem;
+  color: #63b3ed !important;
   padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(99, 179, 237, 0.08) 0%, rgba(99, 179, 237, 0.02) 100%);
+  background: #0b0f19 !important;
   border-radius: 12px;
   border-left: 4px solid #63b3ed;
   backdrop-filter: blur(5px);
@@ -1716,22 +1743,33 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  background: #0b0f19 !important;
   padding: 12px 16px;
   border-radius: 10px;
   border: 1px solid rgba(99, 179, 237, 0.2);
   font-size: 0.9rem;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: #63b3ed;
 }
 
 .customer-orders-modal .custom-design-member {
   padding: 16px 20px;
-  background: linear-gradient(135deg, #0f1419 0%, #1a202c 50%, #2d3748 100%);
+  background: #0b0f19 !important;
   border-radius: 12px;
   border: 1px solid rgba(99, 179, 237, 0.3);
   font-size: 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  color: #63b3ed;
+}
+
+/* Force cyan text for nested member fields */
+.custom-design-member .member-surname,
+.custom-design-member .member-size,
+.custom-design-member .member-sizing-type,
+.custom-design-member .detail-label,
+.custom-design-member .detail-value {
+  color: #63b3ed !important;
 }
 
 .custom-design-member:hover {
@@ -1797,20 +1835,25 @@
 }
 
 .custom-design-images-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 16px;
+  justify-content: center;
+  align-items: center;
 }
 
 .customer-orders-modal .custom-design-images-grid {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   margin-top: 20px;
+  justify-content: center;
+  align-items: center;
 }
 
 .custom-design-image-item {
-  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  background: #0b0f19 !important;
   border: 1px solid rgba(99, 179, 237, 0.2);
   border-radius: 12px;
   padding: 12px;
@@ -1819,13 +1862,16 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
+  width: 180px;
 }
 
 .customer-orders-modal .custom-design-image-item {
   padding: 16px;
   border-radius: 16px;
   border: 1px solid rgba(99, 179, 237, 0.3);
+  background: #0b0f19 !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  width: 200px;
 }
 
 .custom-design-image-item:hover {
@@ -1882,12 +1928,12 @@
 }
 
 .custom-design-pickup-details {
-  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  background: #0b0f19 !important;
   padding: 16px 20px;
   border-radius: 12px;
   border: 1px solid rgba(99, 179, 237, 0.2);
   font-size: 0.9rem;
-  color: #e2e8f0;
+  color: #63b3ed !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -1896,9 +1942,18 @@
   border-radius: 16px;
   border: 1px solid rgba(99, 179, 237, 0.3);
   font-size: 1rem;
-  color: #f1f5f9;
+  color: #63b3ed !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(5px);
+}
+
+/* Ensure nested text in pickup details uses cyan */
+.custom-design-pickup-details .detail-label,
+.custom-design-pickup-details .detail-value,
+.custom-design-pickup-details strong,
+.custom-design-pickup-details span,
+.custom-design-pickup-details p {
+  color: #63b3ed !important;
 }
 
 /* Responsive Design for Custom Design Orders in Customer View */
@@ -1917,13 +1972,20 @@
   
   .custom-design-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
     padding: 16px 20px;
   }
   
   .customer-orders-modal .custom-design-header {
     padding: 20px 24px;
+  }
+
+  /* Center the custom design icon on mobile */
+  .custom-design-icon {
+    display: block;
+    margin: 0 auto;
+    align-self: center;
   }
   
   .custom-design-members-list {
@@ -1971,7 +2033,7 @@
   
   .custom-design-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
     padding: 12px 16px;
     margin-bottom: 20px;
@@ -1980,6 +2042,13 @@
   .customer-orders-modal .custom-design-header {
     padding: 16px 20px;
     margin-bottom: 24px;
+  }
+
+  /* Center the custom design icon on smaller mobile */
+  .custom-design-icon {
+    display: block;
+    margin: 0 auto;
+    align-self: center;
   }
   
   .custom-design-title {
