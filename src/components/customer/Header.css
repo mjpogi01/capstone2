@@ -649,9 +649,90 @@
    Icon-Only with Dropdown Panel
    ============================================ */
 
-/* Search Icon Wrapper */
-.yohanns-search-wrapper {
+/* Inline Search Box - Always Visible */
+.yohanns-search-inline {
   display: flex;
+  align-items: center;
+  background: rgba(0, 191, 255, 0.1);
+  border: 1px solid rgba(0, 191, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-right: 0.75rem;
+  transition: all 0.3s ease;
+  height: 36px;
+}
+
+.yohanns-search-inline:focus-within {
+  border-color: rgba(0, 191, 255, 0.5);
+  background: rgba(0, 191, 255, 0.15);
+}
+
+.yohanns-search-input-inline {
+  flex: 1;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  padding: 0.45rem 0.75rem;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #00bfff;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-bottom: none !important;
+  text-decoration: none !important;
+  line-height: 1;
+}
+
+.yohanns-search-input-inline:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+  text-decoration: none !important;
+}
+
+.yohanns-search-input-inline::placeholder {
+  color: rgba(0, 191, 255, 0.5);
+}
+
+.yohanns-search-btn-inline {
+  padding: 0.45rem 0.65rem;
+  background: transparent;
+  border: none;
+  border-left: 1px solid rgba(0, 191, 255, 0.3);
+  color: #00bfff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.yohanns-search-btn-inline:hover {
+  background: rgba(0, 191, 255, 0.1);
+  color: #00d4ff;
+}
+
+.yohanns-search-btn-inline:focus {
+  outline: none;
+}
+
+.yohanns-search-btn-inline svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+/* Search Icon Wrapper - Hidden on Desktop, Visible on Mobile */
+.yohanns-search-wrapper {
+  display: none;
   align-items: center;
   justify-content: center;
 }
@@ -706,7 +787,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
-  padding: 70px 20px 0 0;
+  padding: 70px 1.5rem 0 0;
   animation: yohanns-fadeIn 0.2s ease-out;
   background: rgba(0, 0, 0, 0.3);
 }
@@ -1214,6 +1295,11 @@
     animation: none !important;
   }
   
+  /* Hide inline search on mobile - use dropdown instead */
+  .yohanns-search-inline {
+    display: none !important;
+  }
+  
   /* Hide cart, wishlist, account icons from header on mobile */
   .utility-icons .cart-icon,
   .utility-icons .y-wishlist-icon,
@@ -1224,6 +1310,11 @@
   /* Keep only search icon visible */
   .utility-icons {
     gap: 0;
+  }
+  
+  /* Show search toggle on mobile */
+  .yohanns-search-wrapper {
+    display: flex !important;
   }
   
   /* Show mobile menu actions in sidebar */

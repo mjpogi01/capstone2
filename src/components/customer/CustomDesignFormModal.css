@@ -759,17 +759,7 @@
   background: #1a202c;
   border-top: 1px solid #2d3748;
   padding: 20px 24px;
-}
-
-/* Sticky positioning only on desktop */
-@media only screen and (min-width: 769px) {
-  .cdfm-submit-bar {
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
-  }
+  /* Removed sticky positioning - submit button will now only appear when user scrolls to the bottom */
 }
 
 .cdfm-submit-bar-inner {
