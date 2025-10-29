@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './ArtistDashboard.css';
 import '../admin/admin-shared.css';
 import ArtistSidebar from '../../components/artist/ArtistSidebar';
@@ -6,6 +6,7 @@ import ArtistMetricsCards from '../../components/artist/ArtistMetricsCards';
 import ArtistTasksTable from '../../components/artist/ArtistTasksTable';
 import ArtistWorkloadChart from '../../components/artist/ArtistWorkloadChart';
 import ArtistProfile from '../../components/artist/ArtistProfile';
+import ArtistChatList from '../../components/artist/ArtistChatList';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,6 +27,8 @@ const ArtistDashboard = () => {
         return 'My Profile';
       case 'workload':
         return 'Workload Overview';
+      case 'chats':
+        return 'Customer Chats';
       default:
         return 'Artist Dashboard';
     }
@@ -53,6 +56,8 @@ const ArtistDashboard = () => {
         return <ArtistProfile />;
       case 'workload':
         return <ArtistWorkloadChart fullWidth={true} />;
+      case 'chats':
+        return <ArtistChatList />;
       default:
         return (
           <div className="dashboard-content">

@@ -17,6 +17,7 @@ const emailRouter = require('./routes/email');
 const analyticsRouter = require('./routes/analytics');
 const productionWorkflowRouter = require('./routes/production-workflow');
 const chatRouter = require('./routes/chat');
+const artistRouter = require('./routes/artist');
 // Using Supabase instead of local database
 
 const app = express();
@@ -42,7 +43,8 @@ app.get('/', (_req, res) => {
       email: '/api/email',
       analytics: '/api/analytics',
       productionWorkflow: '/api/production-workflow',
-      chat: '/api/chat'
+      chat: '/api/chat',
+      artist: '/api/artist'
     }
   });
 });
@@ -66,6 +68,7 @@ app.use('/api/email', emailRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/production-workflow', productionWorkflowRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/artist', artistRouter);
 
 const port = process.env.PORT || 4000;
 

@@ -321,6 +321,22 @@ router.patch('/:id/status', async (req, res) => {
       });
     }
 
+    // Get user making the request (for role validation)
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization token required' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const { data: { user: requestingUser }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !requestingUser) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    const userRole = requestingUser.user_metadata?.role || 'customer';
+    console.log('👤 User making request:', { id: requestingUser.id, role: userRole });
+
     // Get current order data before update
     const { data: currentOrderData, error: currentError } = await supabase
       .from('orders')
@@ -341,6 +357,47 @@ router.patch('/:id/status', async (req, res) => {
       customer_name: userData?.user?.user_metadata?.full_name || null
     };
     const previousStatus = currentOrder.status;
+
+    // ARTIST-ONLY SIZING CONTROL
+    if (status === 'sizing') {
+      console.log('📏 SIZING STATUS VALIDATION');
+      
+      // Check if user is an artist
+      if (userRole !== 'artist') {
+        console.log('❌ Non-artist trying to move to sizing:', userRole);
+        return res.status(403).json({ 
+          error: 'Only artists can move orders to sizing status',
+          requiredRole: 'artist',
+          currentRole: userRole
+        });
+      }
+
+      // Check if design files have been uploaded
+      const hasDesignFiles = currentOrder.design_files && 
+                            Array.isArray(currentOrder.design_files) && 
+                            currentOrder.design_files.length > 0;
+      
+      if (!hasDesignFiles) {
+        console.log('❌ No design files uploaded for sizing');
+        return res.status(400).json({ 
+          error: 'Design files must be uploaded before moving to sizing status',
+          currentStatus: previousStatus,
+          requiredAction: 'Upload design files first'
+        });
+      }
+
+      // Check if order is in layout status (prerequisite)
+      if (previousStatus !== 'layout') {
+        console.log('❌ Order not in layout status:', previousStatus);
+        return res.status(400).json({ 
+          error: 'Order must be in layout status before moving to sizing',
+          currentStatus: previousStatus,
+          requiredStatus: 'layout'
+        });
+      }
+
+      console.log('✅ Artist sizing validation passed');
+    }
 
     // Update order status
     const { data: updatedOrderData, error: updateError } = await supabase

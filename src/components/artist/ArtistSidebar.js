@@ -6,6 +6,7 @@ import {
   faTasks, 
   faUser, 
   faChartBar,
+  faComments,
   faSignOutAlt,
   faChevronLeft,
   faChevronRight
@@ -40,6 +41,12 @@ const ArtistSidebar = ({
       label: 'Workload',
       icon: faChartBar,
       path: '/artist/workload'
+    },
+    {
+      id: 'chats',
+      label: 'Customer Chats',
+      icon: faComments,
+      path: '/artist/chats'
     },
     {
       id: 'profile',

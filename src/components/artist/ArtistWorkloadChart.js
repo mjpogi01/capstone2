@@ -1,47 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ArtistWorkloadChart.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-  faChartBar, 
   faTasks, 
   faClock, 
   faCheckCircle 
 } from '@fortawesome/free-solid-svg-icons';
+import { useAuth } from '../../contexts/AuthContext';
+import artistDashboardService from '../../services/artistDashboardService';
 
 const ArtistWorkloadChart = ({ fullWidth = false }) => {
   const [workloadData, setWorkloadData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
+  const { user } = useAuth();
 
-  useEffect(() => {
-    fetchWorkloadData();
-  }, [selectedPeriod]);
-
-  const fetchWorkloadData = async () => {
+  const fetchWorkloadData = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Simulate API call - replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data - replace with actual data from your API
-      const mockData = [
-        { date: '2024-01-08', pending: 3, in_progress: 2, completed: 5 },
-        { date: '2024-01-09', pending: 4, in_progress: 3, completed: 6 },
-        { date: '2024-01-10', pending: 2, in_progress: 4, completed: 7 },
-        { date: '2024-01-11', pending: 5, in_progress: 2, completed: 8 },
-        { date: '2024-01-12', pending: 3, in_progress: 5, completed: 6 },
-        { date: '2024-01-13', pending: 2, in_progress: 3, completed: 9 },
-        { date: '2024-01-14', pending: 4, in_progress: 4, completed: 7 }
-      ];
-      
-      setWorkloadData(mockData);
+      if (!user?.id) {
+        console.warn('No user ID available');
+        setWorkloadData([]);
+        return;
+      }
+
+      const data = await artistDashboardService.getArtistWorkload(selectedPeriod);
+      setWorkloadData(data);
     } catch (error) {
       console.error('Error fetching workload data:', error);
+      setWorkloadData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, selectedPeriod]);
+
+  useEffect(() => {
+    fetchWorkloadData();
+  }, [selectedPeriod, fetchWorkloadData]);
 
   const getMaxValue = () => {
     return Math.max(...workloadData.flatMap(d => [d.pending, d.in_progress, d.completed]));

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   FaShoppingCart, 
   FaEye, 
@@ -13,7 +14,6 @@ import {
   FaMapMarkerAlt,
   FaBox,
   FaDollarSign,
-  FaCalendarAlt,
   FaClock,
   FaCheck,
   FaTimes,
@@ -24,7 +24,6 @@ import {
   FaCog,
   FaIndustry,
   FaShippingFast,
-  FaBan,
   FaRedo,
   FaArrowLeft,
   FaArrowRight,
@@ -32,20 +31,24 @@ import {
   FaChevronRight,
   FaUsers,
   FaCamera,
-  FaSearch
+  FaSearch,
+  FaUpload
 } from 'react-icons/fa';
 import './Orders.css';
 import './FloatingButton.css';
 import orderService from '../../services/orderService';
+import designUploadService from '../../services/designUploadService';
 
 const Orders = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'orderDate', direction: 'desc' });
   const [showFilters, setShowFilters] = useState(false);
+  const [uploadingDesigns, setUploadingDesigns] = useState({});
   
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -270,6 +273,15 @@ const Orders = () => {
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       console.log(`🔄 Frontend: Updating order ${orderId} to status: ${newStatus}`);
+      
+      // Check role-based restrictions
+      const userRole = user?.user_metadata?.role || 'customer';
+      
+      if (newStatus === 'sizing' && userRole !== 'artist') {
+        alert('❌ Only artists can move orders to sizing status');
+        return;
+      }
+      
       await orderService.updateOrderStatus(orderId, newStatus);
       console.log(`✅ Frontend: Order status update successful`);
       
@@ -291,7 +303,78 @@ const Orders = () => {
       alert(`Order status updated to ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)} successfully!`);
     } catch (error) {
       console.error('Error updating order status:', error);
-      alert(`Failed to update order status: ${error.message}`);
+      
+      // Handle specific error messages from backend
+      if (error.message.includes('Only artists can move orders to sizing status')) {
+        alert('❌ Only artists can move orders to sizing status');
+      } else if (error.message.includes('Design files must be uploaded')) {
+        alert('❌ Design files must be uploaded before moving to sizing status');
+      } else if (error.message.includes('Order must be in layout status')) {
+        alert('❌ Order must be in layout status before moving to sizing');
+      } else {
+        alert(`Failed to update order status: ${error.message}`);
+      }
+    }
+  };
+
+  // Handle design file upload
+  const handleDesignUpload = async (orderId, files) => {
+    if (!files || files.length === 0) {
+      alert('Please select files to upload');
+      return;
+    }
+
+    const userRole = user?.user_metadata?.role || 'customer';
+    if (userRole !== 'artist') {
+      alert('❌ Only artists can upload design files');
+      return;
+    }
+
+    try {
+      setUploadingDesigns(prev => ({ ...prev, [orderId]: true }));
+      
+      console.log(`🎨 Uploading design files for order ${orderId}:`, files.length, 'files');
+      
+      const result = await designUploadService.uploadDesignFiles(orderId, files);
+      
+      console.log('🎨 Design upload result:', result);
+      
+      // Update the order in the state with new design files and status
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { 
+                ...order, 
+                design_files: result.designFiles,
+                status: result.newStatus || order.status
+              }
+            : order
+        )
+      );
+      setFilteredOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { 
+                ...order, 
+                design_files: result.designFiles,
+                status: result.newStatus || order.status
+              }
+            : order
+        )
+      );
+      
+      // Show success message
+      if (result.statusChanged) {
+        alert(`✅ Design files uploaded successfully! Order automatically moved to ${result.newStatus} status.`);
+      } else {
+        alert('✅ Design files uploaded successfully!');
+      }
+      
+    } catch (error) {
+      console.error('Error uploading design files:', error);
+      alert(`❌ Failed to upload design files: ${error.message}`);
+    } finally {
+      setUploadingDesigns(prev => ({ ...prev, [orderId]: false }));
     }
   };
 
@@ -712,6 +795,46 @@ const Orders = () => {
                               </div>
                             )}
 
+                            {/* Design Upload Section - Artist Only */}
+                            {user?.user_metadata?.role === 'artist' && (item.status === 'confirmed' || item.status === 'layout') && (
+                              <div className="design-upload-section">
+                                <h5 className="custom-design-section-title">
+                                  <FaUpload className="section-icon" />
+                                  Upload Design Files
+                                </h5>
+                                <div className="design-upload-area">
+                                  <input
+                                    type="file"
+                                    id={`design-upload-${item.id}`}
+                                    multiple
+                                    accept="image/*,.pdf,.ai,.psd"
+                                    onChange={(e) => handleDesignUpload(item.id, e.target.files)}
+                                    style={{ display: 'none' }}
+                                    disabled={uploadingDesigns[item.id]}
+                                  />
+                                  <label 
+                                    htmlFor={`design-upload-${item.id}`}
+                                    className={`design-upload-label ${uploadingDesigns[item.id] ? 'uploading' : ''}`}
+                                  >
+                                    {uploadingDesigns[item.id] ? (
+                                      <>
+                                        <FaClock className="upload-icon" />
+                                        Uploading...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <FaUpload className="upload-icon" />
+                                        Click to upload design files
+                                      </>
+                                    )}
+                                  </label>
+                                  <p className="design-upload-hint">
+                                    Upload design files to automatically move order to sizing status
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
                             {/* Pickup Information */}
                             {item.pickup_branch_id && (
                               <div className="custom-design-pickup-section">
@@ -859,10 +982,13 @@ const Orders = () => {
                         {/* Layout - Move to Sizing */}
                         {order.status === 'layout' && (
                           <button 
-                            className="status-update-btn process-btn"
+                            className={`status-update-btn process-btn ${user?.user_metadata?.role !== 'artist' ? 'disabled-btn' : ''}`}
                             onClick={() => handleStatusUpdate(order.id, 'sizing')}
+                            disabled={user?.user_metadata?.role !== 'artist'}
+                            title={user?.user_metadata?.role !== 'artist' ? 'Only artists can move orders to sizing status' : 'Move to Sizing'}
                           >
-                            <FaRuler className="status-icon" /> Move to Sizing
+                            <FaRuler className="status-icon" /> 
+                            {user?.user_metadata?.role !== 'artist' ? 'Artist Only - Move to Sizing' : 'Move to Sizing'}
                           </button>
                         )}
                         

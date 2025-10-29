@@ -15,6 +15,7 @@ import {
 import chatService from '../../services/chatService';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import ReviewResponse from './ReviewResponse';
 
 const DesignChat = ({ orderId, isOpen, onClose }) => {
   const [messages, setMessages] = useState([]);
@@ -71,6 +72,30 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
         ...msg,
         sender_name: msg.sender_type === 'customer' ? 'You' : (artist?.artist_name || 'Artist')
       }));
+      
+      console.log('📥 All messages loaded:', messagesWithSenders);
+      console.log('📥 Review request messages:', messagesWithSenders.filter(msg => msg.message_type === 'review_request'));
+      
+      // Test: Add a mock review message for testing
+      if (messagesWithSenders.length === 0) {
+        console.log('🧪 Adding test review message for debugging');
+        const testReviewMessage = {
+          id: 'test-review-123',
+          message_type: 'review_request',
+          sender_type: 'artist',
+          message: 'Design Review Request\n\nPlease review the attached design files and provide your feedback.',
+          attachments: [{
+            url: 'https://via.placeholder.com/300x200/6366f1/ffffff?text=Sample+Design',
+            name: 'sample-design.png',
+            type: 'image/png',
+            size: 12345
+          }],
+          created_at: new Date().toISOString(),
+          sender_name: 'Test Artist'
+        };
+        messagesWithSenders.push(testReviewMessage);
+      }
+      
       setMessages(messagesWithSenders);
       
       // Mark messages as read
@@ -197,6 +222,44 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleReviewResponse = async (response) => {
+    try {
+      setSending(true);
+      
+      let responseMessage = '';
+      switch (response.action) {
+        case 'approve':
+          responseMessage = `Design Approved\n\n${response.feedback || 'The design looks great! Please proceed with the final version.'}`;
+          break;
+        case 'request_changes':
+          responseMessage = `Changes Requested\n\n${response.feedback}`;
+          break;
+        case 'feedback':
+          responseMessage = `Feedback\n\n${response.feedback}`;
+          break;
+        default:
+          responseMessage = response.feedback;
+      }
+
+      await chatService.sendMessage(
+        chatRoom.id,
+        user.id,
+        'customer',
+        responseMessage,
+        'review_response',
+        []
+      );
+
+      alert('Your response has been sent to the artist!');
+      
+    } catch (error) {
+      console.error('Error sending review response:', error);
+      alert('Failed to send response. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], { 
       hour: '2-digit', 
@@ -261,11 +324,13 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
                     <p>No messages yet. Start the conversation!</p>
                   </div>
                 ) : (
-                  messages.map((message) => (
-                    <div 
-                      key={message.id} 
-                      className={`chat-message ${message.sender_type === 'customer' ? 'customer' : 'artist'}`}
-                    >
+                  messages.map((message) => {
+                    console.log('🎨 Rendering message:', message.id, 'Type:', message.message_type, 'Sender:', message.sender_type);
+                    return (
+                      <div 
+                        key={message.id} 
+                        className={`chat-message ${message.sender_type === 'customer' ? 'customer' : 'artist'}`}
+                      >
                       <div className="message-content">
                         <div className="message-header">
                           <span className="sender-name">{message.sender_name}</span>
@@ -281,7 +346,14 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
                           )}
                           
                           {message.message && (
-                            <p className="message-text">{message.message}</p>
+                            <p 
+                              className="message-text"
+                              dangerouslySetInnerHTML={{
+                                __html: message.message
+                                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                  .replace(/\n/g, '<br>')
+                              }}
+                            />
                           )}
                           
                           {message.attachments && message.attachments.length > 0 && (
@@ -294,10 +366,32 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
                               ))}
                             </div>
                           )}
+
+                          {/* Review Request Component */}
+                          {(() => {
+                            const isReviewRequest = message.message_type === 'review_request';
+                            const isFromArtist = message.sender_type === 'artist';
+                            console.log('🎨 Review check:', {
+                              messageId: message.id,
+                              messageType: message.message_type,
+                              senderType: message.sender_type,
+                              isReviewRequest,
+                              isFromArtist,
+                              shouldRender: isReviewRequest && isFromArtist
+                            });
+                            
+                            return isReviewRequest && isFromArtist ? (
+                              <ReviewResponse 
+                                reviewMessage={message}
+                                onRespond={handleReviewResponse}
+                              />
+                            ) : null;
+                          })()}
                         </div>
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </div>
