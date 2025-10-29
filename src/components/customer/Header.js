@@ -35,9 +35,12 @@ const Header = () => {
     openSignUp, 
     closeSignUp 
   } = useModal();
-  const { getCartItemsCount, openCart } = useCart();
-  const { openWishlist, wishlistItems } = useWishlist();
+  const { getCartItemsCount, openCart, isCartOpen } = useCart();
+  const { openWishlist, wishlistItems, isWishlistOpen } = useWishlist();
   const dropdownRef = useRef(null);
+
+  // Check if any modal is open
+  const isAnyModalOpen = showSignInModal || showSignUpModal || isCartOpen || isWishlistOpen || showOrdersModal || showSearchDropdown;
 
   // Load orders count when user changes
   useEffect(() => {
@@ -191,10 +194,12 @@ const Header = () => {
         
         {/* Hamburger Menu Button */}
         <button 
-          className={`hamburger-menu ${mobileMenuOpen ? 'active' : ''}`}
-          onClick={toggleMobileMenu}
+          className={`hamburger-menu ${mobileMenuOpen ? 'active' : ''} ${isAnyModalOpen ? 'disabled' : ''}`}
+          onClick={isAnyModalOpen ? null : toggleMobileMenu}
           aria-label="Toggle navigation menu"
           aria-expanded={mobileMenuOpen}
+          disabled={isAnyModalOpen}
+          style={{ cursor: isAnyModalOpen ? 'not-allowed' : 'pointer', opacity: isAnyModalOpen ? 0.5 : 1 }}
         >
           {mobileMenuOpen ? <FaTimes /> : <FaBars />}
         </button>
@@ -336,38 +341,6 @@ const Header = () => {
         
         <div className="header-right">
           <div className="utility-icons">
-          {/* Inline Search Box - Desktop Only */}
-          <div className="yohanns-search-inline">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="yohanns-search-input-inline"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  navigate(`/?search=${encodeURIComponent(searchQuery)}`);
-                }
-              }}
-            />
-            <button 
-              className="yohanns-search-btn-inline" 
-              aria-label="Search" 
-              title="Search"
-              onClick={() => {
-                if (searchQuery.trim()) {
-                  navigate(`/?search=${encodeURIComponent(searchQuery)}`);
-                }
-              }}
-            >
-              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                <circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
-                <line x1="15.5" y1="15.5" x2="20" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* Search Icon Button - Mobile Only */}
           <div className="yohanns-search-wrapper">
             <button 
               className="yohanns-search-toggle" 
@@ -494,7 +467,7 @@ const Header = () => {
                       }}
                     >
                       <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor" />
+                        <path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h12v12z" fill="currentColor" />
                       </svg>
                       Orders
                       {ordersCount > 0 && (
@@ -533,7 +506,7 @@ const Header = () => {
       </div>
       
       
-      {/* Dark Minimalist Search Dropdown - Mobile Only */}
+      {/* Dark Minimalist Search Dropdown - Below Icon */}
       {showSearchDropdown && (
         <div 
           className={`yohanns-search-dropdown-wrapper`}

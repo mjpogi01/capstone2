@@ -36,8 +36,6 @@ const CartModal = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  if (!isCartOpen) return null;
-
   const handleQuantityChange = (itemId, newQuantity, isTeamOrder) => {
     if (isTeamOrder) {
       // For team orders, redirect to product modal for customization
@@ -80,6 +78,7 @@ const CartModal = () => {
     console.log('🛒 Proceeding to checkout with items:', selectedItemsList.length);
     console.log('🛒 Selected items:', selectedItemsList.map(item => ({ id: item.uniqueId || item.id, name: item.name })));
     setShowCheckout(true);
+    closeCart(); // Close cart modal when opening checkout
   };
 
   const handlePlaceOrder = async (orderData) => {
@@ -145,16 +144,17 @@ const CartModal = () => {
 
   return (
     <>
-      <div className="mycart-overlay-clean" onClick={closeCart}>
-        <div className="mycart-container-clean" onClick={(e) => e.stopPropagation()}>
-          <div className="mycart-header-clean">
-            <h2>MY CART</h2>
-            <button className="mycart-close-btn-clean" onClick={closeCart}>
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
+      {isCartOpen && (
+        <div className="mycart-overlay-clean" onClick={closeCart}>
+          <div className="mycart-container-clean" onClick={(e) => e.stopPropagation()}>
+            <div className="mycart-header-clean">
+              <h2>MY CART</h2>
+              <button className="mycart-close-btn-clean" onClick={closeCart}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
 
-          <div className="mycart-content-clean">
+            <div className="mycart-content-clean">
             {isLoading ? (
               <div className="mycart-loading-state">
                 <div className="mycart-loading-spinner"></div>
@@ -378,6 +378,7 @@ const CartModal = () => {
           </div>
         </div>
       </div>
+      )}
 
       {showCheckout && (
         <CheckoutModal

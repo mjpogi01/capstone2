@@ -16,6 +16,7 @@ const SimpleOrderReview = ({ orderId, orderNumber, productId = null, onReviewSub
   const [submitting, setSubmitting] = useState(false);
   const [existingReview, setExistingReview] = useState(null);
   const [loadingReview, setLoadingReview] = useState(true);
+  const [validationError, setValidationError] = useState(false);
 
   // Define checkExistingReview first (before useEffect that calls it)
   const checkExistingReview = useCallback(async () => {
@@ -42,15 +43,26 @@ const SimpleOrderReview = ({ orderId, orderNumber, productId = null, onReviewSub
     e.preventDefault();
     if (!newReview.comment.trim()) {
       showError('Review Error', 'Please enter a comment');
+      setValidationError(true);
+      setTimeout(() => setValidationError(false), 500);
+      // Show additional alert on mobile for better visibility
+      if (window.innerWidth <= 768) {
+        alert('Please enter a comment for your review');
+      }
       return;
     }
 
     if (!user) {
       showError('Auth Error', 'You must be logged in to submit a review');
+      // Show additional alert on mobile for better visibility
+      if (window.innerWidth <= 768) {
+        alert('You must be logged in to submit a review');
+      }
       return;
     }
 
     setSubmitting(true);
+    setValidationError(false);
     try {
       const response = await fetch('http://localhost:4000/api/order-tracking/review', {
         method: 'POST',
@@ -164,9 +176,12 @@ const SimpleOrderReview = ({ orderId, orderNumber, productId = null, onReviewSub
                 <label>Your Review</label>
                 <textarea
                   value={newReview.comment}
-                  onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                  onChange={(e) => {
+                    setNewReview({ ...newReview, comment: e.target.value });
+                    setValidationError(false);
+                  }}
                   placeholder="Share your experience with this order..."
-                  className="review-comment"
+                  className={`review-comment ${validationError ? 'shake-error' : ''}`}
                   rows="4"
                   required
                 />

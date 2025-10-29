@@ -70,9 +70,11 @@ app.use('/api/chat', chatRouter);
 const port = process.env.PORT || 4000;
 
 // Start server directly - using Supabase instead of local database
-app.listen(port, () => {
+// Listen on 0.0.0.0 to accept connections from mobile devices on local network
+app.listen(port, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
   console.log(`API listening on http://localhost:${port}`);
+  console.log(`📱 Mobile access: http://192.168.254.100:${port}`);
   console.log('Using Supabase for database operations');
 });
 

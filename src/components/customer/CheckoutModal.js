@@ -119,8 +119,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
       }
     }
     
-    // Require location selection only for pickup, NOT for COD
-    if (shippingMethod === 'pickup' && (!selectedLocation || selectedLocation.trim() === '')) {
+    // Always require location selection
+    if (!selectedLocation || selectedLocation.trim() === '') {
       errors.location = 'Please select a branch location';
     }
     
@@ -132,9 +132,27 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     // Validate order before placing
     if (!validateOrder()) {
       // Scroll to top to show errors
-      const modalContent = document.querySelector('.checkout-modal-content');
-      if (modalContent) {
-        modalContent.scrollTop = 0;
+      const modal = document.querySelector('.checkout-modal');
+      if (modal) {
+        modal.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+      
+      // Show alert on mobile for better visibility
+      if (window.innerWidth <= 768) {
+        const errors = [];
+        if (shippingMethod === 'cod' && (!deliveryAddress.receiver || !deliveryAddress.phone || !deliveryAddress.address)) {
+          errors.push('Please add or select a delivery address');
+        }
+        if (!selectedLocation || selectedLocation.trim() === '') {
+          errors.push('Please select a branch location');
+        }
+        
+        if (errors.length > 0) {
+          alert('Please complete the following:\n\n• ' + errors.join('\n• '));
+        }
       }
       return;
     }
@@ -671,8 +689,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
         {/* Products Ordered Section - ORDER DETAILS */}
         <div className="checkout-section products-section">
           <div className="section-header">
-            <FaUsers className="section-icon" />
-            <h2>ORDER DETAILS</h2>
+            <div className="section-header-left">
+              <FaUsers className="section-icon" />
+              <h2>ORDER DETAILS</h2>
+            </div>
           </div>
           <div className="checkout-modal-perfect-table-container">
             <div className="checkout-modal-perfect-table">
@@ -734,7 +754,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                           </div>
                         </div>
                       </div>
-                    </div>
+                  </div>
                     <div 
                       className="checkout-modal-perfect-content-order"
                       onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
@@ -900,8 +920,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
             {/* Shipping Options */}
             <div className="shipping-options">
               <div className="section-header">
-                <FaTruck className="section-icon" />
-                <h2>SHIPPING OPTIONS</h2>
+                <div className="section-header-left">
+                  <FaTruck className="section-icon" />
+                  <h2>SHIPPING OPTIONS</h2>
+                </div>
               </div>
               <div className="shipping-method">
                 <label className="shipping-option">
@@ -940,38 +962,36 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                   </div>
                 </label>
                 
-                {/* Location selector shown only for pickup, NOT for COD */}
-                {shippingMethod === 'pickup' && (
-                  <div className="location-selector">
-                    <label className="location-label">Select Branch Location:</label>
-                    <div className="location-dropdown" onClick={() => setShowLocationDropdown(!showLocationDropdown)}>
-                      <span className="location-text">{selectedLocation}</span>
-                      <FaChevronDown className="dropdown-arrow" />
-                    </div>
-                    {showLocationDropdown && (
-                      <div className="location-options">
-                        {locations.map((location, index) => (
-                          <div
-                            key={index}
-                            className="location-option"
-                            onClick={() => {
-                              setSelectedLocation(location);
-                              setShowLocationDropdown(false);
-                              setOrderErrors(prev => ({ ...prev, location: '' }));
-                            }}
-                          >
-                            {location}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {orderErrors.location && (
-                      <span className="error-message" style={{ display: 'block', marginTop: '8px', color: '#ff4444', fontSize: '14px' }}>
-                        {orderErrors.location}
-                      </span>
-                    )}
+                {/* Location selector shown for both pickup and COD */}
+                <div className="location-selector">
+                  <label className="location-label">Select Branch Location:</label>
+                  <div className="location-dropdown" onClick={() => setShowLocationDropdown(!showLocationDropdown)}>
+                    <span className="location-text">{selectedLocation}</span>
+                    <FaChevronDown className="dropdown-arrow" />
                   </div>
-                )}
+                  {showLocationDropdown && (
+                    <div className="location-options">
+                      {locations.map((location, index) => (
+                        <div
+                          key={index}
+                          className="location-option"
+                          onClick={() => {
+                            setSelectedLocation(location);
+                            setShowLocationDropdown(false);
+                            setOrderErrors(prev => ({ ...prev, location: '' }));
+                          }}
+                        >
+                          {location}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {orderErrors.location && (
+                    <span className="error-message" style={{ display: 'block', marginTop: '8px', color: '#ff4444', fontSize: '14px' }}>
+                      {orderErrors.location}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

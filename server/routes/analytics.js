@@ -409,6 +409,104 @@ router.get('/customer-analytics', async (req, res) => {
   }
 });
 
+// Get geographic distribution
+router.get('/geographic-distribution', async (req, res) => {
+  try {
+    console.log('🌍 Fetching geographic distribution data...');
+    
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .neq('status', 'cancelled');
+
+    if (error) throw error;
+
+    // Process geographic data from delivery addresses
+    const locationData = {};
+    
+    orders.forEach(order => {
+      // Get city from delivery_address
+      let city = 'Unknown Location';
+      if (order.delivery_address && typeof order.delivery_address === 'object') {
+        city = order.delivery_address.city || order.delivery_address.City || 'Unknown Location';
+      } else if (typeof order.delivery_address === 'string') {
+        // Try to parse if it's a JSON string
+        try {
+          const parsedAddress = JSON.parse(order.delivery_address);
+          city = parsedAddress.city || parsedAddress.City || 'Unknown Location';
+        } catch (e) {
+          // If parsing fails, try to extract city from address string
+          const cityMatch = order.delivery_address.match(/City:\s*([^,\n]+)/i);
+          if (cityMatch) {
+            city = cityMatch[1].trim();
+          }
+        }
+      }
+      
+      // Initialize location data if not exists
+      if (!locationData[city]) {
+        locationData[city] = {
+          orders: 0,
+          revenue: 0,
+          customers: new Set(),
+          products: {}
+        };
+      }
+      
+      // Increment statistics
+      locationData[city].orders += 1;
+      locationData[city].revenue += parseFloat(order.total_amount || 0);
+      locationData[city].customers.add(order.user_id);
+      
+      // Track products
+      if (order.order_items && Array.isArray(order.order_items)) {
+        order.order_items.forEach(item => {
+          const productName = item.name || 'Unknown';
+          locationData[city].products[productName] = 
+            (locationData[city].products[productName] || 0) + parseInt(item.quantity || 0);
+        });
+      }
+    });
+
+    // Calculate total orders for percentage calculation
+    const totalOrders = orders.length;
+    
+    // Convert to array and add additional metrics
+    const geoDistribution = Object.entries(locationData)
+      .map(([city, data]) => {
+        // Get top 3 products for this location
+        const topProducts = Object.entries(data.products)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name]) => name);
+        
+        return {
+          location: city,
+          orders: data.orders,
+          revenue: parseFloat(data.revenue.toFixed(2)),
+          customers: data.customers.size,
+          percentage: totalOrders > 0 ? parseFloat(((data.orders / totalOrders) * 100).toFixed(1)) : 0,
+          avgOrderValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0,
+          topProducts
+        };
+      })
+      .sort((a, b) => b.orders - a.orders);
+
+    console.log(`🌍 Found ${geoDistribution.length} unique locations`);
+
+    res.json({
+      success: true,
+      data: geoDistribution
+    });
+  } catch (error) {
+    console.error('Error fetching geographic distribution:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch geographic distribution' 
+    });
+  }
+});
+
 // Helper functions
 function getBranchColor(index) {
   const colors = [

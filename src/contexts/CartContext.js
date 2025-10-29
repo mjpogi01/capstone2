@@ -73,7 +73,6 @@ export const CartProvider = ({ children }) => {
       isTeamOrder = false,
       teamMembers = null,
       singleOrderDetails = null,
-      teamName = null, // Add teamName from options
       isReplacement = false // New flag to indicate if this is replacing an existing item
     } = options;
 
@@ -86,7 +85,6 @@ export const CartProvider = ({ children }) => {
       quantity,
       isTeamOrder,
       teamMembers: isTeamOrder ? teamMembers : null,
-      teamName: isTeamOrder ? teamName : null, // Add teamName to cart item
       singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
       addedAt: new Date().toISOString(),
       uniqueId: Date.now() + Math.random() // Generate a simple unique ID
@@ -113,28 +111,8 @@ export const CartProvider = ({ children }) => {
 
       const newCartItem = await cartService.addToCart(user.id, cartItem);
       
-      setCartItems(prevItems => {
-        let updatedItems;
-        if (isReplacement) {
-          // For replacements, just add the new item without checking for existing items
-          updatedItems = [...prevItems, newCartItem];
-        } else {
-          const existingItemIndex = prevItems.findIndex(item => 
-            item.id === cartItem.id && 
-            item.size === cartItem.size && 
-            item.isTeamOrder === cartItem.isTeamOrder
-          );
-
-          if (existingItemIndex >= 0) {
-            updatedItems = [...prevItems];
-            updatedItems[existingItemIndex].quantity += quantity;
-          } else {
-            updatedItems = [...prevItems, newCartItem];
-          }
-        }
-
-        return updatedItems;
-      });
+      // Reload cart from database to get correct order (latest first) and updated quantities
+      await reloadCart();
 
       // Remove from wishlist when added to cart
       try {

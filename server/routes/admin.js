@@ -253,6 +253,103 @@ router.delete('/customers/:id', requireAdminOrOwner, async (req, res) => {
   }
 });
 
+// Get all artist accounts (admin or owner)
+router.get('/artists', requireAdminOrOwner, async (req, res) => {
+  try {
+    // Use Supabase client to fetch users with cache busting
+    const { data: users, error } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000
+    });
+    
+    if (error) {
+      console.error('Supabase error fetching users:', error);
+      return res.status(500).json({ error: 'Failed to fetch artists' });
+    }
+
+    // Filter for artist users
+    const artistUsers = users.users.filter(user => {
+      const role = user.user_metadata?.role;
+      return role === 'artist';
+    });
+    
+    console.log('👥 Total users found:', users.users.length);
+    console.log('🎨 Artist users found:', artistUsers.length);
+
+    // Get artist profile information for each user
+    const artistsWithProfiles = await Promise.all(
+      artistUsers.map(async (user) => {
+        let artistProfile = null;
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('artist_profiles')
+            .select('artist_name, is_active, is_verified, total_tasks_completed, rating, commission_rate')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (!profileError && profileData) {
+            artistProfile = profileData;
+          }
+        } catch (err) {
+          console.error('Error fetching artist profile:', err);
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          artist_name: user.user_metadata?.artist_name || artistProfile?.artist_name || 'N/A',
+          full_name: user.user_metadata?.full_name || user.user_metadata?.artist_name || 'N/A',
+          is_active: artistProfile?.is_active !== undefined ? artistProfile.is_active : true,
+          is_verified: artistProfile?.is_verified || false,
+          total_tasks_completed: artistProfile?.total_tasks_completed || 0,
+          rating: artistProfile?.rating || 0,
+          commission_rate: artistProfile?.commission_rate || 0,
+          created_at: user.created_at
+        };
+      })
+    );
+
+    console.log('📤 Sending artist users to frontend:', artistsWithProfiles.length);
+    
+    // Add cache-busting headers
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    res.json(artistsWithProfiles);
+  } catch (error) {
+    console.error('Error fetching artists:', error);
+    res.status(500).json({ error: 'Failed to fetch artists' });
+  }
+});
+
+// Delete artist account (admin or owner)
+router.delete('/artists/:id', requireAdminOrOwner, async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🗑️ Attempting to delete artist with ID:', id);
+    
+    // Use Supabase Admin API to delete user
+    const { data, error } = await supabase.auth.admin.deleteUser(id);
+    
+    console.log('🔍 Supabase delete response:', { data, error });
+    
+    if (error) {
+      console.error('❌ Supabase error deleting artist:', error);
+      return res.status(500).json({ error: 'Failed to delete artist account' });
+    }
+    
+    console.log('✅ Artist deleted successfully from Supabase');
+    
+    res.json({ message: 'Artist account deleted successfully' });
+  } catch (error) {
+    console.error('❌ Error deleting artist:', error);
+    res.status(500).json({ error: 'Failed to delete artist account' });
+  }
+});
+
 
 // Get current user info
 router.get('/me', (req, res) => {
