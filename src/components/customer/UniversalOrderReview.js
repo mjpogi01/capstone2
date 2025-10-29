@@ -15,6 +15,7 @@ const UniversalOrderReview = ({ orderId, orderNumber, productId = null, onReview
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState(false);
 
   useEffect(() => {
     fetchReviews();
@@ -51,14 +52,26 @@ const UniversalOrderReview = ({ orderId, orderNumber, productId = null, onReview
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!newReview.comment.trim()) return;
+    if (!newReview.comment.trim()) {
+      setValidationError(true);
+      setTimeout(() => setValidationError(false), 500);
+      // Show alert on mobile for better visibility
+      if (window.innerWidth <= 768) {
+        alert('Please enter a comment for your review');
+      }
+      return;
+    }
     
     if (!user) {
       console.error('User not authenticated');
+      if (window.innerWidth <= 768) {
+        alert('You must be logged in to submit a review');
+      }
       return;
     }
 
     setSubmitting(true);
+    setValidationError(false);
     try {
       const response = await fetch('http://localhost:4000/api/order-tracking/review', {
         method: 'POST',
@@ -219,9 +232,12 @@ const UniversalOrderReview = ({ orderId, orderNumber, productId = null, onReview
               <label>Your Review</label>
               <textarea
                 value={newReview.comment}
-                onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                onChange={(e) => {
+                  setNewReview({ ...newReview, comment: e.target.value });
+                  setValidationError(false);
+                }}
                 placeholder="Share your experience with this order..."
-                className="review-comment"
+                className={`review-comment ${validationError ? 'shake-error' : ''}`}
                 rows="4"
                 required
               />

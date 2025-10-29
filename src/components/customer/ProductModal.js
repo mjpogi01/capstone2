@@ -196,15 +196,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         }
       }
       
-      if (isBall) {
-        // Validate ball details
-        if (!ballDetails.size || !ballDetails.size.trim()) {
-          errors.ballSize = 'Please select ball size';
-          setValidationErrors(errors);
-          setIsAddingToCart(false);
-          return;
-        }
-      }
+      // Removed ball size validation - balls can be added without size selection
       
       if (isTrophy) {
         // Validate trophy details
@@ -341,14 +333,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         }
       }
       
-      if (isBall) {
-        // Validate ball details
-        if (!ballDetails.size || !ballDetails.size.trim()) {
-          errors.ballSize = 'Please select ball size before you buy';
-          setValidationErrors(errors);
-          return;
-        }
-      }
+      // Removed ball size validation for Buy Now - balls can be purchased without size selection
       
       if (isTrophy) {
         // Validate trophy details
@@ -839,6 +824,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 </div>
               </div>
             )}
+
+            {/* Ball Details Form - Hidden (balls can be added without size selection) */}
 
             {/* Trophy Details Form */}
             {isTrophy && (

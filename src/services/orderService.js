@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import API_URL from '../config/api';
 
 class OrderService {
   async getAllOrders(filters = {}) {
@@ -14,7 +15,7 @@ class OrderService {
       if (filters.page) params.append('page', filters.page);
       if (filters.limit) params.append('limit', filters.limit);
 
-      const response = await fetch(`http://localhost:4000/api/orders?${params.toString()}`);
+      const response = await fetch(`${API_URL}/api/orders?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -47,7 +48,7 @@ class OrderService {
 
   async getOrderById(orderId) {
     try {
-      const response = await fetch(`http://localhost:4000/api/orders/${orderId}`);
+      const response = await fetch(`${API_URL}/api/orders/${orderId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -167,7 +168,7 @@ class OrderService {
   async updateOrderStatus(orderId, status) {
     try {
       // Use backend API to trigger email automation
-      const response = await fetch(`http://localhost:4000/api/orders/${orderId}/status`, {
+      const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -202,7 +203,7 @@ class OrderService {
   async createOrder(orderData) {
     try {
       // Use backend API to trigger email automation
-      const response = await fetch('http://localhost:4000/api/orders', {
+      const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

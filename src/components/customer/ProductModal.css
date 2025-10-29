@@ -13,7 +13,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 5000;
   overflow: hidden;
 }
 
@@ -47,7 +47,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1001;
+  z-index: 5001;
   transition: all 0.2s ease;
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
@@ -646,6 +646,77 @@
 .modal-ball-details-input option {
   background: #1a1a2e;
   color: #fff;
+}
+
+/* ===== TROPHY DETAILS SECTION ===== */
+/* ===== BALL DETAILS SECTION ===== */
+.modal-ball-details-section {
+  margin-bottom: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 115, 0, 0.1), rgba(255, 69, 0, 0.1));
+  border: 2px solid rgba(255, 115, 0, 0.3);
+  border-radius: 12px;
+}
+
+.modal-ball-details-label {
+  display: block;
+  color: #ff8c00;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-align: center;
+}
+
+.modal-ball-details-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-ball-details-input {
+  width: 100%;
+  padding: 12px 15px;
+  background: rgba(26, 26, 46, 0.8);
+  border: 2px solid rgba(255, 115, 0, 0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.modal-ball-details-input:focus {
+  outline: none;
+  border-color: #ff8c00;
+  background: rgba(26, 26, 46, 1);
+  box-shadow: 0 0 0 3px rgba(255, 115, 0, 0.1);
+}
+
+.modal-ball-details-input.error {
+  border-color: #ff4444 !important;
+  background: rgba(255, 68, 68, 0.05);
+}
+
+.modal-ball-details-input.error:focus {
+  border-color: #ff4444 !important;
+  box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.modal-ball-details-input option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.modal-ball-details-form .modal-error-message {
+  position: relative;
+  right: auto;
+  top: auto;
+  transform: none;
+  margin-top: -8px;
+  text-align: left;
 }
 
 /* ===== TROPHY DETAILS SECTION ===== */

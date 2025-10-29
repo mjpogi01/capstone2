@@ -878,7 +878,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 25000;
   padding: 1.5rem;
 }
 
@@ -1259,75 +1259,79 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 25000;
 }
 
 .confirmation-modal {
   background: #161616;
   border: 1px solid #2d2d2d;
   border-radius: 12px;
-  padding: 2rem;
-  max-width: 420px;
+  padding: 1.25rem 1.5rem;
+  max-width: 400px;
   width: 90%;
   text-align: center;
 }
 
 .confirmation-modal h3 {
   color: #ffffff;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 0.5rem 0;
   font-family: 'Inter', sans-serif;
 }
 
 .confirmation-modal p {
   color: #a0aec0;
-  font-size: 0.95rem;
-  margin: 0 0 1.5rem 0;
-  line-height: 1.5;
+  font-size: 0.875rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
 }
 
 .confirmation-buttons {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   justify-content: center;
 }
 
 .confirm-btn {
-  padding: 0.7rem 2rem;
-  font-size: 0.95rem;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.875rem;
   font-weight: 600;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 100px;
+  min-width: 90px;
   font-family: 'Inter', sans-serif;
 }
 
 /* Cancel Reason Modal */
 .cancel-reason-modal {
-  max-width: 500px;
+  max-width: 450px;
   position: relative;
-  z-index: 10001;
+  z-index: 25001;
+  padding: 1.25rem 1.5rem;
 }
 
 .cancel-reason-modal h3 {
   color: #ffffff;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .cancel-reason-modal p {
   text-align: left;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
   color: #a0aec0;
+  line-height: 1.3;
 }
 
 .cancel-reasons {
   display: flex !important;
   flex-direction: column;
-  gap: 0.6rem;
-  margin-bottom: 1.5rem;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
   text-align: left;
   width: 100%;
   opacity: 1;
@@ -1337,7 +1341,7 @@
 .reason-option {
   display: flex !important;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.875rem;
   background: #1f1f1f;
   border: 1px solid #2d2d2d;
   border-radius: 6px;
@@ -1374,7 +1378,7 @@
 
 .reason-option span {
   color: #e2e8f0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   flex: 1;
 }

@@ -3,7 +3,7 @@ import './ProductCategories.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
-import { FaChevronLeft, FaChevronRight, FaStar } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaStar, FaTimes } from "react-icons/fa";
 import ProductModal from './ProductModal'; // Add this import
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
@@ -22,6 +22,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [productRatings, setProductRatings] = useState({});
+  const [zoomedImage, setZoomedImage] = useState(null);
   const navRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -64,6 +65,17 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
   const closeProductModal = () => {
     setIsModalOpen(false);
     setSelectedProduct(null);
+  };
+
+  const handleImageClick = (product, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.main_image) {
+      setZoomedImage({
+        url: product.main_image,
+        name: product.name
+      });
+    }
   };
 
   // Removed unused handleAddToCart function
@@ -288,6 +300,8 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                         src={product.main_image} 
                         alt={product.name}
                         className="sportswear-product-image"
+                        onClick={(e) => handleImageClick(product, e)}
+                        title="Click to zoom"
                       />
                     ) : (
                       <span className="sportswear-product-emoji">🏀</span>
@@ -357,6 +371,23 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
           </div>
         )}
       </div>
+
+      {/* Image Zoom Modal */}
+      {zoomedImage && (
+        <div className="image-zoom-overlay" onClick={() => setZoomedImage(null)}>
+          <div className="image-zoom-container" onClick={(e) => e.stopPropagation()}>
+            <button className="image-zoom-close" onClick={() => setZoomedImage(null)} aria-label="Close">
+              <FaTimes />
+            </button>
+            <img 
+              src={zoomedImage.url} 
+              alt={zoomedImage.name}
+              className="image-zoom-img"
+            />
+            <div className="image-zoom-caption">{zoomedImage.name}</div>
+          </div>
+        </div>
+      )}
 
       {/* Add the ProductModal component */}
       <ProductModal

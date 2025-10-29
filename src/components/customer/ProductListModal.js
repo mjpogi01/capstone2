@@ -31,6 +31,7 @@ const ProductListModal = ({ isOpen, onClose }) => {
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState(null);
   
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
@@ -196,14 +197,28 @@ const ProductListModal = ({ isOpen, onClose }) => {
   };
 
   const handleAddToCart = async (product, e) => {
+    console.log('🛒 Add to Cart clicked!', product.name);
     e.stopPropagation();
+    e.preventDefault();
     if (!isAuthenticated) {
+      console.log('⚠️ Not authenticated, opening sign in');
       openSignIn();
       return;
     }
+    console.log('✅ Opening Product Modal for:', product.name);
     // Open ProductModal instead of adding directly to cart
     setSelectedProduct(product);
     setShowProductModal(true);
+  };
+
+  const handleImageClick = (product, e) => {
+    e.stopPropagation();
+    if (product.main_image || product.image_url) {
+      setZoomedImage({
+        url: product.main_image || product.image_url,
+        name: product.name
+      });
+    }
   };
 
   // Pagination
@@ -292,6 +307,15 @@ const ProductListModal = ({ isOpen, onClose }) => {
                 )}
               </div>
             </div>
+            {/* Desktop/Laptop Filter Icon Button aligned with sort buttons */}
+            <button
+              className="desktop-filter-btn"
+              onClick={() => setShowMobileFilters(true)}
+              aria-label="Open filters"
+              title="Filters"
+            >
+              <FaFilter />
+            </button>
             <div className="results-count">
               <button
                 className="page-nav-arrow"
@@ -464,6 +488,8 @@ const ProductListModal = ({ isOpen, onClose }) => {
                               src={product.main_image || product.image_url} 
                               alt={product.name}
                               className="product-img"
+                              onClick={(e) => handleImageClick(product, e)}
+                              title="Click to zoom"
                             />
                           ) : (
                             <span className="product-placeholder">🏀</span>
@@ -706,6 +732,23 @@ const ProductListModal = ({ isOpen, onClose }) => {
                 Apply Filters
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Zoom Modal */}
+      {zoomedImage && (
+        <div className="image-zoom-overlay" onClick={() => setZoomedImage(null)}>
+          <div className="image-zoom-container" onClick={(e) => e.stopPropagation()}>
+            <button className="image-zoom-close" onClick={() => setZoomedImage(null)} aria-label="Close">
+              <FaTimes />
+            </button>
+            <img 
+              src={zoomedImage.url} 
+              alt={zoomedImage.name}
+              className="image-zoom-img"
+            />
+            <div className="image-zoom-caption">{zoomedImage.name}</div>
           </div>
         </div>
       )}

@@ -27,7 +27,7 @@ class CartService {
           )
         `)
         .eq('user_id', userId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false }) // Last added item appears first
         .abortSignal(AbortSignal.timeout(10000)); // Add timeout to prevent hanging
 
       if (error) {
@@ -56,7 +56,6 @@ class CartService {
           size: item.size,
           isTeamOrder: item.is_team_order,
           teamMembers: item.team_members,
-          teamName: item.team_name, // Add team_name from database
           singleOrderDetails: item.single_order_details,
           uniqueId: item.id, // Use database ID as unique identifier
           createdAt: item.created_at,
@@ -93,7 +92,7 @@ class CartService {
     }
   }
 
-  // Add item to user's cart
+  // Add item to user's cart (with duplicate detection and quantity increase)
   async addToCart(userId, cartItem) {
     try {
       // Ensure user exists in database first
@@ -104,6 +103,72 @@ class CartService {
         throw new Error('Invalid product ID');
       }
 
+      // Check if exact same item already exists in cart (same product, size, team order status)
+      const { data: existingItems, error: checkError } = await supabase
+        .from('user_carts')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('product_id', cartItem.id)
+        .eq('size', cartItem.size)
+        .eq('is_team_order', cartItem.isTeamOrder || false);
+
+      if (checkError) {
+        console.error('Error checking for existing cart item:', checkError);
+        throw checkError;
+      }
+
+      // If exact same item exists, check if customization details also match
+      if (existingItems && existingItems.length > 0) {
+        // Further check: compare team_members and single_order_details
+        // Only treat as duplicate if EVERYTHING is the same
+        let foundExactMatch = null;
+        
+        for (const existingItem of existingItems) {
+          const isSameTeamDetails = JSON.stringify(existingItem.team_members) === JSON.stringify(cartItem.teamMembers);
+          const isSameSingleDetails = JSON.stringify(existingItem.single_order_details) === JSON.stringify(cartItem.singleOrderDetails);
+          
+          // If EVERYTHING matches (including customization), it's a true duplicate
+          if (isSameTeamDetails && isSameSingleDetails) {
+            foundExactMatch = existingItem;
+            break;
+          }
+        }
+        
+        // Only increase quantity if found EXACT match (including customization)
+        if (foundExactMatch) {
+          const newQuantity = foundExactMatch.quantity + cartItem.quantity;
+          
+          console.log('🔄 EXACT same item found (same size, same customization), increasing quantity from', foundExactMatch.quantity, 'to', newQuantity);
+          
+          const { data: updatedData, error: updateError } = await supabase
+            .from('user_carts')
+            .update({ 
+              quantity: newQuantity,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', foundExactMatch.id)
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error('Error updating cart item quantity:', updateError);
+            throw updateError;
+          }
+
+          return {
+            ...cartItem,
+            uniqueId: updatedData.id,
+            quantity: newQuantity,
+            createdAt: updatedData.created_at,
+            updatedAt: updatedData.updated_at
+          };
+        } else {
+          // Same product/size but different customization = create new entry
+          console.log('✅ Same product but different customization details, creating separate entry');
+        }
+      }
+
+      // If item doesn't exist, insert new item
       const { data, error } = await supabase
         .from('user_carts')
         .insert({
@@ -113,7 +178,6 @@ class CartService {
           size: cartItem.size,
           is_team_order: cartItem.isTeamOrder,
           team_members: cartItem.teamMembers,
-          team_name: cartItem.teamName, // Add team_name to database
           single_order_details: cartItem.singleOrderDetails
         })
         .select()
@@ -124,6 +188,7 @@ class CartService {
         throw error;
       }
 
+      console.log('✅ New item added to cart:', cartItem.name);
 
       return {
         ...cartItem,

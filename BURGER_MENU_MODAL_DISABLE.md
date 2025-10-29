@@ -127,3 +127,5 @@ These modals would need centralized state management to be tracked by the Header
 ✅ Responsive design maintained
 ✅ Clean implementation with minimal code changes
 
+
+

@@ -132,9 +132,27 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     // Validate order before placing
     if (!validateOrder()) {
       // Scroll to top to show errors
-      const modalContent = document.querySelector('.checkout-modal-content');
-      if (modalContent) {
-        modalContent.scrollTop = 0;
+      const modal = document.querySelector('.checkout-modal');
+      if (modal) {
+        modal.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+      
+      // Show alert on mobile for better visibility
+      if (window.innerWidth <= 768) {
+        const errors = [];
+        if (shippingMethod === 'cod' && (!deliveryAddress.receiver || !deliveryAddress.phone || !deliveryAddress.address)) {
+          errors.push('Please add or select a delivery address');
+        }
+        if (!selectedLocation || selectedLocation.trim() === '') {
+          errors.push('Please select a branch location');
+        }
+        
+        if (errors.length > 0) {
+          alert('Please complete the following:\n\n• ' + errors.join('\n• '));
+        }
       }
       return;
     }
