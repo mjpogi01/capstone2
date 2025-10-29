@@ -31,7 +31,8 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaUsers,
-  FaCamera
+  FaCamera,
+  FaSearch
 } from 'react-icons/fa';
 import './Orders.css';
 import './FloatingButton.css';
@@ -361,13 +362,14 @@ const Orders = () => {
             onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
             className="search-input"
           />
+          <FaSearch className="search-icon" />
         </div>
         
         <button 
-          className="filter-toggle-btn"
+          className={`filter-toggle-btn ${showFilters ? 'active' : ''}`}
           onClick={() => setShowFilters(!showFilters)}
         >
-          <FaFilter />
+          <FaFilter className="filter-icon" />
           Filters
           {showFilters ? <FaChevronUp /> : <FaChevronDown />}
         </button>
@@ -403,6 +405,7 @@ const Orders = () => {
             </div>
             
             <button className="clear-filters-btn" onClick={clearFilters}>
+              <FaTimes />
               Clear All
             </button>
           </div>

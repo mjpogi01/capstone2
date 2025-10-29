@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faRotateRight, faTrash, faUsers, faUserShield } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faRotateRight, faTrash, faUsers, faUserShield, faPalette } from '@fortawesome/free-solid-svg-icons';
 import Sidebar from '../../components/admin/Sidebar';
 import '../admin/AdminDashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,9 +12,11 @@ const Accounts = () => {
   const { user } = useAuth();
   const [adminAccounts, setAdminAccounts] = useState([]);
   const [customerAccounts, setCustomerAccounts] = useState([]);
+  const [artistAccounts, setArtistAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [artistSearchTerm, setArtistSearchTerm] = useState('');
   const [forceUpdate, setForceUpdate] = useState(0);
 
   const isOwner = user?.user_metadata?.role === 'owner';
@@ -68,6 +70,22 @@ const Accounts = () => {
         const customerData = await customerResponse.json();
         console.log('📋 FETCHED CUSTOMER ACCOUNTS:', customerData.map(acc => ({ id: acc.id, email: acc.email, name: acc.name })));
         setCustomerAccounts(customerData);
+      }
+
+      // Fetch artist accounts
+      const artistResponse = await fetch(`http://localhost:4000/api/admin/artists?t=${Date.now()}`, {
+        headers: {
+          ...headers,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (artistResponse.ok) {
+        const artistData = await artistResponse.json();
+        console.log('📋 FETCHED ARTIST ACCOUNTS:', artistData.map(acc => ({ id: acc.id, email: acc.email, artist_name: acc.artist_name })));
+        setArtistAccounts(artistData);
       }
 
     } catch (error) {
@@ -196,6 +214,65 @@ const Accounts = () => {
     }
   };
 
+  // Delete artist account
+  const handleDeleteArtist = async (artistId) => {
+    // Find the account being deleted for logging
+    const accountToDelete = artistAccounts.find(acc => acc.id === artistId);
+    console.log('🗑️ DELETING ARTIST ACCOUNT:', {
+      id: artistId,
+      artist_name: accountToDelete?.artist_name,
+      email: accountToDelete?.email
+    });
+    
+    if (window.confirm('Are you sure you want to delete this artist account?')) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          alert('No active session. Please log in again.');
+          return;
+        }
+
+        console.log('📤 Sending delete request for artist ID:', artistId);
+        const response = await fetch(`http://localhost:4000/api/admin/artists/${artistId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('📥 Delete response status:', response.status);
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Delete successful:', result);
+          alert('Artist account deleted successfully!');
+          
+          console.log('🔄 BEFORE REFRESH - Current artist accounts:', artistAccounts.map(acc => ({ id: acc.id, email: acc.email, artist_name: acc.artist_name })));
+          
+          // Wait longer for Supabase to propagate changes
+          console.log('⏳ Waiting for Supabase propagation (5 seconds)...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          
+          // Simple refresh - just fetch again
+          await fetchAccounts();
+          
+          // Force React to re-render the table
+          setForceUpdate(prev => prev + 1);
+          
+          console.log('🔄 AFTER REFRESH - New artist accounts:', artistAccounts.map(acc => ({ id: acc.id, email: acc.email, artist_name: acc.artist_name })));
+        } else {
+          const errorData = await response.json();
+          console.log('❌ Delete failed:', errorData);
+          alert(`Error: ${errorData.error || 'Failed to delete artist account'}`);
+        }
+      } catch (error) {
+        console.error('❌ Error deleting artist:', error);
+        alert(`Error deleting artist account: ${error.message}`);
+      }
+    }
+  };
+
   // Manual refresh button
   const handleRefresh = () => {
     fetchAccounts();
@@ -215,6 +292,12 @@ const Accounts = () => {
   const filteredCustomerAccounts = customerAccounts.filter(customer =>
     customer.name?.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
     customer.email?.toLowerCase().includes(customerSearchTerm.toLowerCase())
+  );
+
+  const filteredArtistAccounts = artistAccounts.filter(artist =>
+    artist.artist_name?.toLowerCase().includes(artistSearchTerm.toLowerCase()) ||
+    artist.email?.toLowerCase().includes(artistSearchTerm.toLowerCase()) ||
+    artist.full_name?.toLowerCase().includes(artistSearchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -317,6 +400,79 @@ const Accounts = () => {
           </div>
         </div>
       )}
+
+      {/* Artist Accounts Section */}
+      <div className="accounts-section">
+        <div className="section-header">
+          <h2>
+            <FontAwesomeIcon icon={faPalette} />
+            Artist Accounts ({filteredArtistAccounts.length})
+          </h2>
+          <div className="accounts-search-container">
+            <input
+              type="text"
+              placeholder="Search artist accounts..."
+              value={artistSearchTerm}
+              onChange={(e) => setArtistSearchTerm(e.target.value)}
+              className="accounts-search-input"
+            />
+            <FontAwesomeIcon icon={faSearch} className="accounts-search-icon" />
+          </div>
+        </div>
+
+        <div className="accounts-table-container">
+          <table className="accounts-table artist-table">
+            <thead>
+              <tr>
+                <th>Artist Name</th>
+                <th>Email</th>
+                <th>Tasks Completed</th>
+                <th>Status</th>
+                <th>Verified</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredArtistAccounts.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="no-data">
+                    {artistSearchTerm ? 'No artist accounts match your search.' : 'No artist accounts found.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredArtistAccounts.map((artist) => (
+                  <tr key={`artist-${artist.id}-${forceUpdate}`}>
+                    <td>{artist.artist_name || 'N/A'}</td>
+                    <td>{artist.email || 'N/A'}</td>
+                    <td>{artist.total_tasks_completed || 0}</td>
+                    <td>
+                      <span className={`status-badge ${artist.is_active ? 'active' : 'inactive'}`}>
+                        {artist.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`verification-badge ${artist.is_verified ? 'verified' : 'unverified'}`}>
+                        {artist.is_verified ? 'Verified' : 'Unverified'}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => handleDeleteArtist(artist.id)}
+                        className="delete-btn"
+                        title="Delete Artist Account"
+                        aria-label="Delete Artist Account"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
       {/* Customer Accounts Section */}
       <div className="accounts-section">
