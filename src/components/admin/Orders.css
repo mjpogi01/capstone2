@@ -2743,3 +2743,92 @@
     height: 100px;
   }
 }
+
+/* Jersey Details Table Styles */
+.jersey-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  background: #1f2937;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border: 1px solid #374151;
+}
+
+.jersey-details-table thead {
+  background: #111827;
+  border-bottom: 2px solid #4b5563;
+}
+
+.jersey-details-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #f9fafb;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border-right: 1px solid #374151;
+}
+
+.jersey-details-table th:last-child {
+  border-right: none;
+}
+
+.jersey-details-table tbody tr {
+  border-bottom: 1px solid #374151;
+  transition: background-color 0.2s ease;
+}
+
+.jersey-details-table tbody tr:hover {
+  background-color: #374151;
+}
+
+.jersey-details-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.jersey-details-table td {
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: #e5e7eb;
+  border-right: 1px solid #374151;
+  vertical-align: middle;
+}
+
+.jersey-details-table td:last-child {
+  border-right: none;
+}
+
+.team-members-table,
+.single-details-table {
+  margin-top: 8px;
+}
+
+.team-name {
+  font-weight: 600;
+  color: #f9fafb;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  background: #111827;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+}
+
+/* Responsive table styles */
+@media (max-width: 768px) {
+  .jersey-details-table {
+    font-size: 0.75rem;
+  }
+  
+  .jersey-details-table th,
+  .jersey-details-table td {
+    padding: 8px 12px;
+  }
+  
+  .jersey-details-table th {
+    font-size: 0.75rem;
+  }
+}

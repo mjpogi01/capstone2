@@ -4,7 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faTasks, 
   faClock, 
-  faCheckCircle 
+  faCheckCircle,
+  faChartBar
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import artistDashboardService from '../../services/artistDashboardService';
@@ -64,7 +65,7 @@ const ArtistWorkloadChart = ({ fullWidth = false }) => {
     return (
       <div className={`workload-chart ${fullWidth ? 'full-width' : ''}`}>
         <div className="chart-header">
-          <h3>Workload Overview</h3>
+          <h3><FontAwesomeIcon icon={faChartBar} /> Workload Overview</h3>
         </div>
         <div className="loading-skeleton" style={{ height: '300px', borderRadius: '12px' }}></div>
       </div>
@@ -74,7 +75,7 @@ const ArtistWorkloadChart = ({ fullWidth = false }) => {
   return (
     <div className={`workload-chart ${fullWidth ? 'full-width' : ''}`}>
       <div className="chart-header">
-        <h3>Workload Overview</h3>
+        <h3><FontAwesomeIcon icon={faChartBar} /> Workload Overview</h3>
         <div className="chart-controls">
           <select 
             value={selectedPeriod}

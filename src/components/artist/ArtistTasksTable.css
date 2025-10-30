@@ -13,7 +13,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--dash-surface);
+  background: white !important;
+  font-family: 'Oswald', sans-serif !important;
 }
 
 .table-header h3 {

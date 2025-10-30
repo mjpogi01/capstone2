@@ -858,26 +858,57 @@ const Orders = () => {
                               </div>
                             </div>
                             
-                            {item.category === 'team' && item.teamMembers && (
+                            {item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 && (
                               <div className="team-details">
-                                <div className="team-name">Team: {item.teamName}</div>
-                                <div className="team-members">
-                                  {item.teamMembers.map((member, memberIndex) => (
-                                    <div key={memberIndex} className="member-detail">
-                                      <span>{member.surname} #{member.number} ({member.size})</span>
-                                    </div>
-                                  ))}
+                                <div className="team-name">Team: {item.teamName || item.team_name || item.teamMembers?.[0]?.teamName || item.teamMembers?.[0]?.team_name || 'N/A'}</div>
+                                <div className="team-members-table">
+                                  <table className="jersey-details-table">
+                                    <thead>
+                                      <tr>
+                                        <th>Surname</th>
+                                        <th>Jersey #</th>
+                                        <th>Size</th>
+                                        <th>Type</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.teamMembers.map((member, memberIndex) => (
+                                        <tr key={memberIndex}>
+                                          <td>{member.surname || 'N/A'}</td>
+                                          <td>{member.number || 'N/A'}</td>
+                                          <td>{member.size || 'N/A'}</td>
+                                          <td>{member.sizingType || item.sizeType || 'Adult'}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
                                 </div>
                               </div>
                             )}
                             
-                            {item.category === 'single' && item.singleOrderDetails && (
+                            {!item.isTeamOrder && item.singleOrderDetails && (
                               <div className="single-details">
-                                <div className="single-detail">
-                                  <span>Team: {item.singleOrderDetails.teamName}</span>
-                                </div>
-                                <div className="single-detail">
-                                  <span>{item.singleOrderDetails.surname} #{item.singleOrderDetails.number} ({item.singleOrderDetails.size})</span>
+                                <div className="single-details-table">
+                                  <table className="jersey-details-table">
+                                    <thead>
+                                      <tr>
+                                        <th>Team</th>
+                                        <th>Surname</th>
+                                        <th>Jersey #</th>
+                                        <th>Size</th>
+                                        <th>Type</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr>
+                                        <td>{item.singleOrderDetails.teamName || 'N/A'}</td>
+                                        <td>{item.singleOrderDetails.surname || 'N/A'}</td>
+                                        <td>{item.singleOrderDetails.number || 'N/A'}</td>
+                                        <td>{item.singleOrderDetails.size || 'N/A'}</td>
+                                        <td>{item.singleOrderDetails.sizingType || item.sizeType || 'Adult'}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
                                 </div>
                               </div>
                             )}

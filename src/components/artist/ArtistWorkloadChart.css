@@ -15,6 +15,7 @@
   padding: 1.5rem;
   border-bottom: 1px solid var(--dash-border);
   display: flex;
+  font-family: 'Oswald', sans-serif !important;
   justify-content: space-between;
   align-items: center;
   background: var(--dash-surface);
@@ -30,10 +31,7 @@
   gap: 0.5rem;
 }
 
-.chart-header h3::before {
-  content: '📊';
-  font-size: 1.25rem;
-}
+/* Removed emoji pseudo-element; header icon now uses Font Awesome in JSX */
 
 .chart-controls {
   display: flex;

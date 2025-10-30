@@ -1,5 +1,7 @@
 import React from 'react';
 import './ArtistSidebar.css';
+import { Link } from 'react-router-dom';
+import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faHome, 
@@ -78,20 +80,15 @@ const ArtistSidebar = ({
       <div className={`artist-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
         {/* Header */}
         <div className="sidebar-header">
-          <div className="logo">
-            <div className="logo-icon">🎨</div>
-            {!isCollapsed && (
-              <div className="logo-text">
-                <h3>Artist Portal</h3>
-                <p>Design Management</p>
-              </div>
-            )}
-          </div>
+          <Link to="/" className="sidebar-logo">
+            <img src={logo} alt="YOHANNS" className="sidebar-logo-img" />
+          </Link>
           
           {/* Collapse Button */}
           <button 
             className="collapse-btn"
             onClick={() => setIsCollapsed(!isCollapsed)}
+            aria-label="Toggle sidebar"
           >
             <FontAwesomeIcon icon={isCollapsed ? faChevronRight : faChevronLeft} />
           </button>
@@ -120,12 +117,13 @@ const ArtistSidebar = ({
 
         {/* Footer */}
         <div className="sidebar-footer">
-          <button 
-            className="logout-btn"
+          <button
+            className="artist-logout-button"
             onClick={handleLogout}
+            data-tooltip="Logout"
           >
-            <FontAwesomeIcon icon={faSignOutAlt} className="logout-icon" />
-            {!isCollapsed && <span>Logout</span>}
+            <FontAwesomeIcon icon={faSignOutAlt} className="artist-logout-icon" />
+            {!isCollapsed && <span className="artist-logout-text">Logout</span>}
           </button>
         </div>
       </div>
