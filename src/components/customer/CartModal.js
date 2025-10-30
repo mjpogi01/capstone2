@@ -221,7 +221,7 @@ const CartModal = () => {
                                       onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
                                     >
                                       <span className="mycart-order-type-label">
-                                        {isTrophy ? '🏆 Trophy Details' : (item.isTeamOrder ? 'Team Order' : 'Single Order')}
+                                        {isTrophy ? 'Trophy Details' : (item.isTeamOrder ? 'Team Order' : 'Single Order')}
                                       </span>
                                       <span className="mycart-dropdown-arrow">
                                         <FontAwesomeIcon icon={faChevronDown} />
@@ -278,37 +278,19 @@ const CartModal = () => {
                                       </div>
                                     ) : isTrophy ? (
                                       /* For Trophies */
-                                      <div className="mycart-trophy-details">
-                                        {item.trophyDetails?.trophyType && (
-                                          <div className="mycart-detail-line">
-                                            <span className="mycart-detail-label">Type:</span>
-                                            <span className="mycart-detail-value">{item.trophyDetails.trophyType}</span>
-                                          </div>
-                                        )}
-                                        {item.trophyDetails?.size && (
-                                          <div className="mycart-detail-line">
-                                            <span className="mycart-detail-label">Size:</span>
-                                            <span className="mycart-detail-value">{item.trophyDetails.size}</span>
-                                          </div>
-                                        )}
-                                        {item.trophyDetails?.material && (
-                                          <div className="mycart-detail-line">
-                                            <span className="mycart-detail-label">Material:</span>
-                                            <span className="mycart-detail-value">{item.trophyDetails.material}</span>
-                                          </div>
-                                        )}
-                                        {item.trophyDetails?.engravingText && (
-                                          <div className="mycart-detail-line mycart-detail-line-full">
-                                            <span className="mycart-detail-label">Engraving:</span>
-                                            <span className="mycart-detail-value mycart-engraving-text">{item.trophyDetails.engravingText}</span>
-                                          </div>
-                                        )}
-                                        {item.trophyDetails?.occasion && (
-                                          <div className="mycart-detail-line">
-                                            <span className="mycart-detail-label">Occasion:</span>
-                                            <span className="mycart-detail-value">{item.trophyDetails.occasion}</span>
-                                          </div>
-                                        )}
+                                      <div>
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Size:</span>
+                                          <span className="mycart-detail-value">{item.trophyDetails?.size || 'N/A'}</span>
+                                        </div>
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Engraving:</span>
+                                          <span className="mycart-detail-value">{item.trophyDetails?.engravingText || 'N/A'}</span>
+                                        </div>
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Occasion:</span>
+                                          <span className="mycart-detail-value">{item.trophyDetails?.occasion || 'N/A'}</span>
+                                        </div>
                                       </div>
                                     ) : null}
                                   </div>

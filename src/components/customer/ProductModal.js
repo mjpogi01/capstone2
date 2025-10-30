@@ -198,10 +198,19 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       // Removed ball size validation - balls can be added without size selection
       
+      // Validate trophy details - all fields required
       if (isTrophy) {
-        // Validate trophy details
-        if (!trophyDetails.material || !trophyDetails.material.trim()) {
-          errors.trophyMaterial = 'Please select trophy material';
+        if (!trophyDetails.size || !trophyDetails.size.trim()) {
+          errors.trophySize = 'Required';
+        }
+        if (!trophyDetails.engravingText || !trophyDetails.engravingText.trim()) {
+          errors.trophyEngravingText = 'Required';
+        }
+        if (!trophyDetails.occasion || !trophyDetails.occasion.trim()) {
+          errors.trophyOccasion = 'Required';
+        }
+        
+        if (Object.keys(errors).length > 0) {
           setValidationErrors(errors);
           setIsAddingToCart(false);
           return;
@@ -335,10 +344,19 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       // Removed ball size validation for Buy Now - balls can be purchased without size selection
       
+      // Validate trophy details for Buy Now - all fields required
       if (isTrophy) {
-        // Validate trophy details
-        if (!trophyDetails.material || !trophyDetails.material.trim()) {
-          errors.trophyMaterial = 'Please select trophy material before you buy';
+        if (!trophyDetails.size || !trophyDetails.size.trim()) {
+          errors.trophySize = 'Required';
+        }
+        if (!trophyDetails.engravingText || !trophyDetails.engravingText.trim()) {
+          errors.trophyEngravingText = 'Required';
+        }
+        if (!trophyDetails.occasion || !trophyDetails.occasion.trim()) {
+          errors.trophyOccasion = 'Required';
+        }
+        
+        if (Object.keys(errors).length > 0) {
           setValidationErrors(errors);
           return;
         }
@@ -830,34 +848,49 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
             {/* Trophy Details Form */}
             {isTrophy && (
               <div className="modal-trophy-details-section">
-                <div className="modal-trophy-details-label">🏆 TROPHY DETAILS</div>
+                <div className="modal-trophy-details-label">TROPHY DETAILS</div>
                 <div className="modal-trophy-details-form">
-                  <select
-                    value={trophyDetails.size}
-                    onChange={(e) => setTrophyDetails({...trophyDetails, size: e.target.value})}
-                    className="modal-trophy-details-input"
-                  >
-                    <option value="">Select Size</option>
-                    <option value='6" (Small)'>6" (Small)</option>
-                    <option value='10" (Medium)'>10" (Medium)</option>
-                    <option value='14" (Large)'>14" (Large)</option>
-                    <option value='18" (Extra Large)'>18" (Extra Large)</option>
-                    <option value='24" (Premium)'>24" (Premium)</option>
-                  </select>
-                  <textarea
-                    placeholder="Engraving Text (Optional)"
-                    value={trophyDetails.engravingText}
-                    onChange={(e) => setTrophyDetails({...trophyDetails, engravingText: e.target.value})}
-                    className="modal-trophy-details-textarea"
-                    rows={3}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Occasion (e.g., Championship 2025)"
-                    value={trophyDetails.occasion}
-                    onChange={(e) => setTrophyDetails({...trophyDetails, occasion: e.target.value})}
-                    className="modal-trophy-details-input"
-                  />
+                  <div className="modal-input-wrapper">
+                    <select
+                      value={trophyDetails.size}
+                      onChange={(e) => setTrophyDetails({...trophyDetails, size: e.target.value})}
+                      className={`modal-trophy-details-input ${validationErrors.trophySize ? 'error' : ''}`}
+                    >
+                      <option value="">Select Size *</option>
+                      <option value='6" (Small)'>6" (Small)</option>
+                      <option value='10" (Medium)'>10" (Medium)</option>
+                      <option value='14" (Large)'>14" (Large)</option>
+                      <option value='18" (Extra Large)'>18" (Extra Large)</option>
+                      <option value='24" (Premium)'>24" (Premium)</option>
+                    </select>
+                    {validationErrors.trophySize && (
+                      <span className="modal-error-message">{validationErrors.trophySize}</span>
+                    )}
+                  </div>
+                  <div className="modal-input-wrapper">
+                    <textarea
+                      placeholder="Engraving Text *"
+                      value={trophyDetails.engravingText}
+                      onChange={(e) => setTrophyDetails({...trophyDetails, engravingText: e.target.value})}
+                      className={`modal-trophy-details-textarea ${validationErrors.trophyEngravingText ? 'error' : ''}`}
+                      rows={3}
+                    />
+                    {validationErrors.trophyEngravingText && (
+                      <span className="modal-error-message">{validationErrors.trophyEngravingText}</span>
+                    )}
+                  </div>
+                  <div className="modal-input-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Occasion (e.g., Championship 2025) *"
+                      value={trophyDetails.occasion}
+                      onChange={(e) => setTrophyDetails({...trophyDetails, occasion: e.target.value})}
+                      className={`modal-trophy-details-input ${validationErrors.trophyOccasion ? 'error' : ''}`}
+                    />
+                    {validationErrors.trophyOccasion && (
+                      <span className="modal-error-message">{validationErrors.trophyOccasion}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

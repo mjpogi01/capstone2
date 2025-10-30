@@ -723,14 +723,14 @@
 .modal-trophy-details-section {
   margin-bottom: 15px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 174, 66, 0.1));
-  border: 2px solid rgba(255, 215, 0, 0.3);
+  background: transparent;
+  border: 2px solid #00bfff;
   border-radius: 12px;
 }
 
 .modal-trophy-details-label {
   display: block;
-  color: #ffd700;
+  color: #00bfff;
   font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 15px;
@@ -750,7 +750,7 @@
   width: 100%;
   padding: 12px 15px;
   background: rgba(26, 26, 46, 0.8);
-  border: 2px solid rgba(255, 215, 0, 0.3);
+  border: 2px solid #00bfff;
   border-radius: 8px;
   color: #fff;
   font-size: 0.95rem;
@@ -762,9 +762,9 @@
 .modal-trophy-details-input:focus,
 .modal-trophy-details-textarea:focus {
   outline: none;
-  border-color: #ffd700;
+  border-color: #00bfff;
   background: rgba(26, 26, 46, 1);
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.2);
 }
 
 .modal-trophy-details-textarea {
@@ -780,6 +780,35 @@
 .modal-trophy-details-input::placeholder,
 .modal-trophy-details-textarea::placeholder {
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* Trophy Error States */
+.modal-trophy-details-input.error,
+.modal-trophy-details-textarea.error {
+  border-color: #ff4444 !important;
+  background: rgba(255, 68, 68, 0.05);
+}
+
+.modal-trophy-details-input.error:focus,
+.modal-trophy-details-textarea.error:focus {
+  border-color: #ff4444 !important;
+  box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.modal-trophy-details-form .modal-error-message {
+  position: relative;
+  right: auto;
+  top: auto;
+  transform: none;
+  font-size: 0.85rem;
+  color: #ff4444;
+  margin-top: 6px;
+  font-weight: 500;
+  display: block;
+}
+
+.modal-trophy-details-form .modal-input-wrapper {
+  width: 100%;
 }
 
 .modal-single-order-input,
