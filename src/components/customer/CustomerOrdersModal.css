@@ -353,34 +353,34 @@
 }
 
 .status-pending {
-  background: #ff9800;
-  color: #fff;
+  background: #ff9800 !important;
+  color: #fff !important;
 }
 
 .status-confirmed {
-  background: #2196f3;
-  color: #fff;
+  background: #2196f3 !important;
+  color: #fff !important;
 }
 
 .status-processing {
-  background: #9c27b0;
-  color: #fff;
+  background: #9c27b0 !important;
+  color: #fff !important;
 }
 
 .status-shipped {
-  background: #00bcd4;
-  color: #fff;
+  background: #00bcd4 !important;
+  color: #fff !important;
 }
 
 .status-delivered,
 .status-picked_up_delivered {
-  background: #4caf50;
-  color: #fff;
+  background: #4caf50 !important;
+  color: #fff !important;
 }
 
 .status-cancelled {
-  background: #f44336;
-  color: #fff;
+  background: #f44336 !important;
+  color: #fff !important;
 }
 
 .status-description {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ArtistProfile.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -12,6 +12,7 @@ import {
   faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import artistDashboardService from '../../services/artistDashboardService';
 
 const ArtistProfile = () => {
   const [profile, setProfile] = useState({
@@ -29,36 +30,48 @@ const ArtistProfile = () => {
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
 
-  useEffect(() => {
-    fetchArtistProfile();
-  }, [user]);
-
-  const fetchArtistProfile = async () => {
+  const fetchArtistProfile = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Simulate API call - replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data - replace with actual data from your API
-      const mockProfile = {
-        artist_name: 'John Doe',
-        bio: 'Professional design layout specialist with 5+ years of experience in sportswear design and custom graphics.',
-        specialties: ['Layout Design', 'Custom Graphics', 'Team Jerseys', 'Logo Design'],
-        commission_rate: 12.00,
-        rating: 4.8,
-        total_designs: 156,
-        total_sales: 89,
-        total_tasks_completed: 234
-      };
-      
-      setProfile(mockProfile);
+      if (!user?.id) {
+        console.warn('No user ID available');
+        setProfile({
+          artist_name: '',
+          bio: '',
+          specialties: [],
+          commission_rate: 0,
+          rating: 0,
+          total_designs: 0,
+          total_sales: 0,
+          total_tasks_completed: 0
+        });
+        return;
+      }
+
+      const profileData = await artistDashboardService.getArtistProfile();
+      setProfile(profileData);
     } catch (error) {
       console.error('Error fetching artist profile:', error);
+      // Set default values on error
+      setProfile({
+        artist_name: '',
+        bio: '',
+        specialties: [],
+        commission_rate: 0,
+        rating: 0,
+        total_designs: 0,
+        total_sales: 0,
+        total_tasks_completed: 0
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchArtistProfile();
+  }, [user, fetchArtistProfile]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -73,12 +86,11 @@ const ArtistProfile = () => {
     try {
       setSaving(true);
       
-      // Simulate API call - replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await artistDashboardService.updateArtistProfile(profile);
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving profile:', error);
+      alert('Failed to save profile. Please try again.');
     } finally {
       setSaving(false);
     }

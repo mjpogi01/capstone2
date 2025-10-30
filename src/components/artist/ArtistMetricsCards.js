@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ArtistMetricsCards.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -8,6 +8,7 @@ import {
   faChartLine 
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import artistDashboardService from '../../services/artistDashboardService';
 
 const ArtistMetricsCards = () => {
   const [metrics, setMetrics] = useState({
@@ -19,32 +20,40 @@ const ArtistMetricsCards = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  useEffect(() => {
-    fetchArtistMetrics();
-  }, [user]);
-
-  const fetchArtistMetrics = async () => {
+  const fetchArtistMetrics = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Simulate API call - replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data - replace with actual data from your API
-      const mockMetrics = {
-        totalTasks: 24,
-        pendingTasks: 8,
-        completedTasks: 16,
-        completionRate: 67
-      };
-      
-      setMetrics(mockMetrics);
+      if (!user?.id) {
+        console.warn('No user ID available');
+        setMetrics({
+          totalTasks: 0,
+          pendingTasks: 0,
+          completedTasks: 0,
+          completionRate: 0
+        });
+        return;
+      }
+
+      const metricsData = await artistDashboardService.getArtistMetrics();
+      setMetrics(metricsData);
     } catch (error) {
       console.error('Error fetching artist metrics:', error);
+      // Set default values on error
+      setMetrics({
+        totalTasks: 0,
+        pendingTasks: 0,
+        completedTasks: 0,
+        completionRate: 0
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchArtistMetrics();
+  }, [user, fetchArtistMetrics]);
 
   const cards = [
     {

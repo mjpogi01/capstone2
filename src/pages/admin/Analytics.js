@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '../../components/admin/Sidebar';
 import '../admin/AdminDashboard.css';
 import './admin-shared.css';
-import { FaSearch, FaPlay, FaFilter, FaChartLine, FaStore, FaClipboardList, FaTshirt, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaSearch, FaPlay, FaFilter, FaChartLine, FaStore, FaClipboardList, FaTshirt, FaMapMarkerAlt, FaLayerGroup, FaMapMarkedAlt, FaChartArea } from 'react-icons/fa';
 import './Analytics.css';
 
 const Analytics = () => {
@@ -14,8 +14,16 @@ const Analytics = () => {
   });
   const [rawData, setRawData] = useState(null);
   const [geoDistribution, setGeoDistribution] = useState([]);
+  const [topCategories, setTopCategories] = useState([]);
+  const [buyingTrends, setBuyingTrends] = useState([]);
+  const [regionalPerformance, setRegionalPerformance] = useState([]);
+  const [salesForecast, setSalesForecast] = useState({ historical: [], forecast: [], combined: [] });
   const [loading, setLoading] = useState(true);
   const [geoLoading, setGeoLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [trendsLoading, setTrendsLoading] = useState(true);
+  const [regionalLoading, setRegionalLoading] = useState(true);
+  const [forecastLoading, setForecastLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -30,6 +38,10 @@ const Analytics = () => {
   useEffect(() => {
     fetchAnalyticsData();
     fetchGeographicDistribution();
+    fetchTopCategories();
+    fetchBuyingTrends();
+    fetchRegionalPerformance();
+    fetchSalesForecast();
   }, []);
 
   useEffect(() => {
@@ -143,6 +155,82 @@ const Analytics = () => {
       setGeoDistribution([]);
     } finally {
       setGeoLoading(false);
+    }
+  };
+
+  const fetchTopCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const response = await fetch('http://localhost:4000/api/analytics/top-categories');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setTopCategories(result.data);
+      } else {
+        setTopCategories([]);
+      }
+    } catch (error) {
+      console.error('Error fetching top categories:', error);
+      setTopCategories([]);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const fetchBuyingTrends = async () => {
+    try {
+      setTrendsLoading(true);
+      const response = await fetch('http://localhost:4000/api/analytics/customer-buying-trends');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setBuyingTrends(result.data);
+      } else {
+        setBuyingTrends([]);
+      }
+    } catch (error) {
+      console.error('Error fetching buying trends:', error);
+      setBuyingTrends([]);
+    } finally {
+      setTrendsLoading(false);
+    }
+  };
+
+  const fetchRegionalPerformance = async () => {
+    try {
+      setRegionalLoading(true);
+      const response = await fetch('http://localhost:4000/api/analytics/regional-performance');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setRegionalPerformance(result.data);
+      } else {
+        setRegionalPerformance([]);
+      }
+    } catch (error) {
+      console.error('Error fetching regional performance:', error);
+      setRegionalPerformance([]);
+    } finally {
+      setRegionalLoading(false);
+    }
+  };
+
+  const fetchSalesForecast = async () => {
+    try {
+      setForecastLoading(true);
+      const response = await fetch('http://localhost:4000/api/analytics/sales-forecast');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setSalesForecast(result.data);
+      } else {
+        setSalesForecast({ historical: [], forecast: [], combined: [] });
+      }
+    } catch (error) {
+      console.error('Error fetching sales forecast:', error);
+      setSalesForecast({ historical: [], forecast: [], combined: [] });
+    } finally {
+      setForecastLoading(false);
     }
   };
 
@@ -918,6 +1006,343 @@ const Analytics = () => {
             ) : (
               <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
                 <p>No geographic data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Categories */}
+        <div className="analytics-card">
+          <div className="card-header">
+            <FaLayerGroup className="card-icon" />
+            <h3>Top Categories</h3>
+          </div>
+          <div className="chart-container">
+            {categoriesLoading ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>Loading categories data...</p>
+              </div>
+            ) : topCategories && topCategories.length > 0 ? (
+              <div className="vertical-bar-chart">
+                <svg viewBox="0 0 500 280" className="bar-chart-svg">
+                  {[0, 1, 2, 3, 4, 5].map(i => (
+                    <line key={`grid-${i}`} x1="60" y1={30 + i * 38} x2="490" y2={30 + i * 38} stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" />
+                  ))}
+                  <line x1="60" y1="30" x2="60" y2="240" stroke="#475569" strokeWidth="2" />
+                  <line x1="60" y1="240" x2="490" y2="240" stroke="#475569" strokeWidth="2" />
+                  
+                  {[0, 1, 2, 3, 4, 5].map(i => {
+                    const maxRevenue = Math.max(...topCategories.slice(0, 8).map(c => c.revenue));
+                    const value = Math.round((maxRevenue / 5) * (5 - i));
+                    return (
+                      <text key={`y-label-${i}`} x="55" y={35 + i * 38} className="axis-label" textAnchor="end">
+                        ₱{formatNumber(value)}
+                      </text>
+                    );
+                  })}
+                  
+                  {topCategories.slice(0, 8).map((category, index) => {
+                    const maxRevenue = Math.max(...topCategories.slice(0, 8).map(c => c.revenue));
+                    const barHeight = (category.revenue / maxRevenue) * 210;
+                    const numCategories = Math.min(8, topCategories.length);
+                    const chartWidth = 430;
+                    const barWidth = Math.max(35, (chartWidth / numCategories) - 10);
+                    const spacing = chartWidth / numCategories;
+                    const x = 65 + index * spacing + (spacing - barWidth) / 2;
+                    const y = 240 - barHeight;
+                    const isHighest = category.revenue === maxRevenue;
+                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#ec4899'];
+                    const color = colors[index % colors.length];
+                    
+                    return (
+                      <g key={`bar-${index}`} className="bar-group">
+                        <defs>
+                          <linearGradient id={`cat-gradient-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor={color} stopOpacity="1"/>
+                            <stop offset="100%" stopColor={color} stopOpacity="0.7"/>
+                          </linearGradient>
+                        </defs>
+                        
+                        <rect x={x} y={y} width={barWidth} height={barHeight} fill={`url(#cat-gradient-${index})`} rx="3"
+                          className={`bar-rect ${isHighest ? 'highest-bar' : ''}`}>
+                          <animate attributeName="height" from="0" to={barHeight} dur="0.8s" fill="freeze" />
+                          <animate attributeName="y" from="240" to={y} dur="0.8s" fill="freeze" />
+                        </rect>
+                        
+                        {barHeight > 25 && (
+                          <text x={x + barWidth / 2} y={y - 6} className="bar-value-label" textAnchor="middle"
+                            fill={isHighest ? '#1e40af' : '#475569'} fontWeight={isHighest ? '700' : '600'} fontSize="10">
+                            ₱{formatNumber(category.revenue)}
+                          </text>
+                        )}
+                        
+                        {barHeight > 30 && (
+                          <text x={x + barWidth / 2} y={y + barHeight / 2} textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="600">
+                            {category.stockStatus}
+                          </text>
+                        )}
+                        
+                        <text x={x + barWidth / 2} y="256" className="axis-label branch-label" textAnchor="middle" fontSize="9">
+                          {category.category.length > 10 ? category.category.substring(0, 10) + '...' : category.category}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  
+                  <text x="25" y="135" className="axis-title" textAnchor="middle" transform="rotate(-90 25 135)">Revenue (₱)</text>
+                  <text x="275" y="273" className="axis-title" textAnchor="middle">Category</text>
+                </svg>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>No category data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Customer Buying Trends */}
+        <div className="analytics-card">
+          <div className="card-header">
+            <FaChartLine className="card-icon" />
+            <h3>Customer Buying Trends</h3>
+          </div>
+          <div className="chart-container">
+            {trendsLoading ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>Loading trends data...</p>
+              </div>
+            ) : buyingTrends && buyingTrends.length > 0 ? (
+              <div className="line-chart">
+                <svg viewBox="0 0 450 220" className="chart-svg">
+                  {[0, 1, 2, 3, 4, 5].map(i => (
+                    <line key={i} x1="50" y1={30 + i * 30} x2="420" y2={30 + i * 30} stroke="#e5e7eb" strokeWidth="1" strokeDasharray="3 3" />
+                  ))}
+                  
+                  {[0, 1, 2, 3, 4, 5].map(i => {
+                    const maxOrders = Math.max(...buyingTrends.map(t => t.orders));
+                    const value = Math.round((maxOrders / 5) * (5 - i));
+                    return (
+                      <text key={i} x="45" y={35 + i * 30} className="axis-label" textAnchor="end">{value}</text>
+                    );
+                  })}
+                  
+                  {buyingTrends.map((trend, index) => {
+                    if (index % Math.ceil(buyingTrends.length / 8) === 0 || index === buyingTrends.length - 1) {
+                      return (
+                        <text key={index} x={50 + (index * 370) / (buyingTrends.length - 1)} y="205" className="axis-label"
+                          textAnchor="middle" fontSize="9">{trend.week}</text>
+                      );
+                    }
+                    return null;
+                  })}
+                  
+                  <path d={buyingTrends.map((trend, index) => {
+                      const maxOrders = Math.max(...buyingTrends.map(t => t.orders));
+                      const x = 50 + (index * 370) / (buyingTrends.length - 1);
+                      const y = 180 - (trend.orders / maxOrders) * 150;
+                      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+                    }).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+                  
+                  <path d={buyingTrends.map((trend, index) => {
+                      const maxCustomers = Math.max(...buyingTrends.map(t => t.customers));
+                      const x = 50 + (index * 370) / (buyingTrends.length - 1);
+                      const y = 180 - (trend.customers / maxCustomers) * 150;
+                      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+                    }).join(' ')} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeDasharray="5 5" />
+                  
+                  {buyingTrends.map((trend, index) => {
+                    const maxOrders = Math.max(...buyingTrends.map(t => t.orders));
+                    const x = 50 + (index * 370) / (buyingTrends.length - 1);
+                    const y = 180 - (trend.orders / maxOrders) * 150;
+                    return (
+                      <circle key={`point-${index}`} cx={x} cy={y} r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
+                    );
+                  })}
+                  
+                  <g transform="translate(50, 15)">
+                    <rect x="0" y="0" width="12" height="3" fill="#3b82f6" />
+                    <text x="18" y="5" fontSize="10" fill="#64748b">Orders</text>
+                    <line x1="80" y1="2" x2="92" y2="2" stroke="#10b981" strokeWidth="2" strokeDasharray="3 3" />
+                    <text x="98" y="5" fontSize="10" fill="#64748b">Customers</text>
+                  </g>
+                </svg>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>No trends data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Regional Performance */}
+        <div className="analytics-card geo-distribution-card">
+          <div className="card-header">
+            <FaMapMarkedAlt className="card-icon" />
+            <h3>Regional Performance</h3>
+          </div>
+          <div className="chart-container">
+            {regionalLoading ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>Loading regional data...</p>
+              </div>
+            ) : regionalPerformance && regionalPerformance.length > 0 ? (
+              <div className="geo-distribution-list">
+                {regionalPerformance.slice(0, 10).map((region, index) => (
+                  <div key={index} className="geo-item">
+                    <div className="geo-item-header">
+                      <div className="geo-location-info">
+                        <div className="geo-location-marker" style={{ 
+                          background: `linear-gradient(135deg, ${['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#84cc16', '#ec4899', '#14b8a6'][index % 9]} 0%, ${['#7c3aed', '#0891b2', '#d97706', '#059669', '#dc2626', '#2563eb', '#65a30d', '#db2777', '#0d9488'][index % 9]} 100%)` 
+                        }}>
+                          <FaMapMarkedAlt />
+                        </div>
+                        <div className="geo-location-details">
+                          <h4 className="geo-location-name">{region.region}</h4>
+                          <div className="geo-location-stats">
+                            <span className="geo-stat-item">{region.orders} orders</span>
+                            <span className="geo-stat-separator">•</span>
+                            <span className="geo-stat-item">{region.customers} customers</span>
+                            <span className="geo-stat-separator">•</span>
+                            <span className="geo-stat-item" style={{ color: region.growth >= 0 ? '#10b981' : '#ef4444' }}>
+                              {region.growth >= 0 ? '+' : ''}{region.growth}% growth
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="geo-item-value">
+                        <span className="geo-revenue">₱{region.revenue.toLocaleString()}</span>
+                        <span className="geo-avg-order">Market Share: {region.marketShare}%</span>
+                      </div>
+                    </div>
+                    <div className="geo-progress-bar">
+                      <div className="geo-progress-fill" style={{ 
+                          width: `${region.marketShare}%`,
+                          background: `linear-gradient(90deg, ${['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#84cc16', '#ec4899', '#14b8a6'][index % 9]} 0%, ${['#7c3aed', '#0891b2', '#d97706', '#059669', '#dc2626', '#2563eb', '#65a30d', '#db2777', '#0d9488'][index % 9]} 100%)`
+                        }}>
+                        <span className="geo-percentage">{region.marketShare}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>No regional data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sales Forecast */}
+        <div className="analytics-card geo-distribution-card">
+          <div className="card-header">
+            <FaChartArea className="card-icon" />
+            <h3>Sales Forecast - Next 3 Months</h3>
+          </div>
+          <div className="chart-container">
+            {forecastLoading ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>Generating forecast...</p>
+              </div>
+            ) : salesForecast.combined && salesForecast.combined.length > 0 ? (
+              <div className="line-chart">
+                <svg viewBox="0 0 500 250" className="chart-svg">
+                  {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                    <line key={i} x1="60" y1={30 + i * 30} x2="480" y2={30 + i * 30} stroke="#e5e7eb" strokeWidth="1" strokeDasharray="3 3" />
+                  ))}
+                  
+                  {[0, 1, 2, 3, 4, 5, 6].map(i => {
+                    const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
+                    const value = Math.round((maxRevenue / 6) * (6 - i));
+                    return (
+                      <text key={i} x="55" y={35 + i * 30} className="axis-label" textAnchor="end">
+                        ₱{formatNumber(value)}
+                      </text>
+                    );
+                  })}
+                  
+                  {salesForecast.combined.map((item, index) => {
+                    if (index % 2 === 0 || index === salesForecast.combined.length - 1) {
+                      return (
+                        <text key={index} x={60 + (index * 420) / (salesForecast.combined.length - 1)} y="225"
+                          className="axis-label" textAnchor="middle" fontSize="9">{item.month.split(' ')[0]}</text>
+                      );
+                    }
+                    return null;
+                  })}
+                  
+                  {salesForecast.historical.length > 0 && (
+                    <path d={salesForecast.combined.filter(f => f.type === 'historical').map((item, index) => {
+                        const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
+                        const x = 60 + (index * 420) / (salesForecast.combined.length - 1);
+                        const y = 210 - (item.revenue / maxRevenue) * 180;
+                        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+                      }).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+                  )}
+                  
+                  {salesForecast.forecast.length > 0 && (
+                    <path d={[...salesForecast.historical.slice(-1), ...salesForecast.forecast].map((item, index) => {
+                        const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
+                        const actualIndex = salesForecast.historical.length - 1 + index;
+                        const x = 60 + (actualIndex * 420) / (salesForecast.combined.length - 1);
+                        const y = 210 - (item.revenue / maxRevenue) * 180;
+                        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+                      }).join(' ')} fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeDasharray="8 4" />
+                  )}
+                  
+                  {salesForecast.forecast.length > 0 && (
+                    <path d={`M ${60 + ((salesForecast.historical.length - 1) * 420) / (salesForecast.combined.length - 1)} 210 ` +
+                        [...salesForecast.historical.slice(-1), ...salesForecast.forecast].map((item, index) => {
+                          const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
+                          const actualIndex = salesForecast.historical.length - 1 + index;
+                          const x = 60 + (actualIndex * 420) / (salesForecast.combined.length - 1);
+                          const y = 210 - (item.revenue / maxRevenue) * 180;
+                          return `L ${x} ${y}`;
+                        }).join(' ') +
+                        ` L ${60 + ((salesForecast.combined.length - 1) * 420) / (salesForecast.combined.length - 1)} 210 Z`}
+                      fill="#10b981" fillOpacity="0.1" />
+                  )}
+                  
+                  {salesForecast.historical.map((item, index) => {
+                    const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
+                    const x = 60 + (index * 420) / (salesForecast.combined.length - 1);
+                    const y = 210 - (item.revenue / maxRevenue) * 180;
+                    return (
+                      <circle key={`hist-${index}`} cx={x} cy={y} r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
+                    );
+                  })}
+                  
+                  {salesForecast.forecast.map((item, index) => {
+                    const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
+                    const actualIndex = salesForecast.historical.length + index;
+                    const x = 60 + (actualIndex * 420) / (salesForecast.combined.length - 1);
+                    const y = 210 - (item.revenue / maxRevenue) * 180;
+                    return (
+                      <g key={`fore-${index}`}>
+                        <circle cx={x} cy={y} r="5" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+                        <text x={x} y={y - 12} fontSize="9" fill="#10b981" textAnchor="middle" fontWeight="600">
+                          {item.confidence}%
+                        </text>
+                      </g>
+                    );
+                  })}
+                  
+                  <g transform="translate(60, 15)">
+                    <rect x="0" y="0" width="16" height="3" fill="#3b82f6" />
+                    <text x="22" y="5" fontSize="10" fill="#64748b" fontWeight="500">Historical</text>
+                    <line x1="100" y1="2" x2="116" y2="2" stroke="#10b981" strokeWidth="3" strokeDasharray="6 3" />
+                    <text x="122" y="5" fontSize="10" fill="#64748b" fontWeight="500">Forecast</text>
+                  </g>
+                  
+                  <text x="25" y="125" className="axis-title" textAnchor="middle" transform="rotate(-90 25 125)">Revenue (₱)</text>
+                  <text x="270" y="243" className="axis-title" textAnchor="middle">Month</text>
+                </svg>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <p>No forecast data available</p>
               </div>
             )}
           </div>

@@ -1,14 +1,19 @@
-/* Shared dashboard typography and UI theme for Admin/Owner tabs */
+/* Premium Shared Dashboard Theme - YOHANNS SPORTSWEAR */
 
 :root {
-  --dash-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --dash-text: #0f172a;          /* slate-900 */
-  --dash-text-muted: #475569;    /* slate-600 */
-  --dash-border: #e5e7eb;        /* gray-200 */
-  --dash-card-bg: #ffffff;
-  --dash-surface: #f8fafc;       /* slate-50 */
-  --dash-primary: #1e3a8a;       /* blue-800 */
-  --dash-primary-2: #2563eb;     /* blue-600 */
+  --dash-font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --dash-text: #0f172a;          
+  --dash-text-muted: #64748b;    
+  --dash-border: #e5e7eb;        
+  --dash-card-bg: linear-gradient(135deg, #ffffff 0%, #fafbff 100%);
+  --dash-surface: #f8fafc;       
+  --dash-primary: #1e3a8a;       
+  --dash-primary-2: #2563eb;
+  --dash-gradient-start: #1e3a8a;
+  --dash-gradient-end: #2563eb;
+  --dash-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --dash-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --dash-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
 /* Base text styles for dashboard areas */
@@ -44,10 +49,30 @@
   font-family: var(--dash-font-family);
 }
 
-/* Card and table defaults */
-.dash-card { background: var(--dash-card-bg); border: 1px solid var(--dash-border); border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.06); }
-.dash-surface { background: var(--dash-surface); }
-.dash-divider { border-color: var(--dash-border); }
+/* Premium Card and Surface Styles */
+.dash-card { 
+  background: var(--dash-card-bg); 
+  border: 1px solid rgba(255, 255, 255, 0.8); 
+  border-radius: 16px; 
+  box-shadow: var(--dash-shadow-md); 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-card:hover {
+  box-shadow: var(--dash-shadow-lg);
+  transform: translateY(-2px);
+}
+
+.dash-surface { 
+  background: var(--dash-surface); 
+}
+
+.dash-divider { 
+  border-color: #f1f5f9;
+  border-width: 2px; 
+}
 
 /* Table typography */
 .dash-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }

@@ -116,9 +116,15 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     switch (status.toLowerCase()) {
       case 'pending': return 'status-pending';
       case 'confirmed': return 'status-confirmed';
+      case 'layout':
+      case 'sizing':
+      case 'printing':
+      case 'press':
+      case 'prod':
       case 'processing': return 'status-processing';
       case 'shipped': return 'status-shipped';
-      case 'delivered': return 'status-delivered';
+      case 'delivered': 
+      case 'picked_up_delivered': return 'status-delivered';
       case 'cancelled': return 'status-cancelled';
       default: return 'status-pending';
     }

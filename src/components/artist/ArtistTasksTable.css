@@ -232,6 +232,16 @@
   color: white;
 }
 
+.chat-btn {
+  background: #6366f1;
+  color: white;
+}
+
+.chat-btn:hover {
+  background: #4f46e5;
+  transform: scale(1.05);
+}
+
 /* Task Modal */
 .task-modal-overlay {
   position: fixed;

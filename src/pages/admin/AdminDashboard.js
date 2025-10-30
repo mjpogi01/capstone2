@@ -37,15 +37,11 @@ const AdminDashboard = () => {
           <div className="dashboard-content">
             <MetricsCards />
             <div className="dashboard-grid">
-              <div className="dashboard-left">
-                <EarningsChart />
-              </div>
-              <div className="dashboard-right">
-                <StocksTable />
-                <PopularProducts />
-              </div>
+              <EarningsChart />
+              <StocksTable />
+              <PopularProducts />
+              <RecentOrders />
             </div>
-            <RecentOrders />
           </div>
         );
       case 'orders':
@@ -57,15 +53,11 @@ const AdminDashboard = () => {
           <div className="dashboard-content">
             <MetricsCards />
             <div className="dashboard-grid">
-              <div className="dashboard-left">
-                <EarningsChart />
-              </div>
-              <div className="dashboard-right">
-                <StocksTable />
-                <PopularProducts />
-              </div>
+              <EarningsChart />
+              <StocksTable />
+              <PopularProducts />
+              <RecentOrders />
             </div>
-            <RecentOrders />
           </div>
         );
     }

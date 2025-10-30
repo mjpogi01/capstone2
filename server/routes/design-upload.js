@@ -71,11 +71,45 @@ router.post('/:orderId', authenticateSupabaseToken, requireAdminOrOwner, upload.
     console.log('🎨 Order ID:', orderId);
     console.log('🎨 Design files to save:', designFiles.length);
     
-    // Only update design files, not the status (status is managed by the workflow)
+    // Get current order status to validate transition
+    const { data: currentOrder, error: orderError } = await supabase
+      .from('orders')
+      .select('status, design_files')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError || !currentOrder) {
+      console.error('❌ Error fetching current order:', orderError);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    console.log('🎨 Current order status:', currentOrder.status);
+    console.log('🎨 Current design files count:', currentOrder.design_files?.length || 0);
+
+    // Check if user is an artist (only artists can upload designs and auto-move to sizing)
+    const userRole = requestingUser.user_metadata?.role || 'customer';
+    if (userRole !== 'artist') {
+      console.log('❌ Non-artist trying to upload design files:', userRole);
+      return res.status(403).json({ 
+        error: 'Only artists can upload design files',
+        requiredRole: 'artist',
+        currentRole: userRole
+      });
+    }
+
+    // Determine new status based on current status
+    let newStatus = currentOrder.status;
+    if (currentOrder.status === 'confirmed' || currentOrder.status === 'layout') {
+      newStatus = 'sizing';
+      console.log('🎨 Auto-moving order to sizing status after design upload');
+    }
+
+    // Update order with design files AND status
     const { data, error } = await supabase
       .from('orders')
       .update({
         design_files: designFiles,
+        status: newStatus,
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
@@ -96,12 +130,16 @@ router.post('/:orderId', authenticateSupabaseToken, requireAdminOrOwner, upload.
     }
 
     console.log(`Successfully uploaded ${designFiles.length} design files for order ${orderId}`);
+    console.log(`Order status changed from ${currentOrder.status} to ${newStatus}`);
 
     res.json({
       success: true,
-      message: 'Design files uploaded successfully',
+      message: `Design files uploaded successfully${newStatus !== currentOrder.status ? ` and order moved to ${newStatus} status` : ''}`,
       designFiles,
-      order: data[0]
+      order: data[0],
+      statusChanged: newStatus !== currentOrder.status,
+      previousStatus: currentOrder.status,
+      newStatus: newStatus
     });
 
   } catch (error) {

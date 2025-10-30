@@ -167,11 +167,20 @@ class OrderService {
 
   async updateOrderStatus(orderId, status) {
     try {
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
+
+      console.log('🔐 Updating order status with authentication token');
+
       // Use backend API to trigger email automation
       const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({ 
           status,

@@ -1,14 +1,13 @@
 /* ===================================
-   ADMIN DASHBOARD LAYOUT
-   With Left Sidebar Navigation
-   Optimized Grid & Spacing
-   Mobile Burger Menu
+   ADMIN DASHBOARD - Analytics Style
+   Clean, Data-Focused Design
    =================================== */
 
 .admin-dashboard {
   display: flex;
   min-height: 100vh;
   background: #f8fafc;
+  position: relative;
 }
 
 /* Mobile Header - Hidden on Desktop */
@@ -18,7 +17,7 @@
 
 .admin-main-content {
   flex: 1;
-  margin-left: 280px; /* Width of the sidebar */
+  margin-left: 280px;
   padding: 2rem;
   display: flex;
   flex-direction: column;
@@ -34,32 +33,16 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
   margin: 1.5rem 0;
   align-items: start;
 }
 
-.dashboard-left {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  min-height: 0;
+/* All cards take up 1 column by default */
+.dashboard-grid > * {
   width: 100%;
-}
-
-.dashboard-right {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  min-height: 0;
-  width: 100%;
-}
-
-/* Ensure cards fill their containers properly */
-.dashboard-left > *,
-.dashboard-right > * {
-  width: 100%;
+  min-width: 0;
 }
 
 /* Responsive Design */
@@ -69,7 +52,7 @@
   }
 
   .dashboard-grid {
-    grid-template-columns: 1fr 350px;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
   }
 }
@@ -82,7 +65,7 @@
   }
 
   .dashboard-grid {
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
   }
 }
@@ -96,11 +79,7 @@
 
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .dashboard-right {
-    max-width: 100%;
+    gap: 1.25rem;
   }
 }
 
@@ -186,11 +165,6 @@
     gap: 1.25rem;
     margin: 1rem 0;
   }
-
-  .dashboard-left,
-  .dashboard-right {
-    gap: 1.25rem;
-  }
 }
 
 @media (max-width: 480px) {
@@ -218,11 +192,6 @@
   .dashboard-grid {
     gap: 1rem;
     margin: 0.75rem 0;
-  }
-
-  .dashboard-left,
-  .dashboard-right {
-    gap: 1rem;
   }
 }
 
@@ -255,10 +224,5 @@
   .dashboard-grid {
     gap: 0.875rem;
     margin: 0.5rem 0;
-  }
-
-  .dashboard-left,
-  .dashboard-right {
-    gap: 0.875rem;
   }
 }

@@ -1,0 +1,781 @@
+/* Artist Chat Modal Styles */
+.artist-chat-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.artist-chat-modal {
+  background: #1a1a1a;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 800px;
+  height: 80vh;
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  animation: chatModalSlideIn 0.3s ease-out;
+}
+
+@keyframes chatModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.chat-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-radius: 16px 16px 0 0;
+}
+
+.chat-header-info h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chat-header-info p {
+  font-size: 0.875rem;
+  color: #a1a1aa;
+  margin: 0;
+}
+
+.artist-chat-close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #333;
+  color: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  border: 1px solid #444;
+}
+
+.artist-chat-close-btn:hover {
+  background: #444;
+  transform: scale(1.05);
+}
+
+/* Messages */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.artist-chat-loading-messages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  height: 100%;
+}
+
+.message {
+  display: flex;
+  margin-bottom: 0.5rem;
+}
+
+.message.sent {
+  justify-content: flex-end;
+}
+
+.message.received {
+  justify-content: flex-start;
+}
+
+.message-content {
+  max-width: 70%;
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #333;
+}
+
+.message.sent .message-content {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-color: #4f46e5;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.sender-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.message.sent .sender-name {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.message-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.message.sent .message-time {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.message-text {
+  color: #ffffff;
+  line-height: 1.6;
+  word-wrap: break-word;
+  font-size: 0.95rem;
+}
+
+.message-text strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.message.sent .message-text {
+  color: #ffffff;
+}
+
+/* Attachments */
+.message-attachments {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attachment {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.image-attachment {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.image-attachment img {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.image-attachment img:hover {
+  transform: scale(1.05);
+}
+
+.file-attachment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffffff;
+}
+
+.attachment-name {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  flex: 1;
+  word-break: break-all;
+}
+
+.download-link {
+  color: #60a5fa;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.download-link:hover {
+  color: #3b82f6;
+}
+
+/* Input */
+.chat-input {
+  padding: 1rem;
+  border-top: 1px solid #333;
+  background: #1a1a1a;
+  border-radius: 0 0 16px 16px;
+}
+
+.attachments-preview {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #333;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  font-size: 0.75rem;
+  color: #ffffff;
+}
+
+.attachment-preview img {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.attachment-preview span {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-attachment {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background 0.2s ease;
+}
+
+.remove-attachment:hover {
+  background: #dc2626;
+}
+
+.message-form {
+  width: 100%;
+}
+
+.artist-chat-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.attach-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: #333;
+  color: #a1a1aa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #444;
+  flex-shrink: 0;
+}
+
+.attach-btn:hover:not(:disabled) {
+  background: #444;
+  color: #ffffff;
+}
+
+.attach-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.message-input {
+  flex: 1;
+  height: 40px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #2a2a2a;
+  color: #ffffff;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.message-input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.message-input::placeholder {
+  color: #6b7280;
+}
+
+.send-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: #6366f1;
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.send-btn:hover:not(:disabled) {
+  background: #4f46e5;
+  transform: scale(1.05);
+}
+
+.send-btn:disabled {
+  background: #6b7280;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .artist-chat-modal {
+    max-width: 100%;
+    height: 90vh;
+    margin: 0.5rem;
+  }
+  
+  .chat-header {
+    padding: 1rem;
+  }
+  
+  .chat-messages {
+    padding: 0.75rem;
+  }
+  
+  .message-content {
+    max-width: 85%;
+  }
+  
+  .chat-input {
+    padding: 0.75rem;
+  }
+  
+  .input-group {
+    gap: 0.25rem;
+  }
+  
+  .attach-btn,
+  .send-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .message-input {
+    height: 36px;
+    padding: 0 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .artist-chat-modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .artist-chat-modal {
+    height: 95vh;
+    margin: 0;
+  }
+  
+  .chat-header {
+    padding: 0.75rem;
+  }
+  
+  .chat-header-info h3 {
+    font-size: 1rem;
+  }
+  
+  .chat-messages {
+    padding: 0.5rem;
+  }
+  
+  .message-content {
+    max-width: 90%;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .chat-input {
+    padding: 0.5rem;
+  }
+}
+
+/* Artist Review Section */
+.artist-review-section {
+  padding: 1rem;
+  border-bottom: 1px solid #333;
+  background: #1a1a1a;
+}
+
+.ask-review-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+}
+
+.ask-review-btn:hover {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.4);
+}
+
+.ask-review-btn:active {
+  transform: translateY(0);
+}
+
+/* Artist Review Modal */
+.artist-review-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.artist-review-modal {
+  background: #1a1a1a;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #333;
+}
+
+.artist-review-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+  background: #2a2a2a;
+}
+
+.artist-review-modal-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+}
+
+.artist-review-modal-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.artist-review-instructions {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.artist-review-instructions p {
+  margin: 0;
+  color: #a5b4fc;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.artist-review-file-upload {
+  margin-bottom: 1.5rem;
+}
+
+.artist-review-file-upload h4 {
+  margin: 0 0 1rem 0;
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.artist-file-upload-area {
+  border: 2px dashed #444;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background: #2a2a2a;
+  transition: all 0.2s ease;
+}
+
+.artist-file-upload-area:hover {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.upload-files-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
+}
+
+.upload-files-btn:hover:not(:disabled) {
+  background: #5b21b6;
+  transform: translateY(-1px);
+}
+
+.upload-files-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.upload-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #a1a1aa;
+}
+
+.artist-review-files-preview {
+  margin-top: 1rem;
+}
+
+.artist-review-files-preview h5 {
+  margin: 0 0 0.75rem 0;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.artist-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+}
+
+.artist-file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.artist-file-thumbnail {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.artist-file-icon {
+  width: 40px;
+  height: 40px;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.artist-file-name {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.remove-file-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-file-btn:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+.artist-review-notes h4 {
+  margin: 0 0 1rem 0;
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.artist-notes-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #2a2a2a;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 100px;
+  transition: all 0.2s ease;
+}
+
+.artist-notes-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.artist-review-modal-actions {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid #333;
+  background: #2a2a2a;
+}
+
+.artist-chat-cancel-btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: #1a1a1a;
+  color: #ffffff;
+  border: 1px solid #444;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.artist-chat-cancel-btn:hover {
+  background: #2a2a2a;
+  border-color: #666;
+}
+
+.submit-review-btn {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submit-review-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+}
+
+.submit-review-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Mobile Responsive for Artist Review Modal */
+@media (max-width: 768px) {
+  .artist-review-modal {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .artist-review-modal-content {
+    padding: 1rem;
+  }
+
+  .artist-file-upload-area {
+    padding: 1.5rem;
+  }
+
+  .artist-review-modal-actions {
+    flex-direction: column;
+  }
+
+  .artist-chat-cancel-btn,
+  .submit-review-btn {
+    flex: 1;
+  }
+}

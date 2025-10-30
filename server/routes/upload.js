@@ -4,6 +4,39 @@ const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middlewar
 
 const router = express.Router();
 
+// General upload endpoint for authenticated users (artists, customers, etc.)
+router.post('/', authenticateSupabaseToken, upload.single('file'), async (req, res) => {
+  try {
+    console.log('General upload request received:', {
+      file: req.file ? {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : 'No file',
+      user: req.user
+    });
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    // Upload to Cloudinary with general folder
+    const result = await uploadToCloudinary(req.file, 'yohanns-uploads');
+    
+    res.json({
+      success: true,
+      url: result.secure_url,
+      publicId: result.public_id
+    });
+  } catch (error) {
+    console.error('General upload error:', error);
+    res.status(500).json({ 
+      error: 'Failed to upload file',
+      details: error.message 
+    });
+  }
+});
+
 // Upload profile image (allows all authenticated users)
 router.post('/profile', authenticateSupabaseToken, upload.single('image'), async (req, res) => {
   try {

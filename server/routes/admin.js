@@ -325,6 +325,80 @@ router.get('/artists', requireAdminOrOwner, async (req, res) => {
   }
 });
 
+// Update artist information (owner only)
+router.put('/artists/:id', requireOwner, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { artist_name, email } = req.body;
+    
+    console.log('🔄 Updating artist with ID:', id);
+    console.log('📝 New data:', { artist_name, email });
+    
+    // Validate required fields
+    if (!artist_name || !email) {
+      return res.status(400).json({ error: 'Artist name and email are required' });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
+    // Check if email is already taken by another user
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError) {
+      console.error('Error checking existing users:', listError);
+      return res.status(500).json({ error: 'Failed to check existing users' });
+    }
+    
+    const emailTaken = existingUsers.users.find(user => 
+      user.email === email && user.id !== id
+    );
+    
+    if (emailTaken) {
+      return res.status(400).json({ error: 'Email is already taken by another user' });
+    }
+    
+    // Update user email in Supabase Auth
+    const { data: updateData, error: updateError } = await supabase.auth.admin.updateUserById(id, {
+      email: email
+    });
+    
+    if (updateError) {
+      console.error('Error updating user email:', updateError);
+      return res.status(500).json({ error: 'Failed to update user email' });
+    }
+    
+    // Update artist profile in database
+    const { data: profileData, error: profileError } = await supabase
+      .from('artist_profiles')
+      .update({ artist_name: artist_name })
+      .eq('user_id', id)
+      .select()
+      .single();
+    
+    if (profileError) {
+      console.error('Error updating artist profile:', profileError);
+      return res.status(500).json({ error: 'Failed to update artist profile' });
+    }
+    
+    console.log('✅ Artist updated successfully');
+    res.json({ 
+      message: 'Artist information updated successfully',
+      data: {
+        id: id,
+        artist_name: artist_name,
+        email: email
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error updating artist:', error);
+    res.status(500).json({ error: 'Failed to update artist information' });
+  }
+});
+
 // Delete artist account (admin or owner)
 router.delete('/artists/:id', requireAdminOrOwner, async (req, res) => {
   try {
