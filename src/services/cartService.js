@@ -45,6 +45,11 @@ class CartService {
           return null;
         }
         
+        // Extract teamName from team_members if available
+        const teamName = item.is_team_order && item.team_members && item.team_members.length > 0
+          ? (item.team_members[0]?.teamName || item.team_members[0]?.team_name || null)
+          : null;
+
         return {
           id: item.products.id,
           name: item.products.name,
@@ -56,6 +61,7 @@ class CartService {
           size: item.size,
           isTeamOrder: item.is_team_order,
           teamMembers: item.team_members,
+          teamName: teamName, // Extract team name from first team member
           singleOrderDetails: item.single_order_details,
           uniqueId: item.id, // Use database ID as unique identifier
           createdAt: item.created_at,

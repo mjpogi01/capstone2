@@ -469,6 +469,189 @@
   line-height: 1.5;
 }
 
+/* Expanded Order Details Styles */
+.team-order-details-expanded {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(11, 15, 25, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(99, 179, 237, 0.2);
+}
+
+.team-order-header-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #63b3ed;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(99, 179, 237, 0.2);
+}
+
+.team-order-teamname-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(99, 179, 237, 0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(99, 179, 237, 0.2);
+}
+
+.team-order-teamname-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.team-order-teamname-label {
+  color: #a0aec0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.8rem;
+}
+
+.team-order-teamname-value {
+  color: #63b3ed;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.team-order-icon {
+  font-size: 1.1rem;
+}
+
+.team-order-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.team-member-detail-item {
+  padding: 12px;
+  background: rgba(99, 179, 237, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(99, 179, 237, 0.15);
+}
+
+.member-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.875rem;
+}
+
+.member-detail-label {
+  color: #a0aec0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+}
+
+.member-detail-value {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.team-order-quantity-info {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(99, 179, 237, 0.2);
+  font-size: 0.875rem;
+  color: #cbd5e0;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-order-quantity-info .quantity-text {
+  color: #cbd5e0;
+  font-weight: 500;
+}
+
+.team-order-quantity-info .quantity-price {
+  color: #63b3ed;
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.team-order-no-members {
+  padding: 12px;
+  text-align: center;
+  color: #a0aec0;
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+/* Single Order Details Expanded */
+.single-order-details-expanded {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(11, 15, 25, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(99, 179, 237, 0.2);
+}
+
+.single-order-header-info {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #63b3ed;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(99, 179, 237, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.single-order-header-info .header-order-text {
+  color: #63b3ed;
+  font-weight: 600;
+}
+
+.single-order-header-info .header-price-text {
+  color: #63b3ed;
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.single-order-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 0.875rem;
+}
+
+.order-detail-label {
+  color: #a0aec0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+}
+
+.order-detail-value {
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .team-order-info {
   display: flex;
   align-items: center;

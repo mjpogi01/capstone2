@@ -26,11 +26,19 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [isTeamOrder, setIsTeamOrder] = useState(existingCartItemData?.isTeamOrder || false);
   const [teamMembers, setTeamMembers] = useState(
     existingCartItemData?.teamMembers && existingCartItemData.teamMembers.length > 0
-      ? existingCartItemData.teamMembers
-      : [{ id: Date.now(), teamName: '', surname: '', number: '', size: 'M' }]
+      ? existingCartItemData.teamMembers.map(member => ({
+          ...member,
+          id: member.id || Date.now() + Math.random(),
+          teamName: member.teamName || member.team_name || '',
+          surname: member.surname || '',
+          number: member.number || member.jerseyNo || member.jerseyNumber || '',
+          jerseySize: member.jerseySize || member.size || 'M',
+          shortsSize: member.shortsSize || member.size || 'M'
+        }))
+      : [{ id: Date.now(), teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' }]
   );
   const [teamName, setTeamName] = useState(existingCartItemData?.teamMembers?.[0]?.teamName || '');
-  const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
+  const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' });
   const [sizeType, setSizeType] = useState(existingCartItemData?.sizeType || 'adult'); // 'adult' or 'kids'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -97,9 +105,20 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setSelectedSize(existingCartItemData.size || 'M');
       setQuantity(existingCartItemData.quantity || 1);
       setIsTeamOrder(existingCartItemData.isTeamOrder || false);
-      setTeamMembers(existingCartItemData.teamMembers || []);
-      setTeamName(existingCartItemData.teamMembers?.[0]?.teamName || '');
-      setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', size: 'M' });
+      // Ensure each team member has all required fields with default values
+      const loadedTeamMembers = existingCartItemData.teamMembers || [];
+      const normalizedTeamMembers = loadedTeamMembers.map(member => ({
+        ...member,
+        id: member.id || Date.now() + Math.random(),
+        teamName: member.teamName || member.team_name || '',
+        surname: member.surname || '',
+        number: member.number || member.jerseyNo || member.jerseyNumber || '',
+        jerseySize: member.jerseySize || member.size || 'M',
+        shortsSize: member.shortsSize || member.size || 'M'
+      }));
+      setTeamMembers(normalizedTeamMembers.length > 0 ? normalizedTeamMembers : [{ id: Date.now(), teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' }]);
+      setTeamName(existingCartItemData.teamMembers?.[0]?.teamName || existingCartItemData.teamMembers?.[0]?.team_name || '');
+      setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' });
     }
   }, [isOpen, existingCartItemData]);
 
@@ -124,7 +143,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
   // Constants for sizes - defined before early return so hooks can use them
   const adultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  const kidsSizes = ['2XS', 'XS', 'S', 'M', 'L', 'XL'];
+  const kidsSizes = ['S6', 'S8', 'S10', 'S12', 'S14'];
   const trophySizes = Array.from({ length: 12 }, (_, i) => (i + 10).toString()); // 10 to 21 inches
   
   // Get available sizes from product, or fall back to default sizes
@@ -282,12 +301,22 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       // Calculate price based on size type
       const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
       
+      // Get team name from first member or main teamName state - preserve exact value
+      const finalTeamName = isTeamOrder && teamMembers.length > 0 
+        ? (teamMembers[0]?.teamName || teamName || '')
+        : null;
+
+      console.log('🛒 Final team name before adding to cart:', finalTeamName);
+      console.log('🛒 First member teamName:', teamMembers[0]?.teamName);
+      console.log('🛒 Main teamName state:', teamName);
+      console.log('🛒 All team members:', teamMembers);
+
       const cartOptions = {
         size: selectedSize,
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
-        teamName: isTeamOrder ? teamName : null, // Add teamName for team orders
+        teamName: finalTeamName, // Use team name from first member or main state - preserve exact case
         singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
         price: finalPrice, // Use discounted price for kids
@@ -534,20 +563,28 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
   const addTeamMember = () => {
     const newMember = {
-      id: Date.now(),
-      teamName: teamName,
+      id: Date.now() + Math.random(), // Ensure unique ID
+      teamName: teamName || '',
       surname: '',
       number: '',
-      size: 'M'
+      jerseySize: 'M',
+      shortsSize: 'M'
     };
     setTeamMembers([...teamMembers, newMember]);
-    console.log('✅ New team member row added');
+    console.log('✅ New team member row added with ID:', newMember.id);
   };
 
   const updateTeamMember = (index, field, value) => {
-    setTeamMembers(prev => prev.map((member, i) => 
-      i === index ? { ...member, [field]: value } : member
-    ));
+    setTeamMembers(prev => {
+      const updated = prev.map((member, i) => 
+        i === index ? { ...member, [field]: value } : member
+      );
+      if (field === 'surname') {
+        console.log(`📝 Updating surname for member ${index}:`, value);
+        console.log('📋 All member surnames:', updated.map((m, idx) => `Member ${idx}: "${m.surname}"`));
+      }
+      return updated;
+    });
   };
 
   const removeTeamMember = (id) => {
@@ -667,7 +704,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
                     onClick={() => {
                       setSizeType('adult');
-                      setSingleOrderDetails({...singleOrderDetails, size: 'M'});
+                      setSingleOrderDetails({...singleOrderDetails, jerseySize: 'M', shortsSize: 'M'});
                     }}
                   >
                     Adult
@@ -676,7 +713,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     className={`modal-size-type-button ${sizeType === 'kids' ? 'active' : ''}`}
                     onClick={() => {
                       setSizeType('kids');
-                      setSingleOrderDetails({...singleOrderDetails, size: 'M'});
+                      setSingleOrderDetails({...singleOrderDetails, jerseySize: 'M', shortsSize: 'M'});
                     }}
                   >
                     Kids
@@ -699,97 +736,120 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     <FaPlus />
                   </button>
                 </div>
-                
-                {/* Team Name Input */}
-                <div className="modal-team-name-section">
-                  <div className="modal-input-wrapper">
-                    <input
-                      type="text"
-                      placeholder="Team Name"
-                      value={teamName}
-                      onChange={(e) => {
-                        const newTeamName = e.target.value;
-                        setTeamName(newTeamName);
-                        // Update the first team member's teamName
-                        if (teamMembers.length > 0) {
-                          setTeamMembers(prev => prev.map((member, index) => 
-                            index === 0 ? { ...member, teamName: newTeamName } : member
-                          ));
-                        }
-                        if (validationErrors.teamName && newTeamName.trim()) {
-                          setValidationErrors({...validationErrors, teamName: ''});
-                        }
-                      }}
-                      className={`modal-team-name-input ${validationErrors.teamName ? 'error' : ''}`}
-                    />
-                    {validationErrors.teamName && (
-                      <span className="modal-error-message">{validationErrors.teamName}</span>
-                    )}
-                  </div>
-                </div>
 
                 {/* Team Members Roster - Multiple Input Rows */}
                 <div className="modal-members-roster">
                   {teamMembers.map((member, index) => (
-                    <div key={member.id} className="modal-member-row">
-                      <div className="modal-input-wrapper modal-member-wrapper">
-                        <input
-                          type="text"
-                          placeholder="Surname"
-                          value={member.surname}
-                          onChange={(e) => {
-                            updateTeamMember(index, 'surname', e.target.value);
-                            if (validationErrors[`teamMember_${index}_surname`]) {
-                              const newErrors = {...validationErrors};
-                              delete newErrors[`teamMember_${index}_surname`];
-                              setValidationErrors(newErrors);
-                            }
-                          }}
-                          className={`modal-member-input ${validationErrors[`teamMember_${index}_surname`] ? 'error' : ''}`}
-                        />
-                        {validationErrors[`teamMember_${index}_surname`] && (
-                          <span className="modal-error-message">{validationErrors[`teamMember_${index}_surname`]}</span>
+                    <div key={member.id} className="team-order-form-card">
+                      {/* Row 1: Team Name Only */}
+                      <div className="team-order-form-row-1">
+                        <div className="team-order-form-input-wrapper team-order-form-teamname-wrapper">
+                          <input
+                            type="text"
+                            placeholder="TEAM NAME"
+                            value={member.teamName || teamName}
+                            onChange={(e) => {
+                              const newTeamName = e.target.value; // Preserve exact input value
+                              console.log('📝 Team name input changed:', newTeamName);
+                              updateTeamMember(index, 'teamName', newTeamName);
+                              // Update the main team name to match the first member's team name
+                              // If this is the first member, or if all members should share the same team name
+                              if (index === 0 || teamMembers.length === 1) {
+                                setTeamName(newTeamName);
+                                console.log('📝 Updated main teamName state:', newTeamName);
+                              }
+                              // If this is not the first member, update first member's teamName too
+                              if (index !== 0 && teamMembers.length > 0) {
+                                updateTeamMember(0, 'teamName', newTeamName);
+                                setTeamName(newTeamName);
+                                console.log('📝 Updated first member and main teamName:', newTeamName);
+                              }
+                            }}
+                            className="team-order-form-input team-order-form-teamname-input"
+                          />
+                        </div>
+                        {teamMembers.length > 1 && (
+                          <button 
+                            type="button"
+                            className="team-order-form-remove-btn"
+                            onClick={() => removeTeamMember(member.id)}
+                            title="Remove Team Member"
+                          >
+                            <FaTrash />
+                          </button>
                         )}
                       </div>
-                      <div className="modal-input-wrapper modal-member-wrapper">
-                        <input
-                          type="text"
-                          placeholder="#"
-                          value={member.number}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^\d]/g, '');
-                            updateTeamMember(index, 'number', value);
-                            if (validationErrors[`teamMember_${index}_number`]) {
-                              const newErrors = {...validationErrors};
-                              delete newErrors[`teamMember_${index}_number`];
-                              setValidationErrors(newErrors);
-                            }
-                          }}
-                          className={`modal-member-input number-input ${validationErrors[`teamMember_${index}_number`] ? 'error' : ''}`}
-                        />
-                        {validationErrors[`teamMember_${index}_number`] && (
-                          <span className="modal-error-message">{validationErrors[`teamMember_${index}_number`]}</span>
-                        )}
+                      
+                      {/* Row 2: Jersey No. and Surname */}
+                      <div className="team-order-form-row-2">
+                        <div className="team-order-form-input-wrapper team-order-form-jerseyno-wrapper">
+                          <input
+                            type="text"
+                            placeholder="JERSEY NO."
+                            value={member.number}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^\d]/g, '');
+                              updateTeamMember(index, 'number', value);
+                              if (validationErrors[`teamMember_${index}_number`]) {
+                                const newErrors = {...validationErrors};
+                                delete newErrors[`teamMember_${index}_number`];
+                                setValidationErrors(newErrors);
+                              }
+                            }}
+                            className={`team-order-form-input team-order-form-jerseyno-input ${validationErrors[`teamMember_${index}_number`] ? 'error' : ''}`}
+                          />
+                          {validationErrors[`teamMember_${index}_number`] && (
+                            <span className="team-order-form-error-message">{validationErrors[`teamMember_${index}_number`]}</span>
+                          )}
+                        </div>
+                        <div className="team-order-form-input-wrapper team-order-form-surname-wrapper">
+                          <input
+                            type="text"
+                            placeholder="SURNAME"
+                            value={member.surname || ''}
+                            onChange={(e) => {
+                              updateTeamMember(index, 'surname', e.target.value);
+                              if (validationErrors[`teamMember_${index}_surname`]) {
+                                const newErrors = {...validationErrors};
+                                delete newErrors[`teamMember_${index}_surname`];
+                                setValidationErrors(newErrors);
+                              }
+                            }}
+                            className={`team-order-form-input team-order-form-surname-input ${validationErrors[`teamMember_${index}_surname`] ? 'error' : ''}`}
+                          />
+                          {validationErrors[`teamMember_${index}_surname`] && (
+                            <span className="team-order-form-error-message">{validationErrors[`teamMember_${index}_surname`]}</span>
+                          )}
+                        </div>
                       </div>
-                      <select
-                        value={member.size}
-                        onChange={(e) => updateTeamMember(index, 'size', e.target.value)}
-                        className="modal-member-select"
-                      >
-                        {sizes.map(size => (
-                          <option key={size} value={size}>{size}</option>
-                        ))}
-                      </select>
-                      {teamMembers.length > 1 && (
-                        <button 
-                          type="button"
-                          className="modal-remove-member-button"
-                          onClick={() => removeTeamMember(member.id)}
-                          title="Remove Team Member"
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
+                      
+                      {/* Row 3: Jersey Size and Shorts Size Dropdowns */}
+                      <div className="team-order-form-row-3">
+                        <div className="team-order-form-size-wrapper team-order-form-jerseysize-wrapper">
+                          <label className="team-order-form-size-label">JERSEY SIZE</label>
+                          <select
+                            value={member.jerseySize || member.size || 'M'}
+                            onChange={(e) => updateTeamMember(index, 'jerseySize', e.target.value)}
+                            className="team-order-form-select team-order-form-jerseysize-select"
+                          >
+                            {sizes.map(size => (
+                              <option key={size} value={size}>{size}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="team-order-form-size-wrapper team-order-form-shortssize-wrapper">
+                          <label className="team-order-form-size-label">SHORTS SIZE</label>
+                          <select
+                            value={member.shortsSize || member.size || 'M'}
+                            onChange={(e) => updateTeamMember(index, 'shortsSize', e.target.value)}
+                            className="team-order-form-select team-order-form-shortssize-select"
+                          >
+                            {sizes.map(size => (
+                              <option key={size} value={size}>{size}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -805,7 +865,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
                     onClick={() => {
                       setSizeType('adult');
-                      setSingleOrderDetails({...singleOrderDetails, size: 'M'});
+                      setSingleOrderDetails({...singleOrderDetails, jerseySize: 'M', shortsSize: 'M'});
                     }}
                   >
                     Adult
@@ -814,7 +874,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     className={`modal-size-type-button ${sizeType === 'kids' ? 'active' : ''}`}
                     onClick={() => {
                       setSizeType('kids');
-                      setSingleOrderDetails({...singleOrderDetails, size: 'M'});
+                      setSingleOrderDetails({...singleOrderDetails, jerseySize: 'M', shortsSize: 'M'});
                     }}
                   >
                     Kids
@@ -825,79 +885,104 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
             {/* Single Order Form - Only for Apparel */}
             {isApparel && !isTeamOrder && (
-              <div className="modal-single-order-section">
-                <div className="modal-single-order-label">Order Details</div>
-                <div className="modal-single-order-form">
-                  <div className="modal-input-wrapper">
-                    <input
-                      type="text"
-                      placeholder="Team Name"
-                      value={singleOrderDetails.teamName}
-                      onChange={(e) => {
-                        setSingleOrderDetails({...singleOrderDetails, teamName: e.target.value});
-                        if (validationErrors.singleTeamName) {
-                          setValidationErrors({...validationErrors, singleTeamName: ''});
-                        }
-                      }}
-                      className={`modal-single-order-input ${validationErrors.singleTeamName ? 'error' : ''}`}
-                    />
-                    {validationErrors.singleTeamName && (
-                      <span className="modal-error-message">{validationErrors.singleTeamName}</span>
-                    )}
+              <div className="single-order-form-section">
+                <div className="single-order-form-card">
+                  {/* Row 1: Team Name Only */}
+                  <div className="single-order-form-row-1">
+                    <div className="single-order-form-input-wrapper single-order-form-teamname-wrapper">
+                      <input
+                        type="text"
+                        placeholder="TEAM NAME"
+                        value={singleOrderDetails.teamName}
+                        onChange={(e) => {
+                          setSingleOrderDetails({...singleOrderDetails, teamName: e.target.value});
+                          if (validationErrors.singleTeamName) {
+                            setValidationErrors({...validationErrors, singleTeamName: ''});
+                          }
+                        }}
+                        className={`single-order-form-input single-order-form-teamname-input ${validationErrors.singleTeamName ? 'error' : ''}`}
+                      />
+                      {validationErrors.singleTeamName && (
+                        <span className="single-order-form-error-message">{validationErrors.singleTeamName}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="modal-input-wrapper">
-                    <input
-                      type="text"
-                      placeholder="Surname"
-                      value={singleOrderDetails.surname}
-                      onChange={(e) => {
-                        setSingleOrderDetails({...singleOrderDetails, surname: e.target.value});
-                        if (validationErrors.singleSurname) {
-                          setValidationErrors({...validationErrors, singleSurname: ''});
-                        }
-                      }}
-                      className={`modal-single-order-input ${validationErrors.singleSurname ? 'error' : ''}`}
-                    />
-                    {validationErrors.singleSurname && (
-                      <span className="modal-error-message">{validationErrors.singleSurname}</span>
-                    )}
+                  
+                  {/* Row 2: Jersey No. and Surname */}
+                  <div className="single-order-form-row-2">
+                    <div className="single-order-form-input-wrapper single-order-form-jerseyno-wrapper">
+                      <input
+                        type="text"
+                        placeholder="JERSEY NO."
+                        value={singleOrderDetails.number}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          // Check if user tried to enter non-numeric characters
+                          if (inputValue && /[^\d]/.test(inputValue)) {
+                            setValidationErrors({...validationErrors, singleNumber: 'Numbers only'});
+                          } else if (validationErrors.singleNumber === 'Numbers only') {
+                            setValidationErrors({...validationErrors, singleNumber: ''});
+                          }
+                          // Only allow numbers
+                          const value = inputValue.replace(/[^\d]/g, '');
+                          setSingleOrderDetails({...singleOrderDetails, number: value});
+                          // Clear required error when typing
+                          if (validationErrors.singleNumber === 'Required' && value) {
+                            setValidationErrors({...validationErrors, singleNumber: ''});
+                          }
+                        }}
+                        className={`single-order-form-input single-order-form-jerseyno-input ${validationErrors.singleNumber ? 'error' : ''}`}
+                      />
+                      {validationErrors.singleNumber && (
+                        <span className="single-order-form-error-message">{validationErrors.singleNumber}</span>
+                      )}
+                    </div>
+                    <div className="single-order-form-input-wrapper single-order-form-surname-wrapper">
+                      <input
+                        type="text"
+                        placeholder="SURNAME"
+                        value={singleOrderDetails.surname}
+                        onChange={(e) => {
+                          setSingleOrderDetails({...singleOrderDetails, surname: e.target.value});
+                          if (validationErrors.singleSurname) {
+                            setValidationErrors({...validationErrors, singleSurname: ''});
+                          }
+                        }}
+                        className={`single-order-form-input single-order-form-surname-input ${validationErrors.singleSurname ? 'error' : ''}`}
+                      />
+                      {validationErrors.singleSurname && (
+                        <span className="single-order-form-error-message">{validationErrors.singleSurname}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="modal-input-wrapper">
-                    <input
-                      type="text"
-                      placeholder="Number"
-                      value={singleOrderDetails.number}
-                      onChange={(e) => {
-                        const inputValue = e.target.value;
-                        // Check if user tried to enter non-numeric characters
-                        if (inputValue && /[^\d]/.test(inputValue)) {
-                          setValidationErrors({...validationErrors, singleNumber: 'Numbers only'});
-                        } else if (validationErrors.singleNumber === 'Numbers only') {
-                          setValidationErrors({...validationErrors, singleNumber: ''});
-                        }
-                        // Only allow numbers
-                        const value = inputValue.replace(/[^\d]/g, '');
-                        setSingleOrderDetails({...singleOrderDetails, number: value});
-                        // Clear required error when typing
-                        if (validationErrors.singleNumber === 'Required' && value) {
-                          setValidationErrors({...validationErrors, singleNumber: ''});
-                        }
-                      }}
-                      className={`modal-single-order-input ${validationErrors.singleNumber ? 'error' : ''}`}
-                    />
-                    {validationErrors.singleNumber && (
-                      <span className="modal-error-message">{validationErrors.singleNumber}</span>
-                    )}
+                  
+                  {/* Row 3: Jersey Size and Shorts Size Dropdowns */}
+                  <div className="single-order-form-row-3">
+                    <div className="single-order-form-size-wrapper single-order-form-jerseysize-wrapper">
+                      <label className="single-order-form-size-label">JERSEY SIZE</label>
+                      <select
+                        value={singleOrderDetails.jerseySize || singleOrderDetails.size || 'M'}
+                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, jerseySize: e.target.value})}
+                        className="single-order-form-select single-order-form-jerseysize-select"
+                      >
+                        {sizes.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="single-order-form-size-wrapper single-order-form-shortssize-wrapper">
+                      <label className="single-order-form-size-label">SHORTS SIZE</label>
+                      <select
+                        value={singleOrderDetails.shortsSize || singleOrderDetails.size || 'M'}
+                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, shortsSize: e.target.value})}
+                        className="single-order-form-select single-order-form-shortssize-select"
+                      >
+                        {sizes.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <select
-                    value={singleOrderDetails.size}
-                    onChange={(e) => setSingleOrderDetails({...singleOrderDetails, size: e.target.value})}
-                    className="modal-single-order-select"
-                  >
-                    {sizes.map(size => (
-                      <option key={size} value={size}>{size}</option>
-                    ))}
-                  </select>
                 </div>
               </div>
             )}

@@ -56,7 +56,7 @@ Accessories ........................ 10%
 - **Adult Upper Only**: ₱650
 
 #### Sizing Options
-- **Kids**: XS, S, M, L
+- **Kids**: S6, S8, S10, S12, S14
 - **Adult**: S, M, L, XL, XXL
 
 ### Team Orders

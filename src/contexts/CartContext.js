@@ -72,9 +72,13 @@ export const CartProvider = ({ children }) => {
       quantity = 1,
       isTeamOrder = false,
       teamMembers = null,
+      teamName = null,
       singleOrderDetails = null,
       isReplacement = false // New flag to indicate if this is replacing an existing item
     } = options;
+
+    // Get teamName from options, or from first team member, or from main teamName state
+    const finalTeamName = teamName || (teamMembers && teamMembers.length > 0 ? (teamMembers[0]?.teamName || teamMembers[0]?.team_name) : null);
 
     const cartItem = {
       id: product.id,
@@ -85,6 +89,7 @@ export const CartProvider = ({ children }) => {
       quantity,
       isTeamOrder,
       teamMembers: isTeamOrder ? teamMembers : null,
+      teamName: isTeamOrder ? finalTeamName : null,
       singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
       addedAt: new Date().toISOString(),
       uniqueId: Date.now() + Math.random() // Generate a simple unique ID

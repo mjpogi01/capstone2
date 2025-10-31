@@ -17,6 +17,9 @@ const branches = [
   { id: 'lipa', name: 'LIPA BRANCH', address: 'Lipa City, Batangas' },
 ];
 
+const adultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+const kidsSizes = ['S6', 'S8', 'S10', 'S12', 'S14'];
+
 const initialMember = { number: '', surname: '', size: '', sizingType: 'adults' };
 
 export default function CustomDesignFormModal({ isOpen, onClose }) {
@@ -107,7 +110,16 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   };
   
   const updateMember = (index, field, value) => {
-    setMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
+    setMembers(prev => prev.map((m, i) => {
+      if (i === index) {
+        // Clear size when switching sizing type
+        if (field === 'sizingType') {
+          return { ...m, [field]: value, size: '' };
+        }
+        return { ...m, [field]: value };
+      }
+      return m;
+    }));
   };
 
   const resetForm = () => {
@@ -456,13 +468,9 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                         }}
                       >
                         <option value="">Select Size</option>
-                        <option value="XS">XS</option>
-                        <option value="S">S</option>
-                        <option value="M">M</option>
-                        <option value="L">L</option>
-                        <option value="XL">XL</option>
-                        <option value="XXL">XXL</option>
-                        <option value="XXXL">XXXL</option>
+                        {(m.sizingType === 'kids' ? kidsSizes : adultSizes).map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
                       </select>
                       {showErrors && errors[`member_size_${idx}`] && <span className="cdfm-inline-error">{errors[`member_size_${idx}`]}</span>}
                     </div>

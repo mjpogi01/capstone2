@@ -40,7 +40,7 @@ const branches = [
 ];
 
 const sizes = {
-  kids: ['XS', 'S', 'M', 'L'],
+  kids: ['S6', 'S8', 'S10', 'S12', 'S14'],
   adult: ['S', 'M', 'L', 'XL', 'XXL']
 };
 
@@ -122,7 +122,7 @@ function generateSingleOrder(date) {
       });
     }
     
-    const isKidsSizeFirst = players[0].size === 'XS' || players[0].size === 'S';
+    const isKidsSizeFirst = sizes.kids.includes(players[0].size);
     const pricePerUnit = isFullSet 
       ? (isKidsSizeFirst ? shirtPrices.sublimation.kids : shirtPrices.sublimation.adult)
       : (isKidsSizeFirst ? shirtPrices.sublimation.upper_kids : shirtPrices.sublimation.upper_adult);

@@ -443,7 +443,8 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                             <div key={memberIndex} className="custom-design-member">
                                               <span className="member-number">#{member.number}</span>
                                               <span className="member-surname">{member.surname}</span>
-                                              <span className="member-size">Size: {member.size}</span>
+                                              <span className="member-size">Jersey: {member.jerseySize || member.size || 'N/A'}</span>
+                                              <span className="member-size">Shorts: {member.shortsSize || member.size || 'N/A'}</span>
                                               <span className="member-sizing-type">({member.sizingType})</span>
                                             </div>
                                           ))}
@@ -497,23 +498,94 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                       {/* For Apparel (Jerseys, T-shirts, etc.) */}
                                       {isApparel && (
                                         <div className="item-details">
-                                          Size: {item.size} | Qty: {item.quantity}
-                                          {item.isTeamOrder && (
-                                            <div className="team-order-info">
-                                              <FaUsers /> Team Order: {item.teamName}
+                                          {item.isTeamOrder ? (
+                                            <div className="team-order-details-expanded">
+                                              <div className="team-order-header-info">
+                                                <FaUsers className="team-order-icon" /> Team Order
+                                              </div>
+                                              <div className="team-order-teamname-section">
+                                                <div className="team-order-teamname-row">
+                                                  <span className="team-order-teamname-label">Team Name:</span>
+                                                  <span className="team-order-teamname-value">{item.teamName || item.team_name || item.teamMembers?.[0]?.teamName || item.teamMembers?.[0]?.team_name || 'N/A'}</span>
+                                                </div>
+                                              </div>
+                                              <div className="team-order-members-list">
+                                                {item.teamMembers && item.teamMembers.length > 0 ? (
+                                                  item.teamMembers.map((member, memberIndex) => (
+                                                    <div key={memberIndex} className="team-member-detail-item">
+                                                      <div className="member-detail-row">
+                                                        <span className="member-detail-label">Surname:</span>
+                                                        <span className="member-detail-value">{member.surname || 'N/A'}</span>
+                                                      </div>
+                                                      <div className="member-detail-row">
+                                                        <span className="member-detail-label">Jersey #:</span>
+                                                        <span className="member-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                                      </div>
+                                                      <div className="member-detail-row">
+                                                        <span className="member-detail-label">Jersey Size:</span>
+                                                        <span className="member-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
+                                                      </div>
+                                                      <div className="member-detail-row">
+                                                        <span className="member-detail-label">Shorts Size:</span>
+                                                        <span className="member-detail-value">{member.shortsSize || member.size || 'N/A'}</span>
+                                                      </div>
+                                                      {member.sizingType || item.sizeType ? (
+                                                        <div className="member-detail-row">
+                                                          <span className="member-detail-label">Type:</span>
+                                                          <span className="member-detail-value">{member.sizingType || item.sizeType || 'Adult'}</span>
+                                                        </div>
+                                                      ) : null}
+                                                    </div>
+                                                  ))
+                                                ) : (
+                                                  <div className="team-order-no-members">No team members found</div>
+                                                )}
+                                              </div>
+                                              <div className="team-order-quantity-info">
+                                                <span className="quantity-text">Quantity: {item.quantity}</span>
+                                                <span className="quantity-price">₱{(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                              </div>
                                             </div>
-                                          )}
-                                          {!item.isTeamOrder && item.singleOrderDetails && (
-                                            <div className="single-order-info">
-                                              {item.singleOrderDetails.teamName && (
-                                                <div>Team: {item.singleOrderDetails.teamName}</div>
-                                              )}
-                                              {item.singleOrderDetails.surname && (
-                                                <div>Surname: {item.singleOrderDetails.surname}</div>
-                                              )}
-                                              {item.singleOrderDetails.number && (
-                                                <div>Number: {item.singleOrderDetails.number}</div>
-                                              )}
+                                          ) : (
+                                            <div className="single-order-details-expanded">
+                                              <div className="single-order-header-info">
+                                                <span className="header-order-text">Single Order | Qty: {item.quantity}</span>
+                                                <span className="header-price-text">₱{(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                              </div>
+                                              <div className="single-order-details-list">
+                                                {item.singleOrderDetails?.teamName && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Team Name:</span>
+                                                    <span className="order-detail-value">{item.singleOrderDetails.teamName}</span>
+                                                  </div>
+                                                )}
+                                                {item.singleOrderDetails?.surname && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Surname:</span>
+                                                    <span className="order-detail-value">{item.singleOrderDetails.surname}</span>
+                                                  </div>
+                                                )}
+                                                {item.singleOrderDetails?.number && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Jersey #:</span>
+                                                    <span className="order-detail-value">{item.singleOrderDetails.number || item.singleOrderDetails.jerseyNo || item.singleOrderDetails.jerseyNumber || 'N/A'}</span>
+                                                  </div>
+                                                )}
+                                                <div className="order-detail-row">
+                                                  <span className="order-detail-label">Jersey Size:</span>
+                                                  <span className="order-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'}</span>
+                                                </div>
+                                                <div className="order-detail-row">
+                                                  <span className="order-detail-label">Shorts Size:</span>
+                                                  <span className="order-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || item.size || 'N/A'}</span>
+                                                </div>
+                                                {(item.singleOrderDetails?.sizingType || item.sizeType) && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Type:</span>
+                                                    <span className="order-detail-value">{item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'}</span>
+                                                  </div>
+                                                )}
+                                              </div>
                                             </div>
                                           )}
                                         </div>
@@ -599,7 +671,9 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                         </div>
                                       )}
                                     </div>
-                                    <div className="item-price">₱{(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                                    {!isApparel && (
+                                      <div className="item-price">₱{(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                                    )}
                                   </>
                                 )}
                               </div>

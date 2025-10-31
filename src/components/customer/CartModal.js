@@ -249,8 +249,12 @@ const CartModal = () => {
                                                 <span className="mycart-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
                                               </div>
                                               <div className="mycart-detail-line">
-                                                <span className="mycart-detail-label">Size:</span>
-                                                <span className="mycart-detail-value">{member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                                <span className="mycart-detail-label">Jersey Size:</span>
+                                                <span className="mycart-detail-value">{member.jerseySize || member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                              </div>
+                                              <div className="mycart-detail-line">
+                                                <span className="mycart-detail-label">Shorts Size:</span>
+                                                <span className="mycart-detail-value">{member.shortsSize || member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                               </div>
                                             </div>
                                           ))}
@@ -272,8 +276,12 @@ const CartModal = () => {
                                           <span className="mycart-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                         </div>
                                         <div className="mycart-detail-line">
-                                          <span className="mycart-detail-label">Size:</span>
-                                          <span className="mycart-detail-value">{item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                          <span className="mycart-detail-label">Jersey Size:</span>
+                                          <span className="mycart-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                        </div>
+                                        <div className="mycart-detail-line">
+                                          <span className="mycart-detail-label">Shorts Size:</span>
+                                          <span className="mycart-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                         </div>
                                       </div>
                                     ) : isTrophy ? (

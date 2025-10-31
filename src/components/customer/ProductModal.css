@@ -401,71 +401,412 @@
   background: #444;
 }
 
-.modal-member-row {
+/* Team Order Form - Unique Class Names */
+.team-order-form-card {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  flex-direction: column;
+  gap: 16px;
   animation: slideIn 0.3s ease-out;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 191, 255, 0.3);
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.modal-member-row .modal-member-wrapper {
+/* Row 1: Team Name Only */
+.team-order-form-row-1 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.team-order-form-teamname-wrapper {
   flex: 1;
-}
-
-.modal-member-row .modal-member-wrapper:first-child {
-  flex: 2;
-}
-
-.modal-member-row .modal-member-select {
-  width: 100px;
-  flex-shrink: 0;
-}
-
-.modal-member-row .modal-remove-member-button {
-  flex-shrink: 0;
-}
-
-.modal-member-input {
-  background: #2a2a3e;
-  border: 2px solid #555;
-  border-radius: 6px;
-  padding: 10px 12px;
-  color: #fff;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
   width: 100%;
-  height: 100%;
+  min-width: 0;
 }
 
-.modal-member-input:focus {
-  outline: none;
-  border-color: #00bfff;
-  box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.2);
+.team-order-form-teamname-input {
+  width: 100%;
 }
 
-.modal-member-input::placeholder {
-  color: #a0aec0;
+/* Row 2: Jersey No. and Surname */
+.team-order-form-row-2 {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
 }
 
-.modal-member-input.number-input { min-width: 0; }
+.team-order-form-jerseyno-wrapper {
+  flex: 1;
+  min-width: 0;
+}
 
-.modal-member-select {
-  background: #2a2a3e;
-  border: 2px solid #555;
-  border-radius: 6px;
-  padding: 10px 12px;
+.team-order-form-surname-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Row 3: Jersey Size and Shorts Size */
+.team-order-form-row-3 {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.team-order-form-jerseysize-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-order-form-shortssize-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-order-form-remove-btn {
+  flex-shrink: 0;
+  background: #ff4444;
   color: #fff;
-  font-size: 0.9rem;
+  border: none;
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  width: 100%;
-  height: 100%;
+  transition: all 0.2s ease;
 }
 
-.modal-member-select:focus {
-  outline: none;
-  border-color: #00bfff;
-  box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.2);
+.team-order-form-remove-btn:hover {
+  background: #cc3333;
+  transform: scale(1.05);
+}
+
+/* Team Order Form Inputs - Unique Styles with Higher Specificity */
+.team-order-form-card .team-order-form-input-wrapper .team-order-form-input {
+  background: rgba(26, 26, 46, 0.8) !important;
+  border: 2px solid #00bfff !important;
+  border-radius: 8px !important;
+  padding: 14px 18px !important;
+  color: #ffffff !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  font-family: sans-serif !important;
+  transition: all 0.3s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  text-transform: none !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Make team name input preserve exact case */
+.team-order-form-card .team-order-form-teamname-wrapper .team-order-form-input {
+  text-transform: none !important;
+}
+
+.team-order-form-card .team-order-form-input-wrapper .team-order-form-input:focus {
+  outline: none !important;
+  border-color: #00bfff !important;
+  box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.3) !important;
+  background: rgba(26, 26, 46, 0.95) !important;
+}
+
+.team-order-form-card .team-order-form-input-wrapper .team-order-form-input::placeholder {
+  color: #a0aec0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  font-weight: 500 !important;
+  font-family: sans-serif !important;
+}
+
+/* All inputs preserve exact input case - consistent styling */
+.team-order-form-card .team-order-form-input-wrapper .team-order-form-input,
+.team-order-form-card .team-order-form-jerseyno-wrapper .team-order-form-input,
+.team-order-form-card .team-order-form-surname-wrapper .team-order-form-input,
+.team-order-form-card .team-order-form-teamname-wrapper .team-order-form-input {
+  text-transform: none !important;
+}
+
+.team-order-form-card .team-order-form-input-wrapper .team-order-form-input.error {
+  border-color: #ff4444 !important;
+  background: rgba(255, 68, 68, 0.1) !important;
+}
+
+/* Team Order Form Selects - Unique Styles with Higher Specificity */
+.team-order-form-card .team-order-form-size-wrapper .team-order-form-select {
+  background: rgba(26, 26, 46, 0.8) !important;
+  border: 2px solid #00bfff !important;
+  border-radius: 8px !important;
+  padding: 14px 18px !important;
+  padding-right: 45px !important;
+  color: #ffffff !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  font-family: sans-serif !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0aec0' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 18px center !important;
+  background-size: 12px !important;
+}
+
+.team-order-form-card .team-order-form-size-wrapper .team-order-form-select:focus {
+  outline: none !important;
+  border-color: #00bfff !important;
+  box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.3) !important;
+  background-color: rgba(26, 26, 46, 0.95) !important;
+}
+
+.team-order-form-card .team-order-form-size-wrapper .team-order-form-select option {
+  background: #1a1a2e !important;
+  color: #ffffff !important;
+  padding: 10px !important;
+}
+
+/* Team Order Form Labels */
+.team-order-form-card .team-order-form-size-label {
+  display: block !important;
+  color: #ffffff !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  font-family: sans-serif !important;
+}
+
+/* Team Order Form Wrappers */
+.team-order-form-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.team-order-form-size-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Team Order Form Error Messages */
+.team-order-form-error-message {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  font-size: 0.75rem;
+  color: #ff4444;
+  margin-top: 4px;
+}
+
+/* Single Order Form - Unique Class Names */
+.single-order-form-section {
+  margin-bottom: 15px;
+}
+
+.single-order-form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 191, 255, 0.3);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Row 1: Team Name Only */
+.single-order-form-row-1 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.single-order-form-teamname-wrapper {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Row 2: Jersey No. and Surname */
+.single-order-form-row-2 {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.single-order-form-jerseyno-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.single-order-form-surname-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Row 3: Jersey Size and Shorts Size */
+.single-order-form-row-3 {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.single-order-form-jerseysize-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.single-order-form-shortssize-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Single Order Form Inputs - Unique Styles with Higher Specificity */
+.single-order-form-card .single-order-form-input-wrapper .single-order-form-input {
+  background: rgba(26, 26, 46, 0.8) !important;
+  border: 2px solid #00bfff !important;
+  border-radius: 8px !important;
+  padding: 14px 18px !important;
+  color: #ffffff !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  font-family: sans-serif !important;
+  transition: all 0.3s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  text-transform: none !important;
+  letter-spacing: 0.5px !important;
+}
+
+.single-order-form-card .single-order-form-input-wrapper .single-order-form-input:focus {
+  outline: none !important;
+  border-color: #00bfff !important;
+  box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.3) !important;
+  background: rgba(26, 26, 46, 0.95) !important;
+}
+
+.single-order-form-card .single-order-form-input-wrapper .single-order-form-input::placeholder {
+  color: #a0aec0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  font-weight: 500 !important;
+  font-family: sans-serif !important;
+}
+
+/* Ensure all team order inputs preserve exact case */
+.team-order-form-card .team-order-form-jerseyno-wrapper .team-order-form-input,
+.team-order-form-card .team-order-form-surname-wrapper .team-order-form-input {
+  text-transform: none !important;
+}
+
+/* Ensure all single order inputs preserve exact case */
+.single-order-form-card .single-order-form-jerseyno-wrapper .single-order-form-input,
+.single-order-form-card .single-order-form-surname-wrapper .single-order-form-input,
+.single-order-form-card .single-order-form-teamname-wrapper .single-order-form-input {
+  text-transform: none !important;
+}
+
+.single-order-form-card .single-order-form-input-wrapper .single-order-form-input.error {
+  border-color: #ff4444 !important;
+  background: rgba(255, 68, 68, 0.1) !important;
+}
+
+/* Single Order Form Selects - Unique Styles with Higher Specificity */
+.single-order-form-card .single-order-form-size-wrapper .single-order-form-select {
+  background: rgba(26, 26, 46, 0.8) !important;
+  border: 2px solid #00bfff !important;
+  border-radius: 8px !important;
+  padding: 14px 18px !important;
+  padding-right: 45px !important;
+  color: #ffffff !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  font-family: sans-serif !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0aec0' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 18px center !important;
+  background-size: 12px !important;
+}
+
+.single-order-form-card .single-order-form-size-wrapper .single-order-form-select:focus {
+  outline: none !important;
+  border-color: #00bfff !important;
+  box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.3) !important;
+  background-color: rgba(26, 26, 46, 0.95) !important;
+}
+
+.single-order-form-card .single-order-form-size-wrapper .single-order-form-select option {
+  background: #1a1a2e !important;
+  color: #ffffff !important;
+  padding: 10px !important;
+}
+
+/* Single Order Form Labels */
+.single-order-form-card .single-order-form-size-label {
+  display: block !important;
+  color: #ffffff !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  font-family: sans-serif !important;
+}
+
+/* Single Order Form Wrappers */
+.single-order-form-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.single-order-form-size-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Single Order Form Error Messages */
+.single-order-form-error-message {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  font-size: 0.75rem;
+  color: #ff4444;
+  margin-top: 4px;
 }
 
 .modal-member-select option {
@@ -811,6 +1152,27 @@
   width: 100%;
 }
 
+.modal-sizes-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.modal-size-wrapper {
+  flex: 1;
+  width: auto;
+}
+
+.modal-size-label {
+  display: block;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .modal-single-order-input,
 .modal-single-order-select {
   background: #1a1a2e;
@@ -822,6 +1184,7 @@
   font-weight: 500;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  width: 100%;
 }
 
 .modal-single-order-input:focus,

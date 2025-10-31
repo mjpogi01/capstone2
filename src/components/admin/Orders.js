@@ -867,7 +867,8 @@ const Orders = () => {
                                       <tr>
                                         <th>Surname</th>
                                         <th>Jersey #</th>
-                                        <th>Size</th>
+                                        <th>Jersey Size</th>
+                                        <th>Shorts Size</th>
                                         <th>Type</th>
                                       </tr>
                                     </thead>
@@ -876,7 +877,8 @@ const Orders = () => {
                                         <tr key={memberIndex}>
                                           <td>{member.surname || 'N/A'}</td>
                                           <td>{member.number || 'N/A'}</td>
-                                          <td>{member.size || 'N/A'}</td>
+                                          <td>{member.jerseySize || member.size || 'N/A'}</td>
+                                          <td>{member.shortsSize || member.size || 'N/A'}</td>
                                           <td>{member.sizingType || item.sizeType || 'Adult'}</td>
                                         </tr>
                                       ))}
@@ -895,7 +897,8 @@ const Orders = () => {
                                         <th>Team</th>
                                         <th>Surname</th>
                                         <th>Jersey #</th>
-                                        <th>Size</th>
+                                        <th>Jersey Size</th>
+                                        <th>Shorts Size</th>
                                         <th>Type</th>
                                       </tr>
                                     </thead>
@@ -904,7 +907,8 @@ const Orders = () => {
                                         <td>{item.singleOrderDetails.teamName || 'N/A'}</td>
                                         <td>{item.singleOrderDetails.surname || 'N/A'}</td>
                                         <td>{item.singleOrderDetails.number || 'N/A'}</td>
-                                        <td>{item.singleOrderDetails.size || 'N/A'}</td>
+                                        <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
+                                        <td>{item.singleOrderDetails.shortsSize || item.singleOrderDetails.size || 'N/A'}</td>
                                         <td>{item.singleOrderDetails.sizingType || item.sizeType || 'Adult'}</td>
                                       </tr>
                                     </tbody>

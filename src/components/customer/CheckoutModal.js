@@ -792,7 +792,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                 <div className="checkout-modal-perfect-team-header">
                                   <div className="checkout-modal-perfect-detail-row">
                                     <span className="checkout-modal-perfect-detail-label">Team:</span>
-                                    <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-team-name-detail">{item.teamMembers[0]?.teamName || item.teamMembers[0]?.team_name || item.teamName || 'N/A'}</span>
+                                    <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-team-name-detail">{item.teamName || item.team_name || item.teamMembers?.[0]?.teamName || item.teamMembers?.[0]?.team_name || 'N/A'}</span>
                                   </div>
                                 </div>
                                 <div className="checkout-modal-perfect-team-divider"></div>
@@ -808,8 +808,12 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                         <span className="checkout-modal-perfect-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
                                       </div>
                                       <div className="checkout-modal-perfect-detail-row">
-                                        <span className="checkout-modal-perfect-detail-label">Size:</span>
-                                        <span className="checkout-modal-perfect-detail-value">{member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                        <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
+                                        <span className="checkout-modal-perfect-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                      </div>
+                                      <div className="checkout-modal-perfect-detail-row">
+                                        <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
+                                        <span className="checkout-modal-perfect-detail-value">{member.shortsSize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
                                       </div>
                                     </div>
                                   ))}
@@ -832,8 +836,12 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                     <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                   </div>
                                   <div className="checkout-modal-perfect-detail-row">
-                                    <span className="checkout-modal-perfect-detail-label">Size:</span>
-                                    <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
+                                    <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
+                                    <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
+                                  </div>
+                                  <div className="checkout-modal-perfect-detail-row">
+                                    <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
+                                    <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
                                   </div>
                                 </div>
                               </div>

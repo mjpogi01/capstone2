@@ -537,7 +537,10 @@ const WalkInOrdering = ({ onClose }) => {
                                           Jersey: {member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}
                                         </span>
                                         <span className="compact-detail">
-                                          Size: {member.size || 'N/A'} ({item.sizeType || 'Adult'})
+                                          Jersey Size: {member.jerseySize || member.size || 'N/A'} ({item.sizeType || 'Adult'})
+                                        </span>
+                                        <span className="compact-detail">
+                                          Shorts Size: {member.shortsSize || member.size || 'N/A'} ({item.sizeType || 'Adult'})
                                         </span>
                                       </div>
                                     ))}
@@ -554,7 +557,10 @@ const WalkInOrdering = ({ onClose }) => {
                                       Jersey: {item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}
                                     </span>
                                     <span className="compact-detail">
-                                      Size: {item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})
+                                      Jersey Size: {item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})
+                                    </span>
+                                    <span className="compact-detail">
+                                      Shorts Size: {item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})
                                     </span>
                                   </div>
                                 )}
