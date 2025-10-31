@@ -816,7 +816,7 @@ input.category-checkbox[type="checkbox"]:checked {
 .product-card {
   background: #0a0a0a;
   border: 1.5px solid rgb(64, 182, 221) !important;
-  border-radius: 6px;
+  border-radius: 0 !important;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -871,7 +871,7 @@ input.category-checkbox[type="checkbox"]:checked {
   height: calc(100% - 4px);
   margin: 10px;
 
-  border-radius:6px;
+  border-radius: 0 !important;
   object-fit: cover;
   object-position: center;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);

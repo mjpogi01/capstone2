@@ -220,7 +220,7 @@
 .sportswear-product-card {
   background: #000000;
   border: 1.5px solid rgba(0, 191, 255, 0.3);
-  border-radius: 16px;
+  border-radius: 0;
   overflow: hidden;
   transition: var(--sportswear-transition);
   position: relative;
