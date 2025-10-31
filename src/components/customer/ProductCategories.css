@@ -219,7 +219,7 @@
 /* ===== PRODUCT CARD ===== */
 .sportswear-product-card {
   background: #000000;
-  border: 2px solid rgba(0, 191, 255, 0.3);
+  border: 1.5px solid rgba(0, 191, 255, 0.3);
   border-radius: 16px;
   overflow: hidden;
   transition: var(--sportswear-transition);
