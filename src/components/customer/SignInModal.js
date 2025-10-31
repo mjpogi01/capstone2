@@ -17,7 +17,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const { login } = useAuth();
+  const { login, signInWithProvider } = useAuth();
   const navigate = useNavigate();
 
   // Prevent body scroll when modal is open
@@ -62,7 +62,17 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
     }
   };
 
-  const handleSocial = (provider) => console.log(`Sign in with ${provider}`);
+  const handleSocial = async (provider) => {
+    setIsLoading(true);
+    setError("");
+    try {
+      await signInWithProvider(provider); // Will redirect for OAuth
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className={styles.signinModalOverlay} onClick={onClose}>

@@ -19,7 +19,7 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const { register } = useAuth();
+  const { register, signInWithProvider } = useAuth();
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -67,7 +67,17 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
     }
   };
 
-  const handleSocial = (provider) => console.log(`Sign up with ${provider}`);
+  const handleSocial = async (provider) => {
+    setIsLoading(true);
+    setError("");
+    try {
+      await signInWithProvider(provider); // Will redirect for OAuth
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className={styles.signupModalOverlay} onClick={onClose}>

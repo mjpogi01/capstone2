@@ -142,6 +142,22 @@ class AuthService {
       throw new Error(error.message || 'Failed to change password');
     }
   }
+
+  // Sign in with OAuth provider (Google, Facebook)
+  async signInWithProvider(provider) {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider.toLowerCase(),
+        // You can add options here, e.g. redirectTo: window.location.origin or scopes, if needed
+      });
+      if (error) {
+        throw new Error(error.message || `Sign in with ${provider} failed`);
+      }
+      return { data };
+    } catch (error) {
+      throw new Error(error.message || `Sign in with ${provider} failed`);
+    }
+  }
 }
 
 export default new AuthService();

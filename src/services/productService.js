@@ -1,6 +1,30 @@
 import { supabase } from '../lib/supabase';
 
 class ProductService {
+  parseAvailableSizes(sizeValue) {
+    if (!sizeValue || typeof sizeValue !== 'string') {
+      return [];
+    }
+
+    const trimmed = sizeValue.trim();
+    if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter(item => typeof item === 'string' && item.trim().length > 0)
+          .map(item => item.trim());
+      }
+    } catch (error) {
+      console.warn('Failed to parse available sizes from productService:', error.message);
+    }
+
+    return [];
+  }
+
   async getAllProducts() {
     try {
       const { data, error } = await supabase
@@ -19,7 +43,8 @@ class ProductService {
           return {
             ...product,
             average_rating: rating.average,
-            review_count: rating.count
+            review_count: rating.count,
+            available_sizes: this.parseAvailableSizes(product.size)
           };
         })
       );

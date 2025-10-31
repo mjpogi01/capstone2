@@ -388,20 +388,21 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
           )}
         </div>
 
+        {/* Floating Ask for Review Button */}
+        {isOpen && !showReviewModal && (
+          <button 
+            className="artist-review-fab"
+            onClick={() => setShowReviewModal(true)}
+            title="Submit design for customer review"
+          >
+            <FontAwesomeIcon icon={faClipboardCheck} />
+            Ask for Review
+          </button>
+        )}
+
         {/* Message Input */}
         <div className="chat-input">
-          {/* Ask for Review Button */}
-          <div className="artist-review-section">
-            <button 
-              className="ask-review-btn"
-              onClick={() => setShowReviewModal(true)}
-              title="Submit design for customer review"
-            >
-              <FontAwesomeIcon icon={faClipboardCheck} />
-              Ask for Review
-            </button>
-          </div>
-
+          
           {attachments.length > 0 && (
             <div className="attachments-preview">
               {attachments.map((attachment, index) => (

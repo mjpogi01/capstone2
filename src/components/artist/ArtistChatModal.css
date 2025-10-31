@@ -447,38 +447,6 @@
   }
 }
 
-/* Artist Review Section */
-.artist-review-section {
-  padding: 1rem;
-  border-bottom: 1px solid #333;
-  background: #1a1a1a;
-}
-
-.ask-review-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
-}
-
-.ask-review-btn:hover {
-  background: linear-gradient(135deg, #5b21b6, #7c3aed);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.4);
-}
-
-.ask-review-btn:active {
-  transform: translateY(0);
-}
-
 /* Artist Review Modal */
 .artist-review-modal-overlay {
   position: fixed;
@@ -777,5 +745,38 @@
   .artist-chat-cancel-btn,
   .submit-review-btn {
     flex: 1;
+  }
+}
+
+.artist-review-fab {
+  position: absolute;
+  right: 2rem;
+  bottom: 2rem;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.1rem 2.2rem;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.15rem;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.27);
+  border: none;
+  cursor: pointer;
+  transition: box-shadow 0.2s, background 0.2s, transform 0.15s;
+}
+.artist-review-fab:hover {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  transform: scale(1.06);
+  box-shadow: 0 8px 24px rgba(99,102,241,0.38);
+}
+@media (max-width: 768px) {
+  .artist-review-fab {
+    right: 1rem;
+    bottom: 1rem;
+    padding: 0.8rem 1.3rem;
+    font-size: 1rem;
   }
 }

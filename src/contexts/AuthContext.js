@@ -108,6 +108,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Sign in with Google/Facebook
+  const signInWithProvider = async (provider) => {
+    try {
+      const result = await authService.signInWithProvider(provider);
+      // No need to handle user setting, as the redirect happens and onAuthStateChange will manage user after login
+      return result;
+    } catch (error) {
+      showError(`Sign in with ${provider} failed`, error.message);
+      throw error;
+    }
+  };
+
   // Role-based helper functions
   const isOwner = () => user?.user_metadata?.role === 'owner';
   const isAdmin = () => user?.user_metadata?.role === 'admin';
@@ -129,7 +141,8 @@ export const AuthProvider = ({ children }) => {
     isArtist,
     isCustomer,
     hasAdminAccess,
-    canAccessAdmin
+    canAccessAdmin,
+    signInWithProvider
   };
 
   return (

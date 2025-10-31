@@ -11,6 +11,30 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const parseAvailableSizes = (sizeValue) => {
+  if (!sizeValue || typeof sizeValue !== 'string') {
+    return [];
+  }
+
+  const trimmed = sizeValue.trim();
+  if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter(item => typeof item === 'string' && item.trim().length > 0)
+        .map(item => item.trim());
+    }
+  } catch (error) {
+    console.warn('Failed to parse available sizes:', error.message);
+  }
+
+  return [];
+};
+
 // Test endpoint
 router.get('/test', (req, res) => {
   res.json({ message: 'Backend is working!', timestamp: new Date().toISOString() });
@@ -37,7 +61,8 @@ router.get('/', async (req, res) => {
     // Transform the data to match the expected format
     const transformedData = data.map(product => ({
       ...product,
-      branch_name: product.branches?.name || null
+      branch_name: product.branches?.name || null,
+      available_sizes: parseAvailableSizes(product.size)
     }));
 
     res.json(transformedData);
@@ -159,7 +184,8 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
     // Transform the data to match the expected format
     const transformedData = {
       ...data,
-      branch_name: data.branches?.name || null
+      branch_name: data.branches?.name || null,
+      available_sizes: parseAvailableSizes(data.size)
     };
 
     res.status(201).json(transformedData);
@@ -251,7 +277,8 @@ router.put('/:id', async (req, res) => {
     // Transform the data to match the expected format
     const transformedData = {
       ...data,
-      branch_name: data.branches?.name || null
+      branch_name: data.branches?.name || null,
+      available_sizes: parseAvailableSizes(data.size)
     };
 
     res.json(transformedData);
