@@ -7,6 +7,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     name: '',
     category: '',
     size: '',
+    available_sizes: [], // Array to store multiple selected sizes
     price: '',
     description: '',
     stock_quantity: null, // Changed to null for order-based model
@@ -49,13 +50,47 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     fetchBranches();
   }, [isEditMode]);
 
+  // Size constants
+  const categories = [
+    'Jerseys',
+    'T-Shirts', 
+    'Long Sleeves',
+    'Uniforms',
+    'Accessories',
+    'Balls',
+    'Trophies',
+    'Hats'
+  ];
+
+  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const trophySizes = Array.from({ length: 12 }, (_, i) => (i + 10).toString()); // 10 to 21 inches
+
   // Pre-populate form when editing
   useEffect(() => {
     if (isEditMode && editingProduct) {
+      // Parse available_sizes if it's a string (comma-separated) or use array
+      let availableSizes = [];
+      if (editingProduct.available_sizes) {
+        if (Array.isArray(editingProduct.available_sizes)) {
+          availableSizes = editingProduct.available_sizes;
+        } else if (typeof editingProduct.available_sizes === 'string') {
+          availableSizes = editingProduct.available_sizes.split(',').map(s => s.trim()).filter(s => s);
+        }
+      }
+      
+      console.log('📦 [AddProductModal] Loading product for editing:', {
+        product_id: editingProduct.id,
+        product_name: editingProduct.name,
+        available_sizes_raw: editingProduct.available_sizes,
+        available_sizes_parsed: availableSizes,
+        available_sizes_count: availableSizes.length
+      });
+      
       setFormData({
         name: editingProduct.name || '',
         category: editingProduct.category || '',
         size: editingProduct.size || '',
+        available_sizes: availableSizes,
         price: editingProduct.price || '',
         description: editingProduct.description || '',
         stock_quantity: editingProduct.stock_quantity || null,
@@ -73,18 +108,43 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     }
   }, [isEditMode, editingProduct]);
 
-  const categories = [
-    'Jerseys',
-    'T-Shirts', 
-    'Long Sleeves',
-    'Uniforms',
-    'Accessories',
-    'Balls',
-    'Trophies',
-    'Hats'
-  ];
+  // Clear sizes when switching between trophy and non-trophy categories
+  useEffect(() => {
+    const currentIsTrophy = formData.category === 'Trophies';
+    const currentSize = formData.size;
+    const currentAvailableSizes = formData.available_sizes || [];
+    
+    // Clear single size if invalid
+    if (currentSize && currentSize !== '') {
+      const isTrophySize = trophySizes.includes(currentSize);
+      const isClothingSize = sizes.includes(currentSize);
+      
+      // If category is trophy but size is clothing size, clear it
+      if (currentIsTrophy && isClothingSize) {
+        setFormData(prev => ({ ...prev, size: '' }));
+      }
+      // If category is not trophy but size is trophy size, clear it
+      if (!currentIsTrophy && isTrophySize) {
+        setFormData(prev => ({ ...prev, size: '' }));
+      }
+    }
+    
+    // Clear available_sizes if they don't match the current category
+    if (currentAvailableSizes.length > 0) {
+      const validSizes = currentIsTrophy ? trophySizes : sizes;
+      const invalidSizes = currentAvailableSizes.filter(size => !validSizes.includes(size));
+      
+      if (invalidSizes.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          available_sizes: currentAvailableSizes.filter(size => validSizes.includes(size))
+        }));
+      }
+    }
+  }, [formData.category]);
 
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  // Check if current category is Trophies
+  const isTrophy = formData.category === 'Trophies';
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -99,6 +159,27 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       ...prev,
       size: size
     }));
+  };
+
+  const handleMultipleSizeToggle = (size) => {
+    setFormData(prev => {
+      const currentSizes = prev.available_sizes || [];
+      const isSelected = currentSizes.includes(size);
+      
+      if (isSelected) {
+        // Remove size
+        return {
+          ...prev,
+          available_sizes: currentSizes.filter(s => s !== size)
+        };
+      } else {
+        // Add size
+        return {
+          ...prev,
+          available_sizes: [...currentSizes, size]
+        };
+      }
+    });
   };
 
   const handleMainImageUpload = async (e) => {
@@ -213,11 +294,20 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       const productData = {
         ...formData,
         size: formData.size || null,
+        available_sizes: formData.available_sizes && formData.available_sizes.length > 0 
+          ? formData.available_sizes.join(',') 
+          : null, // Store as comma-separated string
         stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : null,
         sold_quantity: formData.sold_quantity ? parseInt(formData.sold_quantity) : 0,
         main_image: mainImage,
         additional_images: additionalImages
       };
+
+      console.log('📦 [AddProductModal] Sending product data:', {
+        ...productData,
+        available_sizes: productData.available_sizes,
+        available_sizes_count: formData.available_sizes?.length || 0
+      });
 
 
       const url = isEditMode 
@@ -235,12 +325,19 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         body: JSON.stringify(productData),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add product');
+        console.error('❌ [AddProductModal] API Error:', responseData);
+        const errorMessage = responseData.error || 'Failed to add product';
+        const hint = responseData.hint || '';
+        throw new Error(hint ? `${errorMessage}\n\n${hint}` : errorMessage);
       }
 
-      const newProduct = await response.json();
+      console.log('✅ [AddProductModal] Product saved successfully:', responseData);
+      console.log('✅ [AddProductModal] Saved available_sizes:', responseData.available_sizes);
+
+      const newProduct = await responseData;
       onAdd(newProduct);
     } catch (error) {
       setError(error.message);
@@ -394,27 +491,49 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
               </div>
 
               <div className="form-group">
-                <label>Size (Optional)</label>
-                <div className="size-buttons">
-                  <button
-                    type="button"
-                    className={`size-btn ${formData.size === '' ? 'selected' : ''}`}
-                    onClick={() => handleSizeSelect('')}
-                  >
-                    No Size
-                  </button>
-                  {sizes.map(size => (
-                    <button
-                      key={size}
-                      type="button"
-                      className={`size-btn ${formData.size === size ? 'selected' : ''}`}
-                      onClick={() => handleSizeSelect(size)}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-                <small className="form-help">Leave blank if not applicable</small>
+                <label>Available Sizes {isTrophy ? '(Inches - Select Multiple)' : '(Select Multiple)'}</label>
+                {isTrophy ? (
+                  <div className="size-buttons trophy-sizes multiple-selection">
+                    {trophySizes.map(size => {
+                      const isSelected = formData.available_sizes?.includes(size);
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          className={`size-btn ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleMultipleSizeToggle(size)}
+                        >
+                          {size}"
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="size-buttons multiple-selection">
+                    {sizes.map(size => {
+                      const isSelected = formData.available_sizes?.includes(size);
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          className={`size-btn ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleMultipleSizeToggle(size)}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {formData.available_sizes && formData.available_sizes.length > 0 && (
+                  <div className="selected-sizes-display">
+                    <strong>Selected: </strong>
+                    {formData.available_sizes.join(', ')}
+                  </div>
+                )}
+                <small className="form-help">
+                  {isTrophy ? 'Click to select multiple trophy sizes (10" to 21")' : 'Click to select multiple sizes'}
+                </small>
               </div>
 
               <div className="form-group">

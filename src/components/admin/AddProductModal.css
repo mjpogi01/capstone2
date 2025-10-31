@@ -557,6 +557,46 @@
   flex-wrap: wrap;
 }
 
+.size-buttons.trophy-sizes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.size-buttons.trophy-sizes .size-btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  min-width: 60px;
+}
+
+.size-buttons.multiple-selection .size-btn {
+  cursor: pointer;
+  user-select: none;
+}
+
+.size-buttons.multiple-selection .size-btn.selected {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+  transform: scale(1.05);
+}
+
+.selected-sizes-display {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #166534;
+}
+
+.selected-sizes-display strong {
+  color: #15803d;
+}
+
 .size-btn {
   padding: 0.5rem 1rem;
   border: 1px solid #d1d5db;
@@ -600,7 +640,7 @@
   padding: 1.5rem 0 0 0;
   border-top: 1px solid #e5e7eb;
   margin-top: 1.5rem;
-  background: #ffffff;
+  background: #ffffff !important;
   border-radius: 0 0 12px 12px;
 }
 
@@ -617,8 +657,11 @@
 }
 
 .cancel-btn {
-  background: #f3f4f6;
-  color: #374151;
+  background: #f74949 !important;
+  text-transform: uppercase !important;
+  font-family: 'Oswald', Poppins !important;
+  font-size: 14px !important;
+  color: #ffffff !important;
   border: 1px solid #d1d5db;
 }
 
@@ -630,6 +673,9 @@
 
 .submit-btn {
   background: #3b82f6;
+  text-transform: uppercase !important;
+  font-family: 'Oswald', Poppins !important;
+  font-size: 14px;
   color: #ffffff;
 }
 

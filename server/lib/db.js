@@ -87,6 +87,7 @@ async function ensureUsersTable() {
       name TEXT NOT NULL,
       category TEXT NOT NULL,
       size TEXT,
+      available_sizes TEXT,
       price DECIMAL(10,2) NOT NULL,
       description TEXT,
       main_image TEXT,
@@ -97,6 +98,19 @@ async function ensureUsersTable() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+  `);
+
+  // Add available_sizes column if it doesn't exist (for existing databases)
+  await query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'products' AND column_name = 'available_sizes'
+      ) THEN
+        ALTER TABLE products ADD COLUMN available_sizes TEXT;
+      END IF;
+    END $$;
   `);
 
   // Create user_addresses table

@@ -394,6 +394,28 @@
   transform: scale(1.05);
 }
 
+/* Available Sizes */
+.product-available-sizes-cell {
+  width: 120px;
+  min-width: 100px;
+  max-width: 150px;
+}
+
+.product-available-sizes {
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.product-available-sizes .no-sizes {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 0.75rem;
+}
+
 /* Category */
 .product-category-cell {
   width: 120px;

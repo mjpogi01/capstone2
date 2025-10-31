@@ -263,6 +263,7 @@ const Inventory = () => {
                           <th>Price</th>
                           <th>Stock</th>
                           <th>Sold</th>
+                          <th>Available Sizes</th>
                           <th>Category</th>
                           <th>Description</th>
                           <th>Actions</th>
@@ -296,6 +297,21 @@ const Inventory = () => {
                           <td className="product-sold-cell">
                             <div className="sold-badge">
                               {product.sold_quantity || 0}
+                            </div>
+                          </td>
+                          <td className="product-available-sizes-cell">
+                            <div className="product-available-sizes">
+                              {(() => {
+                                let sizes = [];
+                                if (product.available_sizes) {
+                                  if (Array.isArray(product.available_sizes)) {
+                                    sizes = product.available_sizes;
+                                  } else if (typeof product.available_sizes === 'string') {
+                                    sizes = product.available_sizes.split(',').map(s => s.trim()).filter(s => s);
+                                  }
+                                }
+                                return sizes.length > 0 ? sizes.join(', ') : <span className="no-sizes">No sizes</span>;
+                              })()}
                             </div>
                           </td>
                           <td className="product-category-cell">
@@ -381,6 +397,22 @@ const Inventory = () => {
                               <span className="stat-label">Sold</span>
                               <div className="sold-badge">
                                 {product.sold_quantity || 0}
+                              </div>
+                            </div>
+                            <div className="stat-item">
+                              <span className="stat-label">Available Sizes</span>
+                              <div className="product-available-sizes">
+                                {(() => {
+                                  let sizes = [];
+                                  if (product.available_sizes) {
+                                    if (Array.isArray(product.available_sizes)) {
+                                      sizes = product.available_sizes;
+                                    } else if (typeof product.available_sizes === 'string') {
+                                      sizes = product.available_sizes.split(',').map(s => s.trim()).filter(s => s);
+                                    }
+                                  }
+                                  return sizes.length > 0 ? sizes.join(', ') : <span className="no-sizes">No sizes</span>;
+                                })()}
                               </div>
                             </div>
                           </div>

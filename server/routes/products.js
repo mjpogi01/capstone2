@@ -92,6 +92,7 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
       name, 
       category, 
       size, 
+      available_sizes,
       price, 
       description, 
       main_image, 
@@ -101,20 +102,37 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
       branch_id 
     } = req.body;
 
+    console.log('📦 [Products API] Creating product with data:', {
+      name,
+      category,
+      available_sizes,
+      available_sizes_type: typeof available_sizes,
+      available_sizes_length: available_sizes?.length
+    });
+
+    const insertData = {
+      name,
+      category,
+      size,
+      price: parseFloat(price),
+      description,
+      main_image,
+      additional_images: additional_images || [],
+      stock_quantity: stock_quantity ? parseInt(stock_quantity) : 0,
+      sold_quantity: sold_quantity ? parseInt(sold_quantity) : 0,
+      branch_id: branch_id ? parseInt(branch_id) : 1
+    };
+
+    // Only add available_sizes if it exists (column might not exist in database yet)
+    if (available_sizes !== null && available_sizes !== undefined) {
+      insertData.available_sizes = available_sizes;
+    }
+
+    console.log('📦 [Products API] Final insert data:', insertData);
+
     const { data, error } = await supabase
       .from('products')
-      .insert({
-        name,
-        category,
-        size,
-        price: parseFloat(price),
-        description,
-        main_image,
-        additional_images: additional_images || [],
-        stock_quantity: stock_quantity ? parseInt(stock_quantity) : 0,
-        sold_quantity: sold_quantity ? parseInt(sold_quantity) : 0,
-        branch_id: branch_id ? parseInt(branch_id) : 1
-      })
+      .insert(insertData)
       .select(`
         *,
         branches (
@@ -124,7 +142,17 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
       .single();
 
     if (error) {
-      console.error('Supabase insert error:', error);
+      console.error('❌ Supabase insert error:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      
+      // If error is about missing column, suggest adding it
+      if (error.message && error.message.includes('available_sizes')) {
+        return res.status(500).json({ 
+          error: error.message,
+          hint: 'The available_sizes column might not exist in your Supabase database. Please add it using: ALTER TABLE products ADD COLUMN available_sizes TEXT;'
+        });
+      }
+      
       return res.status(500).json({ error: error.message });
     }
 
@@ -148,6 +176,7 @@ router.put('/:id', async (req, res) => {
       name, 
       category, 
       size, 
+      available_sizes,
       price, 
       description, 
       main_image, 
@@ -159,22 +188,38 @@ router.put('/:id', async (req, res) => {
 
     const soldQuantityValue = sold_quantity === '' || sold_quantity === null || sold_quantity === undefined ? 0 : parseInt(sold_quantity);
     
+    console.log('📦 [Products API] Updating product:', {
+      id,
+      available_sizes,
+      available_sizes_type: typeof available_sizes,
+      available_sizes_length: available_sizes?.length
+    });
+    
+    const updateData = {
+      name,
+      category,
+      size,
+      price: parseFloat(price),
+      description,
+      main_image,
+      additional_images: additional_images || [],
+      stock_quantity: stock_quantity ? parseInt(stock_quantity) : 0,
+      sold_quantity: soldQuantityValue,
+      branch_id: branch_id ? parseInt(branch_id) : 1,
+      updated_at: new Date().toISOString()
+    };
+
+    // Only add available_sizes if it exists (column might not exist in database yet)
+    if (available_sizes !== null && available_sizes !== undefined) {
+      updateData.available_sizes = available_sizes;
+    }
+
+    console.log('📦 [Products API] Final update data:', updateData);
+    
     // Update the product using Supabase
     const { data, error } = await supabase
       .from('products')
-      .update({
-        name,
-        category,
-        size,
-        price: parseFloat(price),
-        description,
-        main_image,
-        additional_images: additional_images || [],
-        stock_quantity: stock_quantity ? parseInt(stock_quantity) : 0,
-        sold_quantity: soldQuantityValue,
-        branch_id: branch_id ? parseInt(branch_id) : 1,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .select(`
         *,
@@ -185,7 +230,17 @@ router.put('/:id', async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Supabase update error:', error);
+      console.error('❌ Supabase update error:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      
+      // If error is about missing column, suggest adding it
+      if (error.message && error.message.includes('available_sizes')) {
+        return res.status(500).json({ 
+          error: error.message,
+          hint: 'The available_sizes column might not exist in your Supabase database. Please add it using: ALTER TABLE products ADD COLUMN available_sizes TEXT;'
+        });
+      }
+      
       return res.status(500).json({ error: error.message });
     }
 

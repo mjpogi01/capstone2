@@ -122,16 +122,75 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     }
   }, [isOpen, product?.id, loadProductReviews]);
 
+  // Constants for sizes - defined before early return so hooks can use them
+  const adultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const kidsSizes = ['2XS', 'XS', 'S', 'M', 'L', 'XL'];
+  const trophySizes = Array.from({ length: 12 }, (_, i) => (i + 10).toString()); // 10 to 21 inches
+  
+  // Get available sizes from product, or fall back to default sizes
+  const getAvailableSizes = useCallback(() => {
+    const isTrophyCategory = product?.category?.toLowerCase() === 'trophies';
+    
+    // For trophies, prioritize product-specific available_sizes
+    if (isTrophyCategory) {
+      // Check if product has available_sizes stored
+      if (product?.available_sizes) {
+        let productSizes = [];
+        if (Array.isArray(product.available_sizes)) {
+          productSizes = product.available_sizes;
+        } else if (typeof product.available_sizes === 'string' && product.available_sizes.trim()) {
+          productSizes = product.available_sizes.split(',').map(s => s.trim()).filter(s => s);
+        }
+        
+        // If admin has selected specific sizes, use ONLY those sizes
+        if (productSizes.length > 0) {
+          // Sort trophy sizes numerically for better UX
+          return productSizes.sort((a, b) => parseInt(a) - parseInt(b));
+        }
+      }
+      // If no sizes selected by admin, fall back to default trophy sizes
+      return trophySizes;
+    }
+    
+    // For other categories (apparel, balls, etc.)
+    if (product?.available_sizes) {
+      let productSizes = [];
+      if (Array.isArray(product.available_sizes)) {
+        productSizes = product.available_sizes;
+      } else if (typeof product.available_sizes === 'string' && product.available_sizes.trim()) {
+        productSizes = product.available_sizes.split(',').map(s => s.trim()).filter(s => s);
+      }
+      
+      if (productSizes.length > 0) {
+        // For apparel, still use sizeType to filter
+        const isApparel = product?.category?.toLowerCase() !== 'balls';
+        if (isApparel) {
+          const defaultSizes = sizeType === 'adult' ? adultSizes : kidsSizes;
+          // Return intersection of product sizes and default sizes, or just product sizes if all match
+          return productSizes.filter(s => defaultSizes.includes(s)).length > 0 
+            ? productSizes.filter(s => defaultSizes.includes(s))
+            : productSizes;
+        }
+        return productSizes;
+      }
+    }
+    
+    // Fall back to default sizes for non-trophy categories
+    return sizeType === 'adult' ? adultSizes : kidsSizes;
+  }, [product?.available_sizes, product?.category, sizeType, trophySizes, adultSizes, kidsSizes]);
+  
+  // Calculate sizes reactively based on product available_sizes and sizeType
+  const sizes = React.useMemo(() => {
+    if (!product) return adultSizes; // Default fallback if product is null
+    return getAvailableSizes();
+  }, [getAvailableSizes, product, adultSizes]);
+
   if (!isOpen || !product) return null;
 
   // Determine product category
   const isBall = product.category?.toLowerCase() === 'balls';
   const isTrophy = product.category?.toLowerCase() === 'trophies';
   const isApparel = !isBall && !isTrophy;
-
-  const adultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  const kidsSizes = ['2XS', 'XS', 'S', 'M', 'L', 'XL'];
-  const sizes = sizeType === 'adult' ? adultSizes : kidsSizes;
 
   const averageRating = reviews.length > 0 
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
@@ -857,11 +916,25 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       className={`modal-trophy-details-input ${validationErrors.trophySize ? 'error' : ''}`}
                     >
                       <option value="">Select Size *</option>
-                      <option value='6" (Small)'>6" (Small)</option>
-                      <option value='10" (Medium)'>10" (Medium)</option>
-                      <option value='14" (Large)'>14" (Large)</option>
-                      <option value='18" (Extra Large)'>18" (Extra Large)</option>
-                      <option value='24" (Premium)'>24" (Premium)</option>
+                      {sizes && sizes.length > 0 ? (
+                        sizes.map(size => (
+                          <option key={size} value={`${size}"`}>
+                            {size}" {size === '10' ? '(Small)' : size === '12' ? '(Medium)' : size === '14' ? '(Large)' : size === '16' ? '(Extra Large)' : size === '18' ? '(Premium)' : size === '20' ? '(Large Premium)' : size === '21' ? '(Ultra Premium)' : ''}
+                          </option>
+                        ))
+                      ) : (
+                        // Fallback - should only show if admin didn't select any sizes
+                        product?.available_sizes ? null : (
+                          <>
+                            <option value='10"'>10" (Small)</option>
+                            <option value='12"'>12" (Medium)</option>
+                            <option value='14"'>14" (Large)</option>
+                            <option value='16"'>16" (Extra Large)</option>
+                            <option value='18"'>18" (Premium)</option>
+                            <option value='21"'>21" (Ultra Premium)</option>
+                          </>
+                        )
+                      )}
                     </select>
                     {validationErrors.trophySize && (
                       <span className="modal-error-message">{validationErrors.trophySize}</span>
