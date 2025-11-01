@@ -1,8 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faTimes, 
+  faTrash, 
+  faRotateLeft,
+  faPlus,
+  faXmark
+} from '@fortawesome/free-solid-svg-icons';
 import './AddProductModal.css';
 
 const isTrophyCategory = (category) => typeof category === 'string' && category.toLowerCase() === 'trophies';
+const isJerseyCategory = (category) => typeof category === 'string' && category.toLowerCase() === 'jerseys';
+const isSizeCustomizableCategory = (category) => {
+  if (!category || typeof category !== 'string') return false;
+  const lower = category.toLowerCase();
+  return lower === 'jerseys' || 
+         lower === 'uniforms' || 
+         lower === 'long sleeves' || 
+         lower === 'jackets' ||
+         lower === 't-shirts' ||
+         lower === 'tshirts' ||
+         lower === 'hoodies' ||
+         lower === 'hoodie';
+};
+
+const shouldShowShortsSizes = (category) => {
+  if (!category || typeof category !== 'string') return false;
+  const lower = category.toLowerCase();
+  // Long Sleeves, Jackets, and Hoodies don't have shorts sizes
+  return lower !== 'long sleeves' && lower !== 'jackets' && lower !== 'hoodies' && lower !== 'hoodie';
+};
 
 const parseAvailableSizes = (sizeValue) => {
   if (!sizeValue) {
@@ -59,6 +87,43 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   const [availableSizes, setAvailableSizes] = useState([]);
   const [newSizeInput, setNewSizeInput] = useState('');
   const [sizeInputError, setSizeInputError] = useState('');
+  const [jerseyShirtSizesAdult, setJerseyShirtSizesAdult] = useState([]);
+  const [jerseyShirtSizesKids, setJerseyShirtSizesKids] = useState([]);
+  const [jerseyShortsSizesAdult, setJerseyShortsSizesAdult] = useState([]);
+  const [jerseyShortsSizesKids, setJerseyShortsSizesKids] = useState([]);
+  const [newShirtSizeAdult, setNewShirtSizeAdult] = useState('');
+  const [newShirtSizeKids, setNewShirtSizeKids] = useState('');
+  const [newShortsSizeAdult, setNewShortsSizeAdult] = useState('');
+  const [newShortsSizeKids, setNewShortsSizeKids] = useState('');
+  const [shirtSizeAdultError, setShirtSizeAdultError] = useState('');
+  const [shirtSizeKidsError, setShirtSizeKidsError] = useState('');
+  const [shortsSizeAdultError, setShortsSizeAdultError] = useState('');
+  const [shortsSizeKidsError, setShortsSizeKidsError] = useState('');
+  const [customCategories, setCustomCategories] = useState([]);
+  const [hiddenCategories, setHiddenCategories] = useState([]);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [categoryError, setCategoryError] = useState('');
+
+  // Load custom categories and hidden categories from localStorage on mount
+  useEffect(() => {
+    const savedCustomCategories = localStorage.getItem('customCategories');
+    if (savedCustomCategories) {
+      try {
+        setCustomCategories(JSON.parse(savedCustomCategories));
+      } catch (e) {
+        console.warn('Failed to parse custom categories from localStorage:', e);
+      }
+    }
+    
+    const savedHiddenCategories = localStorage.getItem('hiddenCategories');
+    if (savedHiddenCategories) {
+      try {
+        setHiddenCategories(JSON.parse(savedHiddenCategories));
+      } catch (e) {
+        console.warn('Failed to parse hidden categories from localStorage:', e);
+      }
+    }
+  }, []);
 
   // Fetch branches from API
   useEffect(() => {
@@ -103,11 +168,61 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       if (isTrophyCategory(editingProduct.category)) {
         const parsedSizes = parseAvailableSizes(editingProduct.available_sizes || editingProduct.size);
         setAvailableSizes(parsedSizes);
+      } else if (isSizeCustomizableCategory(editingProduct.category)) {
+        // Parse jersey sizes from available_sizes
+        try {
+          let parsedSizes = null;
+          if (editingProduct.available_sizes) {
+            if (typeof editingProduct.available_sizes === 'string') {
+              parsedSizes = JSON.parse(editingProduct.available_sizes);
+            } else if (typeof editingProduct.available_sizes === 'object') {
+              parsedSizes = editingProduct.available_sizes;
+            }
+            
+            if (parsedSizes && typeof parsedSizes === 'object' && !Array.isArray(parsedSizes)) {
+              // Support both old format (shirt/shorts) and new format (shirt.adult/kids, shorts.adult/kids)
+              if (parsedSizes.shirt) {
+                if (typeof parsedSizes.shirt === 'object' && !Array.isArray(parsedSizes.shirt)) {
+                  setJerseyShirtSizesAdult(parsedSizes.shirt.adult || parsedSizes.shirt.Adult || []);
+                  setJerseyShirtSizesKids(parsedSizes.shirt.kids || parsedSizes.shirt.Kids || []);
+                } else {
+                  // Old format - single array, treat as adult
+                  setJerseyShirtSizesAdult(parsedSizes.shirt);
+                  setJerseyShirtSizesKids([]);
+                }
+              }
+              if (parsedSizes.shorts) {
+                if (typeof parsedSizes.shorts === 'object' && !Array.isArray(parsedSizes.shorts)) {
+                  setJerseyShortsSizesAdult(parsedSizes.shorts.adult || parsedSizes.shorts.Adult || []);
+                  setJerseyShortsSizesKids(parsedSizes.shorts.kids || parsedSizes.shorts.Kids || []);
+                } else {
+                  // Old format - single array, treat as adult
+                  setJerseyShortsSizesAdult(parsedSizes.shorts);
+                  setJerseyShortsSizesKids([]);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse jersey sizes:', e);
+          setJerseyShirtSizesAdult([]);
+          setJerseyShirtSizesKids([]);
+          setJerseyShortsSizesAdult([]);
+          setJerseyShortsSizesKids([]);
+        }
       } else {
         setAvailableSizes([]);
       }
       setSizeInputError('');
       setNewSizeInput('');
+      setShirtSizeAdultError('');
+      setShirtSizeKidsError('');
+      setShortsSizeAdultError('');
+      setShortsSizeKidsError('');
+      setNewShirtSizeAdult('');
+      setNewShirtSizeKids('');
+      setNewShortsSizeAdult('');
+      setNewShortsSizeKids('');
       
       // Set existing images
       if (editingProduct.main_image) {
@@ -119,19 +234,30 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     }
   }, [isEditMode, editingProduct]);
 
-  const categories = [
+  const predefinedCategories = [
     'Jerseys',
     'T-Shirts', 
     'Long Sleeves',
     'Uniforms',
+    'Jackets',
+    'Hoodies',
     'Accessories',
     'Balls',
     'Trophies',
     'Hats'
   ];
 
+  // Filter out hidden categories and merge predefined and custom categories
+  const visiblePredefinedCategories = predefinedCategories.filter(
+    cat => !hiddenCategories.includes(cat)
+  );
+  const categories = [...visiblePredefinedCategories, ...customCategories];
+
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   const trophyCategorySelected = isTrophyCategory(formData.category);
+  const jerseyCategorySelected = isJerseyCategory(formData.category);
+  const sizeCustomizableCategorySelected = isSizeCustomizableCategory(formData.category);
+  const showShortsSizes = shouldShowShortsSizes(formData.category);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -153,10 +279,45 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         // Keep previously entered trophy sizes when toggling between trophy options
         setAvailableSizes(prev => prev.length > 0 ? prev : []);
         setSizeInputError('');
+        // Clear jersey sizes
+        setJerseyShirtSizesAdult([]);
+        setJerseyShirtSizesKids([]);
+        setJerseyShortsSizesAdult([]);
+        setJerseyShortsSizesKids([]);
+        setNewShirtSizeAdult('');
+        setNewShirtSizeKids('');
+        setNewShortsSizeAdult('');
+        setNewShortsSizeKids('');
+        setShirtSizeAdultError('');
+        setShirtSizeKidsError('');
+        setShortsSizeAdultError('');
+        setShortsSizeKidsError('');
+      } else if (isSizeCustomizableCategory(value)) {
+        // Keep previously entered sizes when toggling
+        setShirtSizeAdultError('');
+        setShirtSizeKidsError('');
+        setShortsSizeAdultError('');
+        setShortsSizeKidsError('');
+        // Clear trophy sizes
+        setAvailableSizes([]);
+        setNewSizeInput('');
+        setSizeInputError('');
       } else {
         setAvailableSizes([]);
         setNewSizeInput('');
         setSizeInputError('');
+        setJerseyShirtSizesAdult([]);
+        setJerseyShirtSizesKids([]);
+        setJerseyShortsSizesAdult([]);
+        setJerseyShortsSizesKids([]);
+        setNewShirtSizeAdult('');
+        setNewShirtSizeKids('');
+        setNewShortsSizeAdult('');
+        setNewShortsSizeKids('');
+        setShirtSizeAdultError('');
+        setShirtSizeKidsError('');
+        setShortsSizeAdultError('');
+        setShortsSizeKidsError('');
       }
     }
   };
@@ -193,6 +354,195 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   const handleRemoveAvailableSize = (sizeToRemove) => {
     setAvailableSizes(prev => prev.filter(size => size !== sizeToRemove));
     setSizeInputError('');
+  };
+
+  const handleAddCategory = () => {
+    const categoryName = newCategoryInput.trim();
+    
+    if (!categoryName) {
+      setCategoryError('Please enter a category name.');
+      return;
+    }
+
+    // Check if category already exists (case-insensitive)
+    const categoryExists = categories.some(
+      cat => cat.toLowerCase() === categoryName.toLowerCase()
+    );
+
+    if (categoryExists) {
+      setCategoryError('This category already exists.');
+      return;
+    }
+
+    // Add to custom categories
+    const updatedCustomCategories = [...customCategories, categoryName];
+    setCustomCategories(updatedCustomCategories);
+    
+    // Save to localStorage
+    localStorage.setItem('customCategories', JSON.stringify(updatedCustomCategories));
+    
+    // Set the new category as selected
+    setFormData(prev => ({
+      ...prev,
+      category: categoryName
+    }));
+
+    // Clear input and error
+    setNewCategoryInput('');
+    setCategoryError('');
+  };
+
+  const handleDeleteCategory = (categoryToDelete) => {
+    // Don't allow deleting if it's currently selected
+    if (formData.category === categoryToDelete) {
+      setCategoryError('Cannot delete the currently selected category. Please select another category first.');
+      return;
+    }
+
+    // Check if it's a custom category or predefined
+    const isCustomCategory = customCategories.includes(categoryToDelete);
+    const isPredefinedCategory = predefinedCategories.includes(categoryToDelete);
+
+    if (isCustomCategory) {
+      // Remove from custom categories (permanent delete)
+      const updatedCustomCategories = customCategories.filter(
+        cat => cat !== categoryToDelete
+      );
+      setCustomCategories(updatedCustomCategories);
+      localStorage.setItem('customCategories', JSON.stringify(updatedCustomCategories));
+    } else if (isPredefinedCategory) {
+      // Hide predefined category (add to deleted list - permanent delete from dropdown)
+      const updatedHiddenCategories = [...hiddenCategories, categoryToDelete];
+      setHiddenCategories(updatedHiddenCategories);
+      localStorage.setItem('hiddenCategories', JSON.stringify(updatedHiddenCategories));
+      
+      // Clear the category selection if it was the deleted one
+      if (formData.category === categoryToDelete) {
+        setFormData(prev => ({
+          ...prev,
+          category: ''
+        }));
+      }
+    }
+
+    setCategoryError('');
+  };
+
+  const handleRestoreCategory = (categoryToRestore) => {
+    // Remove from hidden categories
+    const updatedHiddenCategories = hiddenCategories.filter(
+      cat => cat !== categoryToRestore
+    );
+    setHiddenCategories(updatedHiddenCategories);
+    localStorage.setItem('hiddenCategories', JSON.stringify(updatedHiddenCategories));
+  };
+
+  const handleAddJerseyShirtSizeAdult = () => {
+    if (!isSizeCustomizableCategory(formData.category)) {
+      return;
+    }
+
+    const value = newShirtSizeAdult.trim();
+    if (!value) {
+      setShirtSizeAdultError('Enter a size before adding.');
+      return;
+    }
+
+    const exists = jerseyShirtSizesAdult.some(size => size.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      setShirtSizeAdultError('Size already added.');
+      return;
+    }
+
+    setJerseyShirtSizesAdult(prev => [...prev, value]);
+    setNewShirtSizeAdult('');
+    setShirtSizeAdultError('');
+  };
+
+  const handleAddJerseyShirtSizeKids = () => {
+    if (!isSizeCustomizableCategory(formData.category)) {
+      return;
+    }
+
+    const value = newShirtSizeKids.trim();
+    if (!value) {
+      setShirtSizeKidsError('Enter a size before adding.');
+      return;
+    }
+
+    const exists = jerseyShirtSizesKids.some(size => size.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      setShirtSizeKidsError('Size already added.');
+      return;
+    }
+
+    setJerseyShirtSizesKids(prev => [...prev, value]);
+    setNewShirtSizeKids('');
+    setShirtSizeKidsError('');
+  };
+
+  const handleAddJerseyShortsSizeAdult = () => {
+    if (!isSizeCustomizableCategory(formData.category)) {
+      return;
+    }
+
+    const value = newShortsSizeAdult.trim();
+    if (!value) {
+      setShortsSizeAdultError('Enter a size before adding.');
+      return;
+    }
+
+    const exists = jerseyShortsSizesAdult.some(size => size.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      setShortsSizeAdultError('Size already added.');
+      return;
+    }
+
+    setJerseyShortsSizesAdult(prev => [...prev, value]);
+    setNewShortsSizeAdult('');
+    setShortsSizeAdultError('');
+  };
+
+  const handleAddJerseyShortsSizeKids = () => {
+    if (!isSizeCustomizableCategory(formData.category)) {
+      return;
+    }
+
+    const value = newShortsSizeKids.trim();
+    if (!value) {
+      setShortsSizeKidsError('Enter a size before adding.');
+      return;
+    }
+
+    const exists = jerseyShortsSizesKids.some(size => size.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      setShortsSizeKidsError('Size already added.');
+      return;
+    }
+
+    setJerseyShortsSizesKids(prev => [...prev, value]);
+    setNewShortsSizeKids('');
+    setShortsSizeKidsError('');
+  };
+
+  const handleRemoveJerseyShirtSizeAdult = (sizeToRemove) => {
+    setJerseyShirtSizesAdult(prev => prev.filter(size => size !== sizeToRemove));
+    setShirtSizeAdultError('');
+  };
+
+  const handleRemoveJerseyShirtSizeKids = (sizeToRemove) => {
+    setJerseyShirtSizesKids(prev => prev.filter(size => size !== sizeToRemove));
+    setShirtSizeKidsError('');
+  };
+
+  const handleRemoveJerseyShortsSizeAdult = (sizeToRemove) => {
+    setJerseyShortsSizesAdult(prev => prev.filter(size => size !== sizeToRemove));
+    setShortsSizeAdultError('');
+  };
+
+  const handleRemoveJerseyShortsSizeKids = (sizeToRemove) => {
+    setJerseyShortsSizesKids(prev => prev.filter(size => size !== sizeToRemove));
+    setShortsSizeKidsError('');
   };
 
   const handleMainImageUpload = async (e) => {
@@ -294,10 +644,26 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     e.preventDefault();
     setError('');
     setSizeInputError('');
+    setShirtSizeAdultError('');
+    setShirtSizeKidsError('');
+    setShortsSizeAdultError('');
+    setShortsSizeKidsError('');
 
     const isTrophyProduct = isTrophyCategory(formData.category);
+    const isSizeCustomizableProduct = isSizeCustomizableCategory(formData.category);
+    
     if (isTrophyProduct && availableSizes.length === 0) {
       setError('Please add at least one available size for trophy products.');
+      return;
+    }
+
+    if (isSizeCustomizableProduct && jerseyShirtSizesAdult.length === 0 && jerseyShirtSizesKids.length === 0) {
+      setError('Please add at least one shirt size (Adult or Kids) for this product.');
+      return;
+    }
+
+    if (isSizeCustomizableProduct && showShortsSizes && jerseyShortsSizesAdult.length === 0 && jerseyShortsSizesKids.length === 0) {
+      setError('Please add at least one shorts size (Adult or Kids) for this product.');
       return;
     }
 
@@ -325,6 +691,31 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
       if (isTrophyProduct) {
         productData.available_sizes = availableSizes;
+      }
+
+      if (isSizeCustomizableProduct) {
+        const sizesData = {
+          shirt: {
+            adult: jerseyShirtSizesAdult,
+            kids: jerseyShirtSizesKids
+          }
+        };
+        
+        // Only include shorts sizes if the category supports them
+        if (showShortsSizes) {
+          sizesData.shorts = {
+            adult: jerseyShortsSizesAdult,
+            kids: jerseyShortsSizesKids
+          };
+        } else {
+          // For categories without shorts, set empty arrays
+          sizesData.shorts = {
+            adult: [],
+            kids: []
+          };
+        }
+        
+        productData.available_sizes = JSON.stringify(sizesData);
       }
 
 
@@ -363,7 +754,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         <div className="modal-header">
           <h2>{isEditMode ? 'EDIT PRODUCT' : 'ADD NEW ITEMS'}</h2>
           <button type="button" className="close-btn" onClick={onClose}>
-            ├ù
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="modal-form">
@@ -380,7 +771,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                       className="remove-image"
                       onClick={() => setMainImage(null)}
                     >
-                      ├ù
+                      <FontAwesomeIcon icon={faXmark} />
                     </button>
                   </div>
                 ) : (
@@ -429,7 +820,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                           className="remove-image"
                           onClick={() => setAdditionalImages(prev => prev.filter((_, i) => i !== index))}
                         >
-                          ├ù
+                          <FontAwesomeIcon icon={faXmark} />
                         </button>
                       </div>
                     );
@@ -488,20 +879,322 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
               <div className="form-group">
                 <label>Product Category</label>
+                <div className="category-select-wrapper">
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
                   required
+                    className="category-select"
                 >
                   <option value="">Select Category</option>
-                  {categories.map(cat => (
+                    {visiblePredefinedCategories.length > 0 && visiblePredefinedCategories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
+                    {customCategories.length > 0 && (
+                      <optgroup label="Custom Categories">
+                        {customCategories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </optgroup>
+                    )}
                 </select>
               </div>
 
-              {trophyCategorySelected ? (
+                {/* Add Custom Category Section */}
+                <div className="add-category-section">
+                  <div className="add-category-input-wrapper">
+                    <input
+                      type="text"
+                      value={newCategoryInput}
+                      onChange={(e) => {
+                        setNewCategoryInput(e.target.value);
+                        if (categoryError) setCategoryError('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCategory();
+                        }
+                      }}
+                      placeholder="Add new category"
+                      className="add-category-input"
+                    />
+                    <button
+                      type="button"
+                      className="add-category-btn"
+                      onClick={handleAddCategory}
+                    >
+                      Add Category
+                    </button>
+                  </div>
+                  {categoryError && (
+                    <div className="form-inline-error">{categoryError}</div>
+                  )}
+                  <div className="categories-management">
+                    {/* Show all visible categories with delete option */}
+                    {categories.length > 0 && (
+                      <div className="existing-categories-list">
+                        <small className="existing-categories-label">Existing Categories (Click × to delete):</small>
+                        <div className="categories-chips-wrapper">
+                          {visiblePredefinedCategories.map(cat => (
+                            <span key={cat} className="existing-category-chip">
+                              {cat}
+                              <button
+                                type="button"
+                                aria-label={`Delete category ${cat}`}
+                                onClick={() => handleDeleteCategory(cat)}
+                                className="delete-category-btn"
+                                title="Delete category"
+                              >
+                                <FontAwesomeIcon icon={faTrash} />
+                              </button>
+                            </span>
+                          ))}
+                          {customCategories.map(cat => (
+                            <span key={cat} className="custom-category-chip">
+                              {cat}
+                              <button
+                                type="button"
+                                aria-label={`Delete category ${cat}`}
+                                onClick={() => handleDeleteCategory(cat)}
+                                className="delete-category-btn"
+                                title="Delete category"
+                              >
+                                <FontAwesomeIcon icon={faTrash} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {hiddenCategories.length > 0 && (
+                      <div className="hidden-categories-list">
+                        <small className="hidden-categories-label">Deleted Categories (Click ↻ to restore):</small>
+                        <div className="categories-chips-wrapper">
+                          {hiddenCategories.map(cat => (
+                            <span key={cat} className="hidden-category-chip">
+                              {cat}
+                              <button
+                                type="button"
+                                aria-label={`Restore category ${cat}`}
+                                onClick={() => handleRestoreCategory(cat)}
+                                className="restore-category-btn"
+                                title="Restore category"
+                              >
+                                <FontAwesomeIcon icon={faRotateLeft} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {sizeCustomizableCategorySelected ? (
+                <div className="form-group">
+                  <label>Available Sizes</label>
+                  
+                  {/* Jersey Shirt Sizes */}
+                  <div className="jersey-size-section">
+                    <h4 className="jersey-size-subtitle">Shirt Sizes</h4>
+                    
+                    {/* Adult Shirt Sizes */}
+                    <div className="jersey-size-subsection">
+                      <h5 className="jersey-size-label">Adult Sizes</h5>
+                      <div className="available-sizes-input">
+                        <input
+                          type="text"
+                          value={newShirtSizeAdult}
+                          onChange={(e) => setNewShirtSizeAdult(e.target.value)}
+                          placeholder='e.g. S, M, L, XL'
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddJerseyShirtSizeAdult();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="size-add-btn"
+                          onClick={handleAddJerseyShirtSizeAdult}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {shirtSizeAdultError && (
+                        <div className="form-inline-error">{shirtSizeAdultError}</div>
+                      )}
+                      {jerseyShirtSizesAdult.length > 0 && (
+                        <div className="available-sizes-list">
+                          {jerseyShirtSizesAdult.map(size => (
+                            <span key={size} className="available-size-chip">
+                              {size}
+                              <button
+                                type="button"
+                                aria-label={`Remove adult shirt size ${size}`}
+                                onClick={() => handleRemoveJerseyShirtSizeAdult(size)}
+                              >
+                                <FontAwesomeIcon icon={faXmark} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Kids Shirt Sizes */}
+                    <div className="jersey-size-subsection">
+                      <h5 className="jersey-size-label">Kids Sizes</h5>
+                      <div className="available-sizes-input">
+                        <input
+                          type="text"
+                          value={newShirtSizeKids}
+                          onChange={(e) => setNewShirtSizeKids(e.target.value)}
+                          placeholder='e.g. XS, S, M, L'
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddJerseyShirtSizeKids();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="size-add-btn"
+                          onClick={handleAddJerseyShirtSizeKids}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {shirtSizeKidsError && (
+                        <div className="form-inline-error">{shirtSizeKidsError}</div>
+                      )}
+                      {jerseyShirtSizesKids.length > 0 && (
+                        <div className="available-sizes-list">
+                          {jerseyShirtSizesKids.map(size => (
+                            <span key={size} className="available-size-chip">
+                              {size}
+                              <button
+                                type="button"
+                                aria-label={`Remove kids shirt size ${size}`}
+                                onClick={() => handleRemoveJerseyShirtSizeKids(size)}
+                              >
+                                <FontAwesomeIcon icon={faXmark} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Shorts Sizes - Only show for categories that have shorts */}
+                  {showShortsSizes && (
+                  <div className="jersey-size-section">
+                    <h4 className="jersey-size-subtitle">Shorts Sizes</h4>
+                    
+                    {/* Adult Shorts Sizes */}
+                    <div className="jersey-size-subsection">
+                      <h5 className="jersey-size-label">Adult Sizes</h5>
+                      <div className="available-sizes-input">
+                        <input
+                          type="text"
+                          value={newShortsSizeAdult}
+                          onChange={(e) => setNewShortsSizeAdult(e.target.value)}
+                          placeholder='e.g. S, M, L, XL'
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddJerseyShortsSizeAdult();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="size-add-btn"
+                          onClick={handleAddJerseyShortsSizeAdult}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {shortsSizeAdultError && (
+                        <div className="form-inline-error">{shortsSizeAdultError}</div>
+                      )}
+                      {jerseyShortsSizesAdult.length > 0 && (
+                        <div className="available-sizes-list">
+                          {jerseyShortsSizesAdult.map(size => (
+                            <span key={size} className="available-size-chip">
+                              {size}
+                              <button
+                                type="button"
+                                aria-label={`Remove adult shorts size ${size}`}
+                                onClick={() => handleRemoveJerseyShortsSizeAdult(size)}
+                              >
+                                <FontAwesomeIcon icon={faXmark} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Kids Shorts Sizes */}
+                    <div className="jersey-size-subsection">
+                      <h5 className="jersey-size-label">Kids Sizes</h5>
+                      <div className="available-sizes-input">
+                        <input
+                          type="text"
+                          value={newShortsSizeKids}
+                          onChange={(e) => setNewShortsSizeKids(e.target.value)}
+                          placeholder='e.g. XS, S, M, L'
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddJerseyShortsSizeKids();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="size-add-btn"
+                          onClick={handleAddJerseyShortsSizeKids}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {shortsSizeKidsError && (
+                        <div className="form-inline-error">{shortsSizeKidsError}</div>
+                      )}
+                      {jerseyShortsSizesKids.length > 0 && (
+                        <div className="available-sizes-list">
+                          {jerseyShortsSizesKids.map(size => (
+                            <span key={size} className="available-size-chip">
+                              {size}
+                              <button
+                                type="button"
+                                aria-label={`Remove kids shorts size ${size}`}
+                                onClick={() => handleRemoveJerseyShortsSizeKids(size)}
+                              >
+                                <FontAwesomeIcon icon={faXmark} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  )}
+                  <small className="form-help">
+                    {showShortsSizes 
+                      ? 'Add the available sizes for shirts and shorts (Adult and Kids) that customers can choose from.'
+                      : 'Add the available sizes for shirts (Adult and Kids) that customers can choose from.'}
+                  </small>
+                </div>
+              ) : trophyCategorySelected ? (
                 <div className="form-group">
                   <label>Available Sizes</label>
                   <div className="available-sizes-input">
@@ -532,7 +1225,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                             aria-label={`Remove size ${size}`}
                             onClick={() => handleRemoveAvailableSize(size)}
                           >
-                            x
+                            <FontAwesomeIcon icon={faXmark} />
                           </button>
                         </span>
                       ))}
