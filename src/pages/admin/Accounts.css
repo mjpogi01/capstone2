@@ -20,6 +20,21 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  transition: max-width 0.3s ease;
+}
+
+/* Responsive when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .accounts-container,
+body.sidebar-collapsed .accounts-container {
+  max-width: calc(100vw - 100px);
+}
+
+/* Mobile: collapse state should not affect layout */
+@media (max-width: 768px) {
+  .admin-dashboard.sidebar-collapsed .accounts-container,
+  body.sidebar-collapsed .accounts-container {
+    max-width: 100%;
+  }
 }
 
 /* ===========================================

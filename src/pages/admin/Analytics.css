@@ -7,6 +7,22 @@
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* Responsive when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .analytics-page,
+body.sidebar-collapsed .analytics-page {
+  max-width: calc(100vw - 100px);
+}
+
+/* Mobile: collapse state should not affect layout */
+@media (max-width: 768px) {
+  .admin-dashboard.sidebar-collapsed .analytics-page,
+  body.sidebar-collapsed .analytics-page {
+    max-width: 100%;
+    padding: 1rem;
+  }
 }
 
 /* Header */

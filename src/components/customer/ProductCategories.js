@@ -1,18 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import './ProductCategories.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
-import { FaChevronLeft, FaChevronRight, FaStar, FaTimes } from "react-icons/fa";
-import ProductModal from './ProductModal'; // Add this import
+import { FaChevronLeft, FaChevronRight, FaStar, FaTimes, FaShoppingCart } from "react-icons/fa";
+import ProductModal from './ProductModal';
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
-// import { useCart } from '../../contexts/CartContext'; // Removed unused import
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
 import orderService from '../../services/orderService';
-import { FaShoppingCart } from "react-icons/fa";
 
 const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, setSearchQuery }) => {
   const [showAll, setShowAll] = useState(false);
@@ -80,15 +78,72 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
 
   // Removed unused handleAddToCart function
 
-  const categories = [
-    { id: 'jerseys', name: 'JERSEYS' },
-    { id: 't-shirts', name: 'T-SHIRTS' },
-    { id: 'long sleeves', name: 'LONG SLEEVES' },
-    { id: 'hoodies', name: 'HOODIES' },
-    { id: 'uniforms', name: 'UNIFORMS' },
-    { id: 'balls', name: 'BALLS' },
-    { id: 'trophies', name: 'TROPHIES' }
-  ];
+  // Get categories dynamically from products and custom categories from localStorage
+  const categories = useMemo(() => {
+    const predefinedCategories = [
+      { id: 'jerseys', name: 'JERSEYS' },
+      { id: 't-shirts', name: 'T-SHIRTS' },
+      { id: 'long sleeves', name: 'LONG SLEEVES' },
+      { id: 'hoodies', name: 'HOODIES' },
+      { id: 'uniforms', name: 'UNIFORMS' },
+      { id: 'balls', name: 'BALLS' },
+      { id: 'trophies', name: 'TROPHIES' }
+    ];
+
+    // Get custom categories from localStorage
+    let customCategories = [];
+    try {
+      const savedCustomCategories = localStorage.getItem('customCategories');
+      if (savedCustomCategories) {
+        customCategories = JSON.parse(savedCustomCategories).map(cat => ({
+          id: cat.toLowerCase(),
+          name: cat.toUpperCase()
+        }));
+      }
+    } catch (e) {
+      console.warn('Failed to parse custom categories:', e);
+    }
+
+    // Get hidden categories (to exclude them)
+    let hiddenCategories = [];
+    try {
+      const savedHiddenCategories = localStorage.getItem('hiddenCategories');
+      if (savedHiddenCategories) {
+        hiddenCategories = JSON.parse(savedHiddenCategories).map(cat => cat.toLowerCase());
+      }
+    } catch (e) {
+      console.warn('Failed to parse hidden categories:', e);
+    }
+
+    // Filter out hidden predefined categories
+    const visiblePredefined = predefinedCategories.filter(
+      cat => !hiddenCategories.includes(cat.id)
+    );
+
+    // Get unique categories from products that aren't already in predefined or custom
+    const productCategories = [...new Set(
+      products
+        .map(p => p.category)
+        .filter(Boolean)
+        .map(cat => ({
+          id: cat.toLowerCase(),
+          name: cat.toUpperCase()
+        }))
+    )];
+
+    // Combine all categories, removing duplicates
+    const allCategories = [
+      ...visiblePredefined,
+      ...customCategories,
+      ...productCategories.filter(
+        pc => !visiblePredefined.some(pre => pre.id === pc.id) &&
+              !customCategories.some(cc => cc.id === pc.id) &&
+              !hiddenCategories.includes(pc.id)
+      )
+    ];
+
+    return allCategories;
+  }, [products]);
 
   // Fetch products from API
   useEffect(() => {

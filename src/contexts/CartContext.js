@@ -74,6 +74,8 @@ export const CartProvider = ({ children }) => {
       teamMembers = null,
       teamName = null,
       singleOrderDetails = null,
+      ballDetails = null,
+      trophyDetails = null,
       isReplacement = false // New flag to indicate if this is replacing an existing item
     } = options;
 
@@ -91,6 +93,8 @@ export const CartProvider = ({ children }) => {
       teamMembers: isTeamOrder ? teamMembers : null,
       teamName: isTeamOrder ? finalTeamName : null,
       singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+      ballDetails: ballDetails,
+      trophyDetails: trophyDetails,
       addedAt: new Date().toISOString(),
       uniqueId: Date.now() + Math.random() // Generate a simple unique ID
     };
