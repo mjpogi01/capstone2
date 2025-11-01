@@ -158,14 +158,14 @@
   grid-template-columns: 1fr 1.8fr;
   gap: 1.5rem;
   margin-bottom: 0;
-  align-items: start;
+  align-items: stretch;
   min-height: 0;
   background: #ffffff;
   border-radius: 12px;
   padding: 0;
   box-shadow: none;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .image-section {
@@ -411,7 +411,24 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-height: 0;
+  max-height: calc(100vh - 8rem);
   overflow-y: auto;
+  padding-right: 2.5rem;
+  scrollbar-width: thin;
+}
+
+.details-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.details-section::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.45);
+  border-radius: 9999px;
+}
+
+.details-section::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .details-section h3 {
