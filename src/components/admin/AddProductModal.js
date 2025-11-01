@@ -1032,4 +1032,286 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                               {size}
                               <button
                                 type="button"
-                                aria-label={`
+                                aria-label={`Delete adult shirt size ${size}`}
+                                onClick={() => handleRemoveJerseyShirtSizeAdult(size)}
+                              >
+                                <FontAwesomeIcon icon={faXmark} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Kids Shirt Sizes */}
+                    <div className="jersey-size-subsection">
+                      <h5 className="jersey-size-label">Kids Sizes</h5>
+                      <div className="available-sizes-input">
+                        <input
+                          type="text"
+                          value={newShirtSizeKids}
+                          onChange={(e) => setNewShirtSizeKids(e.target.value)}
+                          placeholder='e.g. S, M, L, XL'
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddJerseyShirtSizeKids();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="size-add-btn"
+                          onClick={handleAddJerseyShirtSizeKids}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {shirtSizeKidsError && (
+                        <div className="form-inline-error">{shirtSizeKidsError}</div>
+                      )}
+                      {jerseyShirtSizesKids.length > 0 && (
+                        <div className="available-sizes-list">
+                          {jerseyShirtSizesKids.map(size => (
+                            <span key={size} className="available-size-chip">
+                              {size}
+                              <button
+                                type="button"
+                                aria-label={`Delete kids shirt size ${size}`}
+                                onClick={() => handleRemoveJerseyShirtSizeKids(size)}
+                              >
+                                <FontAwesomeIcon icon={faXmark} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Jersey Shorts Sizes */}
+                  <div className="jersey-size-section">
+                    <h4 className="jersey-size-subtitle">Shorts Sizes</h4>
+                    
+                    {/* Adult Shorts Sizes */}
+                    <div className="jersey-size-subsection">
+                      <h5 className="jersey-size-label">Adult Sizes</h5>
+                      <div className="available-sizes-input">
+                        <input
+                          type="text"
+                          value={newShortsSizeAdult}
+                          onChange={(e) => setNewShortsSizeAdult(e.target.value)}
+                          placeholder='e.g. S, M, L, XL'
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddJerseyShortsSizeAdult();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="size-add-btn"
+                          onClick={handleAddJerseyShortsSizeAdult}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {shortsSizeAdultError && (
+                        <div className="form-inline-error">{shortsSizeAdultError}</div>
+                      )}
+                      {jerseyShortsSizesAdult.length > 0 && (
+                        <div className="available-sizes-list">
+                          {jerseyShortsSizesAdult.map(size => (
+                            <span key={size} className="available-size-chip">
+                              {size}
+                              <button
+                                type="button"
+                                aria-label={`Delete adult shorts size ${size}`}
+                                onClick={() => handleRemoveJerseyShortsSizeAdult(size)}
+                              >
+                                <FontAwesomeIcon icon={faXmark} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Kids Shorts Sizes */}
+                    <div className="jersey-size-subsection">
+                      <h5 className="jersey-size-label">Kids Sizes</h5>
+                      <div className="available-sizes-input">
+                        <input
+                          type="text"
+                          value={newShortsSizeKids}
+                          onChange={(e) => setNewShortsSizeKids(e.target.value)}
+                          placeholder='e.g. S, M, L, XL'
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddJerseyShortsSizeKids();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="size-add-btn"
+                          onClick={handleAddJerseyShortsSizeKids}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {shortsSizeKidsError && (
+                        <div className="form-inline-error">{shortsSizeKidsError}</div>
+                      )}
+                      {jerseyShortsSizesKids.length > 0 && (
+                        <div className="available-sizes-list">
+                          {jerseyShortsSizesKids.map(size => (
+                            <span key={size} className="available-size-chip">
+                              {size}
+                              <button
+                                type="button"
+                                aria-label={`Delete kids shorts size ${size}`}
+                                onClick={() => handleRemoveJerseyShortsSizeKids(size)}
+                              >
+                                <FontAwesomeIcon icon={faXmark} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label>Available Sizes</label>
+                  <div className="available-sizes-input">
+                    <input
+                      type="text"
+                      value={newSizeInput}
+                      onChange={(e) => setNewSizeInput(e.target.value)}
+                      placeholder='e.g. XS, S, M, L, XL, XXL'
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddAvailableSize();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="size-add-btn"
+                      onClick={handleAddAvailableSize}
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {sizeInputError && (
+                    <div className="form-inline-error">{sizeInputError}</div>
+                  )}
+                  {availableSizes.length > 0 && (
+                    <div className="available-sizes-list">
+                      {availableSizes.map(size => (
+                        <span key={size} className="available-size-chip">
+                          {size}
+                          <button
+                            type="button"
+                            aria-label={`Delete available size ${size}`}
+                            onClick={() => handleRemoveAvailableSize(size)}
+                          >
+                            <FontAwesomeIcon icon={faXmark} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Price and Stock Section */}
+            <div className="price-stock-section">
+              <h3>Price and Stock</h3>
+              
+              <div className="form-group">
+                <label>Price</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Enter product price"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Stock Quantity</label>
+                <input
+                  type="number"
+                  name="stock_quantity"
+                  value={formData.stock_quantity}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Enter stock quantity"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Sold Quantity</label>
+                <input
+                  type="number"
+                  name="sold_quantity"
+                  value={formData.sold_quantity}
+                  onChange={handleInputChange}
+                  placeholder="Enter sold quantity"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Branch</label>
+                <select
+                  name="branch_id"
+                  value={formData.branch_id}
+                  onChange={handleInputChange}
+                  required
+                  className="branch-select"
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map(branch => (
+                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Description Section */}
+            <div className="description-section">
+              <h3>Description</h3>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Enter product description"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="modal-footer">
+              <button type="submit" className="submit-btn" disabled={loading}>
+                {loading ? 'Adding...' : 'Add Product'}
+              </button>
+              <button type="button" className="cancel-btn" onClick={onClose}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AddProductModal;
