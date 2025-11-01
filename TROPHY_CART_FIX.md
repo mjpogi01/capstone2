@@ -106,3 +106,4 @@ cartItem = {
 - New trophy items added after migration will work correctly
 - No breaking changes to existing functionality
 
+

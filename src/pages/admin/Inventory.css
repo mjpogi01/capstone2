@@ -275,6 +275,8 @@ body.sidebar-collapsed .inventory-main-content {
   padding: 1.25rem 1rem;
   vertical-align: middle;
   border-right: 1px solid #f1f5f9;
+  overflow: visible;
+  word-wrap: break-word;
 }
 
 .inventory-table td:last-child {
@@ -430,23 +432,149 @@ body.sidebar-collapsed .inventory-main-content {
 /* Available Sizes */
 .product-available-sizes-cell {
   width: auto;
-  min-width: 100px;
-  max-width: 130px;
+  min-width: 120px;
+  max-width: 150px;
+  padding: 0.5rem 0.75rem;
+  position: relative;
 }
 
 .product-available-sizes {
   color: #475569;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  line-height: 1.4;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+  line-height: 1.5;
+  display: block;
+  width: 100%;
 }
 
 .product-available-sizes .no-sizes {
   color: #94a3b8;
   font-style: italic;
   font-size: 0.75rem;
+}
+
+/* Dropdown Container */
+.sizes-dropdown-container {
+  position: relative;
+  width: 100%;
+}
+
+.sizes-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.sizes-dropdown-toggle:hover {
+  background: #f1f5f9;
+  border-color: #3b82f6;
+}
+
+.sizes-dropdown-toggle:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.sizes-preview {
+  flex: 1;
+  text-align: left;
+}
+
+.sizes-chevron {
+  font-size: 0.7rem;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+/* Dropdown Content */
+.sizes-dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.25rem;
+  padding: 0.75rem;
+  background: white !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 300px;
+  width: max-content;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+/* Ensure dropdown appears above other elements */
+.product-available-sizes-cell {
+  overflow: visible;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Jersey Sizes Dropdown */
+.jersey-sizes-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.size-group-item {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #475569;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.size-group-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.size-group-item strong {
+  color: #1e293b;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* Simple Sizes Dropdown */
+.simple-sizes-dropdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.size-chip {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
 }
 
 /* Category */

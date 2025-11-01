@@ -33,3 +33,4 @@ ADD COLUMN IF NOT EXISTS trophy_details JSONB;
 
 See `TROPHY_CART_FIX.md` for complete details.
 
+

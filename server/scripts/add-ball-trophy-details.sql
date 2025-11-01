@@ -14,3 +14,4 @@ ADD COLUMN IF NOT EXISTS trophy_details JSONB;
 -- - ball_details: { sportType, brand, ballSize, material }
 -- - trophy_details: { size, engravingText, occasion }
 
+
