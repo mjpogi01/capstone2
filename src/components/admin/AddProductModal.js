@@ -127,6 +127,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     'adults': false,
     'kids': false
   });
+  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
 
   const predefinedCategories = [
     'Jerseys',
@@ -827,132 +828,172 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                 <small className="form-help">Select an existing category or manage categories below</small>
                 
                 {/* Category Management Section */}
-                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ marginTop: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem 1rem',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                      border: 'none',
+                      borderBottom: categoriesExpanded ? '2px solid #e5e7eb' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)';
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.1)';
+                      e.target.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)';
+                      e.target.style.borderColor = categoriesExpanded ? '#e5e7eb' : 'transparent';
+                      e.target.style.boxShadow = 'none';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
                     <h5 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#111827' }}>Manage Categories</h5>
-                  </div>
-                  
-                  {/* Add Category */}
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <input
-                      type="text"
-                      value={newCategoryInput}
-                      onChange={(e) => {
-                        setNewCategoryInput(e.target.value);
-                        setCategoryError('');
-                      }}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddCategory();
-                        }
-                      }}
-                      placeholder="Enter new category name"
+                    <FontAwesomeIcon 
+                      icon={categoriesExpanded ? faChevronUp : faChevronDown}
                       style={{
-                        flex: 1,
-                        padding: '0.5rem 0.75rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
                         fontSize: '0.875rem',
-                        background: '#ffffff',
-                        color: '#111827'
+                        color: '#64748b',
+                        transition: 'all 0.3s ease'
                       }}
                     />
-                    <button
-                      type="button"
-                      onClick={handleAddCategory}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        border: 'none',
-                        borderRadius: '6px',
-                        background: '#3b82f6',
-                        color: '#ffffff',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => e.target.style.background = '#2563eb'}
-                      onMouseLeave={(e) => e.target.style.background = '#3b82f6'}
-                    >
-                      Add
-                    </button>
-                  </div>
+                  </button>
                   
-                  {categoryError && (
-                    <div style={{ 
-                      color: '#dc2626', 
-                      fontSize: '0.75rem', 
-                      fontWeight: 500,
-                      marginBottom: '0.75rem',
-                      padding: '0.5rem',
-                      background: '#fef2f2',
-                      borderRadius: '4px',
-                      border: '1px solid #fecaca'
-                    }}>
-                      {categoryError}
+                  {categoriesExpanded && (
+                    <div style={{ padding: '1rem', animation: 'dropdownSlideDown 0.3s ease-out' }}>
+                      {/* Add Category */}
+                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <input
+                          type="text"
+                          value={newCategoryInput}
+                          onChange={(e) => {
+                            setNewCategoryInput(e.target.value);
+                            setCategoryError('');
+                          }}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCategory();
+                            }
+                          }}
+                          placeholder="Enter new category name"
+                          style={{
+                            flex: 1,
+                            padding: '0.5rem 0.75rem',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            background: '#ffffff',
+                            color: '#111827'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCategory}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '6px',
+                            background: '#3b82f6',
+                            color: '#ffffff',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#2563eb'}
+                          onMouseLeave={(e) => e.target.style.background = '#3b82f6'}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      
+                      {categoryError && (
+                        <div style={{ 
+                          color: '#dc2626', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 500,
+                          marginBottom: '0.75rem',
+                          padding: '0.5rem',
+                          background: '#fef2f2',
+                          borderRadius: '4px',
+                          border: '1px solid #fecaca'
+                        }}>
+                          {categoryError}
+                        </div>
+                      )}
+                      
+                      {/* Category List with Remove Buttons */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+                        {categories.map(cat => {
+                          const isPredefined = predefinedCategories.includes(cat);
+                          return (
+                            <div key={cat} style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between',
+                              padding: '0.5rem 0.75rem',
+                              background: isPredefined ? '#ffffff' : '#f1f5f9',
+                              borderRadius: '6px',
+                              border: isPredefined ? '1px solid #e2e8f0' : '1px solid #cbd5f5'
+                            }}>
+                              <span style={{ 
+                                fontSize: '0.875rem', 
+                                fontWeight: 500,
+                                color: '#111827'
+                              }}>
+                                {cat}
+                                {isPredefined && (
+                                  <span style={{ 
+                                    marginLeft: '0.5rem',
+                                    fontSize: '0.7rem',
+                                    color: '#64748b',
+                                    fontStyle: 'italic'
+                                  }}>(Built-in)</span>
+                                )}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCategory(cat)}
+                                aria-label={`Remove category ${cat}`}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  fontSize: '1rem',
+                                  fontWeight: 600,
+                                  padding: '0.25rem 0.5rem',
+                                  borderRadius: '4px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.background = '#fef2f2';
+                                  e.target.style.transform = 'scale(1.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.background = 'none';
+                                  e.target.style.transform = 'scale(1)';
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-                  
-                  {/* Category List with Remove Buttons */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
-                    {categories.map(cat => {
-                      const isPredefined = predefinedCategories.includes(cat);
-                      return (
-                        <div key={cat} style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between',
-                          padding: '0.5rem 0.75rem',
-                          background: isPredefined ? '#ffffff' : '#f1f5f9',
-                          borderRadius: '6px',
-                          border: isPredefined ? '1px solid #e2e8f0' : '1px solid #cbd5f5'
-                        }}>
-                          <span style={{ 
-                            fontSize: '0.875rem', 
-                            fontWeight: 500,
-                            color: '#111827'
-                          }}>
-                            {cat}
-                            {isPredefined && (
-                              <span style={{ 
-                                marginLeft: '0.5rem',
-                                fontSize: '0.7rem',
-                                color: '#64748b',
-                                fontStyle: 'italic'
-                              }}>(Built-in)</span>
-                            )}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCategory(cat)}
-                            aria-label={`Remove category ${cat}`}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: '#ef4444',
-                              cursor: 'pointer',
-                              fontSize: '1rem',
-                              fontWeight: 600,
-                              padding: '0.25rem 0.5rem',
-                              borderRadius: '4px',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.background = '#fef2f2';
-                              e.target.style.transform = 'scale(1.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.background = 'none';
-                              e.target.style.transform = 'scale(1)';
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>
 
