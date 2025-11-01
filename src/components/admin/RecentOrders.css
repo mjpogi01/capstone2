@@ -70,6 +70,8 @@
   justify-content: center;
   gap: 0.25rem;
   position: relative;
+  z-index: 1000;
+  pointer-events: auto !important;
 }
 
 .search-btn svg,
@@ -113,6 +115,7 @@
 /* Filter Dropdown */
 .filter-dropdown-container {
   position: relative;
+  z-index: 1000;
 }
 
 .filter-dropdown {
@@ -124,8 +127,12 @@
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 180px;
-  z-index: 1000;
+  z-index: 10001;
   overflow: hidden;
+  pointer-events: auto !important;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
 }
 
 .filter-option {
@@ -137,6 +144,15 @@
   transition: background-color 0.2s ease;
   font-size: 0.875rem;
   color: #374151;
+  pointer-events: auto !important;
+  user-select: none;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+  position: relative;
+  z-index: 10001;
 }
 
 .filter-option:hover {

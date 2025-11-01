@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './RecentOrders.css';
 import orderService from '../../services/orderService';
 
@@ -11,18 +11,28 @@ const RecentOrders = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const INITIAL_DISPLAY_COUNT = 5;
+  const filterContainerRef = useRef(null);
 
-  // Close dropdowns when clicking outside
+  // Close dropdown when clicking outside - simplified approach
   useEffect(() => {
+    if (!showFilterDropdown) return;
+
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.header-actions')) {
+      if (filterContainerRef.current && !filterContainerRef.current.contains(event.target)) {
         setShowFilterDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    // Add listener after a small delay to prevent immediate closure
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showFilterDropdown]);
 
   useEffect(() => {
     fetchRecentOrders(true);
@@ -189,15 +199,22 @@ const RecentOrders = () => {
     }
   };
 
-  const handleFilterToggle = () => {
-    setShowFilterDropdown(!showFilterDropdown);
-    // Close search when opening filter
-    if (!showFilterDropdown) {
-      setShowSearch(false);
+  const handleFilterToggle = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
+    setShowFilterDropdown(prev => !prev);
+    // Close search when opening filter
+    setShowSearch(false);
   };
 
-  const handleFilterSelect = (status) => {
+  const handleFilterSelect = (status, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    console.log('Filter selected:', status); // Debug log
     setFilterStatus(status);
     setShowFilterDropdown(false);
   };
@@ -208,7 +225,7 @@ const RecentOrders = () => {
       order.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.date.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const orderStatus = (order.status || '').toLowerCase();
+    const orderStatus = (order.status || '').toLowerCase().trim();
     
     // Filter logic based on selected filter
     let matchesFilter = true;
@@ -219,12 +236,18 @@ const RecentOrders = () => {
         // Show only pending orders
         matchesFilter = orderStatus === 'pending';
       } else if (filterStatusLower === 'processing') {
-        // Processing includes: layout, sizing, printing, press, prod, packing
-        // Exclude pending and cancelled
-        if (orderStatus === 'pending' || orderStatus === 'cancelled' || orderStatus === 'canceled') {
+        // Processing includes: confirmed, layout, sizing, printing, press, prod, packing_completing
+        // Exclude pending, cancelled, and delivered statuses
+        if (orderStatus === 'pending' || 
+            orderStatus === 'cancelled' || 
+            orderStatus === 'canceled' ||
+            orderStatus === 'delivered' ||
+            orderStatus === 'picked_up_delivered' ||
+            orderStatus === 'picked up delivered') {
           return false;
         }
         const processingStatuses = [
+          'confirmed',
           'layout',
           'sizing',
           'printing',
@@ -235,8 +258,19 @@ const RecentOrders = () => {
         ];
         matchesFilter = processingStatuses.includes(orderStatus);
       } else if (filterStatusLower === 'delivered') {
-        // Delivered includes picked_up_delivered, exclude pending and cancelled
-        if (orderStatus === 'pending' || orderStatus === 'cancelled' || orderStatus === 'canceled') {
+        // Delivered includes picked_up_delivered and delivered
+        // Exclude pending, cancelled, and processing statuses
+        if (orderStatus === 'pending' || 
+            orderStatus === 'cancelled' || 
+            orderStatus === 'canceled' ||
+            orderStatus === 'confirmed' ||
+            orderStatus === 'layout' ||
+            orderStatus === 'sizing' ||
+            orderStatus === 'printing' ||
+            orderStatus === 'press' ||
+            orderStatus === 'prod' ||
+            orderStatus === 'packing' ||
+            orderStatus === 'packing_completing') {
           return false;
         }
         matchesFilter = orderStatus === 'delivered' ||
@@ -307,47 +341,89 @@ const RecentOrders = () => {
               <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
             </svg>
           </button>
-          <div className="filter-dropdown-container">
+          <div className="filter-dropdown-container" ref={filterContainerRef}>
             <button 
               className={`filter-btn ${filterStatus !== 'all' ? 'active' : ''}`}
-              onClick={handleFilterToggle}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Filter button clicked, current state:', showFilterDropdown); // Debug log
+                setShowFilterDropdown(prev => {
+                  console.log('Setting dropdown to:', !prev);
+                  return !prev;
+                });
+                setShowSearch(false);
+              }}
               aria-label="Filter"
               title={`Filter: ${getFilterLabel()}`}
+              type="button"
             >
               <svg viewBox="0 0 24 24" fill="currentColor">
                 {getFilterIcon()}
               </svg>
             </button>
             {showFilterDropdown && (
-              <div className="filter-dropdown">
-                <div 
+              <div 
+                className="filter-dropdown"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
                   className={`filter-option ${filterStatus === 'all' ? 'active' : ''}`}
-                  onClick={() => handleFilterSelect('all')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Selecting filter: all');
+                    setFilterStatus('all');
+                    setShowFilterDropdown(false);
+                  }}
                 >
                   <span>All Status</span>
                   {filterStatus === 'all' && <span className="check-mark">✓</span>}
-                </div>
-                <div 
+                </button>
+                <button
+                  type="button"
                   className={`filter-option ${filterStatus === 'pending' ? 'active' : ''}`}
-                  onClick={() => handleFilterSelect('pending')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Selecting filter: pending');
+                    setFilterStatus('pending');
+                    setShowFilterDropdown(false);
+                  }}
                 >
                   <span>Pending</span>
                   {filterStatus === 'pending' && <span className="check-mark">✓</span>}
-                </div>
-                <div 
+                </button>
+                <button
+                  type="button"
                   className={`filter-option ${filterStatus === 'processing' ? 'active' : ''}`}
-                  onClick={() => handleFilterSelect('processing')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Selecting filter: processing');
+                    setFilterStatus('processing');
+                    setShowFilterDropdown(false);
+                  }}
                 >
                   <span>Processing</span>
                   {filterStatus === 'processing' && <span className="check-mark">✓</span>}
-                </div>
-                <div 
+                </button>
+                <button
+                  type="button"
                   className={`filter-option ${filterStatus === 'delivered' ? 'active' : ''}`}
-                  onClick={() => handleFilterSelect('delivered')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Selecting filter: delivered');
+                    setFilterStatus('delivered');
+                    setShowFilterDropdown(false);
+                  }}
                 >
                   <span>Delivered</span>
                   {filterStatus === 'delivered' && <span className="check-mark">✓</span>}
-                </div>
+                </button>
               </div>
             )}
           </div>

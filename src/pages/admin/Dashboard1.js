@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Dashboard1.css';
 import orderService from '../../services/orderService';
 import EarningsChart from '../../components/admin/EarningsChart';
+import { API_URL } from '../../config/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faUsers,
@@ -384,7 +385,7 @@ const Dashboard1 = () => {
       setLoadingStats(true);
       
       // Fetch analytics data from API
-      const response = await fetch('http://localhost:4000/api/analytics/dashboard');
+      const response = await fetch(`${API_URL}/api/analytics/dashboard`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -580,7 +581,7 @@ const Dashboard1 = () => {
       order.product.toLowerCase().includes(ordersSearchTerm.toLowerCase()) ||
       order.date.toLowerCase().includes(ordersSearchTerm.toLowerCase());
     
-    const orderStatus = (order.status || '').toLowerCase();
+    const orderStatus = (order.status || '').toLowerCase().trim();
     
     let matchesFilter = true;
     if (ordersFilterStatus !== 'all') {
@@ -589,10 +590,18 @@ const Dashboard1 = () => {
       if (filterStatusLower === 'pending') {
         matchesFilter = orderStatus === 'pending';
       } else if (filterStatusLower === 'processing') {
-        if (orderStatus === 'pending' || orderStatus === 'cancelled' || orderStatus === 'canceled') {
+        // Processing includes: confirmed, layout, sizing, printing, press, prod, packing_completing
+        // Exclude pending, cancelled, and delivered statuses
+        if (orderStatus === 'pending' || 
+            orderStatus === 'cancelled' || 
+            orderStatus === 'canceled' ||
+            orderStatus === 'delivered' ||
+            orderStatus === 'picked_up_delivered' ||
+            orderStatus === 'picked up delivered') {
           return false;
         }
         const processingStatuses = [
+          'confirmed',
           'layout',
           'sizing',
           'printing',
@@ -603,7 +612,19 @@ const Dashboard1 = () => {
         ];
         matchesFilter = processingStatuses.includes(orderStatus);
       } else if (filterStatusLower === 'delivered') {
-        if (orderStatus === 'pending' || orderStatus === 'cancelled' || orderStatus === 'canceled') {
+        // Delivered includes picked_up_delivered and delivered
+        // Exclude pending, cancelled, and processing statuses
+        if (orderStatus === 'pending' || 
+            orderStatus === 'cancelled' || 
+            orderStatus === 'canceled' ||
+            orderStatus === 'confirmed' ||
+            orderStatus === 'layout' ||
+            orderStatus === 'sizing' ||
+            orderStatus === 'printing' ||
+            orderStatus === 'press' ||
+            orderStatus === 'prod' ||
+            orderStatus === 'packing' ||
+            orderStatus === 'packing_completing') {
           return false;
         }
         matchesFilter = orderStatus === 'delivered' ||

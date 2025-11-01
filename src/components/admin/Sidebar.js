@@ -32,6 +32,52 @@ const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuO
     { id: 'accounts', label: 'Accounts', icon: faUsers, path: `${basePath}/accounts` },
   ];
 
+  // Sync collapse state with body class for CSS targeting
+  React.useEffect(() => {
+    const updateClasses = () => {
+      const body = document.body;
+      const adminDashboard = document.querySelector('.admin-dashboard');
+      const ownerDashboard = document.querySelector('.owner-dashboard');
+      const analyticsPage = document.querySelector('.analytics-page');
+      const inventoryPage = document.querySelector('.inventory-page');
+      
+      if (isCollapsed) {
+        body.classList.add('sidebar-collapsed');
+        if (adminDashboard) adminDashboard.classList.add('sidebar-collapsed');
+        if (ownerDashboard) ownerDashboard.classList.add('sidebar-collapsed');
+        if (analyticsPage) analyticsPage.classList.add('sidebar-collapsed');
+        if (inventoryPage) inventoryPage.classList.add('sidebar-collapsed');
+      } else {
+        body.classList.remove('sidebar-collapsed');
+        if (adminDashboard) adminDashboard.classList.remove('sidebar-collapsed');
+        if (ownerDashboard) ownerDashboard.classList.remove('sidebar-collapsed');
+        if (analyticsPage) analyticsPage.classList.remove('sidebar-collapsed');
+        if (inventoryPage) inventoryPage.classList.remove('sidebar-collapsed');
+      }
+    };
+
+    // Immediate update
+    updateClasses();
+    
+    // Also update after a small delay to catch dynamically loaded components
+    const timeoutId = setTimeout(updateClasses, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      const body = document.body;
+      const adminDashboard = document.querySelector('.admin-dashboard');
+      const ownerDashboard = document.querySelector('.owner-dashboard');
+      const analyticsPage = document.querySelector('.analytics-page');
+      const inventoryPage = document.querySelector('.inventory-page');
+      
+      body.classList.remove('sidebar-collapsed');
+      if (adminDashboard) adminDashboard.classList.remove('sidebar-collapsed');
+      if (ownerDashboard) ownerDashboard.classList.remove('sidebar-collapsed');
+      if (analyticsPage) analyticsPage.classList.remove('sidebar-collapsed');
+      if (inventoryPage) inventoryPage.classList.remove('sidebar-collapsed');
+    };
+  }, [isCollapsed]);
+
   const handleLogout = () => {
     logout();
     navigate('/');

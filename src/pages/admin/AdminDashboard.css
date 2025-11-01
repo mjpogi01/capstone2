@@ -23,6 +23,37 @@
   flex-direction: column;
   width: calc(100% - 280px);
   min-height: 100vh;
+  transition: margin-left 0.3s ease, width 0.3s ease;
+  box-sizing: border-box;
+}
+
+/* When sidebar is collapsed - Higher specificity */
+.admin-dashboard.sidebar-collapsed .admin-main-content,
+body.sidebar-collapsed .admin-main-content,
+.admin-dashboard.sidebar-collapsed > .admin-main-content,
+.admin-dashboard .sidebar-collapsed ~ .admin-main-content,
+body.sidebar-collapsed .admin-main-content {
+  margin-left: 80px !important;
+  width: calc(100% - 80px) !important;
+  transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+/* Ensure all breakpoints respect collapsed state */
+@media (min-width: 769px) {
+  .admin-dashboard.sidebar-collapsed .admin-main-content,
+  body.sidebar-collapsed .admin-main-content {
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
+  }
+}
+
+/* Mobile: collapse state should not affect layout */
+@media (max-width: 768px) {
+  .admin-dashboard.sidebar-collapsed .admin-main-content,
+  body.sidebar-collapsed .admin-main-content {
+    margin-left: 0;
+    width: 100%;
+  }
 }
 
 .dashboard-content {
@@ -77,6 +108,13 @@
   .admin-main-content {
     padding: 1.75rem 1.5rem;
   }
+  
+  /* Collapsed state at this breakpoint */
+  .admin-dashboard.sidebar-collapsed .admin-main-content,
+  body.sidebar-collapsed .admin-main-content {
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
+  }
 
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -94,6 +132,13 @@
     width: calc(100% - 240px);
     padding: 1.5rem 1.25rem;
   }
+  
+  /* Collapsed state at this breakpoint */
+  .admin-dashboard.sidebar-collapsed .admin-main-content,
+  body.sidebar-collapsed .admin-main-content {
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
+  }
 
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -110,6 +155,13 @@
     margin-left: 220px;
     width: calc(100% - 220px);
     padding: 1.25rem 1rem;
+  }
+  
+  /* Collapsed state at this breakpoint */
+  .admin-dashboard.sidebar-collapsed .admin-main-content,
+  body.sidebar-collapsed .admin-main-content {
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
   }
 
   .dashboard-grid {

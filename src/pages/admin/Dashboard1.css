@@ -95,6 +95,23 @@
   width: 100%;
   padding: 2rem;
   max-width: 100%;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Responsive when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .dashboard1-main,
+body.sidebar-collapsed .dashboard1-main {
+  max-width: 100%;
+}
+
+/* Mobile: collapse state should not affect layout */
+@media (max-width: 768px) {
+  .admin-dashboard.sidebar-collapsed .dashboard1-main,
+  body.sidebar-collapsed .dashboard1-main {
+    padding: 1rem;
+  }
 }
 
 /* ===================================
@@ -243,6 +260,23 @@
   gap: 1.5rem;
   margin-bottom: 2rem;
   align-items: stretch;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 992px) {
+  .dashboard1-chart-section {
+    flex-direction: column;
+  }
+
+  .dashboard1-chart-wrapper {
+    flex: 1;
+    max-width: 100%;
+  }
+
+  .dashboard1-chart-sidebar {
+    max-width: 100%;
+    min-height: auto;
+  }
 }
 
 .dashboard1-chart-wrapper {
@@ -1185,7 +1219,97 @@
 /* ===================================
    RESPONSIVE DESIGN
    =================================== */
-@media (max-width: 1400px) {
+
+/* Large Desktop (1400px+) */
+@media (min-width: 1400px) {
+  .dashboard1-main {
+    padding: 2rem;
+  }
+  
+  .dashboard1-top-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Medium Desktop (1200px - 1399px) */
+@media (max-width: 1399px) and (min-width: 1200px) {
+  .dashboard1-main {
+    padding: 1.75rem;
+  }
+  
+  .dashboard1-top-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+  
+  .dashboard1-stock-section {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard1-stock-sidebar {
+    margin-top: 1.5rem;
+  }
+}
+
+/* Tablet and Small Desktop (992px - 1199px) */
+@media (max-width: 1199px) and (min-width: 992px) {
+  .dashboard1-main {
+    padding: 1.5rem;
+  }
+  
+  .dashboard1-top-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+  
+  .dashboard1-stat-card {
+    padding: 1.25rem;
+  }
+  
+  .dashboard1-stat-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+  
+  .dashboard1-stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .dashboard1-stock-section {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard1-stock-sidebar {
+    margin-top: 1.5rem;
+  }
+}
+
+/* Small Tablet (768px - 991px) */
+@media (max-width: 991px) and (min-width: 768px) {
+  .dashboard1-main {
+    padding: 1.25rem;
+  }
+  
+  .dashboard1-top-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .dashboard1-stat-card {
+    padding: 1.25rem;
+  }
+  
+  .dashboard1-stat-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+  
+  .dashboard1-stat-value {
+    font-size: 1.5rem;
+  }
+  
   .dashboard1-stock-section {
     grid-template-columns: 1fr;
   }
@@ -1390,53 +1514,209 @@
   background: #dc2626;
 }
 
-@media (max-width: 1200px) {
+/* Mobile (≤768px) - Integrated with AdminDashboard.css */
+@media (max-width: 768px) {
+  .dashboard1-main {
+    padding: 1rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   .dashboard1-top-cards {
     grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
   }
 
-  .dashboard1-main {
-    margin-left: 0;
-    max-width: 100%;
+  .dashboard1-stat-card {
     padding: 1rem;
+    flex-direction: row;
+    align-items: center;
   }
 
-  .dashboard1-sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+  .dashboard1-stat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+    flex-shrink: 0;
   }
 
-  .dashboard1-sidebar.mobile-open {
-    transform: translateX(0);
+  .dashboard1-stat-value {
+    font-size: 1.5rem;
   }
-}
 
-@media (max-width: 768px) {
+  .dashboard1-stat-label {
+    font-size: 0.8125rem;
+  }
+
+  .dashboard1-stat-trend {
+    font-size: 0.8125rem;
+  }
+
+  .dashboard1-stock-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .dashboard1-stock-sidebar {
+    margin-top: 0;
+  }
+
   .dashboard1-chart-controls {
+    flex-direction: column;
+    gap: 0.75rem;
     width: 100%;
   }
 
   .dashboard1-filter-btn,
   .dashboard1-select {
-    flex: 1;
-    min-width: 120px;
+    width: 100%;
+    min-width: 100%;
   }
 
   .dashboard1-stock-controls {
+    flex-direction: column;
+    gap: 0.75rem;
     width: 100%;
   }
 
   .dashboard1-search-input {
     width: 100%;
+    min-width: 100%;
   }
 
   .dashboard1-table {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .dashboard1-table thead,
+  .dashboard1-table tbody,
+  .dashboard1-table tr {
+    display: block;
   }
 
   .dashboard1-table th,
   .dashboard1-table td {
+    display: block;
+    text-align: left;
     padding: 0.75rem 0.5rem;
+  }
+
+  .dashboard1-table th {
+    border-bottom: none;
+    font-weight: 600;
+  }
+
+  .dashboard1-modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .dashboard1-modal-content {
+    max-width: 100%;
+    max-height: 95vh;
+  }
+
+  .dashboard1-modal-header,
+  .dashboard1-modal-body,
+  .dashboard1-modal-footer {
+    padding: 1rem;
+  }
+}
+
+/* Small Mobile (≤480px) */
+@media (max-width: 480px) {
+  .dashboard1-main {
+    padding: 0.75rem;
+  }
+
+  .dashboard1-top-cards {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .dashboard1-stat-card {
+    padding: 0.875rem;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .dashboard1-stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .dashboard1-stat-value {
+    font-size: 1.25rem;
+  }
+
+  .dashboard1-stat-label {
+    font-size: 0.75rem;
+  }
+
+  .dashboard1-stat-trend {
+    font-size: 0.75rem;
+  }
+
+  .dashboard1-chart-section {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .dashboard1-chart-wrapper {
+    flex: 1;
+    max-width: 100%;
+  }
+
+  .dashboard1-chart-sidebar {
+    max-width: 100%;
+    min-height: auto;
+  }
+
+  .dashboard1-modal-content {
+    border-radius: 0.75rem;
+  }
+
+  .dashboard1-modal-header h3 {
+    font-size: 1.125rem;
+  }
+
+  .dashboard1-form-group {
+    margin-bottom: 1rem;
+  }
+
+  .dashboard1-modal-footer {
+    flex-direction: column;
+  }
+
+  .dashboard1-btn-cancel,
+  .dashboard1-btn-save,
+  .dashboard1-btn-delete {
+    width: 100%;
+  }
+}
+
+/* Extra Small Mobile (≤360px) */
+@media (max-width: 360px) {
+  .dashboard1-main {
+    padding: 0.5rem;
+  }
+
+  .dashboard1-stat-card {
+    padding: 0.75rem;
+  }
+
+  .dashboard1-stat-value {
+    font-size: 1.125rem;
+  }
+
+  .dashboard1-chart-title {
+    font-size: 1.125rem;
   }
 }
 
