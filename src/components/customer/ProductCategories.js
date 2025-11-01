@@ -3,16 +3,14 @@ import './ProductCategories.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
-import { FaChevronLeft, FaChevronRight, FaStar, FaTimes } from "react-icons/fa";
-import ProductModal from './ProductModal'; // Add this import
+import { FaChevronLeft, FaChevronRight, FaStar, FaTimes, FaShoppingCart } from "react-icons/fa";
+import ProductModal from './ProductModal';
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
-// import { useCart } from '../../contexts/CartContext'; // Removed unused import
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
 import orderService from '../../services/orderService';
-import { FaShoppingCart } from "react-icons/fa";
 
 const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, setSearchQuery }) => {
   const [showAll, setShowAll] = useState(false);

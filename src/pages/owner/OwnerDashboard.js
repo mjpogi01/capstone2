@@ -2,13 +2,9 @@ import React, { useState } from 'react';
 import './OwnerDashboard.css';
 import '../admin/admin-shared.css';
 import Sidebar from '../../components/admin/Sidebar';
-import MetricsCards from '../../components/admin/MetricsCards';
-import EarningsChart from '../../components/admin/EarningsChart';
-import StocksTable from '../../components/admin/StocksTable';
-import RecentOrders from '../../components/admin/RecentOrders';
-import PopularProducts from '../../components/admin/PopularProducts';
 import Orders from '../../components/admin/Orders';
 import Analytics from '../admin/Analytics';
+import Dashboard1 from '../admin/Dashboard1';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars } from '@fortawesome/free-solid-svg-icons';
 import logo from '../../images/yohanns_logo-removebg-preview 3.png';
@@ -34,41 +30,13 @@ const OwnerDashboard = () => {
   const renderContent = () => {
     switch (activePage) {
       case 'home':
-        return (
-          <div className="dashboard-content">
-            <MetricsCards />
-            <div className="dashboard-grid">
-              <div className="dashboard-left">
-                <EarningsChart />
-              </div>
-              <div className="dashboard-right">
-                <StocksTable />
-                <PopularProducts />
-              </div>
-            </div>
-            <RecentOrders />
-          </div>
-        );
+        return <Dashboard1 />;
       case 'orders':
         return <Orders />;
       case 'analytics':
         return <Analytics />;
       default:
-        return (
-          <div className="dashboard-content">
-            <MetricsCards />
-            <div className="dashboard-grid">
-              <div className="dashboard-left">
-                <EarningsChart />
-              </div>
-              <div className="dashboard-right">
-                <StocksTable />
-                <PopularProducts />
-              </div>
-            </div>
-            <RecentOrders />
-          </div>
-        );
+        return <Dashboard1 />;
     }
   };
 

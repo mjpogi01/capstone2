@@ -12,7 +12,7 @@ import {
   faUsers, 
   faSignOutAlt, 
   faChevronLeft, 
-  faChevronRight 
+  faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 
 const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuOpen }) => {
