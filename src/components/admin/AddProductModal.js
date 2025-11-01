@@ -323,11 +323,6 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         additional_images: additionalImages
       };
 
-      if (isTrophyProduct) {
-        productData.available_sizes = availableSizes;
-      }
-
-
       const url = isEditMode 
         ? `http://localhost:4000/api/products/${editingProduct.id}`
         : 'http://localhost:4000/api/products';
