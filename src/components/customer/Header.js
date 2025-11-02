@@ -43,12 +43,32 @@ const Header = () => {
   // Check if any modal is open
   const isAnyModalOpen = showSignInModal || showSignUpModal || isCartOpen || isWishlistOpen || showOrdersModal || showSearchDropdown;
   
+  // Track screen size for mobile search behavior
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   // Search toggle handler (similar to admin recent orders)
   const handleSearchToggle = () => {
-    setShowSearch(!showSearch);
-    // Clear search when closing
-    if (showSearch) {
-      setSearchQuery('');
+    if (isMobileView) {
+      // On mobile, toggle the dropdown
+      setShowSearchDropdown(!showSearchDropdown);
+      if (showSearchDropdown) {
+        setSearchQuery('');
+      }
+    } else {
+      // On desktop, toggle the inline search
+      setShowSearch(!showSearch);
+      if (showSearch) {
+        setSearchQuery('');
+      }
     }
   };
   
