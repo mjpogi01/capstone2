@@ -49,42 +49,15 @@ async function migrateToSupabase() {
         name TEXT NOT NULL,
         category TEXT NOT NULL,
         size TEXT,
-        available_sizes TEXT,
         price DECIMAL(10,2) NOT NULL,
         description TEXT,
         main_image TEXT,
         additional_images TEXT[],
         stock_quantity INTEGER DEFAULT 0,
-        sold_quantity INTEGER DEFAULT 0,
         branch_id INTEGER REFERENCES branches(id),
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
-    `);
-
-    // Add missing columns to existing products table (for existing databases)
-    console.log('🔧 Adding missing columns to products table if needed...');
-    await query(`
-      DO $$
-      BEGIN
-        -- Add available_sizes column if it doesn't exist
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_name = 'products' AND column_name = 'available_sizes'
-        ) THEN
-          ALTER TABLE products ADD COLUMN available_sizes TEXT;
-          RAISE NOTICE 'Added available_sizes column';
-        END IF;
-
-        -- Add sold_quantity column if it doesn't exist
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_name = 'products' AND column_name = 'sold_quantity'
-        ) THEN
-          ALTER TABLE products ADD COLUMN sold_quantity INTEGER DEFAULT 0;
-          RAISE NOTICE 'Added sold_quantity column';
-        END IF;
-      END $$;
     `);
 
     // Create user_carts table

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaChevronUp, FaTshirt } from 'react-icons/fa';
+import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaChevronUp, FaTshirt, FaImage } from 'react-icons/fa';
 import userService from '../../services/userService';
 import './CheckoutModal.css';
 
@@ -52,6 +52,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   const [addressToDelete, setAddressToDelete] = useState(null); // Address ID to delete
   const [showCancelReason, setShowCancelReason] = useState(false); // Cancel reason dialog
   const [cancelReason, setCancelReason] = useState(''); // Selected cancellation reason
+  const [uploadedLogos, setUploadedLogos] = useState([]); // Uploaded logo previews (array)
+  const [logoFiles, setLogoFiles] = useState([]); // Logo files for upload (array)
 
   // Check for user address when modal opens
   useEffect(() => {
@@ -172,7 +174,9 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
       shippingCost,
       totalAmount,
       totalItems,
-      orderDate: new Date().toISOString()
+      orderDate: new Date().toISOString(),
+      uploadedLogos,
+      logoFiles
     };
     
     onPlaceOrder(orderData);
@@ -439,6 +443,55 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
       province: province,
       postalCode: postalCode
     });
+  };
+
+  const handleLogoUpload = (event) => {
+    const files = Array.from(event.target.files || []);
+    
+    if (files.length === 0) return;
+    
+    // Validate all files
+    const validFiles = [];
+    files.forEach(file => {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} is too large. Logo file size must be less than 5MB`);
+        return;
+      }
+      
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} is not an image file`);
+        return;
+      }
+      
+      validFiles.push(file);
+    });
+    
+    if (validFiles.length === 0) return;
+    
+    // Add files to the arrays
+    setLogoFiles(prev => [...prev, ...validFiles]);
+    
+    // Create previews for all valid files
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedLogos(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Reset file input
+    const fileInput = document.getElementById('logo-upload-input');
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  const handleRemoveLogo = (index) => {
+    setUploadedLogos(prev => prev.filter((_, i) => i !== index));
+    setLogoFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -1014,6 +1067,53 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                 placeholder="Please Leave A Message ……"
                 className="notes-textarea"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Logo Upload Section */}
+        <div className="checkout-section">
+          <div className="logo-upload-container">
+            <div className="section-header">
+              <div className="section-header-left">
+                <FaImage className="section-icon" />
+                <h2>CUSTOM LOGO</h2>
+              </div>
+            </div>
+            <div className="logo-upload-content">
+              {/* Upload button - always visible */}
+              <label htmlFor="logo-upload-input" className="logo-upload-btn-add">
+                <FaImage />
+                <span>Add Logo/Image</span>
+              </label>
+              <input
+                id="logo-upload-input"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleLogoUpload}
+                style={{ display: 'none' }}
+              />
+              
+              {/* Display uploaded logos in a grid */}
+              {uploadedLogos.length > 0 && (
+                <div className="logo-preview-grid">
+                  {uploadedLogos.map((logoPreview, index) => (
+                    <div key={index} className="logo-preview-item">
+                      <div className="logo-preview-container">
+                        <img src={logoPreview} alt={`Uploaded logo ${index + 1}`} className="logo-preview" />
+                      </div>
+                      <button 
+                        className="logo-remove-btn-item" 
+                        onClick={() => handleRemoveLogo(index)}
+                        title="Remove"
+                      >
+                        <FaTimes />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

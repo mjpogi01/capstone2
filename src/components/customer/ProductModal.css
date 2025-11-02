@@ -1419,6 +1419,62 @@
   transform: translateY(-1px);
 }
 
+/* ===== JERSEY TYPE SECTION ===== */
+.modal-jersey-type-section {
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-jersey-type-label {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.modal-jersey-type-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-jersey-type-button {
+  flex: 1;
+  background: #2a2a3e;
+  color: #ccc;
+  border: 2px solid #555;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-jersey-type-button:hover {
+  background: rgba(0, 191, 255, 0.1);
+  border-color: #00bfff;
+  color: #00bfff;
+  transform: translateY(-1px);
+}
+
+.modal-jersey-type-button.active {
+  background: #00bfff;
+  color: #fff;
+  border-color: #00bfff;
+  box-shadow: 0 4px 8px rgba(0, 191, 255, 0.3);
+}
+
+.modal-jersey-type-button.active:hover {
+  background: #0099cc;
+  border-color: #0099cc;
+  transform: translateY(-1px);
+}
+
 /* ===== QUANTITY SECTION ===== */
 .modal-quantity-section {
   margin-bottom: 15px;

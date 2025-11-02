@@ -106,6 +106,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [teamName, setTeamName] = useState(existingCartItemData?.teamMembers?.[0]?.teamName || '');
   const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' });
   const [sizeType, setSizeType] = useState(existingCartItemData?.sizeType || 'adult'); // 'adult' or 'kids'
+  const [jerseyType, setJerseyType] = useState(existingCartItemData?.jerseyType || 'full'); // 'full', 'shirt', 'shorts'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
@@ -174,6 +175,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setTeamMembers(existingCartItemData.teamMembers || []);
       setTeamName(existingCartItemData.teamMembers?.[0]?.teamName || '');
       setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' });
+      setJerseyType(existingCartItemData.jerseyType || 'full');
+    } else if (isOpen && !existingCartItemData) {
+      // Reset to defaults when opening modal for a new product
+      setSelectedSize('M');
+      setQuantity(1);
+      setIsTeamOrder(false);
+      setTeamMembers([{ id: Date.now(), teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' }]);
+      setTeamName('');
+      setSingleOrderDetails({ teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' });
+      setJerseyType('full');
     }
   }, [isOpen, existingCartItemData]);
 
@@ -220,11 +231,21 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const isJerseyCategory = useMemo(() => {
     if (!product || !isApparel) return false;
     const category = product.category?.toLowerCase();
-    return category === 'jerseys' || 
-           category === 'uniforms' ||
-           category === 't-shirts' ||
-           category === 'long sleeves';
+    return category === 'jerseys';
   }, [product, isApparel]);
+
+  // Determine if shorts size should be shown (only for jerseys, and only when jerseyType is 'full' or 'shorts')
+  const shouldShowShorts = useMemo(() => {
+    if (!isJerseyCategory) return false;
+    return jerseyType === 'full' || jerseyType === 'shorts';
+  }, [isJerseyCategory, jerseyType]);
+
+  // Check if product is uniforms category
+  const isUniformsCategory = useMemo(() => {
+    if (!product) return false;
+    const category = product.category?.toLowerCase();
+    return category === 'uniforms';
+  }, [product]);
 
   // Parse jersey sizes from product (must be before early return)
   const jerseySizes = useMemo(() => {
@@ -291,7 +312,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         if (!singleOrderDetails.surname || !singleOrderDetails.surname.trim()) {
           errors.singleSurname = 'Required';
         }
-        if (!singleOrderDetails.number || !singleOrderDetails.number.trim()) {
+        // Only require jersey number if not uniforms category
+        if (!isUniformsCategory && (!singleOrderDetails.number || !singleOrderDetails.number.trim())) {
           errors.singleNumber = 'Required';
         }
         
@@ -312,7 +334,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           if (!member.surname || !member.surname.trim()) {
             errors[`teamMember_${index}_surname`] = 'Required';
           }
-          if (!member.number || !member.number.trim()) {
+          // Only require jersey number if not uniforms category
+          if (!isUniformsCategory && (!member.number || !member.number.trim())) {
             errors[`teamMember_${index}_number`] = 'Required';
           }
         });
@@ -356,6 +379,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         teamName: isTeamOrder ? teamName : null, // Add teamName for team orders
         singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
+        jerseyType: isJerseyCategory ? jerseyType : null, // Add jersey type for jersey products
         price: finalPrice, // Use discounted price for kids
         isReplacement: isFromCart, // Mark as replacement when coming from cart
         category: product.category, // Include category
@@ -436,7 +460,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         if (!singleOrderDetails.surname || !singleOrderDetails.surname.trim()) {
           errors.singleSurname = 'Required';
         }
-        if (!singleOrderDetails.number || !singleOrderDetails.number.trim()) {
+        // Only require jersey number if not uniforms category
+        if (!isUniformsCategory && (!singleOrderDetails.number || !singleOrderDetails.number.trim())) {
           errors.singleNumber = 'Required';
         }
         
@@ -456,7 +481,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           if (!member.surname || !member.surname.trim()) {
             errors[`teamMember_${index}_surname`] = 'Required';
           }
-          if (!member.number || !member.number.trim()) {
+          // Only require jersey number if not uniforms category
+          if (!isUniformsCategory && (!member.number || !member.number.trim())) {
             errors[`teamMember_${index}_number`] = 'Required';
           }
         });
@@ -497,6 +523,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         teamMembers: isTeamOrder ? teamMembers : null,
         singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
+        jerseyType: isJerseyCategory ? jerseyType : null, // Add jersey type for jersey products
         price: finalPrice,
         category: product.category, // Include category
         ballDetails: isBall ? ballDetails : null,
@@ -522,6 +549,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         teamMembers: isTeamOrder ? teamMembers : null,
         singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
+        jerseyType: isJerseyCategory ? jerseyType : null, // Add jersey type for jersey products
         isBuyNow: true, // Mark as Buy Now item
         uniqueId: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
         category: product.category, // Include category
@@ -722,6 +750,33 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
             )}
 
+            {/* Jersey Type Selection - Only for Jersey Category */}
+            {isJerseyCategory && (
+              <div className="modal-jersey-type-section">
+                <div className="modal-jersey-type-label">JERSEY TYPE</div>
+                <div className="modal-jersey-type-buttons">
+                  <button
+                    className={`modal-jersey-type-button ${jerseyType === 'full' ? 'active' : ''}`}
+                    onClick={() => setJerseyType('full')}
+                  >
+                    Full Set
+                  </button>
+                  <button
+                    className={`modal-jersey-type-button ${jerseyType === 'shirt' ? 'active' : ''}`}
+                    onClick={() => setJerseyType('shirt')}
+                  >
+                    Shirt Only
+                  </button>
+                  <button
+                    className={`modal-jersey-type-button ${jerseyType === 'shorts' ? 'active' : ''}`}
+                    onClick={() => setJerseyType('shorts')}
+                  >
+                    Shorts Only
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Size Type Toggle for Team Orders - Only for Apparel */}
             {isApparel && isTeamOrder && (
               <div className="modal-size-type-section">
@@ -789,7 +844,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                   <div className="modal-input-wrapper">
                     <input
                       type="text"
-                      placeholder="Team Name"
+                      placeholder="Team Name / Organization"
                       value={teamName}
                       onChange={(e) => {
                         const newTeamName = e.target.value;
@@ -839,26 +894,28 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                             <span className="modal-error-message">{validationErrors[`teamMember_${index}_surname`]}</span>
                           )}
                         </div>
-                        <div className="modal-input-wrapper modal-member-wrapper">
-                          <input
-                            type="text"
-                            placeholder="Jersey No."
-                            value={member.number}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^\d]/g, '');
-                              updateTeamMember(index, 'number', value);
-                              if (validationErrors[`teamMember_${index}_number`]) {
-                                const newErrors = {...validationErrors};
-                                delete newErrors[`teamMember_${index}_number`];
-                                setValidationErrors(newErrors);
-                              }
-                            }}
-                            className={`modal-member-input number-input ${validationErrors[`teamMember_${index}_number`] ? 'error' : ''}`}
-                          />
-                          {validationErrors[`teamMember_${index}_number`] && (
-                            <span className="modal-error-message">{validationErrors[`teamMember_${index}_number`]}</span>
-                          )}
-                        </div>
+                        {!isUniformsCategory && (
+                          <div className="modal-input-wrapper modal-member-wrapper">
+                            <input
+                              type="text"
+                              placeholder="Jersey No."
+                              value={member.number}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^\d]/g, '');
+                                updateTeamMember(index, 'number', value);
+                                if (validationErrors[`teamMember_${index}_number`]) {
+                                  const newErrors = {...validationErrors};
+                                  delete newErrors[`teamMember_${index}_number`];
+                                  setValidationErrors(newErrors);
+                                }
+                              }}
+                              className={`modal-member-input number-input ${validationErrors[`teamMember_${index}_number`] ? 'error' : ''}`}
+                            />
+                            {validationErrors[`teamMember_${index}_number`] && (
+                              <span className="modal-error-message">{validationErrors[`teamMember_${index}_number`]}</span>
+                            )}
+                          </div>
+                        )}
                         {teamMembers.length > 1 && (
                           <button 
                             type="button"
@@ -871,30 +928,36 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                         )}
                       </div>
                       <div className="modal-member-row-row-2">
-                        <div className="modal-member-size-wrapper">
-                          <label className="modal-member-size-label">Shirt Size</label>
-                          <select
-                            value={member.jerseySize || (shirtSizes.length > 0 ? shirtSizes[Math.floor(shirtSizes.length / 2)] : 'M')}
-                            onChange={(e) => updateTeamMember(index, 'jerseySize', e.target.value)}
-                            className="modal-member-select"
-                          >
-                            {shirtSizes.map(size => (
-                              <option key={size} value={size}>{size}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="modal-member-size-wrapper">
-                          <label className="modal-member-size-label">Short Size</label>
-                          <select
-                            value={member.shortsSize || (shortSizes.length > 0 ? shortSizes[Math.floor(shortSizes.length / 2)] : 'M')}
-                            onChange={(e) => updateTeamMember(index, 'shortsSize', e.target.value)}
-                            className="modal-member-select"
-                          >
-                            {shortSizes.map(size => (
-                              <option key={size} value={size}>{size}</option>
-                            ))}
-                          </select>
-                        </div>
+                        {/* Always show shirt size for apparel, but only for jerseys when jerseyType is 'full' or 'shirt' */}
+                        {(!isJerseyCategory || jerseyType === 'full' || jerseyType === 'shirt') && (
+                          <div className="modal-member-size-wrapper">
+                            <label className="modal-member-size-label">Shirt Size</label>
+                            <select
+                              value={member.jerseySize || (shirtSizes.length > 0 ? shirtSizes[Math.floor(shirtSizes.length / 2)] : 'M')}
+                              onChange={(e) => updateTeamMember(index, 'jerseySize', e.target.value)}
+                              className="modal-member-select"
+                            >
+                              {shirtSizes.map(size => (
+                                <option key={size} value={size}>{size}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        {/* Only show shorts for jerseys when jerseyType is 'full' or 'shorts' */}
+                        {shouldShowShorts && (
+                          <div className="modal-member-size-wrapper">
+                            <label className="modal-member-size-label">Short Size</label>
+                            <select
+                              value={member.shortsSize || (shortSizes.length > 0 ? shortSizes[Math.floor(shortSizes.length / 2)] : 'M')}
+                              onChange={(e) => updateTeamMember(index, 'shortsSize', e.target.value)}
+                              className="modal-member-select"
+                            >
+                              {shortSizes.map(size => (
+                                <option key={size} value={size}>{size}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -950,7 +1013,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                   <div className="modal-input-wrapper modal-single-order-form-row-1">
                     <input
                       type="text"
-                      placeholder="Team Name"
+                      placeholder="Team Name / Organization"
                       value={singleOrderDetails.teamName}
                       onChange={(e) => {
                         setSingleOrderDetails({...singleOrderDetails, teamName: e.target.value});
@@ -983,59 +1046,67 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       <span className="modal-error-message">{validationErrors.singleSurname}</span>
                     )}
                   </div>
-                  <div className="modal-input-wrapper">
-                    <input
-                      type="text"
-                      placeholder="Jersey No."
-                      value={singleOrderDetails.number}
-                      onChange={(e) => {
-                        const inputValue = e.target.value;
-                        // Check if user tried to enter non-numeric characters
-                        if (inputValue && /[^\d]/.test(inputValue)) {
-                          setValidationErrors({...validationErrors, singleNumber: 'Numbers only'});
-                        } else if (validationErrors.singleNumber === 'Numbers only') {
-                          setValidationErrors({...validationErrors, singleNumber: ''});
-                        }
-                        // Only allow numbers
-                        const value = inputValue.replace(/[^\d]/g, '');
-                        setSingleOrderDetails({...singleOrderDetails, number: value});
-                        // Clear required error when typing
-                        if (validationErrors.singleNumber === 'Required' && value) {
-                          setValidationErrors({...validationErrors, singleNumber: ''});
-                        }
-                      }}
-                      className={`modal-single-order-input ${validationErrors.singleNumber ? 'error' : ''}`}
-                    />
-                    {validationErrors.singleNumber && (
-                      <span className="modal-error-message">{validationErrors.singleNumber}</span>
-                    )}
-                  </div>
+                  {!isUniformsCategory && (
+                    <div className="modal-input-wrapper">
+                      <input
+                        type="text"
+                        placeholder="Jersey No."
+                        value={singleOrderDetails.number}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          // Check if user tried to enter non-numeric characters
+                          if (inputValue && /[^\d]/.test(inputValue)) {
+                            setValidationErrors({...validationErrors, singleNumber: 'Numbers only'});
+                          } else if (validationErrors.singleNumber === 'Numbers only') {
+                            setValidationErrors({...validationErrors, singleNumber: ''});
+                          }
+                          // Only allow numbers
+                          const value = inputValue.replace(/[^\d]/g, '');
+                          setSingleOrderDetails({...singleOrderDetails, number: value});
+                          // Clear required error when typing
+                          if (validationErrors.singleNumber === 'Required' && value) {
+                            setValidationErrors({...validationErrors, singleNumber: ''});
+                          }
+                        }}
+                        className={`modal-single-order-input ${validationErrors.singleNumber ? 'error' : ''}`}
+                      />
+                      {validationErrors.singleNumber && (
+                        <span className="modal-error-message">{validationErrors.singleNumber}</span>
+                      )}
+                    </div>
+                  )}
                   
-                  {/* Row 3: Shirt Size and Short Size - With Labels */}
-                  <div className="modal-single-order-size-wrapper">
-                    <label className="modal-single-order-size-label">Shirt Size</label>
-                    <select
-                      value={singleOrderDetails.jerseySize || (shirtSizes.length > 0 ? shirtSizes[Math.floor(shirtSizes.length / 2)] : 'M')}
-                      onChange={(e) => setSingleOrderDetails({...singleOrderDetails, jerseySize: e.target.value})}
-                      className="modal-single-order-select"
-                    >
-                      {shirtSizes.map(size => (
-                        <option key={size} value={size}>{size}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="modal-single-order-size-wrapper">
-                    <label className="modal-single-order-size-label">Short Size</label>
-                    <select
-                      value={singleOrderDetails.shortsSize || (shortSizes.length > 0 ? shortSizes[Math.floor(shortSizes.length / 2)] : 'M')}
-                      onChange={(e) => setSingleOrderDetails({...singleOrderDetails, shortsSize: e.target.value})}
-                      className="modal-single-order-select"
-                    >
-                      {shortSizes.map(size => (
-                        <option key={size} value={size}>{size}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Row 3: Shirt Size and Short Size - With Labels (Conditional based on jersey type) */}
+                  {/* Always show shirt size for apparel, but only for jerseys when jerseyType is 'full' or 'shirt' */}
+                  {(!isJerseyCategory || jerseyType === 'full' || jerseyType === 'shirt') && (
+                    <div className="modal-single-order-size-wrapper">
+                      <label className="modal-single-order-size-label">Shirt Size</label>
+                      <select
+                        value={singleOrderDetails.jerseySize || (shirtSizes.length > 0 ? shirtSizes[Math.floor(shirtSizes.length / 2)] : 'M')}
+                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, jerseySize: e.target.value})}
+                        className="modal-single-order-select"
+                      >
+                        {shirtSizes.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {/* Only show shorts for jerseys when jerseyType is 'full' or 'shorts' */}
+                  {shouldShowShorts && (
+                    <div className="modal-single-order-size-wrapper">
+                      <label className="modal-single-order-size-label">Short Size</label>
+                      <select
+                        value={singleOrderDetails.shortsSize || (shortSizes.length > 0 ? shortSizes[Math.floor(shortSizes.length / 2)] : 'M')}
+                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, shortsSize: e.target.value})}
+                        className="modal-single-order-select"
+                      >
+                        {shortSizes.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

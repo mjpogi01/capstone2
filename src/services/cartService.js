@@ -63,8 +63,6 @@ class CartService {
           teamMembers: item.team_members,
           teamName: teamName, // Extract team name from first team member
           singleOrderDetails: item.single_order_details,
-          ballDetails: item.ball_details,
-          trophyDetails: item.trophy_details,
           uniqueId: item.id, // Use database ID as unique identifier
           createdAt: item.created_at,
           updatedAt: item.updated_at
@@ -127,18 +125,16 @@ class CartService {
 
       // If exact same item exists, check if customization details also match
       if (existingItems && existingItems.length > 0) {
-        // Further check: compare team_members, single_order_details, ball_details, and trophy_details
+        // Further check: compare team_members and single_order_details
         // Only treat as duplicate if EVERYTHING is the same
         let foundExactMatch = null;
         
         for (const existingItem of existingItems) {
           const isSameTeamDetails = JSON.stringify(existingItem.team_members) === JSON.stringify(cartItem.teamMembers);
           const isSameSingleDetails = JSON.stringify(existingItem.single_order_details) === JSON.stringify(cartItem.singleOrderDetails);
-          const isSameBallDetails = JSON.stringify(existingItem.ball_details) === JSON.stringify(cartItem.ballDetails);
-          const isSameTrophyDetails = JSON.stringify(existingItem.trophy_details) === JSON.stringify(cartItem.trophyDetails);
           
           // If EVERYTHING matches (including customization), it's a true duplicate
-          if (isSameTeamDetails && isSameSingleDetails && isSameBallDetails && isSameTrophyDetails) {
+          if (isSameTeamDetails && isSameSingleDetails) {
             foundExactMatch = existingItem;
             break;
           }
@@ -188,9 +184,7 @@ class CartService {
           size: cartItem.size,
           is_team_order: cartItem.isTeamOrder,
           team_members: cartItem.teamMembers,
-          single_order_details: cartItem.singleOrderDetails,
-          ball_details: cartItem.ballDetails,
-          trophy_details: cartItem.trophyDetails
+          single_order_details: cartItem.singleOrderDetails
         })
         .select()
         .single();
