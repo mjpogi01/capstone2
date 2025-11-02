@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaSearch, FaFilter, FaSortAmountDown, FaStar, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaTimes, FaFilter, FaSortAmountDown, FaStar, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -245,14 +245,35 @@ const ProductListModal = ({ isOpen, onClose }) => {
 
           {/* Sort Bar */}
           <div className="shop-filter-bar">
-            <div className="search-box">
-              <FaSearch className="search-icon" />
+            <div className="shop-search-wrapper">
+              <button 
+                className={`shop-search-btn ${searchTerm ? 'active' : ''}`}
+                onClick={() => {
+                  const input = document.querySelector('.shop-search-input');
+                  if (input) {
+                    input.focus();
+                  }
+                }}
+                aria-label="Search"
+                title="Search products"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="10.5" cy="10.5" r="5.5" />
+                  <line x1="15.5" y1="15.5" x2="20" y2="20" strokeLinecap="round" />
+                </svg>
+              </button>
               <input
                 type="text"
-                className="search-input"
+                className="shop-search-input"
                 placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={(e) => e.target.parentElement.classList.add('focused')}
+                onBlur={(e) => {
+                  if (!e.target.value) {
+                    e.target.parentElement.classList.remove('focused');
+                  }
+                }}
               />
             </div>
             <div className="sort-label">Sort by</div>
