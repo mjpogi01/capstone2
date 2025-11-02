@@ -18,7 +18,8 @@ import { FaStar, FaBars, FaTimes } from 'react-icons/fa';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false); // Keep for backward compatibility
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [ordersCount, setOrdersCount] = useState(0);
@@ -41,6 +42,26 @@ const Header = () => {
 
   // Check if any modal is open
   const isAnyModalOpen = showSignInModal || showSignUpModal || isCartOpen || isWishlistOpen || showOrdersModal || showSearchDropdown;
+  
+  // Search toggle handler (similar to admin recent orders)
+  const handleSearchToggle = () => {
+    setShowSearch(!showSearch);
+    // Clear search when closing
+    if (showSearch) {
+      setSearchQuery('');
+    }
+  };
+  
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    // Navigate on change if query exists
+    if (e.target.value.trim()) {
+      navigate(`/?search=${encodeURIComponent(e.target.value)}`);
+    } else {
+      navigate('/');
+    }
+  };
 
   // Load orders count when user changes
   useEffect(() => {
@@ -341,15 +362,37 @@ const Header = () => {
         
         <div className="header-right">
           <div className="utility-icons">
-          <div className="yohanns-search-wrapper">
+          <div className="header-search-wrapper">
+            {showSearch && (
+              <input
+                type="text"
+                className="header-search-input"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                autoFocus
+                onBlur={(e) => {
+                  // Keep search open if there's text
+                  if (!e.target.value) {
+                    // Only auto-close if empty
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setShowSearch(false);
+                    setSearchQuery('');
+                  }
+                }}
+              />
+            )}
             <button 
-              className="yohanns-search-toggle" 
-              aria-label="Search" 
-              title="Search"
-              onClick={() => setShowSearchDropdown(!showSearchDropdown)}
+              className={`header-search-btn ${showSearch ? 'active' : ''}`}
+              onClick={handleSearchToggle}
+              aria-label="Search"
+              title="Search products"
             >
               <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                <circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
+                <circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 <line x1="15.5" y1="15.5" x2="20" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
