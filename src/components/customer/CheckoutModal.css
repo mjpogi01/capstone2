@@ -398,7 +398,7 @@
 
 /* Address Form */
 .address-form {
-  background: #2d3748;
+  background: transparent !important;
   border: 1px solid #4a5568;
   border-radius: 12px;
   padding: 24px;
@@ -539,15 +539,40 @@
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
-  background: #0f1419 !important;
-  padding-top: 3px !important;
-  border-top: 1px solid #4a5568;
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  margin-bottom: 0 !important;
+}
+
+/* Ensure no white background anywhere in address form */
+.checkout-section .address-form {
+  background: transparent !important;
+}
+
+.checkout-section .address-form .form-actions {
+  background: transparent !important;
+}
+
+.checkout-section .address-form .form-header {
+  background: transparent !important;
+}
+
+/* Ensure button is always visible */
+.checkout-section .address-form .save-address-btn,
+.address-form .save-address-btn,
+.form-actions .save-address-btn {
+  background: #63b3ed !important;
+  color: #1a202c !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
 }
 
 .save-address-btn {
-  background: #63b3ed;
-  color: #1a202c;
-  border: none;
+  background: #63b3ed !important;
+  color: #1a202c !important;
+  border: none !important;
   margin: 10px;
   padding: 12px 28px;
   border-radius: 8px;
@@ -555,6 +580,9 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .save-address-btn:hover {
