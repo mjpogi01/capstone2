@@ -13,7 +13,7 @@ const RecentOrders = () => {
   const INITIAL_DISPLAY_COUNT = 5;
   const filterContainerRef = useRef(null);
 
-  // Close dropdown when clicking outside - simplified approach
+  // Close dropdown when clicking outside - improved approach
   useEffect(() => {
     if (!showFilterDropdown) return;
 
@@ -23,14 +23,19 @@ const RecentOrders = () => {
       }
     };
 
-    // Add listener after a small delay to prevent immediate closure
-    const timeoutId = setTimeout(() => {
-      document.addEventListener('click', handleClickOutside);
-    }, 100);
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    // Use mousedown instead of click to handle events before they propagate
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
 
     return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, [showFilterDropdown]);
 
@@ -203,6 +208,7 @@ const RecentOrders = () => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
     }
     setShowFilterDropdown(prev => !prev);
     // Close search when opening filter
@@ -347,14 +353,15 @@ const RecentOrders = () => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Filter button clicked, current state:', showFilterDropdown); // Debug log
-                setShowFilterDropdown(prev => {
-                  console.log('Setting dropdown to:', !prev);
-                  return !prev;
-                });
-                setShowSearch(false);
+                e.nativeEvent?.stopImmediatePropagation();
+                handleFilterToggle(e);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
               }}
               aria-label="Filter"
+              aria-expanded={showFilterDropdown}
               title={`Filter: ${getFilterLabel()}`}
               type="button"
             >
@@ -365,8 +372,13 @@ const RecentOrders = () => {
             {showFilterDropdown && (
               <div 
                 className="filter-dropdown"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
               >
                 <button
                   type="button"
@@ -374,9 +386,13 @@ const RecentOrders = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Selecting filter: all');
+                    e.nativeEvent?.stopImmediatePropagation();
                     setFilterStatus('all');
                     setShowFilterDropdown(false);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                   }}
                 >
                   <span>All Status</span>
@@ -388,9 +404,13 @@ const RecentOrders = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Selecting filter: pending');
+                    e.nativeEvent?.stopImmediatePropagation();
                     setFilterStatus('pending');
                     setShowFilterDropdown(false);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                   }}
                 >
                   <span>Pending</span>
@@ -402,9 +422,13 @@ const RecentOrders = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Selecting filter: processing');
+                    e.nativeEvent?.stopImmediatePropagation();
                     setFilterStatus('processing');
                     setShowFilterDropdown(false);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                   }}
                 >
                   <span>Processing</span>
@@ -416,9 +440,13 @@ const RecentOrders = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Selecting filter: delivered');
+                    e.nativeEvent?.stopImmediatePropagation();
                     setFilterStatus('delivered');
                     setShowFilterDropdown(false);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                   }}
                 >
                   <span>Delivered</span>

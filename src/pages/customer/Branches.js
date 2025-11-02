@@ -149,22 +149,110 @@ const Branches = () => {
   const [routeCoordinates, setRouteCoordinates] = React.useState([]);
   const [travelInfo, setTravelInfo] = React.useState(null);
 
-  // Get user's current location on component mount
+  // Get user's current location on component mount with improved accuracy
   React.useEffect(() => {
     if (navigator.geolocation) {
+      // Use watchPosition for continuous updates and better accuracy
+      let watchId = null;
+      
+      const getAccurateLocation = () => {
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const accuracy = position.coords.accuracy; // Accuracy in meters
+            
+            // Only use location if accuracy is reasonable (less than 500 meters)
+            if (accuracy && accuracy < 500) {
+              const userPos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              setUserLocation(userPos);
+              
+              // Stop watching once we have accurate location
+              if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+              }
+            }
+          },
+          (error) => {
+            console.log('Geolocation error:', error);
+            
+            // Fallback: Try getCurrentPosition with longer timeout
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const userPos = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude
+                };
+                setUserLocation(userPos);
+              },
+              (fallbackError) => {
+                console.log('Unable to get user location:', fallbackError);
+                // Fallback to Batangas City center if location access fails
+                // Batangas City center coordinates (more accurate)
+                const batangasCityCenter = {
+                  lat: 13.7563,
+                  lng: 121.0583
+                };
+                console.log('Using fallback location: Batangas City center', batangasCityCenter);
+                setUserLocation(batangasCityCenter);
+              },
+              { 
+                enableHighAccuracy: true, 
+                timeout: 15000, 
+                maximumAge: 60000 
+              }
+            );
+          },
+          { 
+            enableHighAccuracy: true, 
+            timeout: 20000, 
+            maximumAge: 0 
+          }
+        );
+      };
+      
+      // Also try getCurrentPosition as initial attempt
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const userPos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          setUserLocation(userPos);
+          const accuracy = position.coords.accuracy;
+          if (accuracy && accuracy < 500) {
+            const userPos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            setUserLocation(userPos);
+          } else {
+            // If initial position not accurate enough, start watching
+            getAccurateLocation();
+          }
         },
         (error) => {
-          console.log('Unable to get user location:', error);
+          console.log('Initial geolocation failed, trying watchPosition:', error);
+          getAccurateLocation();
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { 
+          enableHighAccuracy: true, 
+          timeout: 15000, 
+          maximumAge: 0 
+        }
       );
+      
+      // Cleanup watch on unmount
+      return () => {
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+        }
+      };
+    } else {
+      // Fallback to Batangas City center if geolocation not supported
+      // Batangas City center coordinates (City Hall area)
+      const batangasCityCenter = {
+        lat: 13.7563,
+        lng: 121.0583
+      };
+      console.log('Geolocation not supported, using Batangas City center', batangasCityCenter);
+      setUserLocation(batangasCityCenter);
     }
   }, []);
 
@@ -505,6 +593,21 @@ const Branches = () => {
     return null;
   };
 
+  // Center map on user location when it's detected
+  const CenterOnUserLocation = () => {
+    const map = useMap();
+    React.useEffect(() => {
+      if (userLocation && map && map._loaded && !activeId) {
+        // Center map on user location with appropriate zoom
+        map.setView([userLocation.lat, userLocation.lng], 14, {
+          animate: true,
+          duration: 1.5
+        });
+      }
+    }, [userLocation, map]);
+    return null;
+  };
+
   return (
     <section id="branches" className="branches-container">
       <div className="branches-wrapper">
@@ -521,17 +624,19 @@ const Branches = () => {
           <div className="branches-map-wrapper">
           <MapContainer
             className="branches-map"
-            center={branches[0].position}
-            zoom={12}
+            center={userLocation || branches.find(b => b.name === 'BATANGAS CITY BRANCH')?.position || branches[0].position}
+            zoom={userLocation ? 14 : 12}
             scrollWheelZoom={true}
           >
             <MapRefSetter />
+            <CenterOnUserLocation />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            <FitBounds points={branches.map(b => b.position)} />
+            {/* Only fit bounds to branches if user location is not available */}
+            {!userLocation && <FitBounds points={branches.map(b => b.position)} />}
 
             {/* Route line from user to selected branch - Following actual roads */}
             {routeCoordinates.length > 0 && (

@@ -85,7 +85,10 @@
   gap: 0.75rem;
 }
 
-.edit-btn, .save-btn, .cancel-btn {
+/* Unique class names for artist profile buttons to avoid conflicts */
+.artist-profile-edit-btn,
+.artist-profile-save-btn,
+.artist-profile-cancel-btn {
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 8px;
@@ -96,38 +99,46 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
-.edit-btn {
+.artist-profile-edit-btn {
   background: var(--dash-primary);
   color: white;
 }
 
-.edit-btn:hover {
+.artist-profile-edit-btn:hover {
   background: var(--dash-primary-2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.save-btn {
+.artist-profile-save-btn {
   background: #059669;
   color: white;
 }
 
-.save-btn:hover:not(:disabled) {
+.artist-profile-save-btn:hover:not(:disabled) {
   background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
 }
 
-.save-btn:disabled {
+.artist-profile-save-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
-.cancel-btn {
+.artist-profile-cancel-btn {
   background: #dc2626;
   color: white;
 }
 
-.cancel-btn:hover {
+.artist-profile-cancel-btn:hover {
   background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
 }
 
 .edit-actions {

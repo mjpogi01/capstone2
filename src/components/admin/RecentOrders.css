@@ -70,8 +70,14 @@
   justify-content: center;
   gap: 0.25rem;
   position: relative;
-  z-index: 1000;
+  z-index: 1001;
   pointer-events: auto !important;
+  outline: none;
+}
+
+.filter-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 .search-btn svg,
@@ -112,9 +118,10 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* Filter Dropdown */
+/* Filter Dropdown - Fixed and Improved */
 .filter-dropdown-container {
   position: relative;
+  display: inline-block;
   z-index: 1000;
 }
 
@@ -125,14 +132,29 @@
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
   min-width: 180px;
-  z-index: 10001;
+  max-width: 220px;
+  z-index: 10002;
   overflow: hidden;
   pointer-events: auto !important;
   display: flex;
   flex-direction: column;
   isolation: isolate;
+  animation: filterDropdownSlide 0.2s ease-out;
+  transform-origin: top right;
+  will-change: transform, opacity;
+}
+
+@keyframes filterDropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .filter-option {
@@ -141,7 +163,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: background-color 0.2s ease;
+  transition: all 0.15s ease;
   font-size: 0.875rem;
   color: #374151;
   pointer-events: auto !important;
@@ -152,17 +174,32 @@
   text-align: left;
   font-family: inherit;
   position: relative;
-  z-index: 10001;
+  z-index: 10002;
+  border-bottom: 1px solid transparent;
+}
+
+.filter-option:not(:last-child) {
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .filter-option:hover {
   background: #f9fafb;
+  color: #1f2937;
+}
+
+.filter-option:active {
+  background: #f3f4f6;
+  transform: scale(0.98);
 }
 
 .filter-option.active {
   background: #eff6ff;
   color: #3b82f6;
   font-weight: 600;
+}
+
+.filter-option.active:hover {
+  background: #dbeafe;
 }
 
 .check-mark {
@@ -509,6 +546,19 @@
     right: 0;
     left: auto;
     min-width: 160px;
+    max-width: 200px;
+    z-index: 10002;
+  }
+  
+  .filter-dropdown-container {
+    z-index: 1000;
+  }
+  
+  /* Ensure filter button is clickable on mobile */
+  .filter-btn {
+    z-index: 1001;
+    position: relative;
+    touch-action: manipulation;
   }
   
   .table-wrapper {

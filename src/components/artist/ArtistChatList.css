@@ -36,11 +36,12 @@
   padding: 4px 12px;
   border-radius: 20px;
   font-weight: 500;
+  color: white !important;
 }
 
 .unread-chats {
   background: rgba(255, 193, 7, 0.9);
-  color: #000;
+  color: #000 !important;
 }
 
 .chat-filters {
@@ -69,7 +70,13 @@
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   font-size: 0.9rem;
+  color: #1f2937 !important;
+  background: white;
   transition: border-color 0.2s ease;
+}
+
+.search-box input::placeholder {
+  color: #9ca3af !important;
 }
 
 .search-box input:focus {
@@ -89,6 +96,7 @@
   border-radius: 6px;
   font-size: 0.9rem;
   background: white;
+  color: #1f2937 !important;
   cursor: pointer;
   transition: border-color 0.2s ease;
 }
@@ -97,6 +105,18 @@
 .sort-select:focus {
   outline: none;
   border-color: #667eea;
+}
+
+.filter-select option,
+.sort-select option {
+  background: white;
+  color: #1f2937 !important;
+  padding: 8px;
+}
+
+.filter-select option:hover,
+.sort-select option:hover {
+  background: #f8fafc;
 }
 
 .chat-rooms-list {
@@ -163,7 +183,7 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #1f2937 !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -171,7 +191,7 @@
 
 .room-time {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: #6b7280 !important;
   white-space: nowrap;
   margin-left: 10px;
 }
@@ -185,7 +205,7 @@
 .order-info {
   margin: 0;
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #6b7280 !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -204,13 +224,13 @@
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: white;
+  color: white !important;
   text-transform: capitalize;
 }
 
 .unread-count {
   background: #ef4444;
-  color: white;
+  color: white !important;
   padding: 2px 6px;
   border-radius: 10px;
   font-size: 0.7rem;
@@ -223,13 +243,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: #6b7280 !important;
   padding: 40px;
 }
 
 .chat-loading svg {
   font-size: 2rem;
   margin-bottom: 10px;
+}
+
+.chat-loading p {
+  color: #6b7280 !important;
+  margin: 0;
 }
 
 .no-chats {
@@ -252,12 +277,13 @@
 .no-chats h3 {
   margin: 0 0 10px 0;
   font-size: 1.2rem;
-  color: #6b7280;
+  color: #6b7280 !important;
 }
 
 .no-chats p {
   margin: 0;
   font-size: 0.9rem;
+  color: #9ca3af !important;
 }
 
 /* Scrollbar Styling */

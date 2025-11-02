@@ -184,21 +184,21 @@ const ArtistProfile = () => {
         </div>
         <div className="profile-actions">
           {!isEditing ? (
-            <button className="edit-btn" onClick={handleEdit}>
+            <button className="artist-profile-edit-btn" onClick={handleEdit}>
               <FontAwesomeIcon icon={faEdit} />
               Edit Profile
             </button>
           ) : (
             <div className="edit-actions">
               <button 
-                className="save-btn" 
+                className="artist-profile-save-btn" 
                 onClick={handleSave}
                 disabled={saving}
               >
                 <FontAwesomeIcon icon={faSave} />
                 {saving ? 'Saving...' : 'Save'}
               </button>
-              <button className="cancel-btn" onClick={handleCancel}>
+              <button className="artist-profile-cancel-btn" onClick={handleCancel}>
                 <FontAwesomeIcon icon={faTimes} />
                 Cancel
               </button>
