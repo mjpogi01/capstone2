@@ -603,7 +603,7 @@ class EmailService {
                     <h3>👥 Team Members (${orderData.order_items?.[0]?.team_members?.length || 0})</h3>
                     ${(orderData.order_items?.[0]?.team_members || []).map(member => `
                         <div class="member-item">
-                            <strong>Jersey #${member.number}</strong> - ${member.surname} (${member.size} - ${member.sizingType})
+                            <strong>Jersey #${member.number}</strong> - ${member.surname} (Jersey: ${member.size || member.jerseySize || 'N/A'}, Shorts: ${member.shortsSize || 'N/A'} - ${member.sizingType})
                         </div>
                     `).join('')}
                 </div>

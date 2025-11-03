@@ -1,37 +1,45 @@
-/* Artist Chat Modal Styles */
+/* ========================================
+   Artist Chat Modal - Complete Rebuild
+   ======================================== */
+
+/* --------------------------------
+   Overlay & Container
+   -------------------------------- */
 .artist-chat-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   padding: 1rem;
+  box-sizing: border-box;
 }
 
 .artist-chat-modal {
   background: #1a1a1a;
-  border-radius: 16px;
+  border-radius: 12px;
   width: 100%;
-  max-width: 800px;
-  height: 80vh;
-  max-height: 600px;
+  max-width: 900px;
+  height: 85vh;
+  max-height: 700px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   border: 1px solid #333;
   animation: chatModalSlideIn 0.3s ease-out;
+  overflow: hidden;
 }
 
 @keyframes chatModalSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translateY(-20px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -39,37 +47,50 @@
   }
 }
 
-/* Header */
+/* --------------------------------
+   Header Section
+   -------------------------------- */
 .chat-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #333;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #2a2a2a;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-  border-radius: 16px 16px 0 0;
+  background: #1a1a1a;
+  flex-shrink: 0;
+}
+
+.chat-header-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .chat-header-info h3 {
   font-size: 1.25rem;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.5rem 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+}
+
+.chat-header-info h3 svg {
+  color: #60a5fa;
+  font-size: 1.125rem;
 }
 
 .chat-header-info p {
   font-size: 0.875rem;
   color: #a1a1aa;
   margin: 0;
+  font-weight: 400;
 }
 
 .artist-chat-close-btn {
   width: 36px;
   height: 36px;
-  border: none;
+  border: 1px solid #444;
   background: #333;
   color: #ffffff;
   border-radius: 8px;
@@ -79,37 +100,75 @@
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.2s ease;
-  border: 1px solid #444;
+  flex-shrink: 0;
 }
 
 .artist-chat-close-btn:hover {
   background: #444;
+  border-color: #555;
   transform: scale(1.05);
 }
 
-/* Messages */
+/* --------------------------------
+   Messages Area
+   -------------------------------- */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  overflow-x: hidden;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-height: 0;
+}
+
+/* Custom Scrollbar */
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #2563eb;
 }
 
 .artist-chat-loading-messages {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   color: #a1a1aa;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   height: 100%;
 }
 
+/* --------------------------------
+   Message Styles
+   -------------------------------- */
 .message {
   display: flex;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  animation: messageSlideIn 0.2s ease-out;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message.sent {
@@ -121,49 +180,54 @@
 }
 
 .message-content {
-  max-width: 70%;
+  max-width: 65%;
   background: #2a2a2a;
   border-radius: 12px;
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1rem;
   border: 1px solid #333;
+  word-wrap: break-word;
 }
 
 .message.sent .message-content {
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  border-color: #4f46e5;
+  border-color: #6366f1;
 }
 
 .message-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.375rem;
+  gap: 0.75rem;
 }
 
 .sender-name {
   font-size: 0.75rem;
   font-weight: 600;
   color: #a1a1aa;
+  text-transform: capitalize;
 }
 
 .message.sent .sender-name {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .message-time {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: #6b7280;
+  white-space: nowrap;
 }
 
 .message.sent .message-time {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .message-text {
   color: #ffffff;
   line-height: 1.6;
   word-wrap: break-word;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+  margin: 0;
 }
 
 .message-text strong {
@@ -171,23 +235,25 @@
   font-weight: 600;
 }
 
-.message.sent .message-text {
-  color: #ffffff;
-}
-
-/* Attachments */
+/* --------------------------------
+   Attachments
+   -------------------------------- */
 .message-attachments {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
 .attachment {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message.sent .attachment {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .image-attachment {
@@ -197,27 +263,33 @@
 }
 
 .image-attachment img {
-  max-width: 200px;
-  max-height: 150px;
-  border-radius: 6px;
+  max-width: 250px;
+  max-height: 200px;
+  border-radius: 8px;
   cursor: pointer;
   transition: transform 0.2s ease;
+  object-fit: cover;
 }
 
 .image-attachment img:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 
 .file-attachment {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   color: #ffffff;
 }
 
+.file-attachment svg {
+  color: #60a5fa;
+  font-size: 1.25rem;
+}
+
 .attachment-name {
-  font-size: 0.75rem;
-  color: #a1a1aa;
+  font-size: 0.8125rem;
+  color: #e5e5e5;
   flex: 1;
   word-break: break-all;
 }
@@ -226,24 +298,30 @@
   color: #60a5fa;
   text-decoration: none;
   transition: color 0.2s ease;
+  padding: 0.25rem;
+  border-radius: 4px;
 }
 
 .download-link:hover {
   color: #3b82f6;
+  background: rgba(96, 165, 250, 0.1);
 }
 
-/* Input */
+/* --------------------------------
+   Input Area
+   -------------------------------- */
 .chat-input {
-  padding: 1rem;
-  border-top: 1px solid #333;
-  background: #1a1a1a;
-  border-radius: 0 0 16px 16px;
+  padding: 0.5rem 1.5rem !important;
+ 
+  border-top: 1px solid #2a2a2a;
+  background: #242424;
+  flex-shrink: 0;
 }
 
 .attachments-preview {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.375rem;
   flex-wrap: wrap;
 }
 
@@ -251,31 +329,31 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #333;
-  padding: 0.5rem;
+  background: #2a2a2a;
+  padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid #444;
-  font-size: 0.75rem;
+  border: 1px solid #3a3a3a;
+  font-size: 0.8125rem;
   color: #ffffff;
 }
 
 .attachment-preview img {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .attachment-preview span {
-  max-width: 100px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .remove-attachment {
-  background: #ef4444;
-  color: white;
+  background: transparent;
+  color: #ef4444;
   border: none;
   border-radius: 4px;
   width: 20px;
@@ -285,42 +363,52 @@
   justify-content: center;
   cursor: pointer;
   font-size: 0.75rem;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  padding: 0;
 }
 
 .remove-attachment:hover {
-  background: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .message-form {
   width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .artist-chat-input-group {
   display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 44px;
 }
 
 .attach-btn {
-  width: 40px;
-  height: 40px;
+  width: auto;
+  height: auto;
   border: none;
-  background: #333;
-  color: #a1a1aa;
-  border-radius: 8px;
+  background: transparent;
+  color: #60a5fa;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid #444;
+  padding: 0.375rem;
   flex-shrink: 0;
+  font-size: 1.125rem;
+  line-height: 1;
 }
 
 .attach-btn:hover:not(:disabled) {
-  background: #444;
-  color: #ffffff;
+  background: transparent;
+  color: #3b82f6;
+  opacity: 0.8;
 }
 
 .attach-btn:disabled {
@@ -330,173 +418,149 @@
 
 .message-input {
   flex: 1;
-  height: 40px;
-  border: 1px solid #444;
+  height: 44px;
+  border: none;
   border-radius: 8px;
   background: #2a2a2a;
   color: #ffffff;
   padding: 0 1rem;
-  font-size: 0.875rem;
-  transition: border-color 0.2s ease;
+  font-size: 0.9375rem;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .message-input:focus {
   outline: none;
-  border-color: #6366f1;
+  background: #2f2f2f;
 }
 
 .message-input::placeholder {
-  color: #6b7280;
+  color: #a1a1aa;
 }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
+  width: auto;
+  height: auto;
   border: none;
-  background: #6366f1;
-  color: white;
-  border-radius: 8px;
+  background: transparent;
+  color: #60a5fa;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  padding: 0.375rem;
   flex-shrink: 0;
+  font-size: 1.125rem;
+  line-height: 1;
 }
 
 .send-btn:hover:not(:disabled) {
-  background: #4f46e5;
-  transform: scale(1.05);
+  background: transparent;
+  color: #3b82f6;
+  opacity: 0.8;
 }
 
 .send-btn:disabled {
-  background: #6b7280;
+  background: transparent;
+  color: #6b7280;
   cursor: not-allowed;
   transform: none;
+  opacity: 0.5;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .artist-chat-modal {
-    max-width: 100%;
-    height: 90vh;
-    margin: 0.5rem;
-  }
-  
-  .chat-header {
-    padding: 1rem;
-  }
-  
-  .chat-messages {
-    padding: 0.75rem;
-  }
-  
-  .message-content {
-    max-width: 85%;
-  }
-  
-  .chat-input {
-    padding: 0.75rem;
-  }
-  
-  .input-group {
-    gap: 0.25rem;
-  }
-  
-  .attach-btn,
-  .send-btn {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .message-input {
-    height: 36px;
-    padding: 0 0.75rem;
-  }
+/* --------------------------------
+   Floating Review Button
+   -------------------------------- */
+.artist-review-fab {
+  position: absolute;
+  right: 2rem;
+  bottom: 6rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-@media (max-width: 480px) {
-  .artist-chat-modal-overlay {
-    padding: 0.5rem;
-  }
-  
-  .artist-chat-modal {
-    height: 95vh;
-    margin: 0;
-  }
-  
-  .chat-header {
-    padding: 0.75rem;
-  }
-  
-  .chat-header-info h3 {
-    font-size: 1rem;
-  }
-  
-  .chat-messages {
-    padding: 0.5rem;
-  }
-  
-  .message-content {
-    max-width: 90%;
-    padding: 0.5rem 0.75rem;
-  }
-  
-  .chat-input {
-    padding: 0.5rem;
-  }
+.artist-review-fab:hover {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.4);
 }
 
-/* Artist Review Modal */
+/* --------------------------------
+   Review Modal
+   -------------------------------- */
 .artist-review-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 3000;
   backdrop-filter: blur(4px);
 }
 
 .artist-review-modal {
   background: #1a1a1a;
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   width: 90%;
   max-width: 600px;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   border: 1px solid #333;
+  animation: chatModalSlideIn 0.3s ease-out;
 }
 
 .artist-review-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid #333;
-  background: #2a2a2a;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #2a2a2a;
+  background: #1a1a1a;
+  flex-shrink: 0;
 }
 
 .artist-review-modal-header h3 {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin: 0;
   color: #ffffff;
   font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.artist-review-modal-header h3 svg {
+  color: #60a5fa;
 }
 
 .artist-review-modal-content {
-  padding: 1.5rem;
+  padding: 2rem;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .artist-review-instructions {
@@ -511,7 +575,7 @@
   margin: 0;
   color: #a5b4fc;
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .artist-review-file-upload {
@@ -522,6 +586,7 @@
   margin: 0 0 1rem 0;
   color: #ffffff;
   font-size: 1rem;
+  font-weight: 600;
 }
 
 .artist-file-upload-area {
@@ -529,7 +594,7 @@
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
-  background: #2a2a2a;
+  background: #242424;
   transition: all 0.2s ease;
 }
 
@@ -541,6 +606,7 @@
 .upload-files-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   background: #6366f1;
@@ -550,7 +616,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 0.5rem;
+  margin: 0 auto 0.5rem;
+  font-size: 0.9375rem;
 }
 
 .upload-files-btn:hover:not(:disabled) {
@@ -565,7 +632,7 @@
 
 .upload-hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: #a1a1aa;
 }
 
@@ -576,7 +643,8 @@
 .artist-review-files-preview h5 {
   margin: 0 0 0.75rem 0;
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
 }
 
 .files-list {
@@ -590,9 +658,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem;
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: #242424;
+  border: 1px solid #3a3a3a;
   border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.artist-file-item:hover {
+  border-color: #4a4a4a;
 }
 
 .artist-file-info {
@@ -600,13 +673,14 @@
   align-items: center;
   gap: 0.75rem;
   flex: 1;
+  min-width: 0;
 }
 
 .artist-file-thumbnail {
   width: 40px;
   height: 40px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .artist-file-icon {
@@ -617,20 +691,23 @@
   align-items: center;
   justify-content: center;
   background: #1a1a1a;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .artist-file-name {
   color: #ffffff;
   font-size: 0.9rem;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .remove-file-btn {
   background: #ef4444;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   width: 32px;
   height: 32px;
   display: flex;
@@ -638,6 +715,7 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .remove-file-btn:hover {
@@ -645,55 +723,67 @@
   transform: scale(1.05);
 }
 
+.artist-review-notes {
+  margin-top: 1.5rem;
+}
+
 .artist-review-notes h4 {
   margin: 0 0 1rem 0;
   color: #ffffff;
   font-size: 1rem;
+  font-weight: 600;
 }
 
 .artist-notes-textarea {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.875rem;
   border: 1px solid #444;
   border-radius: 8px;
-  background: #2a2a2a;
+  background: #242424;
   color: #ffffff;
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
   resize: vertical;
   min-height: 100px;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .artist-notes-textarea:focus {
   outline: none;
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: #2a2a2a;
+}
+
+.artist-notes-textarea::placeholder {
+  color: #6b7280;
 }
 
 .artist-review-modal-actions {
   display: flex;
   gap: 1rem;
-  padding: 1.5rem;
-  border-top: 1px solid #333;
-  background: #2a2a2a;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #2a2a2a;
+  background: #1a1a1a;
+  flex-shrink: 0;
 }
 
 .artist-chat-cancel-btn {
   flex: 1;
-  padding: 0.75rem 1.5rem;
-  background: #1a1a1a;
+  padding: 0.875rem 1.5rem;
+  background: #242424;
   color: #ffffff;
   border: 1px solid #444;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.9375rem;
 }
 
 .artist-chat-cancel-btn:hover {
   background: #2a2a2a;
-  border-color: #666;
+  border-color: #555;
 }
 
 .submit-review-btn {
@@ -702,7 +792,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.875rem 1.5rem;
   background: linear-gradient(135deg, #10b981, #059669);
   color: white;
   border: none;
@@ -710,11 +800,13 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.9375rem;
 }
 
 .submit-review-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #059669, #047857);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .submit-review-btn:disabled {
@@ -723,15 +815,61 @@
   transform: none;
 }
 
-/* Mobile Responsive for Artist Review Modal */
+/* --------------------------------
+   Responsive Design
+   -------------------------------- */
 @media (max-width: 768px) {
+  .artist-chat-modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .artist-chat-modal {
+    max-width: 100%;
+    height: 95vh;
+    max-height: none;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .chat-header {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .chat-header-info h3 {
+    font-size: 1.125rem;
+  }
+
+  .chat-header-info p {
+    font-size: 0.8125rem;
+  }
+
+  .chat-messages {
+    padding: 1rem;
+  }
+
+  .message-content {
+    max-width: 80%;
+  }
+
+  .chat-input {
+    padding: 0.5rem 1.25rem !important;
+  }
+
+  .artist-review-fab {
+    right: 1rem;
+    bottom: 5rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.75rem;
+    gap: 0.375rem;
+  }
+
   .artist-review-modal {
     width: 95%;
     max-height: 90vh;
+    margin: 1rem;
   }
 
   .artist-review-modal-content {
-    padding: 1rem;
+    padding: 1.5rem;
   }
 
   .artist-file-upload-area {
@@ -740,6 +878,7 @@
 
   .artist-review-modal-actions {
     flex-direction: column;
+    padding: 1.25rem 1.5rem;
   }
 
   .artist-chat-cancel-btn,
@@ -748,35 +887,48 @@
   }
 }
 
-.artist-review-fab {
-  position: absolute;
-  right: 2rem;
-  bottom: 2rem;
-  z-index: 2500;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1.1rem 2.2rem;
-  border-radius: 50px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1.15rem;
-  box-shadow: 0 4px 20px rgba(99,102,241,0.27);
-  border: none;
-  cursor: pointer;
-  transition: box-shadow 0.2s, background 0.2s, transform 0.15s;
-}
-.artist-review-fab:hover {
-  background: linear-gradient(135deg, #5b21b6, #7c3aed);
-  transform: scale(1.06);
-  box-shadow: 0 8px 24px rgba(99,102,241,0.38);
-}
-@media (max-width: 768px) {
-  .artist-review-fab {
-    right: 1rem;
-    bottom: 1rem;
-    padding: 0.8rem 1.3rem;
+@media (max-width: 480px) {
+  .artist-chat-modal-overlay {
+    padding: 0;
+  }
+
+  .artist-chat-modal {
+    height: 100vh;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  .chat-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .chat-messages {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .message-content {
+    max-width: 85%;
+    padding: 0.75rem;
+  }
+
+  .chat-input {
+    padding: 0.5rem 1rem !important;
+  }
+
+  .artist-chat-input-group {
+    gap: 0.5rem;
+  }
+
+  .attach-btn,
+  .send-btn {
     font-size: 1rem;
+    padding: 0.375rem;
+  }
+
+  .message-input {
+    min-height: 40px;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
   }
 }

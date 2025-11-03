@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faXmark, faLock, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
+import { API_URL } from '../../config/api';
 import './CustomDesignFormModal.css';
 
 const branches = [
@@ -20,7 +21,7 @@ const branches = [
 const adultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const kidsSizes = ['S6', 'S8', 'S10', 'S12', 'S14'];
 
-const initialMember = { number: '', surname: '', size: '', sizingType: 'adults' };
+const initialMember = { number: '', surname: '', size: '', shortsSize: '', sizingType: 'adults' };
 
 export default function CustomDesignFormModal({ isOpen, onClose }) {
   const { user } = useAuth();
@@ -68,6 +69,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       if (!m.number) e[`member_number_${idx}`] = 'Required';
       if (!m.surname?.trim()) e[`member_surname_${idx}`] = 'Required';
       if (!m.size?.trim()) e[`member_size_${idx}`] = 'Required';
+      if (!m.shortsSize?.trim()) e[`member_shorts_size_${idx}`] = 'Required';
       if (!m.sizingType) e[`member_sizing_type_${idx}`] = 'Required';
       if (m.number) {
         if (numbers.has(m.number)) e[`member_number_${idx}`] = 'Duplicate jersey number';
@@ -112,9 +114,9 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const updateMember = (index, field, value) => {
     setMembers(prev => prev.map((m, i) => {
       if (i === index) {
-        // Clear size when switching sizing type
+        // Clear sizes when switching sizing type
         if (field === 'sizingType') {
-          return { ...m, [field]: value, size: '' };
+          return { ...m, [field]: value, size: '', shortsSize: '' };
         }
         return { ...m, [field]: value };
       }
@@ -189,7 +191,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       });
       
       // Submit to backend
-      const response = await fetch('http://localhost:4000/api/custom-design', {
+      const response = await fetch(`${API_URL}/api/custom-design`, {
         method: 'POST',
         body: formData
       });
@@ -382,7 +384,8 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
               <div className="cdfm-roster-head">
                 <div>Jersey # <span className="cdfm-required">*</span></div>
                 <div>Surname <span className="cdfm-required">*</span></div>
-                <div>Size <span className="cdfm-required">*</span></div>
+                <div>Jersey Size <span className="cdfm-required">*</span></div>
+                <div>Shorts Size <span className="cdfm-required">*</span></div>
                 <div>Sizing Type <span className="cdfm-required">*</span></div>
                 <div></div>
               </div>
@@ -450,10 +453,10 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                     </div>
                   </div>
                   
-                  {/* Size */}
+                  {/* Jersey Size */}
                   <div className="cdfm-field">
                     <label className="cdfm-roster-field-label">
-                      Size <span className="cdfm-required">*</span>
+                      Jersey Size <span className="cdfm-required">*</span>
                     </label>
                     <div className="cdfm-input-wrapper">
                       <select
@@ -473,6 +476,32 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                         ))}
                       </select>
                       {showErrors && errors[`member_size_${idx}`] && <span className="cdfm-inline-error">{errors[`member_size_${idx}`]}</span>}
+                    </div>
+                  </div>
+                  
+                  {/* Shorts Size */}
+                  <div className="cdfm-field">
+                    <label className="cdfm-roster-field-label">
+                      Shorts Size <span className="cdfm-required">*</span>
+                    </label>
+                    <div className="cdfm-input-wrapper">
+                      <select
+                        className={showErrors && errors[`member_shorts_size_${idx}`] ? 'error' : ''}
+                        value={m.shortsSize}
+                        onChange={(e) => {
+                          updateMember(idx, 'shortsSize', e.target.value);
+                          // Clear error when user selects a size
+                          if (showErrors && e.target.value) {
+                            setShowErrors(false);
+                          }
+                        }}
+                      >
+                        <option value="">Select Size</option>
+                        {(m.sizingType === 'kids' ? kidsSizes : adultSizes).map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                      {showErrors && errors[`member_shorts_size_${idx}`] && <span className="cdfm-inline-error">{errors[`member_shorts_size_${idx}`]}</span>}
                     </div>
                   </div>
                   
