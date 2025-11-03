@@ -99,8 +99,8 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
   return (
     <div className="task-modal-overlay" onClick={onClose}>
       <div className="task-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="modal-header">
+        {/* Integrated Header */}
+        <div className="modal-header-integrated">
           <div className="header-content">
             <h3>{task.task_title}</h3>
             <div className="header-badges">
@@ -121,168 +121,63 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
 
         {/* Content */}
         <div className="modal-content">
-          {/* Product Images Section */}
-          {images.length > 0 && (
-            <div className="product-images-section">
-              <h4>
-                <FontAwesomeIcon icon={faImage} />
-                Product Reference
-              </h4>
-              <div className="product-image-gallery">
-                <div className="main-image">
-                  <img 
-                    src={images[activeImageIndex]} 
-                    alt="Product reference"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                </div>
-                {images.length > 1 && (
-                  <div className="image-thumbnails">
-                    {images.map((image, index) => (
-                      <button
-                        key={index}
-                        className={`thumbnail ${index === activeImageIndex ? 'active' : ''}`}
-                        onClick={() => setActiveImageIndex(index)}
-                      >
-                        <img 
-                          src={image} 
-                          alt={`Product ${index + 1}`}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Product Information */}
-          {task.products && (
-            <div className="product-info-section">
-              <h4>
-                <FontAwesomeIcon icon={faShoppingCart} />
-                Product Details
-              </h4>
-              <div className="product-details">
-                <div className="product-name">{task.products.name}</div>
-                <div className="product-meta">
-                  <span className="product-category">{task.products.category}</span>
-                  <span className="product-price">${task.products.price}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Order Items */}
-          {orderItems.length > 0 && (
-            <div className="order-items-section">
-              <h4>
-                <FontAwesomeIcon icon={faShoppingCart} />
-                Order Items
-              </h4>
-              <div className="order-items-list">
-                {orderItems.map((item, index) => (
-                  <div key={index} className="order-item">
-                    <div className="item-info">
-                      <span className="item-name">{item.name || item.product_name}</span>
-                      <span className="item-quantity">Qty: {item.quantity}</span>
+          <div className="content-body">
+            <div className="content-two-column">
+              {/* Left Column - Task Details */}
+              <div className="content-left-column">
+                <div className="task-details-container">
+                  <h4 className="section-title">Task Details</h4>
+                  <div className="task-details-fields">
+                    <div className="detail-field">
+                      <label className="field-label">DESCRIPTION</label>
+                      <div className="field-box">{task.task_description || ''}</div>
                     </div>
-                    {item.size && (
-                      <span className="item-size">Size: {item.size}</span>
+                    
+                    <div className="detail-field">
+                      <label className="field-label">ORDER TYPE</label>
+                      <div className="field-box">
+                        <span className={`order-type-badge ${task.order_type}`}>
+                          {task.order_type.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="detail-field">
+                      <label className="field-label">DEADLINE</label>
+                      <div className="field-box">{formatDate(task.deadline)}</div>
+                    </div>
+
+                    {task.design_requirements && (
+                      <div className="detail-field">
+                        <label className="field-label">DESIGN REQUIREMENTS</label>
+                        <div className="field-box">{task.design_requirements}</div>
+                      </div>
                     )}
                   </div>
-                ))}
+                </div>
+              </div>
+
+              {/* Right Column - Customer Communication */}
+              <div className="content-right-column">
+                <div className="chat-section-container">
+                  <h4 className="section-title">
+                    <FontAwesomeIcon icon={faComments} className="chat-icon" />
+                    Customer Communication
+                  </h4>
+                  <p className="chat-description">
+                    Use the chat feature to communicate with the customer about this order.
+                  </p>
+                  <button 
+                    className="chat-btn"
+                    onClick={() => onOpenChat && onOpenChat(task)}
+                  >
+                    <FontAwesomeIcon icon={faComments} />
+                    Open Chat
+                    <FontAwesomeIcon icon={faExternalLinkAlt} />
+                  </button>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Task Information */}
-          <div className="task-info-section">
-            <h4>
-              <FontAwesomeIcon icon={faEdit} />
-              Task Details
-            </h4>
-            <div className="task-details-grid">
-              <div className="detail-item">
-                <label>
-                  <FontAwesomeIcon icon={faInfoCircle} />
-                  Description
-                </label>
-                <p>{task.task_description}</p>
-              </div>
-              
-              <div className="detail-item">
-                <label>
-                  <FontAwesomeIcon icon={faTag} />
-                  Order Type
-                </label>
-                <span className={`order-type-badge ${task.order_type}`}>
-                  {task.order_type.replace('_', ' ')}
-                </span>
-              </div>
-              
-              <div className="detail-item">
-                <label>
-                  <FontAwesomeIcon icon={faCalendarAlt} />
-                  Deadline
-                </label>
-                <span className="deadline-text">{formatDate(task.deadline)}</span>
-              </div>
-
-              {task.design_requirements && (
-                <div className="detail-item full-width">
-                  <label>
-                    <FontAwesomeIcon icon={faEdit} />
-                    Design Requirements
-                  </label>
-                  <p>{task.design_requirements}</p>
-                </div>
-              )}
-
-              {task.artist_notes && (
-                <div className="detail-item full-width">
-                  <label>
-                    <FontAwesomeIcon icon={faEdit} />
-                    Your Notes
-                  </label>
-                  <p>{task.artist_notes}</p>
-                </div>
-              )}
-
-              {task.admin_notes && (
-                <div className="detail-item full-width">
-                  <label>
-                    <FontAwesomeIcon icon={faInfoCircle} />
-                    Admin Notes
-                  </label>
-                  <p>{task.admin_notes}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Chat Section */}
-          <div className="chat-section">
-            <h4>
-              <FontAwesomeIcon icon={faComments} />
-              Customer Communication
-            </h4>
-            <p className="chat-description">
-              Use the chat feature to communicate with the customer about this order.
-            </p>
-            <button 
-              className="chat-btn"
-              onClick={() => onOpenChat && onOpenChat(task)}
-            >
-              <FontAwesomeIcon icon={faComments} />
-              Open Chat
-              <FontAwesomeIcon icon={faExternalLinkAlt} />
-            </button>
           </div>
         </div>
 
@@ -296,7 +191,7 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
               className="action-btn primary-btn"
               onClick={() => onStatusUpdate(task.id, 'in_progress')}
             >
-              <FontAwesomeIcon icon={faEdit} />
+              <FontAwesomeIcon icon={faCheck} />
               Start Task
             </button>
           )}

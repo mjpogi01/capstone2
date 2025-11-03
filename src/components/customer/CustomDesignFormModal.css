@@ -586,7 +586,7 @@
 .cdfm-roster-head,
 .cdfm-roster-row {
   display: grid;
-  grid-template-columns: 120px 1fr 120px 140px 60px;
+  grid-template-columns: 120px 1fr 120px 120px 140px 60px;
   align-items: start;
   gap: 12px;
 }

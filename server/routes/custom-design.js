@@ -79,9 +79,9 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
 
     // Validate each member
     for (const member of membersArray) {
-      if (!member.number || !member.surname || !member.size || !member.sizingType) {
+      if (!member.number || !member.surname || !member.size || !member.shortsSize || !member.sizingType) {
         return res.status(400).json({ 
-          error: 'All team members must have number, surname, size, and sizing type' 
+          error: 'All team members must have number, surname, jersey size, shorts size, and sizing type' 
         });
       }
     }

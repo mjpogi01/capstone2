@@ -762,7 +762,8 @@ const Orders = () => {
                                     <div key={memberIndex} className="custom-design-member">
                                       <span className="member-number">#{member.number}</span>
                                       <span className="member-surname">{member.surname}</span>
-                                      <span className="member-size">Size: {member.size}</span>
+                                      <span className="member-size">Jersey: {member.size || member.jerseySize || 'N/A'}</span>
+                                      <span className="member-size">Shorts: {member.shortsSize || 'N/A'}</span>
                                       <span className="member-sizing-type">({member.sizingType})</span>
                                     </div>
                                   ))}
