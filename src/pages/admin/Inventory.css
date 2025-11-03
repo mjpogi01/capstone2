@@ -11,16 +11,33 @@
   width: 100%;
   max-width: 100%;
   margin: 0;
-  transition: max-width 0.3s ease;
-  padding: 0 0.5rem;
+  padding: 0;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
-/* Responsive when sidebar is collapsed */
+/* Responsive when sidebar is collapsed - expand to fill available space */
 .admin-dashboard.sidebar-collapsed .inventory-main-content,
 .inventory-page.sidebar-collapsed .inventory-main-content,
 body.sidebar-collapsed .inventory-main-content {
-  max-width: 100%;
-  padding: 0 0.5rem;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure admin-main-content allows full expansion when collapsed */
+.admin-dashboard.sidebar-collapsed .admin-main-content .inventory-main-content {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Ensure table container expands fully */
+.admin-dashboard.sidebar-collapsed .inventory-table-container,
+body.sidebar-collapsed .inventory-table-container,
+.admin-dashboard.sidebar-collapsed .admin-main-content .inventory-table-container {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Mobile: collapse state should not affect layout */
@@ -28,6 +45,7 @@ body.sidebar-collapsed .inventory-main-content {
   .admin-dashboard.sidebar-collapsed .inventory-main-content,
   .inventory-page.sidebar-collapsed .inventory-main-content,
   body.sidebar-collapsed .inventory-main-content {
+    width: 100%;
     max-width: 100%;
   }
 }
@@ -40,6 +58,16 @@ body.sidebar-collapsed .inventory-main-content {
   border-radius: 16px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(226, 232, 240, 0.8);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Expand header when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .inventory-header,
+body.sidebar-collapsed .inventory-header,
+.admin-dashboard.sidebar-collapsed .admin-main-content .inventory-header {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .inventory-header h1 {
@@ -63,6 +91,16 @@ body.sidebar-collapsed .inventory-main-content {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Expand content area when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .inventory-content,
+body.sidebar-collapsed .inventory-content,
+.admin-dashboard.sidebar-collapsed .admin-main-content .inventory-content {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Loading State */
@@ -113,6 +151,16 @@ body.sidebar-collapsed .inventory-main-content {
   gap: 1rem;
   align-items: end;
   justify-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Expand filter controls when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .filter-controls,
+body.sidebar-collapsed .filter-controls,
+.admin-dashboard.sidebar-collapsed .admin-main-content .filter-controls {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Responsive grid breakpoints */
@@ -215,6 +263,16 @@ body.sidebar-collapsed .inventory-main-content {
   overflow-y: visible;
   position: relative;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  transition: width 0.3s ease, max-width 0.3s ease;
+}
+
+/* Expand table container when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .inventory-table-container,
+body.sidebar-collapsed .inventory-table-container {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Desktop Table */
@@ -224,6 +282,18 @@ body.sidebar-collapsed .inventory-main-content {
   font-size: 0.875rem;
   table-layout: auto;
   min-width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Expand table when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .inventory-table,
+body.sidebar-collapsed .inventory-table,
+.admin-dashboard.sidebar-collapsed .admin-main-content .inventory-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+  table-layout: auto;
 }
 
 .inventory-table tbody td:last-child,
@@ -705,6 +775,19 @@ body.sidebar-collapsed .inventory-main-content {
 
 .desktop-table {
   display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Expand desktop table when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .desktop-table,
+body.sidebar-collapsed .desktop-table,
+.admin-dashboard.sidebar-collapsed .admin-main-content .desktop-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block;
+  overflow-x: auto;
 }
 
 .mobile-cards {
@@ -895,6 +978,13 @@ body.sidebar-collapsed .inventory-main-content {
   font-family: inherit;
 }
 
+/* Adjust floating button position when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .floating-add-btn,
+body.sidebar-collapsed .floating-add-btn {
+  right: 2rem;
+  transition: right 0.3s ease;
+}
+
 .floating-add-btn:hover {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   transform: translateY(-3px);
@@ -1004,6 +1094,14 @@ body.sidebar-collapsed .inventory-main-content {
   .inventory-table {
     font-size: 0.8rem;
     min-width: 800px;
+  }
+  
+  /* Override min-width when sidebar is collapsed */
+  .admin-dashboard.sidebar-collapsed .inventory-table,
+  body.sidebar-collapsed .inventory-table {
+    min-width: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   
   .inventory-table th,
@@ -1282,4 +1380,41 @@ body.sidebar-collapsed .inventory-main-content {
   .floating-add-btn:hover {
     transform: none;
   }
+}
+
+/* ===========================================
+   SIDEBAR COLLAPSED - COMPREHENSIVE FIX
+   Ensure all inventory elements expand fully
+   =========================================== */
+
+/* Force full width expansion when sidebar is collapsed */
+.admin-dashboard.sidebar-collapsed .admin-main-content .inventory-main-content,
+.admin-dashboard.sidebar-collapsed .inventory-main-content,
+body.sidebar-collapsed .inventory-main-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Override all responsive breakpoints for collapsed state */
+@media (min-width: 769px) {
+  .admin-dashboard.sidebar-collapsed .inventory-table,
+  .admin-dashboard.sidebar-collapsed .inventory-table-container,
+  .admin-dashboard.sidebar-collapsed .desktop-table,
+  .admin-dashboard.sidebar-collapsed .inventory-header,
+  .admin-dashboard.sidebar-collapsed .filter-controls {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+  }
+  
+  /* Override tablet min-width constraint */
+  .admin-dashboard.sidebar-collapsed .inventory-table {
+    min-width: 100% !important;
+  }
+}
+
+/* Ensure floating button stays positioned correctly */
+.admin-dashboard.sidebar-collapsed .floating-add-btn {
+  right: 2rem !important;
 }

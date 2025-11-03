@@ -96,15 +96,15 @@ const ArtistMetricsCards = () => {
 
   if (loading) {
     return (
-      <div className="metrics-cards">
+      <div className="artist-metrics-cards">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="metric-card loading-skeleton">
-            <div className="card-content">
-              <div className="card-icon loading-skeleton" style={{ width: '48px', height: '48px', borderRadius: '12px' }}></div>
-              <div className="card-info">
-                <div className="card-title loading-skeleton" style={{ width: '80px', height: '16px', marginBottom: '8px' }}></div>
-                <div className="card-value loading-skeleton" style={{ width: '60px', height: '24px', marginBottom: '4px' }}></div>
-                <div className="card-change loading-skeleton" style={{ width: '40px', height: '14px' }}></div>
+          <div key={i} className="artist-metric-card artist-loading-skeleton">
+            <div className="artist-card-content">
+              <div className="artist-card-icon artist-loading-skeleton" style={{ width: '48px', height: '48px', borderRadius: '12px' }}></div>
+              <div className="artist-card-info">
+                <div className="artist-card-title artist-loading-skeleton" style={{ width: '80px', height: '16px', marginBottom: '8px' }}></div>
+                <div className="artist-card-value artist-loading-skeleton" style={{ width: '60px', height: '24px', marginBottom: '4px' }}></div>
+                <div className="artist-card-change artist-loading-skeleton" style={{ width: '40px', height: '14px' }}></div>
               </div>
             </div>
           </div>
@@ -114,12 +114,12 @@ const ArtistMetricsCards = () => {
   }
 
   return (
-    <div className="metrics-cards">
+    <div className="artist-metrics-cards">
       {cards.map((card, index) => (
-        <div key={index} className="metric-card">
-          <div className="card-content">
+        <div key={index} className="artist-metric-card">
+          <div className="artist-card-content">
             <div 
-              className="card-icon"
+              className="artist-card-icon"
               style={{ 
                 backgroundColor: card.bgColor,
                 color: card.color 
@@ -128,10 +128,10 @@ const ArtistMetricsCards = () => {
               <FontAwesomeIcon icon={card.icon} />
             </div>
             
-            <div className="card-info">
-              <h3 className="card-title">{card.title}</h3>
-              <div className="card-value">{card.value}</div>
-              <div className={`card-change ${card.changeType}`}>
+            <div className="artist-card-info">
+              <h3 className="artist-card-title">{card.title}</h3>
+              <div className="artist-card-value">{card.value}</div>
+              <div className={`artist-card-change artist-card-change-${card.changeType}`}>
                 {card.change}
               </div>
             </div>

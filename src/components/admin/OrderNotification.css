@@ -1,0 +1,245 @@
+/* ===========================================
+   ORDER NOTIFICATION SYSTEM
+   Beautiful UI notifications for order status updates
+   =========================================== */
+
+.order-notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.order-notification {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  padding: 0;
+  min-height: auto;
+  width: 100%;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateX(400px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 3px solid var(--status-color, #3B82F6);
+  overflow: hidden;
+  position: relative;
+}
+
+.order-notification.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.order-notification.exiting {
+  opacity: 0;
+  transform: translateX(400px);
+}
+
+/* Notification Types */
+.order-notification.success {
+  border-left-color: #10B981;
+}
+
+.order-notification.error {
+  border-left-color: #EF4444;
+}
+
+.order-notification.info {
+  border-left-color: #3B82F6;
+}
+
+.notification-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 18px;
+  gap: 12px;
+}
+
+.notification-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 3px;
+  line-height: 1.4;
+}
+
+.notification-message {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.notification-order-info {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--status-color, #3B82F6);
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 6px;
+  display: inline-block;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.notification-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+}
+
+.notification-close:hover {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.notification-progress-bar {
+  height: 3px;
+  background: #e2e8f0;
+  overflow: hidden;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.notification-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--status-color, #3B82F6) 0%, var(--status-color, #3B82F6) 100%);
+  transition: width 0.1s linear;
+  border-radius: 0 0 0 12px;
+}
+
+/* Status-specific styling */
+.order-notification[data-status="pending"] {
+  border-left-color: #F59E0B;
+}
+
+.order-notification[data-status="confirmed"] {
+  border-left-color: #3B82F6;
+}
+
+.order-notification[data-status="layout"] {
+  border-left-color: #8B5CF6;
+}
+
+.order-notification[data-status="sizing"] {
+  border-left-color: #EC4899;
+}
+
+.order-notification[data-status="printing"] {
+  border-left-color: #06B6D4;
+}
+
+.order-notification[data-status="press"] {
+  border-left-color: #EF4444;
+}
+
+.order-notification[data-status="prod"] {
+  border-left-color: #10B981;
+}
+
+.order-notification[data-status="packing_completing"] {
+  border-left-color: #6366F1;
+}
+
+.order-notification[data-status="picked_up_delivered"] {
+  border-left-color: #059669;
+}
+
+.order-notification[data-status="cancelled"] {
+  border-left-color: #DC2626;
+}
+
+/* Animation for stacking notifications */
+.order-notification:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.order-notification:nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.order-notification:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.order-notification:nth-child(4) {
+  animation-delay: 150ms;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .order-notification-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: 100%;
+  }
+
+  .order-notification {
+    border-radius: 10px;
+  }
+
+  .notification-content {
+    padding: 12px 14px;
+  }
+
+  .notification-title {
+    font-size: 13px;
+  }
+
+  .notification-message {
+    font-size: 12px;
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .order-notification {
+    background: #1e293b;
+    border-left-color: var(--status-color, #3B82F6);
+  }
+
+  .notification-title {
+    color: #f1f5f9;
+  }
+
+  .notification-message {
+    color: #94a3b8;
+  }
+
+  .notification-close {
+    color: #94a3b8;
+  }
+
+  .notification-close:hover {
+    background: #334155;
+    color: #cbd5e1;
+  }
+}
+
