@@ -914,3 +914,49 @@ body.sidebar-collapsed .accounts-container {
     transform: none;
   }
 }
+
+/* ===========================================
+   LARGE SCREEN RESPONSIVE (54 inch displays)
+   =========================================== */
+
+/* 4K / Ultra-Wide Displays (2560px - 3839px) */
+@media (min-width: 2560px) and (max-width: 3839px) {
+  .accounts-container {
+    max-width: 2400px;
+    padding: 2.5rem;
+  }
+  
+  .accounts-header h1 {
+    font-size: 3rem;
+  }
+  
+  .accounts-table {
+    font-size: 0.9375rem;
+  }
+  
+  .accounts-table th,
+  .accounts-table td {
+    padding: 1.25rem 1rem;
+  }
+}
+
+/* Large 4K Displays (3840px+) */
+@media (min-width: 3840px) {
+  .accounts-container {
+    max-width: 3200px;
+    padding: 3rem;
+  }
+  
+  .accounts-header h1 {
+    font-size: 3.5rem;
+  }
+  
+  .accounts-table {
+    font-size: 1rem;
+  }
+  
+  .accounts-table th,
+  .accounts-table td {
+    padding: 1.5rem 1.25rem;
+  }
+}

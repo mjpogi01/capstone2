@@ -401,77 +401,74 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
         )}
 
         {/* Message Input */}
-        <div className="chat-input">
-          
-          {attachments.length > 0 && (
-            <div className="attachments-preview">
-              {attachments.map((attachment, index) => (
-                <div key={index} className="attachment-preview">
-                  {attachment.type.startsWith('image/') ? (
-                    <img src={attachment.url} alt={attachment.name} />
-                  ) : (
-                    <FontAwesomeIcon icon={faFile} />
-                  )}
-                  <span>{attachment.name}</span>
-                  <button 
-                    onClick={() => removeAttachment(index)}
-                    className="remove-attachment"
-                  >
-                    <FontAwesomeIcon icon={faX} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <form onSubmit={handleSendMessage} className="message-form">
-            <div className="artist-chat-input-group">
-              <input
-                type="file"
-                ref={fileInputRef}
-                multiple
-                accept="image/*,.pdf,.doc,.docx"
-                onChange={(e) => handleFileUpload(e.target.files)}
-                style={{ display: 'none' }}
-                disabled={uploading}
-              />
-              
-              <button
-                type="button"
-                className="attach-btn"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <FontAwesomeIcon icon={faSpinner} spin />
+        {attachments.length > 0 && (
+          <div className="attachments-preview">
+            {attachments.map((attachment, index) => (
+              <div key={index} className="attachment-preview">
+                {attachment.type.startsWith('image/') ? (
+                  <img src={attachment.url} alt={attachment.name} />
                 ) : (
-                  <FontAwesomeIcon icon={faPaperclip} />
+                  <FontAwesomeIcon icon={faFile} />
                 )}
-              </button>
-              
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="message-input"
-                disabled={sending}
-              />
-              
-              <button
-                type="submit"
-                className="send-btn"
-                disabled={sending || (!newMessage.trim() && attachments.length === 0)}
-              >
-                {sending ? (
-                  <FontAwesomeIcon icon={faSpinner} spin />
-                ) : (
-                  <FontAwesomeIcon icon={faPaperPlane} />
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
+                <span>{attachment.name}</span>
+                <button 
+                  onClick={() => removeAttachment(index)}
+                  className="remove-attachment"
+                >
+                  <FontAwesomeIcon icon={faX} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <form onSubmit={handleSendMessage} className="message-form">
+          <div className="artist-chat-input-group">
+            <input
+              type="file"
+              ref={fileInputRef}
+              multiple
+              accept="image/*,.pdf,.doc,.docx"
+              onChange={(e) => handleFileUpload(e.target.files)}
+              style={{ display: 'none' }}
+              disabled={uploading}
+            />
+            
+            <button
+              type="button"
+              className="attach-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <FontAwesomeIcon icon={faSpinner} spin />
+              ) : (
+                <FontAwesomeIcon icon={faPaperclip} />
+              )}
+            </button>
+            
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type your message..."
+              className="message-input"
+              disabled={sending}
+            />
+            
+            <button
+              type="submit"
+              className="send-btn"
+              disabled={sending || (!newMessage.trim() && attachments.length === 0)}
+            >
+              {sending ? (
+                <FontAwesomeIcon icon={faSpinner} spin />
+              ) : (
+                <FontAwesomeIcon icon={faPaperPlane} />
+              )}
+            </button>
+          </div>
+        </form>
 
         {/* Artist Review Modal */}
         {showReviewModal && (

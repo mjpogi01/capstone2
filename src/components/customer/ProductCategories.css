@@ -660,6 +660,8 @@
 @media (max-width: 1024px) {
   .product-categories {
     padding: 3rem 0;
+    margin-left: 10px;
+    margin-right: 10px;
   }
   
   .sportswear-category-nav {
@@ -1387,6 +1389,8 @@
     width: 8px;
     height: 8px;
   }
+
+  
   
   .sportswear-category-nav {
     gap: 0.4rem;

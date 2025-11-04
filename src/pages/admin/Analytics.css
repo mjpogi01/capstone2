@@ -1721,3 +1721,49 @@ body.sidebar-collapsed .analytics-page {
     font-size: 7.5px !important;
   }
 }
+
+/* ===========================================
+   LARGE SCREEN RESPONSIVE (54 inch displays)
+   =========================================== */
+
+/* 4K / Ultra-Wide Displays (2560px - 3839px) */
+@media (min-width: 2560px) and (max-width: 3839px) {
+  .analytics-page {
+    max-width: 2400px;
+    padding: 2.5rem;
+  }
+  
+  .header-left h1 {
+    font-size: 2.5rem;
+  }
+  
+  .analyze-btn {
+    padding: 1rem 2.25rem;
+    font-size: 1rem;
+  }
+  
+  .dashboard-content {
+    max-width: 2400px;
+  }
+}
+
+/* Large 4K Displays (3840px+) */
+@media (min-width: 3840px) {
+  .analytics-page {
+    max-width: 3200px;
+    padding: 3rem;
+  }
+  
+  .header-left h1 {
+    font-size: 3rem;
+  }
+  
+  .analyze-btn {
+    padding: 1.125rem 2.5rem;
+    font-size: 1.125rem;
+  }
+  
+  .dashboard-content {
+    max-width: 3200px;
+  }
+}

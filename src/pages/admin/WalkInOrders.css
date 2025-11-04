@@ -2311,3 +2311,39 @@
     font-size: 17px;
   }
 }
+
+/* ===========================================
+   LARGE SCREEN RESPONSIVE (54 inch displays)
+   =========================================== */
+
+/* 4K / Ultra-Wide Displays (2560px - 3839px) */
+@media (min-width: 2560px) and (max-width: 3839px) {
+  .walkin-ordering-container {
+    max-width: 2400px;
+    margin: 0 auto;
+  }
+  
+  .modern-navbar {
+    padding: var(--spacing-lg) var(--spacing-2xl);
+  }
+  
+  .brand-title {
+    font-size: 1.75rem;
+  }
+}
+
+/* Large 4K Displays (3840px+) */
+@media (min-width: 3840px) {
+  .walkin-ordering-container {
+    max-width: 3200px;
+    margin: 0 auto;
+  }
+  
+  .modern-navbar {
+    padding: var(--spacing-xl) var(--spacing-2xl);
+  }
+  
+  .brand-title {
+    font-size: 2rem;
+  }
+}

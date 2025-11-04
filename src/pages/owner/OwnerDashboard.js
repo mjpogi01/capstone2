@@ -11,7 +11,6 @@ import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 
 const OwnerDashboard = () => {
   const [activePage, setActivePage] = useState('home');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const getPageTitle = () => {
@@ -41,7 +40,7 @@ const OwnerDashboard = () => {
   };
 
   return (
-    <div className={`owner-dashboard ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+    <div className="owner-dashboard">
       {/* Mobile Header with Burger Menu */}
       <header className="owner-mobile-header">
         <button 
@@ -60,8 +59,6 @@ const OwnerDashboard = () => {
       <Sidebar 
         activePage={activePage} 
         setActivePage={setActivePage} 
-        collapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed((v) => !v)}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />

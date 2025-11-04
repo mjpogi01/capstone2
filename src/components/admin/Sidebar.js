@@ -34,21 +34,28 @@ const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuO
 
   // Sync collapse state with body class for CSS targeting
   React.useEffect(() => {
-    const updateClasses = () => {
-      const body = document.body;
+    const body = document.body;
+    
+    // Always update body class first - this is the most reliable selector
+    if (isCollapsed) {
+      body.classList.add('sidebar-collapsed');
+    } else {
+      body.classList.remove('sidebar-collapsed');
+    }
+    
+    // Update dashboard containers
+    const updateDashboardClasses = () => {
       const adminDashboard = document.querySelector('.admin-dashboard');
       const ownerDashboard = document.querySelector('.owner-dashboard');
       const analyticsPage = document.querySelector('.analytics-page');
       const inventoryPage = document.querySelector('.inventory-page');
       
       if (isCollapsed) {
-        body.classList.add('sidebar-collapsed');
         if (adminDashboard) adminDashboard.classList.add('sidebar-collapsed');
         if (ownerDashboard) ownerDashboard.classList.add('sidebar-collapsed');
         if (analyticsPage) analyticsPage.classList.add('sidebar-collapsed');
         if (inventoryPage) inventoryPage.classList.add('sidebar-collapsed');
       } else {
-        body.classList.remove('sidebar-collapsed');
         if (adminDashboard) adminDashboard.classList.remove('sidebar-collapsed');
         if (ownerDashboard) ownerDashboard.classList.remove('sidebar-collapsed');
         if (analyticsPage) analyticsPage.classList.remove('sidebar-collapsed');
@@ -57,20 +64,25 @@ const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuO
     };
 
     // Immediate update
-    updateClasses();
+    updateDashboardClasses();
     
-    // Also update after a small delay to catch dynamically loaded components
-    const timeoutId = setTimeout(updateClasses, 100);
+    // Also update after small delays to catch dynamically loaded components
+    const timeout1 = setTimeout(updateDashboardClasses, 50);
+    const timeout2 = setTimeout(updateDashboardClasses, 150);
+    const timeout3 = setTimeout(updateDashboardClasses, 300);
     
     return () => {
-      clearTimeout(timeoutId);
-      const body = document.body;
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+      clearTimeout(timeout3);
+      
+      body.classList.remove('sidebar-collapsed');
+      
       const adminDashboard = document.querySelector('.admin-dashboard');
       const ownerDashboard = document.querySelector('.owner-dashboard');
       const analyticsPage = document.querySelector('.analytics-page');
       const inventoryPage = document.querySelector('.inventory-page');
       
-      body.classList.remove('sidebar-collapsed');
       if (adminDashboard) adminDashboard.classList.remove('sidebar-collapsed');
       if (ownerDashboard) ownerDashboard.classList.remove('sidebar-collapsed');
       if (analyticsPage) analyticsPage.classList.remove('sidebar-collapsed');

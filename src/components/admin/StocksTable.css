@@ -293,3 +293,47 @@
     border-color: #000000;
   }
 }
+
+/* ===========================================
+   LARGE SCREEN RESPONSIVE (54 inch displays)
+   =========================================== */
+
+/* 4K / Ultra-Wide Displays (2560px - 3839px) */
+@media (min-width: 2560px) and (max-width: 3839px) {
+  .stocks-table {
+    padding: 2rem;
+  }
+  
+  .table-title {
+    font-size: 1.25rem;
+  }
+  
+  .stocks-data-table {
+    font-size: 0.9375rem;
+  }
+  
+  .stocks-data-table th,
+  .stocks-data-table td {
+    padding: 1.25rem 1rem;
+  }
+}
+
+/* Large 4K Displays (3840px+) */
+@media (min-width: 3840px) {
+  .stocks-table {
+    padding: 2.5rem;
+  }
+  
+  .table-title {
+    font-size: 1.5rem;
+  }
+  
+  .stocks-data-table {
+    font-size: 1rem;
+  }
+  
+  .stocks-data-table th,
+  .stocks-data-table td {
+    padding: 1.5rem 1.25rem;
+  }
+}

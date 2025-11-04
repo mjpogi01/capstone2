@@ -12,32 +12,72 @@
   max-width: 100%;
   margin: 0;
   padding: 0;
-  transition: all 0.3s ease;
+  transition: none;
   box-sizing: border-box;
+  /* Maintain consistent position regardless of sidebar state */
+  position: relative;
 }
 
-/* Responsive when sidebar is collapsed - expand to fill available space */
+/* Keep consistent design regardless of sidebar state - prevent shifting */
 .admin-dashboard.sidebar-collapsed .inventory-main-content,
 .inventory-page.sidebar-collapsed .inventory-main-content,
 body.sidebar-collapsed .inventory-main-content {
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+  /* Compensate for sidebar collapse: sidebar goes from 280px to 80px (200px difference) */
+  /* Add left margin to keep table in same visual position */
+  margin-left: 200px;
+  position: relative;
+  left: 0;
+  transform: none;
 }
 
-/* Ensure admin-main-content allows full expansion when collapsed */
+/* Maintain max-width for large displays when sidebar is collapsed */
+@media (min-width: 2560px) and (max-width: 3839px) {
+  .admin-dashboard.sidebar-collapsed .inventory-main-content,
+  body.sidebar-collapsed .inventory-main-content {
+    max-width: 2400px;
+    margin-left: auto;
+    margin-right: auto;
+    /* Center the content */
+    padding-left: 200px;
+  }
+}
+
+@media (min-width: 3840px) {
+  .admin-dashboard.sidebar-collapsed .inventory-main-content,
+  body.sidebar-collapsed .inventory-main-content {
+    max-width: 3200px;
+    margin-left: auto;
+    margin-right: auto;
+    /* Center the content */
+    padding-left: 200px;
+  }
+}
+
+/* Ensure admin-main-content maintains consistent layout */
 .admin-dashboard.sidebar-collapsed .admin-main-content .inventory-main-content {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
 }
 
-/* Ensure table container expands fully */
+/* Keep table container consistent - no changes when sidebar collapses */
 .admin-dashboard.sidebar-collapsed .inventory-table-container,
 body.sidebar-collapsed .inventory-table-container,
 .admin-dashboard.sidebar-collapsed .admin-main-content .inventory-table-container {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  margin: 0 auto;
+  padding: 0;
+  /* Prevent any shifting or transformation */
+  left: 0;
+  transform: none;
+  transition: none;
 }
 
 /* Mobile: collapse state should not affect layout */
@@ -62,12 +102,20 @@ body.sidebar-collapsed .inventory-table-container,
   box-sizing: border-box;
 }
 
-/* Expand header when sidebar is collapsed */
+/* Keep header consistent - no changes when sidebar collapses */
 .admin-dashboard.sidebar-collapsed .inventory-header,
 body.sidebar-collapsed .inventory-header,
 .admin-dashboard.sidebar-collapsed .admin-main-content .inventory-header {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  /* Maintain same position */
+  position: relative;
+  left: 0;
+  transform: none;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .inventory-header h1 {
@@ -95,12 +143,22 @@ body.sidebar-collapsed .inventory-header,
   box-sizing: border-box;
 }
 
-/* Expand content area when sidebar is collapsed */
+/* Keep content area consistent - no changes when sidebar collapses */
 .admin-dashboard.sidebar-collapsed .inventory-content,
 body.sidebar-collapsed .inventory-content,
 .admin-dashboard.sidebar-collapsed .admin-main-content .inventory-content {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  /* Maintain same position */
+  position: relative;
+  left: 0;
+  transform: none;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 /* Loading State */
@@ -155,12 +213,17 @@ body.sidebar-collapsed .inventory-content,
   box-sizing: border-box;
 }
 
-/* Expand filter controls when sidebar is collapsed */
+/* Keep filter controls consistent - same design */
 .admin-dashboard.sidebar-collapsed .filter-controls,
 body.sidebar-collapsed .filter-controls,
 .admin-dashboard.sidebar-collapsed .admin-main-content .filter-controls {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 /* Responsive grid breakpoints */
@@ -266,13 +329,40 @@ body.sidebar-collapsed .filter-controls,
   max-width: 100%;
   box-sizing: border-box;
   transition: width 0.3s ease, max-width 0.3s ease;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
-/* Expand table container when sidebar is collapsed */
+/* Custom scrollbar styling for webkit browsers */
+.inventory-table-container::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.inventory-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.inventory-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.inventory-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Keep table container consistent - maintain same design */
 .admin-dashboard.sidebar-collapsed .inventory-table-container,
 body.sidebar-collapsed .inventory-table-container {
   width: 100%;
   max-width: 100%;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 /* Desktop Table */
@@ -281,19 +371,40 @@ body.sidebar-collapsed .inventory-table-container {
   border-collapse: collapse;
   font-size: 0.875rem;
   table-layout: auto;
-  min-width: 100%;
-  max-width: 100%;
+  min-width: fit-content;
   box-sizing: border-box;
 }
 
-/* Expand table when sidebar is collapsed */
+/* Ensure table has minimum width for all columns to display properly */
+.inventory-table {
+  min-width: 1200px;
+}
+
+/* On very large screens, allow table to expand naturally */
+@media (min-width: 1400px) {
+  .inventory-table {
+    min-width: 100%;
+  }
+}
+
+/* Keep table consistent - same design whether sidebar is collapsed or not */
 .admin-dashboard.sidebar-collapsed .inventory-table,
 body.sidebar-collapsed .inventory-table,
 .admin-dashboard.sidebar-collapsed .admin-main-content .inventory-table {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 100% !important;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
   table-layout: auto;
+  box-sizing: border-box;
+  /* Maintain minimum width for scrolling when needed */
+}
+
+/* On very wide screens, maintain consistent behavior */
+@media (min-width: 1400px) {
+  .admin-dashboard.sidebar-collapsed .inventory-table,
+  body.sidebar-collapsed .inventory-table {
+    min-width: 100%;
+  }
 }
 
 .inventory-table tbody td:last-child,
@@ -307,7 +418,7 @@ body.sidebar-collapsed .inventory-table,
 }
 
 .inventory-table th {
-  padding: 1.25rem 1rem;
+  padding: 1rem 0.75rem;
   text-align: center;
   font-weight: 600;
   color: #374151;
@@ -342,7 +453,7 @@ body.sidebar-collapsed .inventory-table,
 }
 
 .inventory-table td {
-  padding: 1.25rem 1rem;
+  padding: 1rem 0.75rem;
   vertical-align: middle;
   border-right: 1px solid #f1f5f9;
   overflow: visible;
@@ -359,13 +470,16 @@ body.sidebar-collapsed .inventory-table,
 
 /* Product Image */
 .product-image-cell {
-  width: 80px;
+  width: 60px;
+  min-width: 60px;
+  max-width: 60px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .product-image {
-  width: 60px;
-  height: 60px;
+  width: 45px;
+  height: 45px;
   border-radius: 12px;
   overflow: hidden;
   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
@@ -403,8 +517,9 @@ body.sidebar-collapsed .inventory-table,
 /* Inventory Product Name - Multi-line support */
 .inventory-product-name-cell {
   width: auto;
-  min-width: 150px;
-  max-width: 220px;
+  min-width: 120px;
+  max-width: 180px;
+  flex-shrink: 1;
 }
 
 .inventory-product-name {
@@ -502,10 +617,11 @@ body.sidebar-collapsed .inventory-table,
 /* Available Sizes */
 .product-available-sizes-cell {
   width: auto;
-  min-width: 120px;
-  max-width: 150px;
+  min-width: 100px;
+  max-width: 130px;
   padding: 0.5rem 0.75rem;
   position: relative;
+  flex-shrink: 1;
 }
 
 .product-available-sizes {
@@ -669,8 +785,9 @@ body.sidebar-collapsed .inventory-table,
 /* Description */
 .product-description-cell {
   width: auto;
-  min-width: 200px;
-  max-width: none;
+  min-width: 150px;
+  max-width: 200px;
+  flex-shrink: 1;
 }
 
 .product-description {
@@ -696,9 +813,11 @@ body.sidebar-collapsed .inventory-table,
 /* Actions */
 .product-actions-cell {
   width: auto;
-  min-width: 140px;
-  max-width: 160px;
+  min-width: 100px;
+  max-width: 120px;
   text-align: center;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .product-actions {
@@ -709,16 +828,16 @@ body.sidebar-collapsed .inventory-table,
 }
 
 .edit-btn, .delete-btn {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   position: relative;
 }
 
@@ -780,14 +899,14 @@ body.sidebar-collapsed .inventory-table,
   box-sizing: border-box;
 }
 
-/* Expand desktop table when sidebar is collapsed */
+/* Keep desktop table consistent - same design */
 .admin-dashboard.sidebar-collapsed .desktop-table,
 body.sidebar-collapsed .desktop-table,
 .admin-dashboard.sidebar-collapsed .admin-main-content .desktop-table {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
   display: block;
-  overflow-x: auto;
+  box-sizing: border-box;
 }
 
 .mobile-cards {
@@ -1005,17 +1124,197 @@ body.sidebar-collapsed .floating-add-btn {
    RESPONSIVE BREAKPOINTS
    =========================================== */
 
-/* Large Desktop (1400px+) */
-@media (min-width: 1400px) {
-  /* Styling handled by AdminDashboard.css */
+/* 4K / Ultra-Wide Displays (2560px - 3839px) - 54 inch displays */
+@media (min-width: 2560px) and (max-width: 3839px) {
+  .inventory-main-content {
+    max-width: 2400px;
+    margin: 0 auto;
+  }
+  
+  .inventory-table {
+    min-width: 100%;
+    width: 100%;
+    font-size: 0.9375rem;
+  }
+  
+  .inventory-table th,
+  .inventory-table td {
+    padding: 1.25rem 1rem;
+  }
+  
+  .product-image {
+    width: 55px;
+    height: 55px;
+  }
+  
+  .product-image-cell {
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+  }
+  
+  .inventory-product-name-cell {
+    min-width: 140px;
+    max-width: 220px;
+  }
+  
+  .product-description-cell {
+    min-width: 180px;
+    max-width: 250px;
+  }
+  
+  .product-available-sizes-cell {
+    min-width: 120px;
+    max-width: 160px;
+  }
+  
+  .product-actions-cell {
+    min-width: 120px;
+    max-width: 140px;
+  }
+  
+  .edit-btn, .delete-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+  
+  .inventory-header h1 {
+    font-size: 3rem;
+  }
+  
+  .inventory-header p {
+    font-size: 1.25rem;
+  }
+  
+  .inventory-table-container {
+    overflow-x: visible;
+  }
 }
 
-/* Desktop (1200px - 1399px) */
-@media (max-width: 1399px) {
-  /* Styling handled by AdminDashboard.css */
+/* 4K Displays (3840px+) - Large 54 inch 4K monitors */
+@media (min-width: 3840px) {
+  .inventory-main-content {
+    max-width: 3200px;
+    margin: 0 auto;
+  }
+  
+  .inventory-table {
+    min-width: 100%;
+    width: 100%;
+    font-size: 1rem;
+  }
+  
+  .inventory-table th,
+  .inventory-table td {
+    padding: 1.5rem 1.25rem;
+  }
+  
+  .product-image {
+    width: 65px;
+    height: 65px;
+  }
+  
+  .product-image-cell {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+  }
+  
+  .inventory-product-name-cell {
+    min-width: 160px;
+    max-width: 260px;
+  }
+  
+  .product-description-cell {
+    min-width: 220px;
+    max-width: 300px;
+  }
+  
+  .product-available-sizes-cell {
+    min-width: 140px;
+    max-width: 180px;
+  }
+  
+  .product-actions-cell {
+    min-width: 140px;
+    max-width: 160px;
+  }
+  
+  .edit-btn, .delete-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+  
+  .inventory-header h1 {
+    font-size: 3.5rem;
+  }
+  
+  .inventory-header p {
+    font-size: 1.375rem;
+  }
+  
+  .inventory-header {
+    padding: 2.5rem;
+  }
+  
+  .filter-controls {
+    padding: 2rem;
+  }
+  
+  .inventory-table-container {
+    overflow-x: visible;
+  }
 }
 
-/* Large Laptop (1024px - 1199px) */
+/* Ultra Large Desktop (1600px - 2559px) */
+@media (min-width: 1600px) and (max-width: 2559px) {
+  .inventory-table {
+    min-width: 100%;
+    width: 100%;
+  }
+  
+  .inventory-table-container {
+    overflow-x: visible;
+  }
+}
+
+/* Desktop (1400px - 1599px) */
+@media (min-width: 1400px) and (max-width: 1599px) {
+  .inventory-table {
+    min-width: 100%;
+    width: 100%;
+  }
+  
+  .inventory-table-container {
+    overflow-x: auto;
+  }
+}
+
+/* Large Laptop (1200px - 1399px) */
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .inventory-table {
+    min-width: 1100px;
+  }
+  
+  .inventory-table-container {
+    overflow-x: auto;
+  }
+}
+
+/* Standard Desktop (1024px - 1199px) */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .inventory-table {
+    min-width: 1000px;
+  }
+  
+  .inventory-table-container {
+    overflow-x: auto;
+  }
+}
+
+/* Large Laptop (1024px - 1199px) - Additional adjustments */
 @media (max-width: 1199px) {
   .inventory-header h1 {
     font-size: 2.25rem;
@@ -1040,22 +1339,36 @@ body.sidebar-collapsed .floating-add-btn {
     height: 50px;
   }
   
-  .product-name-cell {
-    width: 180px;
-    min-width: 160px;
-    max-width: 220px;
+  .product-image-cell {
+    width: 55px;
+    min-width: 55px;
+    max-width: 55px;
   }
   
-  .product-description-cell {
-    width: 140px;
+  .inventory-product-name-cell {
     min-width: 110px;
     max-width: 160px;
   }
   
+  .product-description-cell {
+    min-width: 130px;
+    max-width: 180px;
+  }
+  
+  .product-available-sizes-cell {
+    min-width: 90px;
+    max-width: 120px;
+  }
+  
+  .product-actions-cell {
+    min-width: 90px;
+    max-width: 110px;
+  }
+  
   .edit-btn, .delete-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 0.85rem;
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
   }
   
   .floating-add-btn {
@@ -1092,16 +1405,15 @@ body.sidebar-collapsed .floating-add-btn {
   }
   
   .inventory-table {
-    font-size: 0.8rem;
-    min-width: 800px;
+    font-size: 0.75rem;
+    min-width: 900px;
   }
   
-  /* Override min-width when sidebar is collapsed */
+  /* Keep table consistent when sidebar is collapsed */
   .admin-dashboard.sidebar-collapsed .inventory-table,
   body.sidebar-collapsed .inventory-table {
-    min-width: 100% !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    min-width: 900px;
+    font-size: 0.75rem;
   }
   
   .inventory-table th,
@@ -1119,26 +1431,40 @@ body.sidebar-collapsed .floating-add-btn {
   }
   
   .product-image {
-    width: 45px;
-    height: 45px;
+    width: 40px;
+    height: 40px;
   }
   
-  .product-name-cell {
-    width: 160px;
-    min-width: 140px;
-    max-width: 180px;
+  .product-image-cell {
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
   }
   
-  .product-description-cell {
-    width: 120px;
+  .inventory-product-name-cell {
     min-width: 100px;
     max-width: 140px;
   }
   
+  .product-description-cell {
+    min-width: 110px;
+    max-width: 150px;
+  }
+  
+  .product-available-sizes-cell {
+    min-width: 80px;
+    max-width: 110px;
+  }
+  
+  .product-actions-cell {
+    min-width: 80px;
+    max-width: 100px;
+  }
+  
   .edit-btn, .delete-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 0.8rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.75rem;
   }
   
   .floating-add-btn {
@@ -1383,38 +1709,66 @@ body.sidebar-collapsed .floating-add-btn {
 }
 
 /* ===========================================
-   SIDEBAR COLLAPSED - COMPREHENSIVE FIX
-   Ensure all inventory elements expand fully
+   SIDEBAR COLLAPSED - CONSISTENT DESIGN
+   Maintain same table position and design
    =========================================== */
 
-/* Force full width expansion when sidebar is collapsed */
+/* Keep all elements consistent when sidebar is collapsed */
 .admin-dashboard.sidebar-collapsed .admin-main-content .inventory-main-content,
 .admin-dashboard.sidebar-collapsed .inventory-main-content,
 body.sidebar-collapsed .inventory-main-content {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
-/* Override all responsive breakpoints for collapsed state */
+/* Maintain consistent table styling regardless of sidebar state */
 @media (min-width: 769px) {
   .admin-dashboard.sidebar-collapsed .inventory-table,
   .admin-dashboard.sidebar-collapsed .inventory-table-container,
   .admin-dashboard.sidebar-collapsed .desktop-table,
   .admin-dashboard.sidebar-collapsed .inventory-header,
   .admin-dashboard.sidebar-collapsed .filter-controls {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 100% !important;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+    margin-left: 0;
+    margin-right: 0;
+    /* Prevent any shifting */
+    left: 0;
+    transform: none;
+    transition: none;
   }
   
-  /* Override tablet min-width constraint */
+  /* Keep table responsive - maintain min-width for scrolling */
   .admin-dashboard.sidebar-collapsed .inventory-table {
-    min-width: 100% !important;
+    min-width: 1200px;
+  }
+  
+  @media (max-width: 1399px) {
+    .admin-dashboard.sidebar-collapsed .inventory-table {
+      min-width: 1100px;
+    }
+  }
+  
+  @media (max-width: 1199px) {
+    .admin-dashboard.sidebar-collapsed .inventory-table {
+      min-width: 1000px;
+    }
+  }
+  
+  @media (max-width: 1023px) {
+    .admin-dashboard.sidebar-collapsed .inventory-table {
+      min-width: 900px;
+    }
   }
 }
 
-/* Ensure floating button stays positioned correctly */
+/* Keep floating button positioned consistently */
 .admin-dashboard.sidebar-collapsed .floating-add-btn {
-  right: 2rem !important;
+  right: 2rem;
 }

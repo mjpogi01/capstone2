@@ -8,6 +8,8 @@
   min-height: 100vh;
   background: #f8fafc;
   position: relative;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* Mobile Header - Hidden on Desktop */
@@ -23,36 +25,30 @@
   flex-direction: column;
   width: calc(100% - 280px);
   min-height: 100vh;
-  transition: margin-left 0.3s ease, width 0.3s ease;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
 }
 
-/* When sidebar is collapsed - Higher specificity */
-.admin-dashboard.sidebar-collapsed .admin-main-content,
-body.sidebar-collapsed .admin-main-content,
-.admin-dashboard.sidebar-collapsed > .admin-main-content,
-.admin-dashboard .sidebar-collapsed ~ .admin-main-content,
+/* When sidebar is collapsed - Use body class as primary selector (most reliable) */
 body.sidebar-collapsed .admin-main-content {
   margin-left: 80px !important;
   width: calc(100% - 80px) !important;
-  transition: margin-left 0.3s ease, width 0.3s ease;
 }
 
-/* Ensure all breakpoints respect collapsed state */
-@media (min-width: 769px) {
-  .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-main-content {
-    margin-left: 80px !important;
-    width: calc(100% - 80px) !important;
-  }
+/* Additional selectors for extra coverage */
+.admin-dashboard.sidebar-collapsed .admin-main-content,
+.admin-dashboard.sidebar-collapsed > .admin-main-content,
+body.sidebar-collapsed .admin-dashboard .admin-main-content {
+  margin-left: 80px !important;
+  width: calc(100% - 80px) !important;
 }
 
 /* Mobile: collapse state should not affect layout */
 @media (max-width: 768px) {
   .admin-dashboard.sidebar-collapsed .admin-main-content,
   body.sidebar-collapsed .admin-main-content {
-    margin-left: 0;
-    width: 100%;
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 }
 
@@ -103,15 +99,54 @@ body.sidebar-collapsed .admin-main-content {
   min-width: 0;
 }
 
+/* ===========================================
+   LARGE SCREEN RESPONSIVE (54 inch displays)
+   =========================================== */
+
+/* 4K / Ultra-Wide Displays (2560px - 3839px) */
+@media (min-width: 2560px) and (max-width: 3839px) {
+  .dashboard-content {
+    max-width: 2400px;
+    margin: 0 auto;
+  }
+  
+  .admin-main-content {
+    padding: 2.5rem;
+  }
+  
+  .dashboard-grid {
+    gap: 2rem;
+  }
+}
+
+/* Large 4K Displays (3840px+) */
+@media (min-width: 3840px) {
+  .dashboard-content {
+    max-width: 3200px;
+    margin: 0 auto;
+  }
+  
+  .admin-main-content {
+    padding: 3rem;
+  }
+  
+  .dashboard-grid {
+    gap: 2.5rem;
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 1400px) {
   .admin-main-content {
     padding: 1.75rem 1.5rem;
+    margin-left: 280px;
+    width: calc(100% - 280px);
   }
   
-  /* Collapsed state at this breakpoint */
+  /* Collapsed state - must override normal state */
+  body.sidebar-collapsed .admin-main-content,
   .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-main-content {
+  body.sidebar-collapsed .admin-dashboard .admin-main-content {
     margin-left: 80px !important;
     width: calc(100% - 80px) !important;
   }
@@ -128,14 +163,15 @@ body.sidebar-collapsed .admin-main-content {
 
 @media (max-width: 1200px) {
   .admin-main-content {
-    margin-left: 240px;
-    width: calc(100% - 240px);
+    margin-left: 280px;
+    width: calc(100% - 280px);
     padding: 1.5rem 1.25rem;
   }
   
-  /* Collapsed state at this breakpoint */
+  /* Collapsed state - must override normal state */
+  body.sidebar-collapsed .admin-main-content,
   .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-main-content {
+  body.sidebar-collapsed .admin-dashboard .admin-main-content {
     margin-left: 80px !important;
     width: calc(100% - 80px) !important;
   }
@@ -152,14 +188,15 @@ body.sidebar-collapsed .admin-main-content {
 
 @media (max-width: 992px) {
   .admin-main-content {
-    margin-left: 220px;
-    width: calc(100% - 220px);
+    margin-left: 280px;
+    width: calc(100% - 280px);
     padding: 1.25rem 1rem;
   }
   
-  /* Collapsed state at this breakpoint */
+  /* Collapsed state - must override normal state */
+  body.sidebar-collapsed .admin-main-content,
   .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-main-content {
+  body.sidebar-collapsed .admin-dashboard .admin-main-content {
     margin-left: 80px !important;
     width: calc(100% - 80px) !important;
   }
@@ -356,6 +393,16 @@ body.sidebar-collapsed .admin-main-content {
   
   .admin-main-content {
     padding: 1.25rem 1rem;
+    margin-left: 280px;
+    width: calc(100% - 280px);
+  }
+  
+  /* Collapsed state - must override normal state */
+  body.sidebar-collapsed .admin-main-content,
+  .admin-dashboard.sidebar-collapsed .admin-main-content,
+  body.sidebar-collapsed .admin-dashboard .admin-main-content {
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
   }
 }
 

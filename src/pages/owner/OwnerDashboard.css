@@ -10,6 +10,9 @@
   display: flex;
   min-height: 100vh;
   background: #f8fafc;
+  position: relative;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* Mobile Header - Hidden on Desktop */
@@ -25,18 +28,28 @@
   flex-direction: column;
   width: calc(100% - 280px);
   min-height: 100vh;
-  transition: margin-left 0.25s ease;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
-.owner-dashboard.collapsed .owner-main-content { 
-  margin-left: 64px;
-  width: calc(100% - 64px);
+/* When sidebar is collapsed - Use body class as primary selector (most reliable) */
+body.sidebar-collapsed .owner-main-content {
+  margin-left: 80px !important;
+  width: calc(100% - 80px) !important;
+}
+
+/* Additional selectors for extra coverage */
+.owner-dashboard.sidebar-collapsed .owner-main-content,
+.owner-dashboard.collapsed .owner-main-content {
+  margin-left: 80px !important;
+  width: calc(100% - 80px) !important;
 }
 
 .dashboard-content {
   width: 100%;
-  max-width: 1600px;
+  max-width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .dashboard-grid {
@@ -72,7 +85,17 @@
 /* Responsive Design */
 @media (max-width: 1400px) {
   .owner-main-content {
+    margin-left: 280px;
+    width: calc(100% - 280px);
     padding: 1.75rem 1.5rem;
+  }
+  
+  /* Collapsed state - must override normal state */
+  body.sidebar-collapsed .owner-main-content,
+  .owner-dashboard.sidebar-collapsed .owner-main-content,
+  .owner-dashboard.collapsed .owner-main-content {
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
   }
 
   .dashboard-grid {
@@ -83,9 +106,17 @@
 
 @media (max-width: 1200px) {
   .owner-main-content {
-    margin-left: 240px;
-    width: calc(100% - 240px);
+    margin-left: 280px;
+    width: calc(100% - 280px);
     padding: 1.5rem 1.25rem;
+  }
+  
+  /* Collapsed state - must override normal state */
+  body.sidebar-collapsed .owner-main-content,
+  .owner-dashboard.sidebar-collapsed .owner-main-content,
+  .owner-dashboard.collapsed .owner-main-content {
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
   }
 
   .dashboard-grid {
@@ -96,9 +127,17 @@
 
 @media (max-width: 992px) {
   .owner-main-content {
-    margin-left: 220px;
-    width: calc(100% - 220px);
+    margin-left: 280px;
+    width: calc(100% - 280px);
     padding: 1.25rem 1rem;
+  }
+  
+  /* Collapsed state - must override normal state */
+  body.sidebar-collapsed .owner-main-content,
+  .owner-dashboard.sidebar-collapsed .owner-main-content,
+  .owner-dashboard.collapsed .owner-main-content {
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
   }
 
   .dashboard-grid {
@@ -184,9 +223,12 @@
     padding: 76px 1rem 1rem; /* 60px header + 16px gap */
   }
 
+  /* Mobile: collapse state should not affect layout */
+  body.sidebar-collapsed .owner-main-content,
+  .owner-dashboard.sidebar-collapsed .owner-main-content,
   .owner-dashboard.collapsed .owner-main-content { 
-    margin-left: 0;
-    width: 100%;
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 
   .dashboard-content {
