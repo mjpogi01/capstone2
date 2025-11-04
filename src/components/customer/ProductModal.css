@@ -1373,10 +1373,20 @@
   color: #00bfff;
   text-decoration: underline;
   font-weight: 600;
+  font-size: 0.85rem;
+  outline: none;
+  border: none;
 }
 
 .modal-size-chart-link:hover {
   color: #ffd700;
+}
+
+.modal-size-chart-link:focus,
+.modal-size-chart-link:active {
+  outline: none;
+  border: none;
+  box-shadow: none;
 }
 
 .modal-size-type-buttons {

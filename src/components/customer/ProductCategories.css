@@ -355,13 +355,17 @@
 
 .sportswear-product-card .sportswear-product-stats .sportswear-stat-item .star-icon {
   color: #fbbf24 !important;
-  font-size: 12px !important;
-  margin-left: 5px !important;
+  font-size: 14px !important;
+  margin-left: 3px !important;
   display: inline-block !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
   background: transparent !important;
   padding: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 .sportswear-sold-count {
@@ -721,6 +725,18 @@
     font-size: 0.75rem;
   }
 
+  .sportswear-view-all-btn {
+    padding: 0.25rem 0.7rem !important;
+    font-size: 0.55rem !important;
+    letter-spacing: 0.5px !important;
+    border-width: 1px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    line-height: 1.2 !important;
+    box-sizing: border-box !important;
+  }
+
   .sportswear-products-container {
     padding: 1rem;
   }
@@ -781,6 +797,18 @@
   .sportswear-category-btn {
     padding: 0.5rem 1rem;
     font-size: 0.7rem;
+  }
+
+  .sportswear-view-all-btn {
+    padding: 0.18rem 0.55rem !important;
+    font-size: 0.5rem !important;
+    letter-spacing: 0.3px !important;
+    border-width: 1px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    max-height: 24px !important;
+    line-height: 1.2 !important;
+    box-sizing: border-box !important;
   }
 
   .sportswear-products-container {
@@ -1372,6 +1400,18 @@
     font-size: 0.6rem;
     letter-spacing: 0.8px;
   }
+
+  .sportswear-view-all-btn {
+    padding: 0.2rem 0.6rem !important;
+    font-size: 0.5rem !important;
+    letter-spacing: 0.3px !important;
+    border-width: 1px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    line-height: 1.2 !important;
+    box-sizing: border-box !important;
+  }
   
   .sportswear-products-container {
     padding: 0.3rem 0.2rem;
@@ -1477,11 +1517,14 @@
   }
   
   .sportswear-product-card .sportswear-product-stats .sportswear-stat-item .star-icon {
-    font-size: 0.7rem !important;
-    margin-left: .5px !important;
-    line-height: 1.2 !important;
+    font-size: 12px !important;
+    margin-left: 3px !important;
+    line-height: 1 !important;
     background: transparent !important;
     padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #fbbf24 !important;
   }
   
   .product-card-info .product-stats .stat-item {
@@ -1578,9 +1621,15 @@
   
  
   .sportswear-view-all-btn {
-    padding: 0.6rem 1rem;
-    font-size: 0.65rem;
-    letter-spacing: 1px;
+    padding: 0.2rem 0.6rem !important;
+    font-size: 0.5rem !important;
+    letter-spacing: 0.3px !important;
+    border-width: 1px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    line-height: 1.2 !important;
+    box-sizing: border-box !important;
   }
   
   

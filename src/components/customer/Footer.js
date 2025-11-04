@@ -26,10 +26,10 @@ const Footer = () => {
               <a href="/highlights" className="footer-link">HIGHLIGHTS</a>
             </div>
             <div className="nav-column">
-              <a href="#faqs" className="footer-link">FAQs</a>
+              <a href="/faqs" className="footer-link">FAQs</a>
               <a href="#service" className="footer-link">CUSTOMER SERVICE</a>
-              <a href="#privacy" className="footer-link">PRIVACY POLICY</a>
-              <a href="#terms" className="footer-link">TERMS AND CONDITIONS</a>
+              <a href="/privacy" className="footer-link">PRIVACY POLICY</a>
+              <a href="/terms" className="footer-link">TERMS AND CONDITIONS</a>
             </div>
           </div>
         </div>

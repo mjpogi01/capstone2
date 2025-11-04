@@ -9,6 +9,8 @@ import About from './pages/customer/About';
 import Highlights from './pages/customer/Highlights';
 import FAQs from './pages/customer/FAQs';
 import Contacts from './pages/customer/Contacts';
+import PrivacyPolicy from './pages/customer/PrivacyPolicy';
+import TermsAndConditions from './pages/customer/TermsAndConditions';
 import Profile from './pages/customer/Profile';
 import LogoutPage from './pages/customer/LogoutPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -47,6 +49,8 @@ const AppContent = () => {
         <Route path="/branches" element={<Branches />} />
         <Route path="/faqs" element={<FAQs />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/logout" element={<LogoutPage />} />
         <Route 
           path="/profile" 

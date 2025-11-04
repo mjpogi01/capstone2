@@ -613,17 +613,18 @@ const Orders = () => {
           <FaSearch className="search-icon" />
         </div>
         
-        <button 
-          className={`filter-toggle-btn ${showFilters ? 'active' : ''}`}
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <FaFilter className="filter-icon" />
-          Filters
-          {showFilters ? <FaChevronUp /> : <FaChevronDown />}
-        </button>
-        
-        {showFilters && (
-          <div className="filter-dropdown">
+        <div className="filter-toggle-container">
+          <button 
+            className={`filter-toggle-btn ${showFilters ? 'active' : ''}`}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <FaFilter className="filter-icon" />
+            Filters
+            {showFilters ? <FaChevronUp /> : <FaChevronDown />}
+          </button>
+          
+          {showFilters && (
+            <div className="filter-dropdown">
             <div className="filter-group">
               <label>Branch</label>
               <select
@@ -657,7 +658,8 @@ const Orders = () => {
               Clear All
             </button>
           </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Yohann's Orders Table - Redesigned */}

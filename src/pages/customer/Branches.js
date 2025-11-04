@@ -73,6 +73,13 @@ const branches = [
     address: 'Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines',
     position: { lat: 13.0350, lng: 121.4847 },
     gmaps: createGMapsLink('Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines')
+  },
+  {
+    id: 9,
+    name: 'ROSARIO BRANCH',
+    address: 'Brgy. D, Rosario, Batangas, Rosario, Philippines',
+    position: { lat: 13.8478, lng: 121.2039 },
+    gmaps: createGMapsLink('Brgy. D, Rosario, Batangas, Rosario, Philippines')
   }
 ];
 
