@@ -133,20 +133,20 @@ const ArtistProfile = () => {
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <FontAwesomeIcon key={i} icon={faStar} className="star filled" />
+        <FontAwesomeIcon key={i} icon={faStar} className="artist-star artist-star-filled" />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <FontAwesomeIcon key="half" icon={faStar} className="star half" />
+        <FontAwesomeIcon key="half" icon={faStar} className="artist-star artist-star-half" />
       );
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <FontAwesomeIcon key={`empty-${i}`} icon={faStar} className="star empty" />
+        <FontAwesomeIcon key={`empty-${i}`} icon={faStar} className="artist-star artist-star-empty" />
       );
     }
 
@@ -155,41 +155,41 @@ const ArtistProfile = () => {
 
   if (loading) {
     return (
-      <div className="artist-profile">
-        <div className="profile-header loading-skeleton" style={{ height: '200px', borderRadius: '12px' }}></div>
-        <div className="profile-content">
-          <div className="profile-info loading-skeleton" style={{ height: '400px', borderRadius: '12px' }}></div>
-          <div className="profile-stats loading-skeleton" style={{ height: '300px', borderRadius: '12px' }}></div>
+      <div className="artist-profile-container">
+        <div className="artist-profile-header artist-loading-skeleton" style={{ height: '200px', borderRadius: '12px' }}></div>
+        <div className="artist-profile-content">
+          <div className="artist-profile-info artist-loading-skeleton" style={{ height: '400px', borderRadius: '12px' }}></div>
+          <div className="artist-profile-stats artist-loading-skeleton" style={{ height: '300px', borderRadius: '12px' }}></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="artist-profile">
+    <div className="artist-profile-container">
       {/* Profile Header */}
-      <div className="profile-header">
-        <div className="profile-avatar">
+      <div className="artist-profile-header">
+        <div className="artist-profile-avatar">
           <FontAwesomeIcon icon={faUser} />
         </div>
-        <div className="profile-basic-info">
-          <h2>{profile.artist_name}</h2>
-          <div className="profile-rating">
-            <div className="stars">
+        <div className="artist-profile-basic-info">
+          <h2 className="artist-profile-name">{profile.artist_name}</h2>
+          <div className="artist-profile-rating">
+            <div className="artist-profile-stars">
               {renderStars(profile.rating)}
             </div>
-            <span className="rating-value">{profile.rating}</span>
+            <span className="artist-rating-value">{profile.rating}</span>
           </div>
-          <p className="profile-bio">{profile.bio}</p>
+          <p className="artist-profile-bio">{profile.bio}</p>
         </div>
-        <div className="profile-actions">
+        <div className="artist-profile-actions">
           {!isEditing ? (
             <button className="artist-profile-edit-btn" onClick={handleEdit}>
               <FontAwesomeIcon icon={faEdit} />
               Edit Profile
             </button>
           ) : (
-            <div className="edit-actions">
+            <div className="artist-edit-actions">
               <button 
                 className="artist-profile-save-btn" 
                 onClick={handleSave}
@@ -208,56 +208,56 @@ const ArtistProfile = () => {
       </div>
 
       {/* Profile Content */}
-      <div className="profile-content">
+      <div className="artist-profile-content">
         {/* Profile Information */}
-        <div className="profile-info">
-          <h3>Profile Information</h3>
+        <div className="artist-profile-info">
+          <h3 className="artist-profile-info-title">Profile Information</h3>
           
-          <div className="info-section">
-            <label>Artist Name</label>
+          <div className="artist-info-section">
+            <label className="artist-info-label">Artist Name</label>
             {isEditing ? (
               <input
                 type="text"
                 value={profile.artist_name}
                 onChange={(e) => handleInputChange('artist_name', e.target.value)}
-                className="form-input"
+                className="artist-form-input"
               />
             ) : (
-              <p>{profile.artist_name}</p>
+              <p className="artist-info-text">{profile.artist_name}</p>
             )}
           </div>
 
-          <div className="info-section">
-            <label>Bio</label>
+          <div className="artist-info-section">
+            <label className="artist-info-label">Bio</label>
             {isEditing ? (
               <textarea
                 value={profile.bio}
                 onChange={(e) => handleInputChange('bio', e.target.value)}
-                className="form-textarea"
+                className="artist-form-textarea"
                 rows="4"
               />
             ) : (
-              <p>{profile.bio}</p>
+              <p className="artist-info-text">{profile.bio}</p>
             )}
           </div>
 
-          <div className="info-section">
-            <label>Specialties</label>
+          <div className="artist-info-section">
+            <label className="artist-info-label">Specialties</label>
             {isEditing ? (
-              <div className="specialties-edit">
+              <div className="artist-specialties-edit">
                 {profile.specialties.map((specialty, index) => (
-                  <div key={index} className="specialty-input-group">
+                  <div key={index} className="artist-specialty-input-group">
                     <input
                       type="text"
                       value={specialty}
                       onChange={(e) => handleSpecialtyChange(index, e.target.value)}
-                      className="form-input"
+                      className="artist-form-input"
                       placeholder="Enter specialty"
                     />
                     <button 
                       type="button"
                       onClick={() => removeSpecialty(index)}
-                      className="remove-specialty-btn"
+                      className="artist-remove-specialty-btn"
                     >
                       <FontAwesomeIcon icon={faTimes} />
                     </button>
@@ -266,15 +266,15 @@ const ArtistProfile = () => {
                 <button 
                   type="button"
                   onClick={addSpecialty}
-                  className="add-specialty-btn"
+                  className="artist-add-specialty-btn"
                 >
                   + Add Specialty
                 </button>
               </div>
             ) : (
-              <div className="specialties-display">
+              <div className="artist-specialties-display">
                 {profile.specialties.map((specialty, index) => (
-                  <span key={index} className="specialty-tag">
+                  <span key={index} className="artist-specialty-tag">
                     {specialty}
                   </span>
                 ))}
@@ -282,69 +282,69 @@ const ArtistProfile = () => {
             )}
           </div>
 
-          <div className="info-section">
-            <label>Commission Rate</label>
+          <div className="artist-info-section">
+            <label className="artist-info-label">Commission Rate</label>
             {isEditing ? (
-              <div className="commission-input-group">
+              <div className="artist-commission-input-group">
                 <input
                   type="number"
                   value={profile.commission_rate}
                   onChange={(e) => handleInputChange('commission_rate', parseFloat(e.target.value))}
-                  className="form-input"
+                  className="artist-form-input"
                   step="0.01"
                   min="0"
                   max="100"
                 />
-                <span className="input-suffix">%</span>
+                <span className="artist-input-suffix">%</span>
               </div>
             ) : (
-              <p>{profile.commission_rate}%</p>
+              <p className="artist-info-text">{profile.commission_rate}%</p>
             )}
           </div>
         </div>
 
         {/* Profile Statistics */}
-        <div className="profile-stats">
-          <h3>Statistics</h3>
+        <div className="artist-profile-stats">
+          <h3 className="artist-profile-stats-title">Statistics</h3>
           
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-icon">
+          <div className="artist-stats-grid">
+            <div className="artist-stat-card">
+              <div className="artist-stat-icon">
                 <FontAwesomeIcon icon={faTasks} />
               </div>
-              <div className="stat-info">
-                <div className="stat-value">{profile.total_tasks_completed}</div>
-                <div className="stat-label">Tasks Completed</div>
+              <div className="artist-stat-info">
+                <div className="artist-stat-value">{profile.total_tasks_completed}</div>
+                <div className="artist-stat-label">Tasks Completed</div>
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-icon">
+            <div className="artist-stat-card">
+              <div className="artist-stat-icon">
                 <FontAwesomeIcon icon={faChartLine} />
               </div>
-              <div className="stat-info">
-                <div className="stat-value">{profile.total_designs}</div>
-                <div className="stat-label">Designs Created</div>
+              <div className="artist-stat-info">
+                <div className="artist-stat-value">{profile.total_designs}</div>
+                <div className="artist-stat-label">Designs Created</div>
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-icon">
+            <div className="artist-stat-card">
+              <div className="artist-stat-icon">
                 <FontAwesomeIcon icon={faCheckCircle} />
               </div>
-              <div className="stat-info">
-                <div className="stat-value">{profile.total_sales}</div>
-                <div className="stat-label">Designs Sold</div>
+              <div className="artist-stat-info">
+                <div className="artist-stat-value">{profile.total_sales}</div>
+                <div className="artist-stat-label">Designs Sold</div>
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-icon">
+            <div className="artist-stat-card">
+              <div className="artist-stat-icon">
                 <FontAwesomeIcon icon={faStar} />
               </div>
-              <div className="stat-info">
-                <div className="stat-value">{profile.rating}</div>
-                <div className="stat-label">Average Rating</div>
+              <div className="artist-stat-info">
+                <div className="artist-stat-value">{profile.rating}</div>
+                <div className="artist-stat-label">Average Rating</div>
               </div>
             </div>
           </div>

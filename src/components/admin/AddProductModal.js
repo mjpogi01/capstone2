@@ -9,7 +9,8 @@ const isJerseyCategory = (category) => {
   if (!category || typeof category !== 'string') return false;
   const lowerCategory = category.toLowerCase();
   return lowerCategory === 'jerseys' || lowerCategory === 'uniforms' || 
-         lowerCategory === 't-shirts' || lowerCategory === 'long sleeves';
+         lowerCategory === 't-shirts' || lowerCategory === 'long sleeves' ||
+         lowerCategory === 'hoodies';
 };
 const shouldShowShorts = (category) => {
   if (!category || typeof category !== 'string') return false;

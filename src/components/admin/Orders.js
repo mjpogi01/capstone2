@@ -36,8 +36,10 @@ import {
 } from 'react-icons/fa';
 import './Orders.css';
 import './FloatingButton.css';
+import './OrderNotification.css';
 import orderService from '../../services/orderService';
 import designUploadService from '../../services/designUploadService';
+import OrderNotification from './OrderNotification';
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -49,6 +51,10 @@ const Orders = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'orderDate', direction: 'desc' });
   const [showFilters, setShowFilters] = useState(false);
   const [uploadingDesigns, setUploadingDesigns] = useState({});
+  const [notifications, setNotifications] = useState([]);
+  const loadingNotificationRef = React.useRef(null);
+  const updatingOrdersRef = React.useRef(new Set());
+  const [confirmDialog, setConfirmDialog] = useState(null);
   
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -270,21 +276,94 @@ const Orders = () => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
+  // Notification helper functions with deduplication
+  const addNotification = (notification) => {
+    // Create a unique key for deduplication
+    const notificationKey = `${notification.type}-${notification.orderNumber}-${notification.message}`;
+    const id = Date.now() + Math.random();
+    
+    setNotifications(prev => {
+      // Remove any existing notifications with the same key to prevent duplicates
+      const filtered = prev.filter(n => {
+        const existingKey = `${n.type}-${n.orderNumber}-${n.message}`;
+        return existingKey !== notificationKey;
+      });
+      
+      // Add the new notification
+      const newNotification = {
+        id,
+        key: notificationKey,
+        type: notification.type || 'info',
+        title: notification.title,
+        message: notification.message,
+        orderNumber: notification.orderNumber,
+        status: notification.status,
+        duration: notification.duration || 5000,
+        autoClose: notification.autoClose !== false,
+        ...notification
+      };
+      return [...filtered, newNotification];
+    });
+    
+    return id;
+  };
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  // Helper function to get readable status name for notifications
+  const getNotificationStatusName = (status) => {
+    const statusNames = {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      layout: 'Layout',
+      sizing: 'Sizing',
+      printing: 'Printing',
+      press: 'Press',
+      prod: 'Production',
+      packing_completing: 'Packing/Completing',
+      picked_up_delivered: 'Picked Up/Delivered',
+      cancelled: 'Cancelled'
+    };
+    return statusNames[status] || status;
+  };
+
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
+      // Prevent duplicate updates for the same order
+      if (updatingOrdersRef.current.has(orderId)) {
+        console.log(`⚠️ Order ${orderId} is already being updated, skipping duplicate request`);
+        return;
+      }
+      
+      // Mark this order as being updated
+      updatingOrdersRef.current.add(orderId);
+      
       console.log(`🔄 Frontend: Updating order ${orderId} to status: ${newStatus}`);
+      
+      // Find the order to get its details
+      const order = orders.find(o => o.id === orderId);
+      const orderNumber = order?.orderNumber || `#${orderId}`;
+      const oldStatus = order?.status || 'unknown';
       
       // Check role-based restrictions
       const userRole = user?.user_metadata?.role || 'customer';
       
       if (newStatus === 'sizing' && userRole !== 'artist') {
-        alert('❌ Only artists can move orders to sizing status');
+        updatingOrdersRef.current.delete(orderId);
+        addNotification({
+          type: 'error',
+          title: 'Permission Denied',
+          message: 'Only artists can move orders to sizing status',
+          orderNumber: orderNumber,
+          status: oldStatus,
+          duration: 4000
+        });
         return;
       }
       
-      await orderService.updateOrderStatus(orderId, newStatus);
-      console.log(`✅ Frontend: Order status update successful`);
-      
+      // Optimistic update - update UI immediately for faster response
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId
@@ -300,20 +379,70 @@ const Orders = () => {
         )
       );
       
-      alert(`Order status updated to ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)} successfully!`);
-    } catch (error) {
-      console.error('Error updating order status:', error);
+      // Show success notification immediately
+      addNotification({
+        type: 'success',
+        title: 'Order Status Updated',
+        message: `Order successfully moved to ${getNotificationStatusName(newStatus)}`,
+        orderNumber: orderNumber,
+        status: newStatus,
+        duration: 3000
+      });
       
-      // Handle specific error messages from backend
-      if (error.message.includes('Only artists can move orders to sizing status')) {
-        alert('❌ Only artists can move orders to sizing status');
-      } else if (error.message.includes('Design files must be uploaded')) {
-        alert('❌ Design files must be uploaded before moving to sizing status');
-      } else if (error.message.includes('Order must be in layout status')) {
-        alert('❌ Order must be in layout status before moving to sizing');
-      } else {
-        alert(`Failed to update order status: ${error.message}`);
-      }
+      // Make API call in background (non-blocking)
+      orderService.updateOrderStatus(orderId, newStatus)
+        .then(() => {
+          console.log(`✅ Frontend: Order status update successful`);
+          updatingOrdersRef.current.delete(orderId);
+        })
+        .catch((error) => {
+          console.error('Error updating order status:', error);
+          
+          // Revert optimistic update on error
+          setOrders(prevOrders =>
+            prevOrders.map(order =>
+              order.id === orderId
+                ? { ...order, status: oldStatus }
+                : order
+            )
+          );
+          setFilteredOrders(prevOrders =>
+            prevOrders.map(order =>
+              order.id === orderId
+                ? { ...order, status: oldStatus }
+                : order
+            )
+          );
+          
+          // Handle specific error messages from backend
+          let errorTitle = 'Update Failed';
+          let errorMessage = error.message || 'Failed to update order status. Please try again.';
+          
+          if (error.message && error.message.includes('Only artists can move orders to sizing status')) {
+            errorTitle = 'Permission Denied';
+            errorMessage = 'Only artists can move orders to sizing status';
+          } else if (error.message && error.message.includes('Design files must be uploaded')) {
+            errorTitle = 'Design Files Required';
+            errorMessage = 'Design files must be uploaded before moving to sizing status';
+          } else if (error.message && error.message.includes('Order must be in layout status')) {
+            errorTitle = 'Invalid Status Transition';
+            errorMessage = 'Order must be in layout status before moving to sizing';
+          }
+          
+          addNotification({
+            type: 'error',
+            title: errorTitle,
+            message: errorMessage,
+            orderNumber: orderNumber,
+            status: oldStatus,
+            duration: 4000
+          });
+          
+          updatingOrdersRef.current.delete(orderId);
+        });
+    } catch (error) {
+      console.error('Unexpected error in handleStatusUpdate:', error);
+      updatingOrdersRef.current.delete(orderId);
     }
   };
 
@@ -406,6 +535,42 @@ const Orders = () => {
 
   return (
     <div className="orders-container">
+      {/* Notification System */}
+      <OrderNotification 
+        notifications={notifications}
+        removeNotification={removeNotification}
+      />
+      
+      {/* Confirmation Dialog */}
+      {confirmDialog && confirmDialog.show && (
+        <div className="confirm-dialog-overlay" onClick={() => confirmDialog.onCancel()}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-dialog-header">
+              <h3>{confirmDialog.title}</h3>
+              <button className="confirm-dialog-close" onClick={() => confirmDialog.onCancel()}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="confirm-dialog-body">
+              <p className="confirm-dialog-message">{confirmDialog.message}</p>
+              <div className="confirm-dialog-status-change">
+                <span className="status-from">{confirmDialog.currentStatus}</span>
+                <FaArrowRight className="status-arrow-icon" />
+                <span className="status-to">{confirmDialog.newStatus}</span>
+              </div>
+            </div>
+            <div className="confirm-dialog-actions">
+              <button className="confirm-btn-cancel" onClick={() => confirmDialog.onCancel()}>
+                Cancel
+              </button>
+              <button className="confirm-btn-ok" onClick={() => confirmDialog.onConfirm()}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="orders-header">
         <h1>Order Management</h1>
@@ -762,8 +927,7 @@ const Orders = () => {
                                     <div key={memberIndex} className="custom-design-member">
                                       <span className="member-number">#{member.number}</span>
                                       <span className="member-surname">{member.surname}</span>
-                                      <span className="member-size">Jersey: {member.size || member.jerseySize || 'N/A'}</span>
-                                      <span className="member-size">Shorts: {member.shortsSize || 'N/A'}</span>
+                                      <span className="member-size">Size: {member.size}</span>
                                       <span className="member-sizing-type">({member.sizingType})</span>
                                     </div>
                                   ))}
@@ -1113,9 +1277,18 @@ const Orders = () => {
                               const currentIndex = stages.indexOf(order.status);
                               if (currentIndex > 0) {
                                 const prevStage = stages[currentIndex - 1];
-                                if (window.confirm(`Go back to ${getStatusDisplayName(prevStage)}?`)) {
-                                  handleStatusUpdate(order.id, prevStage);
-                                }
+                                setConfirmDialog({
+                                  show: true,
+                                  title: 'Go Back One Stage',
+                                  message: `Are you sure you want to go back to ${getStatusDisplayName(prevStage)}?`,
+                                  currentStatus: getStatusDisplayName(order.status),
+                                  newStatus: getStatusDisplayName(prevStage),
+                                  onConfirm: () => {
+                                    handleStatusUpdate(order.id, prevStage);
+                                    setConfirmDialog(null);
+                                  },
+                                  onCancel: () => setConfirmDialog(null)
+                                });
                               }
                             }}
                           >

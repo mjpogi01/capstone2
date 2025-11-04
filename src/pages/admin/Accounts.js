@@ -409,9 +409,8 @@ const Accounts = () => {
     <div className="accounts-container">
       <div className="accounts-header">
         <h1>Account Management</h1>
-        <button onClick={handleRefresh} className="refresh-btn">
+        <button onClick={handleRefresh} className="refresh-btn" title="Refresh" aria-label="Refresh">
           <FontAwesomeIcon icon={faRotateRight} />
-          Refresh
         </button>
       </div>
 
@@ -472,7 +471,6 @@ const Accounts = () => {
                           aria-label="Delete Admin Account"
                         >
                           <FontAwesomeIcon icon={faTrash} />
-                          Delete
                         </button>
                       </td>
                     </tr>
@@ -576,7 +574,6 @@ const Accounts = () => {
                               aria-label="Save Changes"
                             >
                               <FontAwesomeIcon icon={faSave} />
-                              Save
                             </button>
                             <button
                               onClick={handleCancelEdit}
@@ -585,7 +582,6 @@ const Accounts = () => {
                               aria-label="Cancel Edit"
                             >
                               <FontAwesomeIcon icon={faTimes} />
-                              Cancel
                             </button>
                           </>
                         ) : (
@@ -598,7 +594,6 @@ const Accounts = () => {
                                 aria-label="Edit Artist Information"
                               >
                                 <FontAwesomeIcon icon={faEdit} />
-                                Edit
                               </button>
                             )}
                             <button
@@ -608,7 +603,6 @@ const Accounts = () => {
                               aria-label="Delete Artist Account"
                             >
                               <FontAwesomeIcon icon={faTrash} />
-                              Delete
                             </button>
                           </>
                         )}
@@ -672,7 +666,6 @@ const Accounts = () => {
                         aria-label="Delete Customer Account"
                       >
                         <FontAwesomeIcon icon={faTrash} />
-                        Delete
                       </button>
                     </td>
                   </tr>
