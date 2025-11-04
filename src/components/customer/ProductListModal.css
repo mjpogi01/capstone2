@@ -1062,12 +1062,16 @@ input.category-checkbox[type="checkbox"]:checked {
 
 .product-card-info .product-stats .stat-item .star-icon {
   color: #fbbf24 !important;
-  font-size: 12px !important;
+  font-size: 14px !important;
   display: inline-block !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
   background: transparent !important;
   padding: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 .review-count {
@@ -1309,11 +1313,14 @@ input.category-checkbox[type="checkbox"]:checked {
   }
 
   .product-card-info .product-stats .stat-item .star-icon {
-    font-size: 12px !important;
+    font-size: 14px !important;
     line-height: 1 !important;
     display: inline-block !important;
     background: transparent !important;
     padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #fbbf24 !important;
   }
 }
 
@@ -1358,11 +1365,14 @@ input.category-checkbox[type="checkbox"]:checked {
   }
 
   .product-card-info .product-stats .stat-item .star-icon {
-    font-size: 12px !important;
+    font-size: 14px !important;
     line-height: 1 !important;
     display: inline-block !important;
     background: transparent !important;
     padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #fbbf24 !important;
   }
 }
 
@@ -1893,11 +1903,14 @@ input.category-checkbox[type="checkbox"]:checked {
   }
 
   .product-card-info .product-stats .stat-item .star-icon {
-    font-size: 10px !important;
+    font-size: 14px !important;
     display: inline-block !important;
     line-height: 1 !important;
     background: transparent !important;
     padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #fbbf24 !important;
   }
 
   .product-card-info .product-stats .stat-item .rating-number {
@@ -2198,11 +2211,14 @@ input.category-checkbox[type="checkbox"]:checked {
   }
   
   .product-card-info .product-stats .stat-item .star-icon {
-    font-size: 11px !important;
+    font-size: 14px !important;
     line-height: 1 !important;
     display: inline-block !important;
     background: transparent !important;
     padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #fbbf24 !important;
   }
 
   .review-star {

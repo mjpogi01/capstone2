@@ -121,8 +121,11 @@
 /* Filter Dropdown - Fixed and Improved */
 .filter-dropdown-container {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   z-index: 1000;
+  width: auto;
+  height: auto;
 }
 
 .filter-dropdown {
@@ -144,6 +147,7 @@
   animation: filterDropdownSlide 0.2s ease-out;
   transform-origin: top right;
   will-change: transform, opacity;
+  margin-top: 4px;
 }
 
 @keyframes filterDropdownSlide {

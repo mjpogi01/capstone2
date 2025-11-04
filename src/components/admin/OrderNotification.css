@@ -55,7 +55,8 @@
   border-left-color: #3B82F6;
 }
 
-.notification-content {
+/* Use unique class names to avoid conflicts with customer notifications */
+.order-notification-content {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -63,42 +64,50 @@
   gap: 12px;
 }
 
-.notification-text {
+.order-notification-text {
   flex: 1;
   min-width: 0;
+  color: #000000;
 }
 
-.notification-title {
+.order-notification-title {
   font-size: 14px;
-  font-weight: 600;
-  color: #0f172a;
+  font-weight: 700;
+  color: #000000;
   margin-bottom: 3px;
   line-height: 1.4;
+  display: block;
+  visibility: visible;
+  opacity: 1;
 }
 
-.notification-message {
+.order-notification-message {
   font-size: 13px;
-  color: #64748b;
+  font-weight: 500;
+  color: #000000;
   line-height: 1.4;
   margin-bottom: 4px;
+  display: block;
+  visibility: visible;
+  opacity: 1;
 }
 
-.notification-order-info {
+.order-notification-order-info {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--status-color, #3B82F6);
+  font-weight: 600;
+  color: #000000;
   margin-top: 6px;
   padding: 4px 10px;
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(59, 130, 246, 0.1);
   border-radius: 6px;
   display: inline-block;
-  border: 1px solid rgba(59, 130, 246, 0.15);
+  border: 1px solid var(--status-color, #3B82F6);
 }
 
-.notification-close {
+.order-notification-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #475569;
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -112,12 +121,12 @@
   font-size: 14px;
 }
 
-.notification-close:hover {
+.order-notification-close:hover {
   background: #f1f5f9;
-  color: #64748b;
+  color: #000000;
 }
 
-.notification-progress-bar {
+.order-notification-progress-bar {
   height: 3px;
   background: #e2e8f0;
   overflow: hidden;
@@ -127,7 +136,7 @@
   right: 0;
 }
 
-.notification-progress-fill {
+.order-notification-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--status-color, #3B82F6) 0%, var(--status-color, #3B82F6) 100%);
   transition: width 0.1s linear;
@@ -205,41 +214,55 @@
     border-radius: 10px;
   }
 
-  .notification-content {
+  .order-notification-content {
     padding: 12px 14px;
   }
 
-  .notification-title {
+  .order-notification-title {
     font-size: 13px;
+    color: #000000;
+    font-weight: 700;
   }
 
-  .notification-message {
+  .order-notification-message {
     font-size: 12px;
+    color: #000000;
+    font-weight: 500;
+  }
+
+  .order-notification-order-info {
+    color: #000000;
   }
 }
 
-/* Dark mode support (optional) */
+/* Force white theme - dark mode disabled */
 @media (prefers-color-scheme: dark) {
   .order-notification {
-    background: #1e293b;
+    background: #ffffff !important;
     border-left-color: var(--status-color, #3B82F6);
   }
 
-  .notification-title {
-    color: #f1f5f9;
+  .order-notification-title {
+    color: #000000;
   }
 
-  .notification-message {
-    color: #94a3b8;
+  .order-notification-message {
+    color: #000000;
+    font-weight: 500;
   }
 
-  .notification-close {
-    color: #94a3b8;
+  .order-notification-order-info {
+    color: #000000;
+    border-color: var(--status-color, #3B82F6);
   }
 
-  .notification-close:hover {
-    background: #334155;
-    color: #cbd5e1;
+  .order-notification-close {
+    color: #475569;
+  }
+
+  .order-notification-close:hover {
+    background: #f1f5f9;
+    color: #000000;
   }
 }
 

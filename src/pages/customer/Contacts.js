@@ -60,6 +60,12 @@ const Contacts = () => {
       address: 'Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines',
       phone: '0917 139 5661',
       hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+    },
+    {
+      name: 'ROSARIO BRANCH',
+      address: 'Brgy. D, Rosario, Batangas, Rosario, Philippines',
+      phone: '(043) 890-1234',
+      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
     }
   ];
 

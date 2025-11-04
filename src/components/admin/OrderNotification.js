@@ -68,26 +68,26 @@ const NotificationItem = ({ notification, onClose }) => {
         '--status-color': getStatusColor(notification.status)
       }}
     >
-      <div className="notification-content">
-        <div className="notification-text">
-          <div className="notification-title">{notification.title}</div>
+      <div className="order-notification-content">
+        <div className="order-notification-text">
+          <div className="order-notification-title">{notification.title}</div>
           {notification.message && (
-            <div className="notification-message">{notification.message}</div>
+            <div className="order-notification-message">{notification.message}</div>
           )}
           {notification.orderNumber && (
-            <div className="notification-order-info">
+            <div className="order-notification-order-info">
               Order #{notification.orderNumber}
             </div>
           )}
         </div>
-        <button className="notification-close" onClick={handleClose}>
+        <button className="order-notification-close" onClick={handleClose}>
           <FaTimes />
         </button>
       </div>
       {notification.progress && (
-        <div className="notification-progress-bar">
+        <div className="order-notification-progress-bar">
           <div 
-            className="notification-progress-fill"
+            className="order-notification-progress-fill"
             style={{ width: `${notification.progress}%` }}
           />
         </div>

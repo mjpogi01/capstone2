@@ -50,8 +50,8 @@ const BranchSelectModal = ({ isOpen, onClose }) => {
     {
       id: 8,
       name: 'ROSARIO BRANCH',
-      address: 'Rosario, Batangas',
-      facebook: 'https://www.facebook.com/yohannssportshouse'
+      address: 'Brgy. D, Rosario, Batangas, Rosario, Philippines',
+      facebook: 'https://web.facebook.com/profile.php?id=61572622020475'
     },
     {
       id: 9,
