@@ -29,6 +29,16 @@ const LogoutPage = () => {
     navigate('/');
   };
 
+  const handleOpenSignUp = () => {
+    setShowSignInModal(false);
+    setShowSignUpModal(true);
+  };
+
+  const handleOpenSignIn = () => {
+    setShowSignUpModal(false);
+    setShowSignInModal(true);
+  };
+
   return (
     <div className="logout-page">
       <div className="logout-container">
@@ -119,6 +129,7 @@ const LogoutPage = () => {
           isOpen={showSignInModal} 
           onClose={() => setShowSignInModal(false)}
           onSuccess={handleLoginSuccess}
+          onOpenSignUp={handleOpenSignUp}
         />
       )}
       
@@ -127,6 +138,7 @@ const LogoutPage = () => {
           isOpen={showSignUpModal} 
           onClose={() => setShowSignUpModal(false)}
           onSuccess={handleSignUpSuccess}
+          onOpenSignIn={handleOpenSignIn}
         />
       )}
     </div>

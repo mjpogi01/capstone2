@@ -147,12 +147,38 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: 700;
+  position: relative;
   border: none !important;
   outline: none !important;
   outline-width: 0 !important;
   outline-offset: 0 !important;
   outline-color: transparent !important;
   box-shadow: none !important;
+  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0d47a1, #00bfff, #87ceeb);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.6), 0 0 20px rgba(0, 191, 255, 0.4);
+  animation: activeGlow 2s ease-in-out infinite;
+}
+
+@keyframes activeGlow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(0, 191, 255, 0.6), 0 0 20px rgba(0, 191, 255, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.8), 0 0 30px rgba(0, 191, 255, 0.6);
+  }
 }
 
 /* Shining Gradient Animation */
@@ -1342,14 +1368,21 @@
   }
   
   .nav-link.active {
-    background: linear-gradient(135deg, rgba(0, 191, 255, 0.2) 0%, rgba(0, 191, 255, 0.1) 100%) !important;
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.25) 0%, rgba(0, 191, 255, 0.15) 100%) !important;
     border-color: #00bfff !important;
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
+    border-width: 2px !important;
+    color: #00bfff !important;
+    -webkit-text-fill-color: #00bfff !important;
     -webkit-background-clip: initial !important;
     background-clip: initial !important;
     animation: none !important;
     background-size: auto !important;
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.4), inset 0 0 10px rgba(0, 191, 255, 0.1) !important;
+    transform: translateX(5px);
+  }
+  
+  .nav-link.active::before {
+    display: none !important;
   }
   
   .nav-link:active,
@@ -1682,14 +1715,21 @@
   }
   
   .nav-link.active {
-    background: linear-gradient(135deg, rgba(0, 191, 255, 0.2) 0%, rgba(0, 191, 255, 0.1) 100%) !important;
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.25) 0%, rgba(0, 191, 255, 0.15) 100%) !important;
     border-color: #00bfff !important;
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
+    border-width: 2px !important;
+    color: #00bfff !important;
+    -webkit-text-fill-color: #00bfff !important;
     -webkit-background-clip: initial !important;
     background-clip: initial !important;
     animation: none !important;
     background-size: auto !important;
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.4), inset 0 0 10px rgba(0, 191, 255, 0.1) !important;
+    transform: translateX(5px);
+  }
+  
+  .nav-link.active::before {
+    display: none !important;
   }
   
   .nav-link:active,
@@ -1922,12 +1962,27 @@
     background-clip: text;
     -webkit-text-fill-color: transparent;
     font-weight: 700;
+    position: relative;
     border: none !important;
     outline: none !important;
     outline-width: 0 !important;
     outline-offset: 0 !important;
     outline-color: transparent !important;
     box-shadow: none !important;
+    text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+  }
+  
+  .nav-link.active::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #0d47a1, #00bfff, #87ceeb);
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(0, 191, 255, 0.6), 0 0 20px rgba(0, 191, 255, 0.4);
+    animation: activeGlow 2s ease-in-out infinite;
   }
 
   .utility-icons {

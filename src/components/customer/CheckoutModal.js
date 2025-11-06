@@ -66,7 +66,17 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           modalElement.scrollTop = 0;
         }
       }, 100);
+      // Add class to body to hide floating buttons
+      document.body.classList.add('checkout-modal-open');
+    } else {
+      // Remove class when modal closes
+      document.body.classList.remove('checkout-modal-open');
     }
+    
+    // Cleanup: remove class on unmount
+    return () => {
+      document.body.classList.remove('checkout-modal-open');
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
