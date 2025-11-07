@@ -1,6 +1,6 @@
 const express = require('express');
 const { upload, uploadToCloudinary } = require('../middleware/upload');
-const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
+const { authenticateSupabaseToken } = require('../middleware/supabaseAuth');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
@@ -18,8 +18,8 @@ router.get('/test', (req, res) => {
   res.json({ message: 'Design upload endpoint is working' });
 });
 
-// Upload design files for an order
-router.post('/:orderId', authenticateSupabaseToken, requireAdminOrOwner, upload.array('designFiles', 10), async (req, res) => {
+// Upload design files for an order (artists can upload, but role is checked inside)
+router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 10), async (req, res) => {
   console.log('🎨 Design upload route hit!');
   try {
     const { orderId } = req.params;
@@ -87,7 +87,7 @@ router.post('/:orderId', authenticateSupabaseToken, requireAdminOrOwner, upload.
     console.log('🎨 Current design files count:', currentOrder.design_files?.length || 0);
 
     // Check if user is an artist (only artists can upload designs and auto-move to sizing)
-    const userRole = requestingUser.user_metadata?.role || 'customer';
+    const userRole = req.user.role || req.user.user_metadata?.role || 'customer';
     if (userRole !== 'artist') {
       console.log('❌ Non-artist trying to upload design files:', userRole);
       return res.status(403).json({ 

@@ -255,6 +255,129 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return null;
   }, [product, isJerseyCategory]);
 
+  // Parse jersey prices from product
+  const jerseyPrices = useMemo(() => {
+    if (!isJerseyCategory || !product) return null;
+    
+    console.log('🔍 [ProductModal] Parsing jersey prices for product:', product.name);
+    console.log('🔍 [ProductModal] product.jersey_prices:', product.jersey_prices);
+    
+    if (product.jersey_prices) {
+      try {
+        // Parse if it's a string, otherwise use directly
+        const prices = typeof product.jersey_prices === 'string' 
+          ? JSON.parse(product.jersey_prices) 
+          : product.jersey_prices;
+        
+        console.log('🔍 [ProductModal] Parsed prices:', prices);
+        
+        const parsedPrices = {
+          fullSet: parseFloat(prices.fullSet || prices.full_set || product.price || 0),
+          shirtOnly: parseFloat(prices.shirtOnly || prices.shirt_only || product.price || 0),
+          shortsOnly: parseFloat(prices.shortsOnly || prices.shorts_only || product.price || 0)
+        };
+        
+        console.log('🔍 [ProductModal] Final parsed prices:', parsedPrices);
+        return parsedPrices;
+      } catch (error) {
+        console.error('❌ [ProductModal] Error parsing jersey_prices:', error);
+      }
+    }
+    
+    // Fallback: use regular price for all types
+    const fallbackPrice = parseFloat(product.price) || 0;
+    console.log('⚠️ [ProductModal] No jersey_prices found, using fallback price:', fallbackPrice);
+    return {
+      fullSet: fallbackPrice,
+      shirtOnly: fallbackPrice,
+      shortsOnly: fallbackPrice
+    };
+  }, [product, isJerseyCategory]);
+
+  // Parse trophy prices from product
+  const trophyPrices = useMemo(() => {
+    if (!isTrophy || !product) return null;
+    
+    console.log('🏆 [ProductModal] Parsing trophy prices for product:', product.name);
+    console.log('🏆 [ProductModal] product.trophy_prices:', product.trophy_prices);
+    
+    if (product.trophy_prices) {
+      try {
+        // Parse if it's a string, otherwise use directly
+        const prices = typeof product.trophy_prices === 'string' 
+          ? JSON.parse(product.trophy_prices) 
+          : product.trophy_prices;
+        
+        console.log('🏆 [ProductModal] Parsed trophy prices:', prices);
+        
+        // Convert all values to numbers
+        const parsedPrices = {};
+        Object.keys(prices).forEach(size => {
+          parsedPrices[size] = parseFloat(prices[size]) || 0;
+        });
+        
+        console.log('🏆 [ProductModal] Final parsed trophy prices:', parsedPrices);
+        return parsedPrices;
+      } catch (error) {
+        console.error('❌ [ProductModal] Error parsing trophy_prices:', error);
+      }
+    }
+    
+    // Fallback: use regular price for all sizes
+    const fallbackPrice = parseFloat(product.price) || 0;
+    console.log('⚠️ [ProductModal] No trophy_prices found, using fallback price:', fallbackPrice);
+    return null; // Return null so we can detect and use product.price
+  }, [product, isTrophy]);
+
+  // Get current price based on jersey type, trophy size, and size type
+  const currentPrice = useMemo(() => {
+    let basePrice = parseFloat(product?.price) || 0;
+    
+    console.log('💰 [ProductModal] Calculating price - isTrophy:', isTrophy, 'isJerseyCategory:', isJerseyCategory, 'trophyDetails.size:', trophyDetails?.size);
+    
+    // For trophies, use price based on selected size
+    if (isTrophy && trophyPrices && trophyDetails.size) {
+      const sizePrice = trophyPrices[trophyDetails.size];
+      if (sizePrice !== undefined && sizePrice !== null) {
+        basePrice = sizePrice;
+        console.log('🏆 [ProductModal] Using trophy price for size', trophyDetails.size, ':', basePrice);
+      } else {
+        console.log('⚠️ [ProductModal] No price found for trophy size', trophyDetails.size, ', using product.price:', basePrice);
+      }
+    } else if (isJerseyCategory && jerseyPrices) {
+      // Use jersey-specific prices
+      switch (jerseyType) {
+        case 'full':
+          basePrice = jerseyPrices.fullSet;
+          console.log('💰 [ProductModal] Using fullSet price:', basePrice);
+          break;
+        case 'shirt':
+          basePrice = jerseyPrices.shirtOnly;
+          console.log('💰 [ProductModal] Using shirtOnly price:', basePrice);
+          break;
+        case 'shorts':
+          basePrice = jerseyPrices.shortsOnly;
+          console.log('💰 [ProductModal] Using shortsOnly price:', basePrice);
+          break;
+        default:
+          basePrice = jerseyPrices.fullSet;
+          console.log('💰 [ProductModal] Using default (fullSet) price:', basePrice);
+      }
+    } else {
+      console.log('💰 [ProductModal] Using product.price:', basePrice);
+    }
+    
+    // Apply kids discount if applicable (only for jerseys, not trophies)
+    if (sizeType === 'kids' && isJerseyCategory) {
+      const finalPrice = Math.max(0, basePrice - 200);
+      console.log('💰 [ProductModal] Final price (kids):', finalPrice, 'base:', basePrice);
+      return finalPrice;
+    }
+    
+    console.log('💰 [ProductModal] Final price:', basePrice);
+    return basePrice;
+  }, [product, isTrophy, isJerseyCategory, jerseyPrices, trophyPrices, jerseyType, sizeType, trophyDetails]);
+
   if (!isOpen || !product) return null;
 
   // Get available sizes for shirts and shorts based on size type
@@ -351,6 +474,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       if (isTrophy) {
         // Validate trophy details
+        console.log('🏆 [ProductModal] Validating trophy details:', trophyDetails);
         if (!trophyDetails.size || !trophyDetails.size.trim()) {
           errors.trophySize = 'Please select trophy size';
         }
@@ -363,16 +487,21 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           setIsAddingToCart(false);
           return;
         }
+        
+        console.log('✅ [ProductModal] Trophy details validated successfully:', trophyDetails);
       }
       
       // Clear validation errors if all passed
       setValidationErrors({});
 
-      // Calculate price based on size type
-      const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
+      // Use the current price (already calculated with jersey type and size type)
+      const finalPrice = currentPrice;
+      
+      // For trophies, use trophyDetails.size; for other products, use selectedSize
+      const sizeValue = isTrophy ? trophyDetails.size : selectedSize;
       
       const cartOptions = {
-        size: selectedSize,
+        size: sizeValue,
         quantity: isTeamOrder ? teamMembers.length : quantity,
         isTeamOrder: isTeamOrder,
         teamMembers: isTeamOrder ? teamMembers : null,
@@ -380,14 +509,17 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
         jerseyType: isJerseyCategory ? jerseyType : null, // Add jersey type for jersey products
-        price: finalPrice, // Use discounted price for kids
+        price: finalPrice, // Use calculated price based on jersey type and size type
         isReplacement: isFromCart, // Mark as replacement when coming from cart
         category: product.category, // Include category
         ballDetails: isBall ? ballDetails : null,
         trophyDetails: isTrophy ? trophyDetails : null
       };
 
-      console.log('≡ƒ¢Æ Cart options:', cartOptions);
+      console.log('🛒 [ProductModal] Cart options being sent:', cartOptions);
+      if (isTrophy) {
+        console.log('🏆 [ProductModal] Trophy details in cart options:', cartOptions.trophyDetails);
+      }
 
       // Use onConfirm callback if provided (for wishlist), otherwise continue with regular flow
       if (onConfirm) {
@@ -513,8 +645,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       // Clear validation errors if all passed
       setValidationErrors({});
       
-      // Calculate price based on size type
-      const finalPrice = sizeType === 'kids' ? parseFloat(product.price) - 200 : parseFloat(product.price);
+      // Use the current price (already calculated with jersey type and size type)
+      const finalPrice = currentPrice;
       
       const buyNowOptions = {
         size: selectedSize,
@@ -524,7 +656,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
         sizeType: sizeType,
         jerseyType: isJerseyCategory ? jerseyType : null, // Add jersey type for jersey products
-        price: finalPrice,
+        price: finalPrice, // Use calculated price based on jersey type and size type
         category: product.category, // Include category
         ballDetails: isBall ? ballDetails : null,
         trophyDetails: isTrophy ? trophyDetails : null
@@ -541,7 +673,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       const buyNowItem = {
         id: product.id,
         name: product.name,
-        price: finalPrice,
+        price: finalPrice, // Use calculated price based on jersey type and size type
         image: product.main_image,
         size: selectedSize,
         quantity: isTeamOrder ? teamMembers.length : quantity,
@@ -708,14 +840,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 <div className="modal-product-title">{product.name}</div>
 
                 {/* Price */}
-                <div className="modal-product-price">
+                <div className="modal-product-price" key={`price-${jerseyType}-${sizeType}-${trophyDetails?.size || ''}`}>
                   {sizeType === 'kids' ? (
                     <>
-                      <span className="discounted-price">₱ {(parseFloat(product.price) - 200).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                      <span className="original-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                      <span className="discounted-price">₱ {currentPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                      <span className="original-price">₱ {(currentPrice + 200).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     </>
                   ) : (
-                    `₱ ${parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                    `₱ ${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                   )}
                 </div>
               </div>
@@ -756,20 +888,32 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 <div className="modal-jersey-type-label">JERSEY TYPE</div>
                 <div className="modal-jersey-type-buttons">
                   <button
+                    type="button"
                     className={`modal-jersey-type-button ${jerseyType === 'full' ? 'active' : ''}`}
-                    onClick={() => setJerseyType('full')}
+                    onClick={() => {
+                      console.log('🔄 [ProductModal] Setting jerseyType to: full');
+                      setJerseyType('full');
+                    }}
                   >
                     Full Set
                   </button>
                   <button
+                    type="button"
                     className={`modal-jersey-type-button ${jerseyType === 'shirt' ? 'active' : ''}`}
-                    onClick={() => setJerseyType('shirt')}
+                    onClick={() => {
+                      console.log('🔄 [ProductModal] Setting jerseyType to: shirt');
+                      setJerseyType('shirt');
+                    }}
                   >
                     Shirt Only
                   </button>
                   <button
+                    type="button"
                     className={`modal-jersey-type-button ${jerseyType === 'shorts' ? 'active' : ''}`}
-                    onClick={() => setJerseyType('shorts')}
+                    onClick={() => {
+                      console.log('🔄 [ProductModal] Setting jerseyType to: shorts');
+                      setJerseyType('shorts');
+                    }}
                   >
                     Shorts Only
                   </button>

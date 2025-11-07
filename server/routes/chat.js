@@ -1,6 +1,7 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const router = express.Router();
+const { authenticateSupabaseToken } = require('../middleware/supabaseAuth');
 require('dotenv').config();
 
 // Create Supabase client with service role key to bypass RLS
@@ -166,6 +167,86 @@ router.post('/mark-read', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Error in mark-read:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get customer information for a chat room
+router.get('/customer-info/:roomId', authenticateSupabaseToken, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    // Get chat room to find customer_id and order_id
+    const { data: room, error: roomError } = await supabase
+      .from('design_chat_rooms')
+      .select('customer_id, order_id')
+      .eq('id', roomId)
+      .single();
+
+    if (roomError || !room) {
+      return res.status(404).json({ error: 'Chat room not found' });
+    }
+
+    let customerName = 'Customer';
+    let customerPhone = null;
+
+    // Try 1: Get from user_profiles
+    const { data: customerData } = await supabase
+      .from('user_profiles')
+      .select('full_name, phone')
+      .eq('user_id', room.customer_id)
+      .single();
+
+    if (customerData?.full_name) {
+      customerName = customerData.full_name;
+      customerPhone = customerData.phone;
+    } else {
+      // Try 2: Get from auth.users metadata
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(room.customer_id);
+        if (!userError && user) {
+          const fullName = user.user_metadata?.full_name || 
+                          (user.user_metadata?.first_name && user.user_metadata?.last_name 
+                            ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+                            : user.user_metadata?.first_name || user.user_metadata?.last_name || null);
+          if (fullName) {
+            customerName = fullName;
+          }
+        }
+      } catch (authError) {
+        console.warn('Could not fetch user from auth:', authError);
+      }
+
+      // Try 3: Get from order delivery details
+      if (room.order_id && customerName === 'Customer') {
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select('delivery_address, order_items')
+          .eq('id', room.order_id)
+          .single();
+
+        if (!orderError && orderData) {
+          // Check delivery_address.receiver
+          if (orderData.delivery_address?.receiver) {
+            customerName = orderData.delivery_address.receiver;
+          }
+          // Check order_items for custom design client_name
+          else if (orderData.order_items && Array.isArray(orderData.order_items) && orderData.order_items.length > 0) {
+            const firstItem = orderData.order_items[0];
+            if (firstItem.client_name) {
+              customerName = firstItem.client_name;
+            }
+          }
+        }
+      }
+    }
+
+    res.json({
+      full_name: customerName,
+      phone: customerPhone
+    });
+  } catch (error) {
+    console.error('Error in get-customer-info:', error);
     res.status(500).json({ error: error.message });
   }
 });

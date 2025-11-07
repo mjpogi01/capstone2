@@ -43,30 +43,46 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
       setLoading(true);
       console.log('🔧 Initializing chat for room:', room.id);
       
-      // Get customer information
-      const { data: customerData } = await supabase
-        .from('user_profiles')
-        .select('full_name, phone')
-        .eq('user_id', room.customer_id)
-        .single();
-
-      console.log('👤 Customer data:', customerData);
-      if (customerData) {
-        setCustomer(customerData);
+      // Get customer information from backend API (bypasses RLS)
+      let customerName = 'Customer';
+      let customerPhone = null;
+      
+      try {
+        const customerInfo = await chatService.getCustomerInfo(room.id);
+        console.log('👤 Customer info from API:', customerInfo);
+        customerName = customerInfo.full_name || 'Customer';
+        customerPhone = customerInfo.phone || null;
+        setCustomer({
+          full_name: customerName,
+          phone: customerPhone
+        });
+      } catch (error) {
+        console.error('❌ Error fetching customer info:', error);
+        // Fallback to default
+        setCustomer({
+          full_name: customerName,
+          phone: customerPhone
+        });
       }
       
       // Load messages
       console.log('📥 Loading messages for room:', room.id);
       const messagesData = await chatService.getChatRoomMessages(room.id);
       console.log('📥 Loaded messages:', messagesData);
+      console.log('📥 Messages data type:', Array.isArray(messagesData), 'Length:', messagesData?.length);
       
-      const messagesWithSenders = (messagesData || []).map(msg => ({
-        ...msg,
-        sender_name: msg.sender_type === 'artist' ? 'You' : (customerData?.full_name || 'Customer')
-      }));
-      console.log('📥 Messages with senders:', messagesWithSenders);
-      console.log('📥 Setting messages state with count:', messagesWithSenders.length);
-      setMessages(messagesWithSenders);
+      if (!messagesData || !Array.isArray(messagesData)) {
+        console.warn('⚠️ No messages data or invalid format:', messagesData);
+        setMessages([]);
+      } else {
+        const messagesWithSenders = messagesData.map(msg => ({
+          ...msg,
+          sender_name: msg.sender_type === 'artist' ? 'You' : customerName
+        }));
+        console.log('📥 Messages with senders:', messagesWithSenders);
+        console.log('📥 Setting messages state with count:', messagesWithSenders.length);
+        setMessages(messagesWithSenders);
+      }
       
       // Mark messages as read
       await chatService.markMessagesAsRead(room.id, user.id);
@@ -76,14 +92,13 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
       const subscription = chatService.subscribeToChatRoom(room.id, (payload) => {
         console.log('📨 Real-time message received:', payload);
         if (payload.new) {
-          const messageWithSender = {
-            ...payload.new,
-            sender_name: payload.new.sender_type === 'artist' ? 'You' : (customerData?.full_name || 'Customer')
-          };
-          console.log('📨 Adding new message to state:', messageWithSender);
           setMessages(prev => {
             const exists = prev.some(msg => msg.id === payload.new.id);
             if (!exists) {
+              const messageWithSender = {
+                ...payload.new,
+                sender_name: payload.new.sender_type === 'artist' ? 'You' : (customer?.full_name || customerName || 'Customer')
+              };
               console.log('📨 Message added to state, new count:', prev.length + 1);
               return [...prev, messageWithSender];
             }
@@ -123,25 +138,60 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
 
     try {
       setSending(true);
+      const messageText = newMessage.trim();
+      const messageAttachments = [...attachments];
+      
       console.log('📤 Sending message:', {
         roomId: room.id,
         userId: user.id,
-        message: newMessage.trim(),
-        attachments: attachments
+        message: messageText,
+        attachments: messageAttachments
       });
       
-      await chatService.sendMessage(
+      // Send message to database
+      const sentMessage = await chatService.sendMessage(
         room.id, 
         user.id, 
         'artist', 
-        newMessage.trim(), 
+        messageText, 
         'text', 
-        attachments
+        messageAttachments
       );
       
-      console.log('✅ Message sent successfully');
+      console.log('✅ Message sent successfully:', sentMessage);
+      
+      // Immediately add message to state (optimistic update)
+      const messageWithSender = {
+        id: sentMessage.id || `temp-${Date.now()}`,
+        room_id: room.id,
+        sender_id: user.id,
+        sender_type: 'artist',
+        message: messageText,
+        message_type: 'text',
+        attachments: messageAttachments,
+        is_read: false,
+        created_at: sentMessage.created_at || new Date().toISOString(),
+        updated_at: sentMessage.updated_at || new Date().toISOString(),
+        sender_name: 'You'
+      };
+      
+      setMessages(prev => {
+        // Check if message already exists (avoid duplicates)
+        const exists = prev.some(msg => msg.id === messageWithSender.id);
+        if (!exists) {
+          return [...prev, messageWithSender];
+        }
+        return prev;
+      });
+      
+      // Clear input
       setNewMessage('');
       setAttachments([]);
+      
+      // Scroll to bottom after message is added
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
       
     } catch (error) {
       console.error('❌ Error sending message:', error);
@@ -298,11 +348,11 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
         {/* Header */}
         <div className="chat-header">
           <div className="chat-header-info">
-            <h3>
+            <h3 className="artist-chat-customer-name">
               <FontAwesomeIcon icon={faUser} />
-              {customer?.full_name || 'Customer'}
+              <span>Chatting with: <strong>{customer?.full_name || 'Customer'}</strong></span>
             </h3>
-            <p>Order: {room.room_name}</p>
+            <p className="artist-chat-order-info">Order: {room.room_name}</p>
           </div>
           <button className="artist-chat-close-btn" onClick={onClose}>
             <FontAwesomeIcon icon={faTimes} />
@@ -388,87 +438,90 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
           )}
         </div>
 
-        {/* Floating Ask for Review Button */}
-        {isOpen && !showReviewModal && (
-          <button 
-            className="artist-review-fab"
-            onClick={() => setShowReviewModal(true)}
-            title="Submit design for customer review"
-          >
-            <FontAwesomeIcon icon={faClipboardCheck} />
-            Ask for Review
-          </button>
-        )}
-
         {/* Message Input */}
-        {attachments.length > 0 && (
-          <div className="attachments-preview">
-            {attachments.map((attachment, index) => (
-              <div key={index} className="attachment-preview">
-                {attachment.type.startsWith('image/') ? (
-                  <img src={attachment.url} alt={attachment.name} />
+        <div className="artist-chat-input-container">
+
+          {attachments.length > 0 && (
+            <div className="artist-attachments-preview">
+              {attachments.map((attachment, index) => (
+                <div key={index} className="artist-attachment-preview">
+                  {attachment.type.startsWith('image/') ? (
+                    <img src={attachment.url} alt={attachment.name} />
+                  ) : (
+                    <FontAwesomeIcon icon={faFile} />
+                  )}
+                  <span>{attachment.name}</span>
+                  <button
+                    onClick={() => removeAttachment(index)}
+                    className="artist-remove-attachment"
+                  >
+                    <FontAwesomeIcon icon={faX} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Ask for Review Button - Inside Chat Box */}
+          {!showReviewModal && (
+            <button
+              className="artist-ask-review-btn"
+              onClick={() => setShowReviewModal(true)}
+              title="Submit design for customer review"
+            >
+              <FontAwesomeIcon icon={faClipboardCheck} />
+              Ask for Review
+            </button>
+          )}
+
+          <form onSubmit={handleSendMessage} className="artist-message-form">
+            <div className="artist-text-input-group">
+              <input
+                type="file"
+                ref={fileInputRef}
+                multiple
+                accept="image/*,.pdf,.doc,.docx"
+                onChange={(e) => handleFileUpload(e.target.files)}
+                style={{ display: 'none' }}
+                disabled={uploading}
+              />
+
+              <button
+                type="button"
+                className="attach-btn"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <FontAwesomeIcon icon={faSpinner} spin />
                 ) : (
-                  <FontAwesomeIcon icon={faFile} />
+                  <FontAwesomeIcon icon={faPaperclip} />
                 )}
-                <span>{attachment.name}</span>
-                <button 
-                  onClick={() => removeAttachment(index)}
-                  className="remove-attachment"
-                >
-                  <FontAwesomeIcon icon={faX} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        <form onSubmit={handleSendMessage} className="message-form">
-          <div className="artist-chat-input-group">
-            <input
-              type="file"
-              ref={fileInputRef}
-              multiple
-              accept="image/*,.pdf,.doc,.docx"
-              onChange={(e) => handleFileUpload(e.target.files)}
-              style={{ display: 'none' }}
-              disabled={uploading}
-            />
-            
-            <button
-              type="button"
-              className="attach-btn"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <FontAwesomeIcon icon={faSpinner} spin />
-              ) : (
-                <FontAwesomeIcon icon={faPaperclip} />
-              )}
-            </button>
-            
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="message-input"
-              disabled={sending}
-            />
-            
-            <button
-              type="submit"
-              className="send-btn"
-              disabled={sending || (!newMessage.trim() && attachments.length === 0)}
-            >
-              {sending ? (
-                <FontAwesomeIcon icon={faSpinner} spin />
-              ) : (
-                <FontAwesomeIcon icon={faPaperPlane} />
-              )}
-            </button>
-          </div>
-        </form>
+              </button>
+
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="message-input"
+                disabled={sending}
+              />
+
+              <button
+                type="submit"
+                className="send-btn"
+                disabled={sending || (!newMessage.trim() && attachments.length === 0)}
+              >
+                {sending ? (
+                  <FontAwesomeIcon icon={faSpinner} spin />
+                ) : (
+                  <FontAwesomeIcon icon={faPaperPlane} />
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
 
         {/* Artist Review Modal */}
         {showReviewModal && (

@@ -78,7 +78,7 @@ class ChatService {
 
       console.log('✅ Message sent successfully:', data.id);
       console.log('✅ Message data:', data);
-      return data.id;
+      return data; // Return full message object instead of just ID
     } catch (error) {
       console.error('❌ Error in sendMessage:', error);
       throw error;
@@ -289,6 +289,47 @@ class ChatService {
       return data.artist_profiles;
     } catch (error) {
       console.error('❌ Error in getAssignedArtist:', error);
+      throw error;
+    }
+  }
+
+  // Get customer information for a chat room
+  async getCustomerInfo(roomId) {
+    try {
+      console.log('👤 Getting customer info for room:', roomId);
+      
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/chat/customer-info/${roomId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Check if response is HTML (usually means route not found or wrong server)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('❌ Received non-JSON response:', text.substring(0, 200));
+        throw new Error(`Server returned HTML instead of JSON. Is the backend running on port 3000? Status: ${response.status}`);
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+        throw new Error(errorData.error || 'Failed to get customer info');
+      }
+
+      const data = await response.json();
+      console.log('✅ Customer info retrieved:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error in getCustomerInfo:', error);
       throw error;
     }
   }

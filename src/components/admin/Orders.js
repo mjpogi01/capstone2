@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -39,6 +39,7 @@ import './FloatingButton.css';
 import './OrderNotification.css';
 import orderService from '../../services/orderService';
 import designUploadService from '../../services/designUploadService';
+import chatService from '../../services/chatService';
 import OrderNotification from './OrderNotification';
 
 const Orders = () => {
@@ -55,6 +56,7 @@ const Orders = () => {
   const loadingNotificationRef = React.useRef(null);
   const updatingOrdersRef = React.useRef(new Set());
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [orderApprovalStatus, setOrderApprovalStatus] = useState({}); // Track approval status per order
   
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -445,6 +447,95 @@ const Orders = () => {
       updatingOrdersRef.current.delete(orderId);
     }
   };
+
+  // Check if design is approved or review timed out (1 hour)
+  const checkDesignApprovalStatus = useCallback(async (orderId) => {
+    try {
+      // Get chat room for this order
+      const chatRoom = await chatService.getChatRoomByOrder(orderId);
+      if (!chatRoom) {
+        return false; // No chat room means no review request yet
+      }
+
+      // Get all messages for the chat room
+      const messages = await chatService.getChatRoomMessages(chatRoom.id);
+      if (!messages || messages.length === 0) {
+        return false;
+      }
+
+      // Sort messages by created_at to process in chronological order
+      const sortedMessages = [...messages].sort((a, b) => 
+        new Date(a.created_at) - new Date(b.created_at)
+      );
+
+      // Find the most recent review_request
+      const reviewRequests = sortedMessages.filter(msg => 
+        msg.message_type === 'review_request' && msg.sender_type === 'artist'
+      );
+
+      if (reviewRequests.length === 0) {
+        return false; // No review request found
+      }
+
+      const mostRecentReviewRequest = reviewRequests[reviewRequests.length - 1];
+      const reviewRequestTime = new Date(mostRecentReviewRequest.created_at);
+      const now = new Date();
+      const oneHourInMs = 60 * 60 * 1000; // 1 hour in milliseconds
+      const timeSinceRequest = now - reviewRequestTime;
+
+      // Check if there's an approval response after the review request
+      const approvalResponse = sortedMessages.find(msg => {
+        const msgTime = new Date(msg.created_at);
+        return msg.message_type === 'review_response' &&
+               msg.sender_type === 'customer' &&
+               msgTime > reviewRequestTime &&
+               msg.message.toLowerCase().includes('design approved');
+      });
+
+      // Return true if:
+      // 1. Customer approved the design, OR
+      // 2. 1 hour has passed since review request with no response
+      const isApproved = !!approvalResponse;
+      const isTimedOut = timeSinceRequest >= oneHourInMs && !approvalResponse;
+
+      return isApproved || isTimedOut;
+    } catch (error) {
+      console.error(`Error checking approval status for order ${orderId}:`, error);
+      return false; // Default to false on error
+    }
+  }, []);
+
+  // Check approval status for all orders when they're loaded
+  useEffect(() => {
+    const checkAllApprovalStatuses = async () => {
+      if (!user || user?.user_metadata?.role !== 'artist') {
+        return; // Only check for artists
+      }
+
+      const statusMap = {};
+      for (const order of filteredOrders) {
+        // Only check orders that are in confirmed or layout status
+        if (order.status === 'confirmed' || order.status === 'layout') {
+          const isApproved = await checkDesignApprovalStatus(order.id);
+          statusMap[order.id] = isApproved;
+        }
+      }
+      setOrderApprovalStatus(statusMap);
+    };
+
+    if (filteredOrders.length > 0 && !loading) {
+      checkAllApprovalStatuses();
+    }
+
+    // Set up interval to check every 5 minutes (for 1-hour timeout detection)
+    const interval = setInterval(() => {
+      if (filteredOrders.length > 0 && !loading && user?.user_metadata?.role === 'artist') {
+        checkAllApprovalStatuses();
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
+
+    return () => clearInterval(interval);
+  }, [filteredOrders, loading, user, checkDesignApprovalStatus]);
 
   // Handle design file upload
   const handleDesignUpload = async (orderId, files) => {
@@ -963,7 +1054,10 @@ const Orders = () => {
                             )}
 
                             {/* Design Upload Section - Artist Only */}
-                            {user?.user_metadata?.role === 'artist' && (item.status === 'confirmed' || item.status === 'layout') && (
+                            {/* Show upload button only if: customer approved OR 1 hour passed since review request */}
+                            {user?.user_metadata?.role === 'artist' && 
+                             (item.status === 'confirmed' || item.status === 'layout') && 
+                             orderApprovalStatus[item.id] && (
                               <div className="design-upload-section">
                                 <h5 className="custom-design-section-title">
                                   <FaUpload className="section-icon" />
@@ -997,6 +1091,10 @@ const Orders = () => {
                                   </label>
                                   <p className="design-upload-hint">
                                     Upload design files to automatically move order to sizing status
+                                    <br />
+                                    <small style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                                      (Button appears after customer approval or 1 hour after review request)
+                                    </small>
                                   </p>
                                 </div>
                               </div>

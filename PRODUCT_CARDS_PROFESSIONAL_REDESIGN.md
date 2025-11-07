@@ -39,7 +39,7 @@ The product cards have been completely redesigned to be **tighter, well-aligned,
 │ Product Name        │  ← 11px, 2 lines max
 │ (Truncated...)      │     30px fixed height
 ├─────────────────────┤
-│ ₱299          [♡]  │  ← Price left, heart right
+│ ₱299          [♡]   │  ← Price left, heart right
 └─────────────────────┘     Same bottom row
 ```
 

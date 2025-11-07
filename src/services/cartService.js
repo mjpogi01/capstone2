@@ -63,6 +63,8 @@ class CartService {
           teamMembers: item.team_members,
           teamName: teamName, // Extract team name from first team member
           singleOrderDetails: item.single_order_details,
+          ballDetails: item.ball_details, // Include ball details
+          trophyDetails: item.trophy_details, // Include trophy details
           uniqueId: item.id, // Use database ID as unique identifier
           createdAt: item.created_at,
           updatedAt: item.updated_at
@@ -132,9 +134,11 @@ class CartService {
         for (const existingItem of existingItems) {
           const isSameTeamDetails = JSON.stringify(existingItem.team_members) === JSON.stringify(cartItem.teamMembers);
           const isSameSingleDetails = JSON.stringify(existingItem.single_order_details) === JSON.stringify(cartItem.singleOrderDetails);
+          const isSameBallDetails = JSON.stringify(existingItem.ball_details) === JSON.stringify(cartItem.ballDetails);
+          const isSameTrophyDetails = JSON.stringify(existingItem.trophy_details) === JSON.stringify(cartItem.trophyDetails);
           
           // If EVERYTHING matches (including customization), it's a true duplicate
-          if (isSameTeamDetails && isSameSingleDetails) {
+          if (isSameTeamDetails && isSameSingleDetails && isSameBallDetails && isSameTrophyDetails) {
             foundExactMatch = existingItem;
             break;
           }
@@ -175,17 +179,34 @@ class CartService {
       }
 
       // If item doesn't exist, insert new item
+      console.log('📦 [CartService] Adding to cart:', {
+        name: cartItem.name,
+        size: cartItem.size,
+        trophyDetails: cartItem.trophyDetails,
+        ballDetails: cartItem.ballDetails
+      });
+      
+      const insertData = {
+        user_id: userId,
+        product_id: cartItem.id,
+        quantity: cartItem.quantity,
+        size: cartItem.size,
+        is_team_order: cartItem.isTeamOrder,
+        team_members: cartItem.teamMembers,
+        single_order_details: cartItem.singleOrderDetails
+      };
+      
+      // Add trophy_details and ball_details if they exist
+      if (cartItem.trophyDetails) {
+        insertData.trophy_details = cartItem.trophyDetails;
+      }
+      if (cartItem.ballDetails) {
+        insertData.ball_details = cartItem.ballDetails;
+      }
+      
       const { data, error } = await supabase
         .from('user_carts')
-        .insert({
-          user_id: userId,
-          product_id: cartItem.id,
-          quantity: cartItem.quantity,
-          size: cartItem.size,
-          is_team_order: cartItem.isTeamOrder,
-          team_members: cartItem.teamMembers,
-          single_order_details: cartItem.singleOrderDetails
-        })
+        .insert(insertData)
         .select()
         .single();
 

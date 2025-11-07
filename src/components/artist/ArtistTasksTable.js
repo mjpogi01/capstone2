@@ -67,6 +67,26 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
     }
   };
 
+  const getOrderTypeLabel = (task) => {
+    // Combine order_type and order_source to create proper labels
+    const orderType = task.order_type || 'regular';
+    const orderSource = task.order_source || 'online';
+    
+    if (orderType === 'custom_design' && orderSource === 'online') {
+      return 'Custom-Online';
+    } else if (orderType === 'regular' && orderSource === 'online') {
+      return 'Store-Online';
+    } else if (orderType === 'regular' && orderSource === 'walk_in') {
+      return 'Store-Walk-In';
+    } else if (orderType === 'walk_in') {
+      return 'Store-Walk-In';
+    } else if (orderType === 'custom_design') {
+      return 'Custom-Online'; // Default for custom_design
+    } else {
+      return 'Store-Online'; // Default for regular
+    }
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
@@ -117,13 +137,50 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
   const handleOpenChat = async (task) => {
     try {
       // Get the chat room for this order
-      const chatRoom = await chatService.getChatRoomByOrder(task.order_id);
+      let chatRoom = await chatService.getChatRoomByOrder(task.order_id);
+      
+      // If no chat room exists, create one
+      if (!chatRoom && task.artist_id && task.order_id) {
+        console.log('💬 No chat room found, creating one...');
+        
+        // Get order details to find customer_id
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+        const { data: { session } } = await (await import('../../lib/supabase')).supabase.auth.getSession();
+        
+        if (session) {
+          try {
+            const orderResponse = await fetch(`${API_BASE_URL}/api/orders/${task.order_id}`, {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (orderResponse.ok) {
+              const orderData = await orderResponse.json();
+              const customerId = orderData.user_id;
+              
+              // Create chat room using the artist profile ID from the task
+              const roomId = await chatService.createChatRoom(
+                task.order_id,
+                customerId,
+                task.artist_id
+              );
+              
+              // Get the newly created room
+              chatRoom = await chatService.getChatRoomByOrder(task.order_id);
+            }
+          } catch (createError) {
+            console.error('Error creating chat room:', createError);
+          }
+        }
+      }
       
       if (chatRoom) {
         setSelectedChatRoom(chatRoom);
         setShowChatModal(true);
       } else {
-        alert('No chat room found for this order');
+        alert('Unable to create or find chat room for this order. Please try again.');
       }
     } catch (error) {
       console.error('Error opening chat:', error);
@@ -178,7 +235,7 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
                 <div className="task-details">
                   <div className="task-description">{task.task_description}</div>
                   <div className="task-meta">
-                    <span className="task-type">{task.order_type.replace('_', ' ')}</span>
+                    <span className="task-type">{getOrderTypeLabel(task)}</span>
                     <span className="task-deadline">
                       Due: {formatDate(task.deadline)}
                     </span>

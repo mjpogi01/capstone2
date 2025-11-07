@@ -470,14 +470,26 @@ router.patch('/:id/status', async (req, res) => {
           }
         } else {
           // Regular order (store products)
+          // Get product image from order items for artist reference
+          const firstItem = currentOrder.order_items?.[0];
+          const productImage = firstItem?.image || firstItem?.main_image || null;
+          let customerRequirements = currentOrder.order_notes || '';
+          
+          // Add product image to requirements if available
+          if (productImage) {
+            customerRequirements = customerRequirements 
+              ? `${customerRequirements}\n\n📸 Product Image: ${productImage}`
+              : `📸 Product Image: ${productImage}`;
+          }
+          
           const { data: regularTaskData, error: regularError } = await supabase.rpc('assign_regular_order_task', {
-            p_product_name: currentOrder.order_items?.[0]?.name || 'Store Product',
+            p_product_name: firstItem?.name || 'Store Product',
             p_quantity: currentOrder.total_items || 1,
-            p_customer_requirements: currentOrder.order_notes || null,
+            p_customer_requirements: customerRequirements || null,
             p_priority: 'medium',
             p_deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
             p_order_id: currentOrder.id,
-            p_product_id: currentOrder.order_items?.[0]?.id || null,
+            p_product_id: firstItem?.id || null,
             p_order_source: 'online'
           });
           
@@ -487,6 +499,37 @@ router.patch('/:id/status', async (req, res) => {
           } else {
             taskId = regularTaskData;
             console.log(`✅ Regular order task assigned: ${taskId}`);
+            
+            // If task was created successfully and we have an image, update the task with image reference
+            if (taskId && productImage) {
+              try {
+                // Update the task's design_requirements and product_thumbnail to include the image
+                const { data: existingTask } = await supabase
+                  .from('artist_tasks')
+                  .select('design_requirements')
+                  .eq('id', taskId)
+                  .single();
+                
+                if (existingTask) {
+                  const updatedRequirements = existingTask.design_requirements 
+                    ? `${existingTask.design_requirements}\n\n🖼️ Product Reference Image: ${productImage}`
+                    : `🖼️ Product Reference Image: ${productImage}`;
+                  
+                  // Update both design_requirements and product_thumbnail
+                  await supabase
+                    .from('artist_tasks')
+                    .update({ 
+                      design_requirements: updatedRequirements,
+                      product_thumbnail: productImage
+                    })
+                    .eq('id', taskId);
+                  
+                  console.log(`✅ Added product image to task ${taskId}`);
+                }
+              } catch (updateError) {
+                console.error('⚠️ Could not update task with image (non-critical):', updateError);
+              }
+            }
           }
         }
         
@@ -592,6 +635,173 @@ router.post('/', async (req, res) => {
     }
 
     const newOrder = inserted;
+
+    // Assign artist task immediately when order is created
+    // This ensures every order has an assigned artist from the start
+    if (newOrder.status === 'pending' || newOrder.status === 'confirmed') {
+      try {
+        console.log(`🎨 Assigning artist task for new order ${newOrder.order_number}`);
+        console.log(`🎨 Order ID: ${newOrder.id}`);
+        console.log(`🎨 Order Type: ${newOrder.order_type || 'regular'}`);
+        
+        let taskId = null;
+        
+        // Determine order type and assign appropriate task
+        if (newOrder.order_type === 'custom_design') {
+          // Custom design order
+          const { data: customTaskData, error: customError } = await supabase.rpc('assign_custom_design_task', {
+            p_order_id: newOrder.id,
+            p_product_name: newOrder.order_items?.[0]?.name || 'Custom Design',
+            p_quantity: newOrder.total_items || 1,
+            p_customer_requirements: newOrder.order_notes || null,
+            p_priority: 'medium',
+            p_deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+            p_product_id: newOrder.order_items?.[0]?.id || null
+          });
+          
+          if (customError) {
+            console.error('❌ Error assigning custom design task:', customError);
+          } else {
+            taskId = customTaskData;
+            console.log(`✅ Custom design task assigned: ${taskId}`);
+          }
+        } else if (newOrder.order_number?.startsWith('WALKIN-')) {
+          // Walk-in order
+          const { data: walkInTaskData, error: walkInError } = await supabase.rpc('assign_walk_in_order_task', {
+            p_product_name: newOrder.order_items?.[0]?.name || 'Walk-in Product',
+            p_quantity: newOrder.total_items || 1,
+            p_customer_requirements: newOrder.order_notes || null,
+            p_priority: 'high',
+            p_deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
+            p_order_id: newOrder.id,
+            p_product_id: newOrder.order_items?.[0]?.id || null
+          });
+          
+          if (walkInError) {
+            console.error('❌ Error assigning walk-in order task:', walkInError);
+          } else {
+            taskId = walkInTaskData;
+            console.log(`✅ Walk-in order task assigned: ${taskId}`);
+          }
+        } else {
+          // Regular order (store products)
+          // Get product image from order items for artist reference
+          const firstItem = newOrder.order_items?.[0];
+          const productImage = firstItem?.image || firstItem?.main_image || null;
+          let customerRequirements = newOrder.order_notes || '';
+          
+          // Add product image to requirements if available
+          if (productImage) {
+            customerRequirements = customerRequirements 
+              ? `${customerRequirements}\n\n📸 Product Image: ${productImage}`
+              : `📸 Product Image: ${productImage}`;
+          }
+          
+          const { data: regularTaskData, error: regularError } = await supabase.rpc('assign_regular_order_task', {
+            p_product_name: firstItem?.name || 'Store Product',
+            p_quantity: newOrder.total_items || 1,
+            p_customer_requirements: customerRequirements || null,
+            p_priority: 'medium',
+            p_deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+            p_order_id: newOrder.id,
+            p_product_id: firstItem?.id || null,
+            p_order_source: 'online'
+          });
+          
+          if (regularError) {
+            console.error('❌ Error assigning regular order task:', regularError);
+          } else {
+            taskId = regularTaskData;
+            console.log(`✅ Regular order task assigned: ${taskId}`);
+            
+            // If task was created successfully and we have an image, update the task with image reference
+            if (taskId && productImage) {
+              try {
+                // Update the task's design_requirements and product_thumbnail to include the image
+                const { data: existingTask } = await supabase
+                  .from('artist_tasks')
+                  .select('design_requirements')
+                  .eq('id', taskId)
+                  .single();
+                
+                if (existingTask) {
+                  const updatedRequirements = existingTask.design_requirements 
+                    ? `${existingTask.design_requirements}\n\n🖼️ Product Reference Image: ${productImage}`
+                    : `🖼️ Product Reference Image: ${productImage}`;
+                  
+                  // Update both design_requirements and product_thumbnail
+                  await supabase
+                    .from('artist_tasks')
+                    .update({ 
+                      design_requirements: updatedRequirements,
+                      product_thumbnail: productImage
+                    })
+                    .eq('id', taskId);
+                  
+                  console.log(`✅ Added product image to task ${taskId}`);
+                }
+              } catch (updateError) {
+                console.error('⚠️ Could not update task with image (non-critical):', updateError);
+              }
+            }
+          }
+        }
+        
+        if (taskId) {
+          console.log(`🎨 Artist task successfully assigned for order ${newOrder.order_number}`);
+          
+          // Create chat room automatically when task is assigned
+          try {
+            // Get the assigned artist ID from the task
+            const { data: assignedTask, error: taskFetchError } = await supabase
+              .from('artist_tasks')
+              .select('artist_id')
+              .eq('id', taskId)
+              .single();
+            
+            if (!taskFetchError && assignedTask?.artist_id) {
+              // Check if chat room already exists
+              const { data: existingRoom } = await supabase
+                .from('design_chat_rooms')
+                .select('id')
+                .eq('order_id', newOrder.id)
+                .single();
+              
+              if (!existingRoom) {
+                // Create chat room
+                const { data: chatRoom, error: roomError } = await supabase
+                  .from('design_chat_rooms')
+                  .insert({
+                    order_id: newOrder.id,
+                    customer_id: newOrder.user_id,
+                    artist_id: assignedTask.artist_id,
+                    task_id: taskId,
+                    room_name: `Order ${newOrder.order_number} Chat`
+                  })
+                  .select()
+                  .single();
+                
+                if (roomError) {
+                  console.error('❌ Error creating chat room:', roomError);
+                } else {
+                  console.log(`✅ Chat room created automatically: ${chatRoom.id}`);
+                }
+              } else {
+                console.log(`✅ Chat room already exists: ${existingRoom.id}`);
+              }
+            }
+          } catch (chatError) {
+            console.error('❌ Error in chat room creation during order creation:', chatError);
+            // Don't fail the entire request if chat room creation fails
+          }
+        } else {
+          console.warn(`⚠️ Failed to assign artist task for order ${newOrder.order_number}`);
+        }
+      } catch (error) {
+        console.error('❌ Error in artist task assignment during order creation:', error);
+        // Don't fail the entire request if artist assignment fails
+      }
+    }
 
     // Note: sold_quantity will be updated when order status changes to 'picked_up_delivered'
     // This prevents double-counting when orders are created and then completed

@@ -156,11 +156,53 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
       size
     });
 
+    // Handle price - parse as float
+    const priceValue = parseFloat(price);
+
+    // Handle jersey_prices - ensure it's properly formatted as JSONB
+    let jerseyPricesValue = null;
+    if (req.body.jersey_prices) {
+      // If it's already an object, use it directly; if it's a string, parse it
+      if (typeof req.body.jersey_prices === 'string') {
+        try {
+          jerseyPricesValue = JSON.parse(req.body.jersey_prices);
+        } catch (e) {
+          console.error('❌ [Products API] Error parsing jersey_prices string:', e);
+          jerseyPricesValue = req.body.jersey_prices;
+        }
+      } else {
+        jerseyPricesValue = req.body.jersey_prices;
+      }
+      console.log('📦 [Products API] Received jersey_prices:', jerseyPricesValue);
+      console.log('📦 [Products API] Type of jersey_prices:', typeof jerseyPricesValue);
+      console.log('📦 [Products API] jersey_prices content:', JSON.stringify(jerseyPricesValue, null, 2));
+    }
+
+    // Handle trophy_prices - ensure it's properly formatted as JSONB
+    let trophyPricesValue = null;
+    if (req.body.trophy_prices) {
+      // If it's already an object, use it directly; if it's a string, parse it
+      if (typeof req.body.trophy_prices === 'string') {
+        try {
+          trophyPricesValue = JSON.parse(req.body.trophy_prices);
+        } catch (e) {
+          console.error('❌ [Products API] Error parsing trophy_prices string:', e);
+          trophyPricesValue = req.body.trophy_prices;
+        }
+      } else {
+        trophyPricesValue = req.body.trophy_prices;
+      }
+      console.log('🏆 [Products API] Received trophy_prices:', trophyPricesValue);
+      console.log('🏆 [Products API] Type of trophy_prices:', typeof trophyPricesValue);
+      console.log('🏆 [Products API] trophy_prices content:', JSON.stringify(trophyPricesValue, null, 2));
+    }
+
+    // Build insert data object
     const insertData = {
       name,
       category,
       size,
-      price: parseFloat(price),
+      price: priceValue,
       description,
       main_image,
       additional_images: additional_images || [],
@@ -168,9 +210,22 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
       sold_quantity: sold_quantity ? parseInt(sold_quantity) : 0,
       branch_id: branch_id ? parseInt(branch_id) : 1
     };
+    
+    // Only add jersey_prices if it's not null (Supabase handles null differently)
+    if (jerseyPricesValue !== null && jerseyPricesValue !== undefined) {
+      insertData.jersey_prices = jerseyPricesValue;
+    }
+    
+    // Only add trophy_prices if it's not null
+    if (trophyPricesValue !== null && trophyPricesValue !== undefined) {
+      insertData.trophy_prices = trophyPricesValue;
+    }
 
     console.log('📦 [Products API] Final insert data:', insertData);
+    console.log('📦 [Products API] jersey_prices in insertData:', insertData.jersey_prices);
 
+    console.log('📦 [Products API] About to insert into Supabase with data:', JSON.stringify(insertData, null, 2));
+    
     const { data, error } = await supabase
       .from('products')
       .insert(insertData)
@@ -184,9 +239,15 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
 
     if (error) {
       console.error('❌ Supabase insert error:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      console.error('❌ Insert data that failed:', JSON.stringify(insertData, null, 2));
       return res.status(500).json({ error: error.message });
     }
+    
+    console.log('✅ [Products API] Product inserted successfully');
+    console.log('✅ [Products API] Inserted product jersey_prices:', data?.jersey_prices);
 
     // Transform the data to match the expected format
     const transformedData = {
@@ -225,11 +286,53 @@ router.put('/:id', async (req, res) => {
       size
     });
     
+    // Handle price - parse as float
+    const priceValue = parseFloat(price);
+
+    // Handle jersey_prices - ensure it's properly formatted as JSONB
+    let jerseyPricesValue = null;
+    if (req.body.jersey_prices) {
+      // If it's already an object, use it directly; if it's a string, parse it
+      if (typeof req.body.jersey_prices === 'string') {
+        try {
+          jerseyPricesValue = JSON.parse(req.body.jersey_prices);
+        } catch (e) {
+          console.error('❌ [Products API] Error parsing jersey_prices string:', e);
+          jerseyPricesValue = req.body.jersey_prices;
+        }
+      } else {
+        jerseyPricesValue = req.body.jersey_prices;
+      }
+      console.log('📦 [Products API] Received jersey_prices for update:', jerseyPricesValue);
+      console.log('📦 [Products API] Type of jersey_prices:', typeof jerseyPricesValue);
+      console.log('📦 [Products API] jersey_prices content:', JSON.stringify(jerseyPricesValue, null, 2));
+    }
+
+    // Handle trophy_prices - ensure it's properly formatted as JSONB
+    let trophyPricesValue = null;
+    if (req.body.trophy_prices) {
+      // If it's already an object, use it directly; if it's a string, parse it
+      if (typeof req.body.trophy_prices === 'string') {
+        try {
+          trophyPricesValue = JSON.parse(req.body.trophy_prices);
+        } catch (e) {
+          console.error('❌ [Products API] Error parsing trophy_prices string:', e);
+          trophyPricesValue = req.body.trophy_prices;
+        }
+      } else {
+        trophyPricesValue = req.body.trophy_prices;
+      }
+      console.log('🏆 [Products API] Received trophy_prices for update:', trophyPricesValue);
+      console.log('🏆 [Products API] Type of trophy_prices:', typeof trophyPricesValue);
+      console.log('🏆 [Products API] trophy_prices content:', JSON.stringify(trophyPricesValue, null, 2));
+    }
+
+    // Build update data object
     const updateData = {
       name,
       category,
       size,
-      price: parseFloat(price),
+      price: priceValue,
       description,
       main_image,
       additional_images: additional_images || [],
@@ -238,8 +341,28 @@ router.put('/:id', async (req, res) => {
       branch_id: branch_id ? parseInt(branch_id) : 1,
       updated_at: new Date().toISOString()
     };
+    
+    // Only add jersey_prices if it's not null (Supabase handles null differently)
+    // For updates, we need to explicitly set it even if null to clear it, or omit it to keep existing value
+    if (jerseyPricesValue !== null && jerseyPricesValue !== undefined) {
+      updateData.jersey_prices = jerseyPricesValue;
+    } else if (req.body.hasOwnProperty('jersey_prices') && req.body.jersey_prices === null) {
+      // Explicitly set to null if the request wants to clear it
+      updateData.jersey_prices = null;
+    }
+    
+    // Only add trophy_prices if it's not null
+    if (trophyPricesValue !== null && trophyPricesValue !== undefined) {
+      updateData.trophy_prices = trophyPricesValue;
+    } else if (req.body.hasOwnProperty('trophy_prices') && req.body.trophy_prices === null) {
+      // Explicitly set to null if the request wants to clear it
+      updateData.trophy_prices = null;
+    }
 
     console.log('📦 [Products API] Final update data:', updateData);
+    console.log('📦 [Products API] jersey_prices in updateData:', updateData.jersey_prices);
+    
+    console.log('📦 [Products API] About to update in Supabase with data:', JSON.stringify(updateData, null, 2));
     
     // Update the product using Supabase
     const { data, error } = await supabase
@@ -256,7 +379,10 @@ router.put('/:id', async (req, res) => {
 
     if (error) {
       console.error('❌ Supabase update error:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      console.error('❌ Update data that failed:', JSON.stringify(updateData, null, 2));
       return res.status(500).json({ error: error.message });
     }
 

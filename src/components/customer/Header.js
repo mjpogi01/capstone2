@@ -6,6 +6,7 @@ import SignUpModal from './SignUpModal';
 import CartModal from './CartModal';
 import WishlistModal from './WishlistModal';
 import CustomerOrdersModal from './CustomerOrdersModal';
+import CustomerChatModal from './CustomerChatModal';
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
@@ -22,6 +23,7 @@ const Header = () => {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false); // Keep for backward compatibility
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [ordersCount, setOrdersCount] = useState(0);
   const [searchResults, setSearchResults] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -41,7 +43,7 @@ const Header = () => {
   const dropdownRef = useRef(null);
 
   // Check if any modal is open
-  const isAnyModalOpen = showSignInModal || showSignUpModal || isCartOpen || isWishlistOpen || showOrdersModal || showSearchDropdown;
+  const isAnyModalOpen = showSignInModal || showSignUpModal || isCartOpen || isWishlistOpen || showOrdersModal || showChatModal || showSearchDropdown;
   
   // Track screen size for mobile search behavior
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
@@ -345,6 +347,21 @@ const Header = () => {
               </button>
             )}
             
+            {isAuthenticated && (
+              <button 
+                className="mobile-action-link" 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setShowChatModal(true);
+                }}
+              >
+                <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" fill="currentColor" />
+                </svg>
+                <span>Chat</span>
+              </button>
+            )}
+            
             <button 
               className="mobile-action-link" 
               onClick={() => {
@@ -549,6 +566,18 @@ const Header = () => {
                       </svg>
                       Wishlist
                     </button>
+                    <button 
+                      className="profile-menu-item" 
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        setShowChatModal(true);
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" fill="currentColor" />
+                      </svg>
+                      Chat
+                    </button>
                     <div className="profile-divider"></div>
                     <button 
                       className="profile-menu-item logout" 
@@ -706,6 +735,10 @@ const Header = () => {
       <CustomerOrdersModal 
         isOpen={showOrdersModal} 
         onClose={() => setShowOrdersModal(false)} 
+      />
+      <CustomerChatModal 
+        isOpen={showChatModal} 
+        onClose={() => setShowChatModal(false)} 
       />
     </header>
   );

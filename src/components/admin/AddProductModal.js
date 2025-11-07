@@ -102,6 +102,13 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     sold_quantity: 0,
     branch_id: 1
   });
+  const [jerseyPrices, setJerseyPrices] = useState({
+    fullSet: '',
+    shirtOnly: '',
+    shortsOnly: ''
+  });
+  // Trophy prices: object mapping size to price, e.g., { "14\" (Large)": 1000, "10\" (Medium)": 750 }
+  const [trophyPrices, setTrophyPrices] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mainImage, setMainImage] = useState(null);
@@ -275,20 +282,59 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
   useEffect(() => {
     if (isEditMode && editingProduct) {
+      // Parse price - for jerseys, check jersey_prices column first, then fallback to price
+      let priceValue = editingProduct.price || '';
+      let jerseyPricesValue = { fullSet: '', shirtOnly: '', shortsOnly: '' };
+      
+      if (shouldShowShorts(editingProduct.category)) {
+        // Check if jersey_prices column exists and has data
+        if (editingProduct.jersey_prices) {
+          // Use jersey_prices if available
+          const prices = typeof editingProduct.jersey_prices === 'string' 
+            ? JSON.parse(editingProduct.jersey_prices) 
+            : editingProduct.jersey_prices;
+          jerseyPricesValue = {
+            fullSet: prices.fullSet || prices.full_set || '',
+            shirtOnly: prices.shirtOnly || prices.shirt_only || '',
+            shortsOnly: prices.shortsOnly || prices.shorts_only || ''
+          };
+          priceValue = prices.fullSet || prices.full_set || editingProduct.price || '';
+        } else {
+          // Fallback: use price column as full set price
+          priceValue = editingProduct.price || '';
+          jerseyPricesValue.fullSet = editingProduct.price || '';
+        }
+      }
+      
       setFormData({
         name: editingProduct.name || '',
         category: editingProduct.category || '',
         size: editingProduct.size || '',
-        price: editingProduct.price || '',
+        price: priceValue,
         description: editingProduct.description || '',
         stock_quantity: editingProduct.stock_quantity || null,
         sold_quantity: editingProduct.sold_quantity || 0,
         branch_id: editingProduct.branch_id || 1
       });
 
+      // Parse trophy prices if it's a trophy product
+      let trophyPricesValue = {};
       if (isTrophyCategory(editingProduct.category)) {
         const parsedSizes = parseAvailableSizes(editingProduct.size);
         setAvailableSizes(parsedSizes);
+        
+        // Load trophy_prices if available
+        if (editingProduct.trophy_prices) {
+          try {
+            const prices = typeof editingProduct.trophy_prices === 'string' 
+              ? JSON.parse(editingProduct.trophy_prices) 
+              : editingProduct.trophy_prices;
+            trophyPricesValue = prices || {};
+          } catch (e) {
+            console.warn('Failed to parse trophy_prices:', e);
+            trophyPricesValue = {};
+          }
+        }
       } else if (isJerseyCategory(editingProduct.category)) {
         const parsedJerseySizes = parseJerseySizes(editingProduct.size);
         setJerseySizes(parsedJerseySizes);
@@ -301,6 +347,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         });
       }
 
+      setJerseyPrices(jerseyPricesValue);
+      setTrophyPrices(trophyPricesValue);
       setSizeInputError('');
       setNewSizeInput('');
       setNewJerseySizeInput({
@@ -345,6 +393,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
             shirts: { adults: [], kids: [] },
             shorts: { adults: [], kids: [] }
           });
+          setJerseyPrices({ fullSet: '', shirtOnly: '', shortsOnly: '' });
+          setTrophyPrices({});
           setSizeInputError('');
         } else if (isJerseyCategory(value)) {
           setJerseySizes(prev => ({
@@ -365,6 +415,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
             shirts: { adults: [], kids: [] },
             shorts: { adults: [], kids: [] }
           });
+          setJerseyPrices({ fullSet: '', shirtOnly: '', shortsOnly: '' });
+          setTrophyPrices({});
           setNewSizeInput('');
           setSizeInputError('');
           setNewJerseySizeInput({
@@ -373,6 +425,25 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
           });
         }
       }
+  };
+
+  // Handle trophy price changes
+  const handleTrophyPriceChange = (size, price) => {
+    setTrophyPrices(prev => ({
+      ...prev,
+      [size]: price
+    }));
+  };
+
+  // Remove trophy price when size is removed
+  const handleRemoveTrophySize = (sizeToRemove) => {
+    setAvailableSizes(prev => prev.filter(size => size !== sizeToRemove));
+    setTrophyPrices(prev => {
+      const updated = { ...prev };
+      delete updated[sizeToRemove];
+      return updated;
+    });
+    setSizeInputError('');
   };
 
   const handleSizeSelect = (size) => {
@@ -400,6 +471,13 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     }
 
     setAvailableSizes(prev => [...prev, value]);
+    // Initialize price as empty for new trophy size
+    if (isTrophyCategory(formData.category)) {
+      setTrophyPrices(prev => ({
+        ...prev,
+        [value]: ''
+      }));
+    }
     setNewSizeInput('');
     setSizeInputError('');
   };
@@ -608,6 +686,19 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       return;
     }
 
+    // Validate trophy prices - each size must have a price
+    if (isTrophyProduct) {
+      const missingPrices = availableSizes.filter(size => {
+        const price = trophyPrices[size];
+        return !price || price.toString().trim() === '' || isNaN(parseFloat(price)) || parseFloat(price) < 0;
+      });
+      
+      if (missingPrices.length > 0) {
+        setError(`Please enter a valid price for all trophy sizes. Missing prices for: ${missingPrices.join(', ')}`);
+        return;
+      }
+    }
+
     if (isJerseyProduct) {
       const hasShirtSizes = jerseySizes.shirts.adults.length > 0 || jerseySizes.shirts.kids.length > 0;
       const hasShortSizes = jerseySizes.shorts.adults.length > 0 || jerseySizes.shorts.kids.length > 0;
@@ -651,14 +742,99 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         sizeValue = formData.size || null;
       }
 
+      // Handle price - for jerseys, store full set price in price column and all prices in jersey_prices
+      // For trophies, store prices per size in trophy_prices
+      let priceValue = formData.price;
+      let jerseyPricesValue = null;
+      let trophyPricesValue = null;
+      
+      // Check if this is specifically a Jerseys category (not uniforms, t-shirts, etc.)
+      const isJerseysCategory = shouldShowShorts(formData.category);
+      
+      if (isTrophyProduct) {
+        // Store trophy prices as JSONB object mapping size to price
+        const pricesObject = {};
+        availableSizes.forEach(size => {
+          const price = trophyPrices[size];
+          if (price && !isNaN(parseFloat(price)) && parseFloat(price) >= 0) {
+            pricesObject[size] = parseFloat(price);
+          }
+        });
+        trophyPricesValue = pricesObject;
+        // Use the first size's price as the base price (or minimum if needed)
+        const firstSizePrice = availableSizes.length > 0 && trophyPrices[availableSizes[0]] 
+          ? parseFloat(trophyPrices[availableSizes[0]]) 
+          : parseFloat(formData.price) || 0;
+        priceValue = firstSizePrice;
+        console.log('🏆 [AddProductModal] Trophy prices being saved:', trophyPricesValue);
+      } else if (isJerseysCategory) {
+        // Validate jersey prices - check for empty strings and ensure values are valid numbers
+        const fullSetValue = jerseyPrices.fullSet?.toString().trim();
+        const shirtOnlyValue = jerseyPrices.shirtOnly?.toString().trim();
+        const shortsOnlyValue = jerseyPrices.shortsOnly?.toString().trim();
+        
+        console.log('🔍 [AddProductModal] Validating jersey prices:', {
+          fullSet: fullSetValue,
+          shirtOnly: shirtOnlyValue,
+          shortsOnly: shortsOnlyValue
+        });
+        
+        if (!fullSetValue || fullSetValue === '' || isNaN(parseFloat(fullSetValue)) || parseFloat(fullSetValue) < 0) {
+          setError('Please enter a valid Full Set Price.');
+          setLoading(false);
+          return;
+        }
+        
+        if (!shirtOnlyValue || shirtOnlyValue === '' || isNaN(parseFloat(shirtOnlyValue)) || parseFloat(shirtOnlyValue) < 0) {
+          setError('Please enter a valid Shirt Only Price.');
+          setLoading(false);
+          return;
+        }
+        
+        if (!shortsOnlyValue || shortsOnlyValue === '' || isNaN(parseFloat(shortsOnlyValue)) || parseFloat(shortsOnlyValue) < 0) {
+          setError('Please enter a valid Shorts Only Price.');
+          setLoading(false);
+          return;
+        }
+        
+        // Store full set price in price column (for backward compatibility)
+        priceValue = parseFloat(fullSetValue);
+        // Store all prices in jersey_prices JSONB column
+        jerseyPricesValue = {
+          fullSet: parseFloat(fullSetValue),
+          shirtOnly: parseFloat(shirtOnlyValue),
+          shortsOnly: parseFloat(shortsOnlyValue)
+        };
+        
+        console.log('✅ [AddProductModal] Jersey prices validated and formatted:', jerseyPricesValue);
+      } else {
+        // For non-jersey products, use regular price
+        if (!formData.price) {
+          setError('Please enter a price.');
+          setLoading(false);
+          return;
+        }
+        priceValue = parseFloat(formData.price);
+      }
+
       const productData = {
         ...formData,
+        price: priceValue,
+        jersey_prices: jerseyPricesValue,
+        trophy_prices: trophyPricesValue,
         size: sizeValue,
         stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : null,
         sold_quantity: formData.sold_quantity ? parseInt(formData.sold_quantity) : 0,
         main_image: mainImage,
         additional_images: additionalImages
       };
+
+      console.log('📦 [AddProductModal] Sending product data:', {
+        ...productData,
+        jersey_prices: jerseyPricesValue
+      });
+      console.log('📦 [AddProductModal] Jersey prices value:', jerseyPricesValue);
+      console.log('📦 [AddProductModal] Jersey prices state:', jerseyPrices);
 
       const url = isEditMode
         ? `http://localhost:4000/api/products/${editingProduct.id}`
@@ -677,10 +853,13 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ [AddProductModal] API Error:', errorData);
         throw new Error(errorData.error || 'Failed to add product');
       }
 
       const newProduct = await response.json();
+      console.log('✅ [AddProductModal] Product added successfully:', newProduct);
+      console.log('✅ [AddProductModal] Product jersey_prices:', newProduct.jersey_prices);
       onAdd(newProduct);
     } catch (submitError) {
       setError(submitError.message);
@@ -1026,23 +1205,71 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                     <div className="form-inline-error">{sizeInputError}</div>
                   )}
                   {availableSizes.length > 0 && (
-                    <div className="available-sizes-list">
+                    <div className="available-sizes-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
                       {availableSizes.map(size => (
-                        <span key={size} className="available-size-chip">
-                          {size}
+                        <div key={size} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.5rem',
+                          padding: '0.75rem',
+                          background: '#f8fafc',
+                          borderRadius: '6px',
+                          border: '1px solid #e5e7eb'
+                        }}>
+                          <span style={{ flex: '0 0 150px', fontWeight: 500, fontSize: '0.875rem', color: '#111827' }}>{size}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                            <label style={{ fontSize: '0.75rem', color: '#6b7280', whiteSpace: 'nowrap', fontWeight: 500 }}>Price: <span style={{ color: '#ef4444' }}>*</span></label>
+                            <input
+                              type="number"
+                              value={trophyPrices[size] || ''}
+                              onChange={(e) => handleTrophyPriceChange(size, e.target.value)}
+                              placeholder="0.00"
+                              step="0.01"
+                              min="0"
+                              required
+                              style={{ 
+                                width: '120px', 
+                                padding: '0.5rem', 
+                                border: '1px solid #d1d5db', 
+                                borderRadius: '6px', 
+                                fontSize: '0.875rem',
+                                background: '#ffffff'
+                              }}
+                            />
+                          </div>
                           <button
                             type="button"
                             aria-label={`Remove size ${size}`}
                             onClick={() => handleRemoveAvailableSize(size)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              fontSize: '1.25rem',
+                              fontWeight: 600,
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s ease',
+                              flex: '0 0 auto'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = '#fef2f2';
+                              e.target.style.transform = 'scale(1.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = 'none';
+                              e.target.style.transform = 'scale(1)';
+                            }}
                           >
                             {'×'}
                           </button>
-                        </span>
+                        </div>
                       ))}
                     </div>
                   )}
                   <small className="form-help">
-                    Add the trophy sizes customers can choose from (e.g., 13", 16", 19", 21").
+                    Add trophy sizes and their corresponding prices. Each size must have a price (e.g., 13" = 500, 16" = 750, 19" = 1000).
                   </small>
                 </div>
               ) : jerseyCategorySelected ? (
@@ -1440,19 +1667,73 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                 </div>
               )}
 
-              <div className="form-group">
-                <label>Price</label>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                />
-              </div>
+              {shouldShowShorts(formData.category) ? (
+                <div className="form-group">
+                  <label>Jersey Prices</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                        Full Set Price <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={jerseyPrices.fullSet}
+                        onChange={(e) => setJerseyPrices(prev => ({ ...prev, fullSet: e.target.value }))}
+                        required
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                        Shirt Only Price <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={jerseyPrices.shirtOnly}
+                        onChange={(e) => setJerseyPrices(prev => ({ ...prev, shirtOnly: e.target.value }))}
+                        required
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                        Shorts Only Price <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={jerseyPrices.shortsOnly}
+                        onChange={(e) => setJerseyPrices(prev => ({ ...prev, shortsOnly: e.target.value }))}
+                        required
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                      />
+                    </div>
+                  </div>
+                  <small className="form-help">Enter prices for full set, shirt only, and shorts only options</small>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label>Price</label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+              )}
 
               <div className="form-group">
                 <label>Stock Quantity (Optional)</label>
@@ -1535,4 +1816,6 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 };
 
 export default AddProductModal;
+
+
 

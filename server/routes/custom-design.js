@@ -153,6 +153,7 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       user_id: finalUserId,
       order_number: orderNumber,
       status: 'pending',
+      order_type: 'custom_design', // Set order type for proper artist assignment
       shipping_method: shippingMethod === 'delivery' ? 'cod' : shippingMethod, // Convert 'delivery' to 'cod'
       pickup_location: shippingMethod === 'pickup' ? branches.find(b => b.id === pickupBranchId)?.name : null,
       delivery_address: shippingMethod === 'delivery' ? { address: deliveryAddress } : null,
@@ -163,6 +164,7 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       total_items: membersArray.length,
       order_items: [{
         product_type: 'custom_design',
+        name: teamName || 'Custom Design', // Add name field for artist task assignment
         team_name: teamName,
         team_members: membersArray,
         design_images: designImages,
@@ -192,6 +194,77 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
     }
 
     console.log(`✅ Custom design order created: ${orderNumber}`);
+
+    // Assign artist task immediately when custom design order is created
+    try {
+      console.log(`🎨 Assigning artist task for new custom design order ${orderNumber}`);
+      console.log(`🎨 Order ID: ${insertedOrder.id}`);
+      
+      const { data: customTaskData, error: customError } = await supabase.rpc('assign_custom_design_task', {
+        p_order_id: insertedOrder.id,
+        p_product_name: insertedOrder.order_items?.[0]?.name || teamName || 'Custom Design',
+        p_quantity: insertedOrder.total_items || membersArray.length || 1,
+        p_customer_requirements: orderNotes || `Team: ${teamName}, Members: ${membersArray.length}`,
+        p_priority: 'medium',
+        p_deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+        p_product_id: insertedOrder.order_items?.[0]?.id || null
+      });
+      
+      if (customError) {
+        console.error('❌ Error assigning custom design task:', customError);
+        console.error('❌ Custom task error details:', JSON.stringify(customError, null, 2));
+      } else {
+        console.log(`✅ Custom design task assigned: ${customTaskData}`);
+        
+        // Create chat room automatically when task is assigned
+        try {
+          // Get the assigned artist ID from the task
+          const { data: assignedTask, error: taskFetchError } = await supabase
+            .from('artist_tasks')
+            .select('artist_id')
+            .eq('id', customTaskData)
+            .single();
+          
+          if (!taskFetchError && assignedTask?.artist_id) {
+            // Check if chat room already exists
+            const { data: existingRoom } = await supabase
+              .from('design_chat_rooms')
+              .select('id')
+              .eq('order_id', insertedOrder.id)
+              .single();
+            
+            if (!existingRoom) {
+              // Create chat room
+              const { data: chatRoom, error: roomError } = await supabase
+                .from('design_chat_rooms')
+                .insert({
+                  order_id: insertedOrder.id,
+                  customer_id: insertedOrder.user_id,
+                  artist_id: assignedTask.artist_id,
+                  task_id: customTaskData,
+                  room_name: `Order ${orderNumber} Chat`
+                })
+                .select()
+                .single();
+              
+              if (roomError) {
+                console.error('❌ Error creating chat room:', roomError);
+              } else {
+                console.log(`✅ Chat room created automatically: ${chatRoom.id}`);
+              }
+            } else {
+              console.log(`✅ Chat room already exists: ${existingRoom.id}`);
+            }
+          }
+        } catch (chatError) {
+          console.error('❌ Error in chat room creation during custom design order creation:', chatError);
+          // Don't fail the entire request if chat room creation fails
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error in artist task assignment during custom design order creation:', error);
+      // Don't fail the entire request if artist assignment fails
+    }
 
     // Send confirmation email
     let emailResult = null;

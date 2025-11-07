@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '../../components/admin/Sidebar';
+import BranchMap from '../../components/admin/BranchMap';
 import '../admin/AdminDashboard.css';
 import './admin-shared.css';
 import { API_URL } from '../../config/api';
@@ -604,11 +605,11 @@ const Analytics = () => {
                 
                 {/* Line chart */}
                 <path
-                  d={`M ${analyticsData.totalSales.map((item, index) => {
-                    const x = 40 + (index * 320) / (analyticsData.totalSales.length - 1);
+                  d={analyticsData.totalSales.length > 0 ? analyticsData.totalSales.map((item, index) => {
+                    const x = 40 + (index * 320) / Math.max(analyticsData.totalSales.length - 1, 1);
                     const y = 160 - (item.sales / 60000) * 120;
                     return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-                  }).join(' ')}`}
+                  }).join(' ') : 'M 40 160'}
                   fill="none"
                   stroke="#8b5cf6"
                   strokeWidth="3"
@@ -616,11 +617,11 @@ const Analytics = () => {
                 
                 {/* Area fill */}
                 <path
-                  d={`M 40 160 L ${analyticsData.totalSales.map((item, index) => {
-                    const x = 40 + (index * 320) / (analyticsData.totalSales.length - 1);
+                  d={analyticsData.totalSales.length > 0 ? `M 40 160 L ${analyticsData.totalSales.map((item, index) => {
+                    const x = 40 + (index * 320) / Math.max(analyticsData.totalSales.length - 1, 1);
                     const y = 160 - (item.sales / 60000) * 120;
                     return `${x} ${y}`;
-                  }).join(' L ')} L 360 160 Z`}
+                  }).join(' L ')} L 360 160 Z` : 'M 40 160 L 40 160 Z'}
                   fill="url(#gradient)"
                 />
                 
@@ -944,6 +945,11 @@ const Analytics = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Branch Geographic Map */}
+        <div className="analytics-card geo-distribution-card">
+          <BranchMap />
         </div>
 
         {/* Geographic Distribution */}
