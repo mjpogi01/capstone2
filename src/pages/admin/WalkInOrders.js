@@ -292,6 +292,7 @@ const WalkInOrders = () => {
         status: 'pending',
         shipping_method: orderData.shippingMethod,
         pickup_location: orderData.selectedLocation || null,
+        pickup_branch_id: orderData.selectedBranchId || null,
         delivery_address: orderData.deliveryAddress,
         order_notes: orderData.orderNotes || 'Walk-in order',
         subtotal_amount: orderData.subtotalAmount,

@@ -13,8 +13,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import chatService from '../../services/chatService';
 import { supabase } from '../../lib/supabase';
 import DesignChat from './DesignChat';
+import BranchSupportChat from './BranchSupportChat';
 
 const CustomerChatModal = ({ isOpen, onClose }) => {
+  const [activeTab, setActiveTab] = useState('orders');
   const [chatRooms, setChatRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -132,74 +134,95 @@ const CustomerChatModal = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          {!showChat ? (
-            <div className="customer-chat-list-container">
-              <div className="customer-chat-search">
-                <FontAwesomeIcon icon={faSearch} />
-                <input
-                  type="text"
-                  placeholder="Search by order number or artist name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+          <div className="customer-chat-tabs">
+            <button
+              className={activeTab === 'orders' ? 'active' : ''}
+              onClick={() => setActiveTab('orders')}
+            >
+              Order Chats
+            </button>
+            <button
+              className={activeTab === 'support' ? 'active' : ''}
+              onClick={() => setActiveTab('support')}
+            >
+              Customer Service
+            </button>
+          </div>
 
-              {loading ? (
-                <div className="customer-chat-loading">
-                  <p>Loading chat rooms...</p>
+          {activeTab === 'orders' ? (
+            !showChat ? (
+              <div className="customer-chat-list-container">
+                <div className="customer-chat-search">
+                  <FontAwesomeIcon icon={faSearch} />
+                  <input
+                    type="text"
+                    placeholder="Search by order number or artist name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
-              ) : filteredRooms.length === 0 ? (
-                <div className="customer-chat-empty">
-                  <FontAwesomeIcon icon={faComments} />
-                  <p>No chat rooms found</p>
-                  <span>Start a conversation by placing an order</span>
-                </div>
-              ) : (
-                <div className="customer-chat-rooms-list">
-                  {filteredRooms.map((room) => (
-                    <div
-                      key={room.id}
-                      className={`customer-chat-room-item ${room.unreadCount > 0 ? 'has-unread' : ''}`}
-                      onClick={() => handleRoomClick(room.order_id)}
-                    >
-                      <div className="customer-chat-room-avatar">
-                        <FontAwesomeIcon icon={faUser} />
-                      </div>
-                      <div className="customer-chat-room-info">
-                        <div className="customer-chat-room-header">
-                          <h3>{room.artist.artist_name || 'Artist'}</h3>
-                          {room.unreadCount > 0 && (
-                            <span className="customer-chat-unread-badge">{room.unreadCount}</span>
+
+                {loading ? (
+                  <div className="customer-chat-loading">
+                    <p>Loading chat rooms...</p>
+                  </div>
+                ) : filteredRooms.length === 0 ? (
+                  <div className="customer-chat-empty">
+                    <FontAwesomeIcon icon={faComments} />
+                    <p>No chat rooms found</p>
+                    <span>Start a conversation by placing an order</span>
+                  </div>
+                ) : (
+                  <div className="customer-chat-rooms-list">
+                    {filteredRooms.map((room) => (
+                      <div
+                        key={room.id}
+                        className={`customer-chat-room-item ${room.unreadCount > 0 ? 'has-unread' : ''}`}
+                        onClick={() => handleRoomClick(room.order_id)}
+                      >
+                        <div className="customer-chat-room-avatar">
+                          <FontAwesomeIcon icon={faUser} />
+                        </div>
+                        <div className="customer-chat-room-info">
+                          <div className="customer-chat-room-header">
+                            <h3>{room.artist.artist_name || 'Artist'}</h3>
+                            {room.unreadCount > 0 && (
+                              <span className="customer-chat-unread-badge">{room.unreadCount}</span>
+                            )}
+                          </div>
+                          <div className="customer-chat-room-details">
+                            <span className="customer-chat-order-number">
+                              <FontAwesomeIcon icon={faShoppingBag} />
+                              {room.order.order_number || room.room_name}
+                            </span>
+                          </div>
+                          {room.last_message_at && (
+                            <div className="customer-chat-room-time">
+                              {new Date(room.last_message_at).toLocaleDateString()}
+                            </div>
                           )}
                         </div>
-                        <div className="customer-chat-room-details">
-                          <span className="customer-chat-order-number">
-                            <FontAwesomeIcon icon={faShoppingBag} />
-                            {room.order.order_number || room.room_name}
-                          </span>
-                        </div>
-                        {room.last_message_at && (
-                          <div className="customer-chat-room-time">
-                            {new Date(room.last_message_at).toLocaleDateString()}
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="customer-chat-container">
+                <button className="customer-chat-back-btn" onClick={handleBackToList}>
+                  <FontAwesomeIcon icon={faTimes} />
+                  Back to Chats
+                </button>
+                <DesignChat 
+                  orderId={selectedOrderId} 
+                  isOpen={true} 
+                  onClose={handleBackToList}
+                />
+              </div>
+            )
           ) : (
-            <div className="customer-chat-container">
-              <button className="customer-chat-back-btn" onClick={handleBackToList}>
-                <FontAwesomeIcon icon={faTimes} />
-                Back to Chats
-              </button>
-              <DesignChat 
-                orderId={selectedOrderId} 
-                isOpen={true} 
-                onClose={handleBackToList}
-              />
+            <div className="customer-branch-support-tab">
+              <BranchSupportChat />
             </div>
           )}
         </div>

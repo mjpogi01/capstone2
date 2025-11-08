@@ -18,6 +18,7 @@ const analyticsRouter = require('./routes/analytics');
 const productionWorkflowRouter = require('./routes/production-workflow');
 const chatRouter = require('./routes/chat');
 const artistRouter = require('./routes/artist');
+const branchChatRouter = require('./routes/branch-chat');
 // Using Supabase instead of local database
 
 const app = express();
@@ -69,6 +70,7 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/production-workflow', productionWorkflowRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/artist', artistRouter);
+app.use('/api/branch-chat', branchChatRouter);
 
 const port = process.env.PORT || 4000;
 

@@ -10,6 +10,26 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const STATUS_ORDER = [
+  'pending',
+  'confirmed',
+  'layout',
+  'sizing',
+  'printing',
+  'press',
+  'prod',
+  'packing_completing',
+  'picked_up_delivered',
+  'cancelled'
+];
+
+const STATUS_PRIORITY = STATUS_ORDER.reduce((map, status, index) => {
+  map[status] = index;
+  return map;
+}, {});
+
+const TARGET_STATUS = 'sizing';
+
 const router = express.Router();
 
 // Middleware to authenticate artist
@@ -298,7 +318,7 @@ router.patch('/tasks/:taskId/status', authenticateArtist, async (req, res) => {
     // Verify task belongs to this artist
     const { data: task, error: taskError } = await supabase
       .from('artist_tasks')
-      .select('artist_id')
+      .select('artist_id, order_id')
       .eq('id', taskId)
       .single();
 
@@ -317,6 +337,39 @@ router.patch('/tasks/:taskId/status', authenticateArtist, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    let orderData = null;
+    let orderFetchError = null;
+
+    if (task.order_id) {
+      const { data: fetchedOrder, error: fetchedOrderError } = await supabase
+        .from('orders')
+        .select('id, status')
+        .eq('id', task.order_id)
+        .single();
+
+      if (fetchedOrderError) {
+        orderFetchError = fetchedOrderError;
+        console.error('Error fetching order for task update:', fetchedOrderError);
+      } else {
+        orderData = fetchedOrder;
+      }
+    }
+
+    if (status === 'in_progress') {
+      if (orderFetchError || !orderData) {
+        return res.status(400).json({
+          error: 'Unable to verify order status. Please try again later.'
+        });
+      }
+
+      if (orderData.status !== 'confirmed') {
+        return res.status(400).json({
+          error: 'Order must be in confirmed status before starting this task.',
+          currentStatus: orderData.status
+        });
+      }
+    }
+
     // Update task status
     const { data, error } = await supabase
       .from('artist_tasks')
@@ -331,6 +384,34 @@ router.patch('/tasks/:taskId/status', authenticateArtist, async (req, res) => {
     if (error) {
       console.error('Error updating task status:', error);
       return res.status(500).json({ error: 'Failed to update task status' });
+    }
+
+    if (status === 'submitted' && task?.order_id && orderData) {
+      try {
+        const currentPriority = STATUS_PRIORITY[orderData.status];
+        const targetPriority = STATUS_PRIORITY[TARGET_STATUS];
+
+        if (
+          typeof currentPriority === 'number' &&
+          typeof targetPriority === 'number' &&
+          currentPriority < targetPriority
+        ) {
+          console.log(`🎯 Auto-updating order ${orderData.id} status to ${TARGET_STATUS} after design submission`);
+          const { error: updateOrderError } = await supabase
+            .from('orders')
+            .update({
+              status: TARGET_STATUS,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', task.order_id);
+
+          if (updateOrderError) {
+            console.error('⚠️ Failed to auto-update order status to sizing:', updateOrderError);
+          }
+        }
+      } catch (orderUpdateError) {
+        console.error('⚠️ Unexpected error during order status auto-update:', orderUpdateError);
+      }
     }
 
     res.json(data);

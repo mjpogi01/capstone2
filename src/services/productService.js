@@ -7,6 +7,29 @@ class ProductService {
     }
 
     const trimmed = sizeValue.trim();
+
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          const allSizes = [];
+          if (parsed.shirts) {
+            if (Array.isArray(parsed.shirts.adults)) allSizes.push(...parsed.shirts.adults);
+            if (Array.isArray(parsed.shirts.kids)) allSizes.push(...parsed.shirts.kids);
+          }
+          if (parsed.shorts) {
+            if (Array.isArray(parsed.shorts.adults)) allSizes.push(...parsed.shorts.adults);
+            if (Array.isArray(parsed.shorts.kids)) allSizes.push(...parsed.shorts.kids);
+          }
+          return allSizes
+            .filter(item => typeof item === 'string' && item.trim().length > 0)
+            .map(item => item.trim());
+        }
+      } catch (error) {
+        console.warn('Failed to parse jersey sizes in productService:', error.message);
+      }
+    }
+
     if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) {
       return [];
     }
@@ -36,83 +59,122 @@ class ProductService {
         throw new Error(`Failed to fetch products: ${error.message}`);
       }
       
-      // Fetch ratings for all products
-      const productsWithRatings = await Promise.all(
-        (data || []).map(async (product) => {
-          const rating = await this.getProductAverageRating(product.id);
-          return {
-            ...product,
-            average_rating: rating.average,
-            review_count: rating.count,
-            available_sizes: this.parseAvailableSizes(product.size)
-          };
-        })
-      );
-      
-      return productsWithRatings;
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      throw error;
-    }
-  }
-
-  // Get average rating for a product
-  async getProductAverageRating(productId) {
-    try {
-      // Get product-specific reviews
-      const { data: productReviews, error: productError } = await supabase
-        .from('order_reviews')
-        .select('rating')
-        .eq('product_id', productId);
-
-      if (productError) {
-        console.error('Error fetching product reviews:', productError);
+      if (!data || data.length === 0) {
+        return [];
       }
 
-      // Get order-level reviews for orders containing this product
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('id, order_items')
-        .eq('status', 'picked_up_delivered');
+      const productIds = data
+        .map(product => product.id)
+        .filter(Boolean);
+      const productIdSet = new Set(productIds);
 
-      let orderReviews = [];
-      if (!ordersError && orders) {
-        const relevantOrderIds = orders
-          .filter(order => {
-            const orderItems = order.order_items || [];
-            return orderItems.some(item => item.id === productId);
-          })
-          .map(order => order.id);
+      let productSpecificReviews = [];
+      if (productIds.length > 0) {
+        const { data: reviewsData, error: reviewsError } = await supabase
+          .from('order_reviews')
+          .select('product_id, rating')
+          .in('product_id', productIds);
 
-        if (relevantOrderIds.length > 0) {
-          const { data: reviews } = await supabase
-            .from('order_reviews')
-            .select('rating')
-            .is('product_id', null)
-            .in('order_id', relevantOrderIds);
-          
-          orderReviews = reviews || [];
+        if (reviewsError) {
+          console.error('Error fetching product-specific reviews:', reviewsError);
+        } else {
+          productSpecificReviews = reviewsData || [];
         }
       }
 
-      // Combine all ratings
-      const allRatings = [
-        ...(productReviews || []),
-        ...orderReviews
-      ].map(r => r.rating).filter(r => r !== null && r !== undefined);
+      const { data: orderLevelReviews, error: orderLevelError } = await supabase
+        .from('order_reviews')
+        .select('order_id, rating')
+        .is('product_id', null);
 
-      if (allRatings.length === 0) {
-        return { average: 0, count: 0 };
+      if (orderLevelError) {
+        console.error('Error fetching order-level reviews:', orderLevelError);
       }
 
-      const average = allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length;
-      return {
-        average: Math.round(average * 10) / 10, // Round to 1 decimal
-        count: allRatings.length
+      const relevantOrderIds = (orderLevelReviews || [])
+        .map(review => review.order_id)
+        .filter(Boolean);
+
+      let deliveredOrders = [];
+      if (relevantOrderIds.length > 0) {
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select('id, order_items')
+          .eq('status', 'picked_up_delivered')
+          .in('id', Array.from(new Set(relevantOrderIds)));
+
+        if (ordersError) {
+          console.error('Error fetching delivered orders:', ordersError);
+        } else {
+          deliveredOrders = ordersData || [];
+        }
+      }
+
+      const ratingsByProduct = new Map();
+
+      const normalizeOrderItems = (orderItems) => {
+        if (!orderItems) {
+          return [];
+        }
+        if (Array.isArray(orderItems)) {
+          return orderItems;
+        }
+        try {
+          const parsed = JSON.parse(orderItems);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (parseError) {
+          console.warn('Failed to parse order_items in productService:', parseError?.message);
+          return [];
+        }
       };
+
+      const addRating = (productId, rating) => {
+        if (!productId || rating === null || rating === undefined) {
+          return;
+        }
+        if (!ratingsByProduct.has(productId)) {
+          ratingsByProduct.set(productId, []);
+        }
+        ratingsByProduct.get(productId).push(rating);
+      };
+
+      for (const review of productSpecificReviews) {
+        addRating(review.product_id, review.rating);
+      }
+
+      if (orderLevelReviews && orderLevelReviews.length > 0 && deliveredOrders.length > 0) {
+        const orderMap = deliveredOrders.reduce((acc, order) => {
+          acc.set(order.id, normalizeOrderItems(order.order_items));
+          return acc;
+        }, new Map());
+
+        for (const review of orderLevelReviews) {
+          const items = orderMap.get(review.order_id) || [];
+          for (const item of items) {
+            if (item && productIdSet.has(item.id)) {
+              addRating(item.id, review.rating);
+            }
+          }
+        }
+      }
+
+      return data.map(product => {
+        const ratings = ratingsByProduct.get(product.id) || [];
+        const count = ratings.length;
+        const average = count === 0
+          ? 0
+          : Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / count) * 10) / 10;
+
+        return {
+          ...product,
+          average_rating: average,
+          review_count: count,
+          available_sizes: this.parseAvailableSizes(product.size)
+        };
+      });
     } catch (error) {
-      console.error('Error calculating product rating:', error);
-      return { average: 0, count: 0 };
+      console.error('Error fetching products:', error);
+      throw error;
     }
   }
 

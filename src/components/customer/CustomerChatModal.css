@@ -59,6 +59,37 @@
   gap: 0.75rem;
 }
 
+.customer-chat-tabs {
+  display: flex;
+  background: #212121;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid #2a2a2a;
+  gap: 0.75rem;
+}
+
+.customer-chat-tabs button {
+  background: none;
+  border: 0;
+  color: #a1a1aa;
+  padding: 0.85rem 1.2rem;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.customer-chat-tabs button.active {
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.customer-branch-support-tab {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .customer-chat-close-btn {
   width: 36px;
   height: 36px;
@@ -328,5 +359,8 @@
     padding: 0.75rem;
   }
 }
+
+
+
 
 

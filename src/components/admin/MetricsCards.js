@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './MetricsCards.css';
+import API_URL from '../../config/api';
+import { authFetch } from '../../services/apiClient';
 
 const MetricsCards = () => {
   const [metrics, setMetrics] = useState([
@@ -36,7 +38,7 @@ const MetricsCards = () => {
       setLoading(true);
       
       // Fetch analytics data from API
-      const response = await fetch('http://localhost:4000/api/analytics/dashboard');
+      const response = await authFetch(`${API_URL}/api/analytics/dashboard`);
       const result = await response.json();
       
       if (result.success && result.data) {

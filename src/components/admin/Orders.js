@@ -560,12 +560,15 @@ const Orders = () => {
       console.log('🎨 Design upload result:', result);
       
       // Update the order in the state with new design files and status
+      const updatedDesignFiles = Array.isArray(result.designFiles) ? result.designFiles : [];
+
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId
             ? { 
                 ...order, 
-                design_files: result.designFiles,
+                designFiles: updatedDesignFiles,
+                design_files: updatedDesignFiles,
                 status: result.newStatus || order.status
               }
             : order
@@ -576,7 +579,8 @@ const Orders = () => {
           order.id === orderId
             ? { 
                 ...order, 
-                design_files: result.designFiles,
+                designFiles: updatedDesignFiles,
+                design_files: updatedDesignFiles,
                 status: result.newStatus || order.status
               }
             : order
@@ -921,6 +925,13 @@ const Orders = () => {
           {(() => {
             const order = orders.find(o => o.id === expandedOrder);
             if (!order) return null;
+            const userRole = user?.user_metadata?.role || 'customer';
+            const designFiles = Array.isArray(order.designFiles)
+              ? order.designFiles
+              : Array.isArray(order.design_files)
+                ? order.design_files
+                : [];
+            const canViewDesignFiles = ['admin', 'owner'].includes(userRole);
             
             return (
               <div className="order-details-content" onClick={(e) => e.stopPropagation()}>
@@ -1245,6 +1256,54 @@ const Orders = () => {
                       <p className="status-description">
                         Update the order status as it progresses through fulfillment.
                       </p>
+
+                      {canViewDesignFiles && (
+                        <div className="design-files-section inside-status">
+                          <h5 className="design-files-heading">
+                            <FaFileAlt className="design-files-heading-icon" />
+                            Submitted Design Files
+                            {designFiles.length > 0 && (
+                              <span className="design-files-count">({designFiles.length})</span>
+                            )}
+                          </h5>
+
+                          {designFiles.length > 0 ? (
+                            <div className="design-files-grid">
+                              {designFiles.map((file, index) => (
+                                <a
+                                  key={file.publicId || `${index}-${file.url}`}
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="design-file-card"
+                                  title={file.filename || `Design File ${index + 1}`}
+                                >
+                                  <div className="design-file-icon-wrapper">
+                                    <span className="design-file-icon">
+                                      {designUploadService.getFileTypeIcon(file.filename || '')}
+                                    </span>
+                                  </div>
+                                  <div className="design-file-info">
+                                    <div className="design-file-name">
+                                      {file.filename || `Design File ${index + 1}`}
+                                    </div>
+                                    {file.uploadedAt && (
+                                      <div className="design-file-timestamp">
+                                        Uploaded {new Date(file.uploadedAt).toLocaleString()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="design-file-open">View</div>
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="design-files-empty">
+                              No design files submitted yet.
+                            </div>
+                          )}
+                        </div>
+                      )}
                       
                       <div className="status-buttons">
                         {/* Pending Orders */}
