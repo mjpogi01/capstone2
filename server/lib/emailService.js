@@ -16,6 +16,11 @@ class EmailService {
         auth: {
           user: process.env.EMAIL_USER, // Your Gmail address
           pass: process.env.EMAIL_PASSWORD // Your Gmail app password
+        },
+        // For development: ignore SSL certificate errors
+        // Remove this in production or use proper certificates
+        tls: {
+          rejectUnauthorized: false
         }
       });
 

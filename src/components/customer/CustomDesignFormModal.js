@@ -56,8 +56,9 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     if (!teamName.trim()) e.teamName = 'Team name is required';
     
     // Shipping method validation
-    if (shippingMethod === 'pickup' && !pickupBranchId) {
-      e.pickup = 'Please select a pickup location';
+    // Location is required for both pickup and delivery (COD)
+    if (!pickupBranchId) {
+      e.pickup = 'Please select a branch location';
     }
     if (shippingMethod === 'delivery' && !deliveryAddress.trim()) {
       e.deliveryAddress = 'Delivery address is required';
@@ -598,34 +599,35 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             </section>
           </div>
 
-          {/* Pickup Location - Show only if pickup is selected */}
-          {shippingMethod === 'pickup' && (
-            <section className="cdfm-card">
-              <h3 className="cdfm-card-title">Pickup Location</h3>
-              <div className="cdfm-field">
-                <label>Select a branch <span className="cdfm-required">*</span></label>
-                <select
-                  className={`cdfm-field select ${showErrors && errors.pickup ? 'error' : ''}`}
-                  value={pickupBranchId}
-                  onChange={(e) => {
-                    setPickupBranchId(e.target.value);
-                    // Clear error when user selects a branch
-                    if (showErrors && e.target.value) {
-                      setShowErrors(false);
-                    }
-                  }}
+          {/* Branch Location - Required for both pickup and delivery (COD) */}
+          <section className="cdfm-card">
+            <h3 className="cdfm-card-title">Select the Nearest Branch</h3>
+            <div className="cdfm-field">
+              <label>Select the nearest branch <span className="cdfm-required">*</span></label>
+              <select
+                className={`cdfm-field select ${showErrors && errors.pickup ? 'error' : ''}`}
+                value={pickupBranchId}
+                onChange={(e) => {
+                  setPickupBranchId(e.target.value);
+                  // Clear error when user selects a branch
+                  if (showErrors && e.target.value) {
+                    setShowErrors(false);
+                  }
+                }}
                 >
-                  <option value="">Choose a pickup location</option>
+                  <option value="">Choose the nearest branch</option>
                   {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-                {pickupBranchId && (
-                  <small className="cdfm-helper">{branches.find(b => b.id === pickupBranchId)?.address}</small>
-                )}
-              </div>
-            </section>
-          )}
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+              {pickupBranchId && (
+                <small className="cdfm-helper">{branches.find(b => b.id === pickupBranchId)?.address}</small>
+              )}
+              {showErrors && errors.pickup && (
+                <span className="cdfm-inline-error">{errors.pickup}</span>
+              )}
+            </div>
+          </section>
 
           {/* Delivery Address - Show only if delivery is selected */}
           {shippingMethod === 'delivery' && (

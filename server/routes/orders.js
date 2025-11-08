@@ -55,15 +55,21 @@ function orderMatchesBranch(order, branchContext) {
  
   const { branchId, normalizedName } = branchContext;
   const normalizedBranchId = Number.isNaN(branchId) ? null : branchId;
+  
+  // Try to get branch ID from order (check multiple possible fields)
   const orderBranchId = order?.pickup_branch_id !== undefined && order?.pickup_branch_id !== null
     ? parseInt(order.pickup_branch_id, 10)
     : order?.branch_id !== undefined && order?.branch_id !== null
       ? parseInt(order.branch_id, 10)
       : null;
-
-  const matchesId = normalizedBranchId !== null && orderBranchId === normalizedBranchId;
+ 
+  // Match by ID if both are available
+  const matchesId = normalizedBranchId !== null && orderBranchId !== null && orderBranchId === normalizedBranchId;
+  
+  // Match by name (this is the primary method since pickup_branch_id doesn't exist)
   const matchesName = normalizedName ? shouldMatchByName(branchContext, order) : false;
-
+ 
+  // If we can't match by ID, rely on name matching
   return matchesId || matchesName;
 }
 
@@ -72,17 +78,16 @@ function applyBranchFilter(queryBuilder, branchContext) {
     return queryBuilder;
   }
  
-  const branchIdValue = String(branchContext.branchId);
- 
+  // Use pickup_location for filtering since pickup_branch_id doesn't exist in the database
   if (branchContext.branchName) {
     const escapedName = branchContext.branchName.replace(/"/g, '\\"').replace(/%/g, '\\%').replace(/_/g, '\\_');
     const pattern = `%${escapedName}%`;
-    return queryBuilder.or(
-      `pickup_branch_id.eq.${branchIdValue},pickup_location.ilike."${pattern}"`
-    );
+    return queryBuilder.ilike('pickup_location', pattern);
   }
-
-  return queryBuilder.eq('pickup_branch_id', branchIdValue);
+ 
+  // If we have branchId but no branchName, try to match by pickup_location
+  // This is a fallback - ideally we'd have a branch_id column
+  return queryBuilder;
 }
 
 function ensureOrderAccess(order, branchContext) {
@@ -836,7 +841,7 @@ router.post('/', async (req, res) => {
           status: body.status || 'pending',
           shipping_method: shippingMethod,
           pickup_location: resolvedPickupLocation,
-          pickup_branch_id: pickupBranchId,
+          // Note: pickup_branch_id column doesn't exist in the database, so we only use pickup_location
           delivery_address: deliveryAddress || null,
           order_notes: orderNotes,
           subtotal_amount: subtotalAmount,

@@ -1090,7 +1090,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                 
                 {/* Location selector shown for both pickup and COD */}
                 <div className="location-selector">
-                  <label className="location-label">Select Branch Location:</label>
+                  <label className="location-label">Select the Nearest Branch <span style={{color: '#ff4444'}}>*</span>:</label>
                   <div className="location-dropdown" onClick={() => setShowLocationDropdown(!showLocationDropdown)}>
                     <span className="location-text">{selectedLocation}</span>
                     <FaChevronDown className="dropdown-arrow" />

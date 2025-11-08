@@ -660,7 +660,7 @@ router.get('/customer-locations', async (req, res) => {
     // Also get delivery addresses from orders
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
-      .select('user_id, delivery_address, pickup_branch_id, pickup_location')
+      .select('user_id, delivery_address, pickup_location')
       .not('delivery_address', 'is', null)
       .eq('shipping_method', 'cod');
  

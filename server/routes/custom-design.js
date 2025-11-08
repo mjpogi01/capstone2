@@ -170,8 +170,8 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
         design_images: designImages,
         client_name: clientName,
         client_email: email,
-        client_phone: phone,
-        pickup_branch_id: shippingMethod === 'pickup' ? pickupBranchId : null
+        client_phone: phone
+        // Note: pickup_branch_id column doesn't exist in the database, so we only use pickup_location
       }],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
