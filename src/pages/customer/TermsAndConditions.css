@@ -214,6 +214,61 @@
   box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
 }
 
+/* Tablet Landscape (769px - 1024px, landscape) - Desktop UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  /* Uses desktop styles - minimal overrides if needed */
+}
+
+/* Tablet Portrait (769px - 1024px, portrait) - Mobile UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .terms-container {
+    padding: 80px 0 2rem 0;
+  }
+
+  .terms-wrapper {
+    padding: 0 1.5rem;
+  }
+
+  .terms-title {
+    font-size: 2rem;
+  }
+
+  .terms-subtitle {
+    font-size: 1rem;
+  }
+
+  .terms-section {
+    padding: 1.5rem;
+  }
+
+  .terms-section-title {
+    font-size: 1.3rem;
+  }
+
+  .terms-text,
+  .terms-list li {
+    font-size: 0.95rem;
+  }
+
+  .terms-contact {
+    padding: 2rem 1.5rem;
+  }
+
+  .terms-contact-title {
+    font-size: 1.5rem;
+  }
+
+  .terms-contact-buttons {
+    flex-direction: column;
+  }
+
+  .terms-contact-button {
+    width: 100%;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
   .terms-container {

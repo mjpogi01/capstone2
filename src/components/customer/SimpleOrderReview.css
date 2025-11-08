@@ -119,7 +119,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #00bfff;
+  color: #ffffff;
   font-family: 'Oswald', sans-serif;
 }
 
@@ -158,7 +158,7 @@
 
 .form-group label {
   display: block;
-  color: #ffffff;
+  color: #ffffff !important;
   font-weight: 600;
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
@@ -210,10 +210,10 @@
 .review-comment {
   width: 100%;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1) !important;
   border: 1px solid rgba(0, 191, 255, 0.3);
   border-radius: 6px;
-  color: #ffffff;
+  color: #ffffff !important;
   font-size: 0.95rem;
   resize: vertical;
   min-height: 100px;
@@ -243,8 +243,9 @@
 
 .form-actions {
   display: flex;
+  flex-direction: row;
   gap: 1rem;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   margin-top: 1.5rem;
   padding: 1rem 0;
@@ -268,7 +269,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
+  flex: 1;
 }
 
 .cancel-btn:hover {
@@ -294,7 +295,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 191, 255, 0.3);
-  flex: 0 0 auto;
+  flex: 1;
 }
 
 .submit-btn:hover:not(:disabled) {
@@ -315,48 +316,461 @@
   border-color: #666;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* ========================================
+   MOBILE RESPONSIVE DESIGN - REVIEW POPUP
+   ======================================== */
+
+/* Large Mobile Devices (481px - 768px) */
+@media only screen and (max-width: 768px) {
+  .review-popup-overlay {
+    padding: 0;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
   .review-popup-content {
-    margin: 10px;
-    max-width: calc(100vw - 20px);
+    width: 100%;
+    max-width: 100%;
+    max-height: 95vh;
+    border-radius: 24px 24px 0 0;
+    margin: 0;
+    border-left: none;
+    border-right: none;
+    border-top: 2px solid #00bfff;
+    border-bottom: none;
+    box-shadow: 0 -10px 40px rgba(0, 191, 255, 0.4);
+    animation: popupSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  
+
+  @keyframes popupSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .review-popup-header {
-    padding: 16px 20px;
+    padding: 20px 24px;
+    border-radius: 24px 24px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
   }
-  
+
+  .review-popup-header h3 {
+    font-size: 22px;
+    letter-spacing: 0.5px;
+  }
+
+  .close-popup-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 26px;
+    touch-action: manipulation;
+  }
+
   .review-popup-form {
-    padding: 20px;
+    padding: 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
-  
-  .form-actions {
+
+  .form-group {
+    margin-bottom: 1.75rem;
+  }
+
+  .form-group label {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .rating-input {
     flex-direction: column;
+    gap: 1.25rem;
+    align-items: center;
+  }
+
+  .star-rating {
     gap: 0.75rem;
   }
-  
+
+  .star {
+    font-size: 2rem;
+    padding: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  .rating-text {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .review-comment {
+    padding: 1rem;
+    font-size: 1rem;
+    min-height: 120px;
+    border-width: 2px;
+    line-height: 1.6;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    gap: 1rem;
+    padding: 1.5rem 0 0 0;
+    margin-top: 2rem;
+    justify-content: space-between;
+  }
+
   .cancel-btn,
   .submit-btn {
-    width: 100%;
+    flex: 1;
     min-width: unset;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    min-height: 48px;
+    touch-action: manipulation;
+  }
+
+  .write-review-btn {
+    padding: 0.875rem 1.75rem;
+    font-size: 0.95rem;
+    min-height: 44px;
+  }
+
+  .existing-review-badge {
+    padding: 0.875rem 1.75rem;
+    font-size: 0.9rem;
   }
 }
 
-@media (max-width: 480px) {
-  .review-popup-content {
-    margin: 5px;
-    max-width: calc(100vw - 10px);
+/* Small Mobile Devices (320px - 480px) */
+@media only screen and (max-width: 480px) {
+  .review-popup-overlay {
+    background: rgba(0, 0, 0, 0.98);
   }
-  
+
+  .review-popup-content {
+    max-height: 98vh;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 30px rgba(0, 191, 255, 0.5);
+  }
+
+  .review-popup-header {
+    padding: 18px 20px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .review-popup-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .close-popup-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+
+  .review-popup-form {
+    padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.95rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .rating-input {
+    gap: 1rem;
+  }
+
+  .star-rating {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .star {
+    font-size: 1.75rem;
+    padding: 0.4rem;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .rating-text {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  .review-comment {
+    padding: 0.875rem;
+    font-size: 0.95rem;
+    min-height: 110px;
+    border-radius: 8px;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    gap: 0.875rem;
+    padding: 1.25rem 0 0 0;
+    margin-top: 1.75rem;
+    justify-content: space-between;
+  }
+
+  .cancel-btn,
+  .submit-btn {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+    min-height: 46px;
+    border-radius: 10px;
+  }
+
+  .write-review-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    min-height: 42px;
+    border-radius: 10px;
+  }
+
+  .existing-review-badge {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.85rem;
+    border-radius: 10px;
+  }
+}
+
+/* Extra Small Mobile Devices (max-width: 360px) */
+@media only screen and (max-width: 360px) {
+  .review-popup-header {
+    padding: 16px 18px;
+  }
+
   .review-popup-header h3 {
     font-size: 18px;
   }
-  
-  .review-popup-form {
-    padding: 16px;
+
+  .close-popup-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
   }
-  
+
+  .review-popup-form {
+    padding: 18px;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+
   .star {
     font-size: 1.5rem;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .rating-text {
+    font-size: 0.95rem;
+  }
+
+  .review-comment {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    min-height: 100px;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    gap: 0.75rem;
+    padding: 1rem 0 0 0;
+    margin-top: 1.5rem;
+    justify-content: space-between;
+  }
+
+  .cancel-btn,
+  .submit-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+}
+
+/* Landscape Mobile Orientation */
+@media only screen and (max-width: 768px) and (orientation: landscape) {
+  .review-popup-overlay {
+    align-items: center;
+    padding: 10px;
+  }
+
+  .review-popup-content {
+    max-height: 90vh;
+    border-radius: 16px;
+    border: 2px solid #00bfff;
+    border-top: 2px solid #00bfff;
+    animation: popupSlideIn 0.3s ease-out;
+  }
+
+  .review-popup-header {
+    position: relative;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .review-popup-form {
+    padding: 20px;
+  }
+
+  .rating-input {
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .star {
+    font-size: 1.6rem;
+  }
+}
+
+/* Tablet Landscape (769px - 1024px, landscape) - Desktop/Laptop UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  /* Uses desktop styles - minimal overrides if needed */
+  .review-popup-content {
+    max-width: 500px;
+  }
+}
+
+/* Tablet Portrait (769px - 1024px, portrait) - Mobile UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .review-popup-overlay {
+    padding: 0;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .review-popup-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 95vh;
+    border-radius: 24px 24px 0 0;
+    margin: 0;
+    border-left: none;
+    border-right: none;
+    border-top: 2px solid #00bfff;
+    border-bottom: none;
+    box-shadow: 0 -10px 40px rgba(0, 191, 255, 0.4);
+    animation: popupSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .review-popup-header {
+    padding: 20px 24px;
+    border-radius: 24px 24px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+  }
+
+  .review-popup-header h3 {
+    font-size: 22px;
+    letter-spacing: 0.5px;
+  }
+
+  .close-popup-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 26px;
+    touch-action: manipulation;
+  }
+
+  .review-popup-form {
+    padding: 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .form-group {
+    margin-bottom: 1.75rem;
+  }
+
+  .form-group label {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .rating-input {
+    flex-direction: column;
+    gap: 1.25rem;
+    align-items: center;
+  }
+
+  .star-rating {
+    gap: 0.75rem;
+  }
+
+  .star {
+    font-size: 2rem;
+    padding: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  .rating-text {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .review-comment {
+    padding: 1rem;
+    font-size: 1rem;
+    min-height: 120px;
+    border-width: 2px;
+    line-height: 1.6;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    gap: 1rem;
+    padding: 1.5rem 0 0 0;
+    margin-top: 2rem;
+    justify-content: space-between;
+  }
+
+  .cancel-btn,
+  .submit-btn {
+    flex: 1;
+    min-width: unset;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    min-height: 48px;
+    touch-action: manipulation;
+  }
+
+  .write-review-btn {
+    padding: 0.875rem 1.75rem;
+    font-size: 0.95rem;
+    min-height: 44px;
+  }
+
+  .existing-review-badge {
+    padding: 0.875rem 1.75rem;
+    font-size: 0.9rem;
   }
 }

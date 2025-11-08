@@ -435,6 +435,73 @@
   }
 }
 
+/* Tablet Landscape (769px - 1024px, landscape) - Desktop UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  /* Uses desktop styles - minimal overrides if needed */
+}
+
+/* Tablet Portrait (769px - 1024px, portrait) - Mobile UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .contacts-container {
+    padding: 90px 0 2rem 0;
+  }
+  
+  .contacts-wrapper {
+    padding: 0 1.5rem;
+    max-width: 100%;
+  }
+  
+  .contacts-hero {
+    padding: 1.5rem 0;
+    margin-bottom: 2.5rem;
+  }
+  
+  .contacts-title {
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+    padding: 0 0.5rem;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+  
+  .contacts-subtitle {
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    padding: 0 0.5rem;
+    max-width: 95%;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  
+  .contacts-branches-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  
+  .contacts-branch-card {
+    padding: 1.5rem;
+  }
+  
+  .contacts-form-section {
+    padding: 2rem;
+    margin-bottom: 3rem;
+  }
+  
+  .contacts-form-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .contacts-form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .contacts-map-link {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+}
+
 /* Landscape orientation on mobile */
 @media (max-height: 500px) and (orientation: landscape) {
   .contacts-container {

@@ -1313,20 +1313,24 @@
     position: fixed;
     top: 0;
     left: -100%;
-    width: 85%;
-    max-width: 320px;
-    min-width: 280px;
+    width: 90%;
+    max-width: 300px;
+    min-width: 260px;
     height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
     background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
     display: flex;
     flex-direction: column;
-    padding: 1.875rem 1.5rem 2rem 1.5rem;
+    padding: 1.25rem 1rem 1.5rem 1rem;
     box-shadow: 2px 0 20px rgba(0, 191, 255, 0.3);
     z-index: 1000;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
-    gap: 0.75rem;
+    overflow-x: hidden;
+    gap: 0.5rem;
     margin-left: 0;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   }
   
   .nav-menu.mobile-open {
@@ -1337,23 +1341,28 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding: 1.125rem 1.5rem;
+    padding: 0.875rem 1rem;
     margin: 0;
     background: rgba(0, 191, 255, 0.05) !important;
     border: 1px solid rgba(0, 191, 255, 0.2) !important;
-    border-radius: 10px;
+    border-radius: 8px;
     transition: all 0.3s ease;
     width: 100%;
     text-align: left;
+    box-sizing: border-box;
     /* Reset gradient text - make text visible on mobile */
     -webkit-text-fill-color: rgba(255, 255, 255, 0.9) !important;
     -webkit-background-clip: initial !important;
     background-clip: initial !important;
     color: rgba(255, 255, 255, 0.9) !important;
     font-weight: 600;
-    font-size: 1rem;
-    line-height: 1.5;
-    min-height: 48px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    min-height: 44px;
+    max-height: 44px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .nav-link:hover {
@@ -1660,20 +1669,24 @@
     position: fixed;
     top: 0;
     left: -100%;
-    width: 85%;
-    max-width: 320px;
-    min-width: 280px;
+    width: 90%;
+    max-width: 300px;
+    min-width: 260px;
     height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
     background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
     display: flex;
     flex-direction: column;
-    padding: 2.5rem 1.5rem 2rem 1.5rem;
+    padding: 1.25rem 1rem 1.5rem 1rem;
     box-shadow: 2px 0 20px rgba(0, 191, 255, 0.3);
     z-index: 1000;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
-    gap: 0.75rem;
+    overflow-x: hidden;
+    gap: 0.5rem;
     margin-left: 0;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   }
   
   .nav-menu.mobile-open {
@@ -1684,23 +1697,28 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding: 1.125rem 1.5rem;
+    padding: 0.875rem 1rem;
     margin: 0;
     background: rgba(0, 191, 255, 0.05) !important;
     border: 1px solid rgba(0, 191, 255, 0.2) !important;
-    border-radius: 10px;
+    border-radius: 8px;
     transition: all 0.3s ease;
     width: 100%;
     text-align: left;
+    box-sizing: border-box;
     /* Reset gradient text - make text visible on tablet portrait */
     -webkit-text-fill-color: rgba(255, 255, 255, 0.9) !important;
     -webkit-background-clip: initial !important;
     background-clip: initial !important;
     color: rgba(255, 255, 255, 0.9) !important;
     font-weight: 600;
-    font-size: 1rem;
-    line-height: 1.5;
-    min-height: 48px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    min-height: 44px;
+    max-height: 44px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .nav-link:hover {
@@ -1756,36 +1774,41 @@
   .mobile-menu-actions {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
     border-top: 1px solid rgba(0, 191, 255, 0.3);
+    flex-shrink: 0;
   }
 
   .mobile-action-link {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 1rem;
-    padding: 1.125rem 1.5rem;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
     margin: 0;
     background: rgba(0, 191, 255, 0.05);
     border: 1px solid rgba(0, 191, 255, 0.2);
-    border-radius: 10px;
+    border-radius: 8px;
     color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     transition: all 0.3s ease;
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     cursor: pointer;
     width: 100%;
     text-align: left;
     position: relative;
-    min-height: 48px;
-    line-height: 1.5;
+    min-height: 44px;
+    max-height: 44px;
+    line-height: 1.4;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   .mobile-action-link:hover {
@@ -1797,8 +1820,8 @@
   }
 
   .mobile-action-link svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
     color: currentColor;
     display: flex;
@@ -1810,23 +1833,27 @@
     display: flex;
     align-items: center;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .mobile-action-badge {
     margin-left: auto;
     background: linear-gradient(135deg, #00bfff, #0099cc);
     color: white;
-    border-radius: 12px;
-    min-width: 24px;
-    height: 24px;
+    border-radius: 10px;
+    min-width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    padding: 0 0.5rem;
+    padding: 0 0.4rem;
     border: none;
-    box-shadow: 0 2px 8px rgba(0, 191, 255, 0.4);
+    box-shadow: 0 2px 6px rgba(0, 191, 255, 0.4);
+    flex-shrink: 0;
   }
 
   /* Logout link - red theme */
@@ -2107,25 +2134,44 @@
   
   /* Smaller sidebar on small screens */
   .nav-menu {
-    width: 85%;
-    max-width: 320px;
-    min-width: 260px;
-    padding: 1.375rem 1.25rem 1.5rem 1.25rem;
+    width: 92%;
+    max-width: 280px;
+    min-width: 240px;
+    padding: 1rem 0.875rem 1.25rem 0.875rem;
+    gap: 0.4rem;
   }
   
   .nav-link {
-    padding: 1rem 1.25rem;
-    font-size: 0.95rem;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.85rem;
+    min-height: 40px;
+    max-height: 40px;
+  }
+  
+  .mobile-menu-actions {
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
   }
   
   .mobile-action-link {
-    padding: 1rem 1.25rem;
-    font-size: 0.95rem;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.85rem;
+    min-height: 40px;
+    max-height: 40px;
+    letter-spacing: 0.2px;
   }
   
   .mobile-action-link svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+  }
+  
+  .mobile-action-badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+    padding: 0 0.35rem;
   }
 }
 

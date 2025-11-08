@@ -206,8 +206,8 @@
   line-height: 1.5;
 }
 
-/* Tablet styles - Keep desktop layout for tablets */
-@media (min-width: 769px) and (max-width: 1024px) {
+/* Tablet Landscape (769px - 1024px, landscape) - Desktop UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
   .footer-content {
     grid-template-columns: 1fr 1fr 1fr;
     gap: 2.5rem;
@@ -235,6 +235,63 @@
   }
   
   .contact-link {
+    font-size: 0.85rem;
+  }
+}
+
+/* Tablet Portrait (769px - 1024px, portrait) - Mobile UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .footer {
+    padding: 2.5rem 0 1.5rem;
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 0 1.5rem;
+  }
+  
+  .footer-section {
+    text-align: center;
+  }
+  
+  .footer-logo-image {
+    height: 50px;
+    margin: 0 auto;
+  }
+  
+  .footer-tagline {
+    font-size: 0.9rem;
+    margin: 0.5rem auto 1.5rem;
+  }
+  
+  .footer-nav {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .footer-link {
+    font-size: 0.9rem;
+  }
+  
+  .contact-title {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .contact-link {
+    font-size: 0.9rem;
+    justify-content: center;
+  }
+  
+  .footer-bottom {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .copyright {
     font-size: 0.85rem;
   }
 }

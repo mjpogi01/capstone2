@@ -23,3 +23,4 @@ ADD COLUMN IF NOT EXISTS trophy_details JSONB;
 
 
 
+

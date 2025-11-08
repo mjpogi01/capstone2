@@ -252,6 +252,65 @@
 }
 
 
+/* Tablet Landscape (769px - 1024px, landscape) - Desktop UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  /* Uses desktop styles - minimal overrides if needed */
+}
+
+/* Tablet Portrait (769px - 1024px, portrait) - Mobile UI */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .logout-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    text-align: center;
+  }
+
+  .logout-message-section {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logout-icon {
+    margin: 0 auto 1.5rem;
+  }
+
+  .logout-title {
+    font-size: 2rem;
+  }
+
+  .logout-description,
+  .logout-welcome {
+    text-align: center;
+  }
+
+  .logout-buttons {
+    justify-content: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .logout-btn {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.75rem 1.5rem;
+  }
+
+  .form-preview-card {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  .form-preview-header h3 {
+    font-size: 1.5rem;
+  }
+
+  .preview-btn {
+    padding: 1rem;
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 968px) {
   .logout-container {

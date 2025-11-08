@@ -597,6 +597,100 @@
 }
 
 /* ======================
+   TABLET LANDSCAPE (769px - 1024px, landscape) - Desktop UI
+   ====================== */
+
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  /* Uses desktop styles - minimal overrides if needed */
+  .container {
+    max-width: 1000px;
+    padding: 0 2rem;
+  }
+  
+  .features-grid {
+    gap: 1.75rem;
+  }
+  
+  .feature-card {
+    max-width: 220px;
+    padding: 1.75rem;
+  }
+}
+
+/* ======================
+   TABLET PORTRAIT (769px - 1024px, portrait) - Mobile UI
+   ====================== */
+
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .about-page {
+    padding: 100px 0 2rem 0;
+  }
+  
+  .container {
+    padding: 0 5%;
+    max-width: 100%;
+  }
+  
+  .about-hero {
+    padding: 2rem 0;
+    margin-bottom: 3rem;
+  }
+  
+  .about-tagline {
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    margin: 1rem auto;
+    padding: 0 1rem;
+    max-width: 90%;
+  }
+  
+  .about-subtitle {
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
+    margin: 1rem auto;
+    padding: 0 1rem;
+    max-width: 90%;
+  }
+  
+  .why-section {
+    margin-bottom: 3rem;
+    padding: 2rem 0;
+  }
+  
+  .why-title {
+    margin-bottom: 2.5rem;
+    padding: 0 1rem;
+  }
+  
+  .features-grid {
+    gap: 1.5rem;
+    padding: 0 5%;
+  }
+  
+  .feature-card {
+    padding: 1.5rem;
+    width: 90%;
+    max-width: 350px;
+    margin: 0 auto;
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.15);
+  }
+  
+  .feature-icon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 1rem;
+  }
+  
+  .feature-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .feature-description {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+}
+
+/* ======================
    LANDSCAPE ORIENTATION (Mobile)
    ====================== */
 
