@@ -104,7 +104,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       : [{ id: Date.now(), teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' }]
   );
   const [teamName, setTeamName] = useState(existingCartItemData?.teamMembers?.[0]?.teamName || '');
-  const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' });
+  const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M' });
   const [sizeType, setSizeType] = useState(existingCartItemData?.sizeType || 'adult'); // 'adult' or 'kids'
   const [jerseyType, setJerseyType] = useState(existingCartItemData?.jerseyType || 'full'); // 'full', 'shirt', 'shorts'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -174,7 +174,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setIsTeamOrder(existingCartItemData.isTeamOrder || false);
       setTeamMembers(existingCartItemData.teamMembers || []);
       setTeamName(existingCartItemData.teamMembers?.[0]?.teamName || '');
-      setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' });
+      setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M' });
       setJerseyType(existingCartItemData.jerseyType || 'full');
     } else if (isOpen && !existingCartItemData) {
       // Reset to defaults when opening modal for a new product
@@ -183,7 +183,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setIsTeamOrder(false);
       setTeamMembers([{ id: Date.now(), teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' }]);
       setTeamName('');
-      setSingleOrderDetails({ teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' });
+      setSingleOrderDetails({ teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M' });
       setJerseyType('full');
     }
   }, [isOpen, existingCartItemData]);
@@ -413,8 +413,6 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return basePrice;
   }, [product, isTrophy, isJerseyCategory, jerseyPrices, trophyPrices, jerseyType, sizeType, trophyDetails]);
 
-  if (!isOpen || !product) return null;
-
   // Get available sizes for shirts and shorts based on size type
   const getShirtSizes = () => {
     if (jerseySizes) {
@@ -439,6 +437,81 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const shirtSizes = getShirtSizes();
   const shortSizes = getShortSizes();
   const sizes = sizeType === 'adult' ? ['XS', 'S', 'M', 'L', 'XL', 'XXL'] : ['2XS', 'XS', 'S', 'M', 'L', 'XL']; // Keep for backwards compatibility
+
+  useEffect(() => {
+    if (!isJerseyCategory) {
+      return;
+    }
+
+    const shirtSizeList = getShirtSizes();
+    const shortSizeList = getShortSizes();
+    const defaultShirtSize = shirtSizeList[Math.floor(shirtSizeList.length / 2)] || (sizeType === 'kids' ? 'S10' : 'M');
+    const defaultShortSize = shortSizeList[Math.floor(shortSizeList.length / 2)] || (sizeType === 'kids' ? 'S10' : 'M');
+
+    if (isTeamOrder) {
+      setTeamMembers(prevMembers => {
+        let hasChanges = false;
+
+        const updatedMembers = prevMembers.map(member => {
+          const next = { ...member };
+
+          if (jerseyType === 'shirt') {
+            next.jerseySize = member.jerseySize || defaultShirtSize;
+            next.shortsSize = null;
+            next.size = next.jerseySize;
+          } else if (jerseyType === 'shorts') {
+            next.jerseySize = null;
+            next.shortsSize = member.shortsSize || defaultShortSize;
+            next.size = null;
+          } else {
+            next.jerseySize = member.jerseySize || defaultShirtSize;
+            next.shortsSize = member.shortsSize || defaultShortSize;
+            next.size = next.jerseySize || null;
+          }
+
+          if (
+            next.jerseySize !== member.jerseySize ||
+            next.shortsSize !== member.shortsSize ||
+            next.size !== member.size
+          ) {
+            hasChanges = true;
+            return next;
+          }
+
+          return member;
+        });
+
+        return hasChanges ? updatedMembers : prevMembers;
+      });
+    } else if (isApparel) {
+      setSingleOrderDetails(prevDetails => {
+        const next = { ...prevDetails };
+
+        if (jerseyType === 'shirt') {
+          next.jerseySize = prevDetails?.jerseySize || defaultShirtSize;
+          next.shortsSize = null;
+          next.size = next.jerseySize;
+        } else if (jerseyType === 'shorts') {
+          next.jerseySize = null;
+          next.shortsSize = prevDetails?.shortsSize || defaultShortSize;
+          next.size = null;
+        } else {
+          next.jerseySize = prevDetails?.jerseySize || defaultShirtSize;
+          next.shortsSize = prevDetails?.shortsSize || defaultShortSize;
+          next.size = next.jerseySize || null;
+        }
+
+        const changed =
+          next.jerseySize !== prevDetails?.jerseySize ||
+          next.shortsSize !== prevDetails?.shortsSize ||
+          next.size !== prevDetails?.size;
+
+        return changed ? next : prevDetails;
+      });
+    }
+  }, [isJerseyCategory, isApparel, isTeamOrder, jerseyType, sizeType, jerseySizes, teamMembers, singleOrderDetails]);
+
+  if (!isOpen || !product) return null;
 
   const averageRating = reviews.length > 0 
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
@@ -792,22 +865,47 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   };
 
   const addTeamMember = () => {
+    const shirtSizeList = getShirtSizes();
+    const shortSizeList = getShortSizes();
+    const defaultShirtSize = shirtSizeList[Math.floor(shirtSizeList.length / 2)] || (sizeType === 'kids' ? 'S10' : 'M');
+    const defaultShortSize = shortSizeList[Math.floor(shortSizeList.length / 2)] || (sizeType === 'kids' ? 'S10' : 'M');
+
     const newMember = {
       id: Date.now(),
       teamName: teamName,
       surname: '',
       number: '',
-      jerseySize: 'M',
-      shortsSize: 'M'
+      jerseySize: jerseyType === 'shorts' ? null : defaultShirtSize,
+      shortsSize: jerseyType === 'shirt' ? null : defaultShortSize,
+      sizingType: sizeType,
+      size: jerseyType === 'shorts' ? null : defaultShirtSize
     };
-    setTeamMembers([...teamMembers, newMember]);
+    setTeamMembers(prev => [...prev, newMember]);
     console.log('Γ£à New team member row added');
   };
 
   const updateTeamMember = (index, field, value) => {
-    setTeamMembers(prev => prev.map((member, i) => 
-      i === index ? { ...member, [field]: value } : member
-    ));
+    setTeamMembers(prev => prev.map((member, i) => {
+      if (i !== index) {
+        return member;
+      }
+
+      const updated = { ...member, [field]: value };
+
+      if (field === 'jerseySize' && jerseyType !== 'shorts') {
+        updated.size = value;
+      }
+
+      if (field === 'shortsSize') {
+        if (jerseyType === 'shorts') {
+          updated.size = null;
+        } else if (!updated.size) {
+          updated.size = updated.jerseySize || null;
+        }
+      }
+
+      return updated;
+    }));
   };
 
   const removeTeamMember = (id) => {
@@ -971,12 +1069,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       const defaultShirtSize = newShirtSizes[Math.floor(newShirtSizes.length / 2)] || 'M';
                       const defaultShortSize = newShortSizes[Math.floor(newShortSizes.length / 2)] || 'M';
                       // Update all team members
-                      setTeamMembers(prev => prev.map(member => ({
-                        ...member,
-                        jerseySize: defaultShirtSize,
-                        shortsSize: defaultShortSize,
-                        sizingType: 'adult'
-                      })));
+                      setTeamMembers(prev => prev.map(member => {
+                        const updated = {
+                          ...member,
+                          jerseySize: defaultShirtSize,
+                          shortsSize: defaultShortSize,
+                          sizingType: 'adult'
+                        };
+                        updated.size = jerseyType === 'shorts' ? null : defaultShirtSize;
+                        return updated;
+                      }));
                     }}
                   >
                     Adult
@@ -990,12 +1092,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       const defaultShirtSize = newShirtSizes[Math.floor(newShirtSizes.length / 2)] || 'M';
                       const defaultShortSize = newShortSizes[Math.floor(newShortSizes.length / 2)] || 'M';
                       // Update all team members
-                      setTeamMembers(prev => prev.map(member => ({
-                        ...member,
-                        jerseySize: defaultShirtSize,
-                        shortsSize: defaultShortSize,
-                        sizingType: 'kids'
-                      })));
+                      setTeamMembers(prev => prev.map(member => {
+                        const updated = {
+                          ...member,
+                          jerseySize: defaultShirtSize,
+                          shortsSize: defaultShortSize,
+                          sizingType: 'kids'
+                        };
+                        updated.size = jerseyType === 'shorts' ? null : defaultShirtSize;
+                        return updated;
+                      }));
                     }}
                   >
                     Kids
@@ -1156,10 +1262,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       setSizeType('adult');
                       const newShirtSizes = jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL'];
                       const newShortSizes = jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL'];
-                      setSingleOrderDetails({
-                        ...singleOrderDetails, 
-                        jerseySize: newShirtSizes[Math.floor(newShirtSizes.length / 2)] || 'M', 
-                        shortsSize: newShortSizes[Math.floor(newShortSizes.length / 2)] || 'M'
+                      setSingleOrderDetails(prev => {
+                        const jerseyDefault = newShirtSizes[Math.floor(newShirtSizes.length / 2)] || 'M';
+                        const shortsDefault = newShortSizes[Math.floor(newShortSizes.length / 2)] || 'M';
+                        const sizeValue = jerseyType === 'shorts' ? null : jerseyDefault;
+                        return {
+                          ...prev,
+                          jerseySize: jerseyDefault,
+                          shortsSize: shortsDefault,
+                          size: sizeValue
+                        };
                       });
                     }}
                   >
@@ -1171,10 +1283,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       setSizeType('kids');
                       const newShirtSizes = jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'];
                       const newShortSizes = jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'];
-                      setSingleOrderDetails({
-                        ...singleOrderDetails, 
-                        jerseySize: newShirtSizes[Math.floor(newShirtSizes.length / 2)] || 'M', 
-                        shortsSize: newShortSizes[Math.floor(newShortSizes.length / 2)] || 'M'
+                      setSingleOrderDetails(prev => {
+                        const jerseyDefault = newShirtSizes[Math.floor(newShirtSizes.length / 2)] || 'M';
+                        const shortsDefault = newShortSizes[Math.floor(newShortSizes.length / 2)] || 'M';
+                        const sizeValue = jerseyType === 'shorts' ? null : jerseyDefault;
+                        return {
+                          ...prev,
+                          jerseySize: jerseyDefault,
+                          shortsSize: shortsDefault,
+                          size: sizeValue
+                        };
                       });
                     }}
                   >
@@ -1263,7 +1381,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       <label className="modal-single-order-size-label">Shirt Size</label>
                       <select
                         value={singleOrderDetails.jerseySize || (shirtSizes.length > 0 ? shirtSizes[Math.floor(shirtSizes.length / 2)] : 'M')}
-                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, jerseySize: e.target.value})}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSingleOrderDetails(prev => ({
+                            ...prev,
+                            jerseySize: value,
+                            size: jerseyType === 'shorts' ? prev.size : value
+                          }));
+                        }}
                         className="modal-single-order-select"
                       >
                         {shirtSizes.map(size => (
@@ -1278,7 +1403,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       <label className="modal-single-order-size-label">Short Size</label>
                       <select
                         value={singleOrderDetails.shortsSize || (shortSizes.length > 0 ? shortSizes[Math.floor(shortSizes.length / 2)] : 'M')}
-                        onChange={(e) => setSingleOrderDetails({...singleOrderDetails, shortsSize: e.target.value})}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSingleOrderDetails(prev => ({
+                            ...prev,
+                            shortsSize: value,
+                            size: jerseyType === 'shorts' ? null : prev.size
+                          }));
+                        }}
                         className="modal-single-order-select"
                       >
                         {shortSizes.map(size => (

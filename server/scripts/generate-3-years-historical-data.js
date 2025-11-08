@@ -789,18 +789,39 @@ function parsePrice(value, fallback = 0) {
   return fallback;
 }
 
-function buildTeamMembers(teamName, teamSize, sizeType) {
+function buildTeamMembers(teamName, teamSize, sizeType, variantKey = 'fullSet') {
   const normalisedSizeType = sizeType === 'kids' ? 'kids' : 'adult';
   const sizePool = normalisedSizeType === 'kids' ? sizes.kids : sizes.adult;
+  const normalisedVariant = typeof variantKey === 'string' && variantKey.length > 0
+    ? variantKey
+    : 'fullSet';
   const members = [];
 
   for (let i = 0; i < teamSize; i += 1) {
     const firstName = getRandomElement(firstNames);
     const surname = getRandomElement(lastNames);
-    const jerseySize = getRandomElement(sizePool);
-    const jerseyNumber = getRandomInt(1, 99);
+    const jerseySize = normalisedVariant === 'shortsOnly' ? null : getRandomElement(sizePool);
+    let shortsSize = null;
 
-    members.push({
+    if (normalisedVariant === 'shirtOnly') {
+      shortsSize = null;
+    } else if (normalisedVariant === 'fullSet') {
+      shortsSize = jerseySize;
+    } else {
+      shortsSize = getRandomElement(sizePool);
+    }
+    const jerseyNumber = getRandomInt(1, 99);
+    let baseSize = null;
+
+    if (normalisedVariant === 'fullSet') {
+      baseSize = jerseySize || getRandomElement(sizePool);
+    } else if (normalisedVariant === 'shirtOnly') {
+      baseSize = jerseySize;
+    } else if (normalisedVariant === 'shortsOnly') {
+      baseSize = null;
+    }
+
+    const member = {
       teamName,
       team_name: teamName,
       firstName,
@@ -808,34 +829,79 @@ function buildTeamMembers(teamName, teamSize, sizeType) {
       number: jerseyNumber,
       jerseyNo: jerseyNumber,
       jerseyNumber,
-      jerseySize,
-      shortsSize: jerseySize,
       sizingType: normalisedSizeType,
-      size: jerseySize
-    });
+      size: baseSize
+    };
+
+    if (jerseySize !== null) {
+      member.jerseySize = jerseySize;
+    } else {
+      member.jerseySize = null;
+    }
+
+    if (shortsSize !== null) {
+      member.shortsSize = shortsSize;
+    } else {
+      member.shortsSize = null;
+    }
+
+    members.push(member);
   }
 
   return members;
 }
 
-function buildSingleOrderDetails(teamName, sizeType) {
+function buildSingleOrderDetails(teamName, sizeType, variantKey = 'fullSet') {
   const normalisedSizeType = sizeType === 'kids' ? 'kids' : 'adult';
   const sizePool = normalisedSizeType === 'kids' ? sizes.kids : sizes.adult;
+  const normalisedVariant = typeof variantKey === 'string' && variantKey.length > 0
+    ? variantKey
+    : 'fullSet';
   const surname = getRandomElement(lastNames);
-  const jerseySize = getRandomElement(sizePool);
-  const jerseyNumber = getRandomInt(1, 99);
+  const jerseySize = normalisedVariant === 'shortsOnly' ? null : getRandomElement(sizePool);
+  let shortsSize = null;
 
-  return {
+  if (normalisedVariant === 'shirtOnly') {
+    shortsSize = null;
+  } else if (normalisedVariant === 'fullSet') {
+    shortsSize = jerseySize;
+  } else {
+    shortsSize = getRandomElement(sizePool);
+  }
+  const jerseyNumber = getRandomInt(1, 99);
+  let baseSize = null;
+
+  if (normalisedVariant === 'fullSet') {
+    baseSize = jerseySize || getRandomElement(sizePool);
+  } else if (normalisedVariant === 'shirtOnly') {
+    baseSize = jerseySize;
+  } else if (normalisedVariant === 'shortsOnly') {
+    baseSize = null;
+  }
+
+  const details = {
     teamName,
     surname,
     number: jerseyNumber,
     jerseyNo: jerseyNumber,
     jerseyNumber,
-    jerseySize,
-    shortsSize: jerseySize,
     sizingType: normalisedSizeType,
-    size: jerseySize
+    size: baseSize
   };
+
+  if (jerseySize !== null) {
+    details.jerseySize = jerseySize;
+  } else {
+    details.jerseySize = null;
+  }
+
+  if (shortsSize !== null) {
+    details.shortsSize = shortsSize;
+  } else {
+    details.shortsSize = null;
+  }
+
+  return details;
 }
 
 function buildBallDetails(productName = '') {
@@ -1634,7 +1700,7 @@ function generateSingleOrder(date) {
 
       if (isTeamOrder) {
         const teamSize = getRandomInt(8, 15);
-        const teamMembers = buildTeamMembers(teamName, teamSize, sizeType);
+        const teamMembers = buildTeamMembers(teamName, teamSize, sizeType, variantKey);
         const quantity = teamMembers.length;
         orderTeamName = teamName;
         totalAmount += pricePerUnit * quantity;
@@ -1659,7 +1725,7 @@ function generateSingleOrder(date) {
           sizeType
         });
       } else {
-        const singleDetails = buildSingleOrderDetails(teamName, sizeType);
+        const singleDetails = buildSingleOrderDetails(teamName, sizeType, variantKey);
         orderTeamName = singleDetails.teamName || teamName;
         totalAmount += pricePerUnit;
         totalItems += 1;
