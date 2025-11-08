@@ -105,7 +105,10 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   const [jerseyPrices, setJerseyPrices] = useState({
     fullSet: '',
     shirtOnly: '',
-    shortsOnly: ''
+    shortsOnly: '',
+    fullSetKids: '',
+    shirtOnlyKids: '',
+    shortsOnlyKids: ''
   });
   // Trophy prices: object mapping size to price, e.g., { "14\" (Large)": 1000, "10\" (Medium)": 750 }
   const [trophyPrices, setTrophyPrices] = useState({});
@@ -296,7 +299,10 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
           jerseyPricesValue = {
             fullSet: prices.fullSet || prices.full_set || '',
             shirtOnly: prices.shirtOnly || prices.shirt_only || '',
-            shortsOnly: prices.shortsOnly || prices.shorts_only || ''
+            shortsOnly: prices.shortsOnly || prices.shorts_only || '',
+            fullSetKids: prices.fullSetKids || prices.full_set_kids || '',
+            shirtOnlyKids: prices.shirtOnlyKids || prices.shirt_only_kids || '',
+            shortsOnlyKids: prices.shortsOnlyKids || prices.shorts_only_kids || ''
           };
           priceValue = prices.fullSet || prices.full_set || editingProduct.price || '';
         } else {
@@ -393,7 +399,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
             shirts: { adults: [], kids: [] },
             shorts: { adults: [], kids: [] }
           });
-          setJerseyPrices({ fullSet: '', shirtOnly: '', shortsOnly: '' });
+          setJerseyPrices({ fullSet: '', shirtOnly: '', shortsOnly: '', fullSetKids: '', shirtOnlyKids: '', shortsOnlyKids: '' });
           setTrophyPrices({});
           setSizeInputError('');
         } else if (isJerseyCategory(value)) {
@@ -415,7 +421,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
             shirts: { adults: [], kids: [] },
             shorts: { adults: [], kids: [] }
           });
-          setJerseyPrices({ fullSet: '', shirtOnly: '', shortsOnly: '' });
+          setJerseyPrices({ fullSet: '', shirtOnly: '', shortsOnly: '', fullSetKids: '', shirtOnlyKids: '', shortsOnlyKids: '' });
           setTrophyPrices({});
           setNewSizeInput('');
           setSizeInputError('');
@@ -773,10 +779,22 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         const shirtOnlyValue = jerseyPrices.shirtOnly?.toString().trim();
         const shortsOnlyValue = jerseyPrices.shortsOnly?.toString().trim();
         
+        // Check if kids sizes are available
+        const hasKidsSizes = jerseySizes.shirts.kids.length > 0 || jerseySizes.shorts.kids.length > 0;
+        
+        // Kids prices
+        const fullSetKidsValue = jerseyPrices.fullSetKids?.toString().trim();
+        const shirtOnlyKidsValue = jerseyPrices.shirtOnlyKids?.toString().trim();
+        const shortsOnlyKidsValue = jerseyPrices.shortsOnlyKids?.toString().trim();
+        
         console.log('🔍 [AddProductModal] Validating jersey prices:', {
           fullSet: fullSetValue,
           shirtOnly: shirtOnlyValue,
-          shortsOnly: shortsOnlyValue
+          shortsOnly: shortsOnlyValue,
+          hasKidsSizes,
+          fullSetKids: fullSetKidsValue,
+          shirtOnlyKids: shirtOnlyKidsValue,
+          shortsOnlyKids: shortsOnlyKidsValue
         });
         
         if (!fullSetValue || fullSetValue === '' || isNaN(parseFloat(fullSetValue)) || parseFloat(fullSetValue) < 0) {
@@ -797,6 +815,27 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
           return;
         }
         
+        // Validate kids prices if kids sizes are available
+        if (hasKidsSizes) {
+          if (!fullSetKidsValue || fullSetKidsValue === '' || isNaN(parseFloat(fullSetKidsValue)) || parseFloat(fullSetKidsValue) < 0) {
+            setError('Please enter a valid Full Set Price (Kids).');
+            setLoading(false);
+            return;
+          }
+          
+          if (!shirtOnlyKidsValue || shirtOnlyKidsValue === '' || isNaN(parseFloat(shirtOnlyKidsValue)) || parseFloat(shirtOnlyKidsValue) < 0) {
+            setError('Please enter a valid Shirt Only Price (Kids).');
+            setLoading(false);
+            return;
+          }
+          
+          if (!shortsOnlyKidsValue || shortsOnlyKidsValue === '' || isNaN(parseFloat(shortsOnlyKidsValue)) || parseFloat(shortsOnlyKidsValue) < 0) {
+            setError('Please enter a valid Shorts Only Price (Kids).');
+            setLoading(false);
+            return;
+          }
+        }
+        
         // Store full set price in price column (for backward compatibility)
         priceValue = parseFloat(fullSetValue);
         // Store all prices in jersey_prices JSONB column
@@ -805,6 +844,13 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
           shirtOnly: parseFloat(shirtOnlyValue),
           shortsOnly: parseFloat(shortsOnlyValue)
         };
+        
+        // Add kids prices if kids sizes are available
+        if (hasKidsSizes) {
+          jerseyPricesValue.fullSetKids = parseFloat(fullSetKidsValue);
+          jerseyPricesValue.shirtOnlyKids = parseFloat(shirtOnlyKidsValue);
+          jerseyPricesValue.shortsOnlyKids = parseFloat(shortsOnlyKidsValue);
+        }
         
         console.log('✅ [AddProductModal] Jersey prices validated and formatted:', jerseyPricesValue);
       } else {
@@ -1670,54 +1716,116 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
               {shouldShowShorts(formData.category) ? (
                 <div className="form-group">
                   <label>Jersey Prices</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
-                        Full Set Price <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={jerseyPrices.fullSet}
-                        onChange={(e) => setJerseyPrices(prev => ({ ...prev, fullSet: e.target.value }))}
-                        required
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
-                      />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {/* Adults Prices */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#111827', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                        Adults Prices
+                      </h4>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                          Full Set Price <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={jerseyPrices.fullSet}
+                          onChange={(e) => setJerseyPrices(prev => ({ ...prev, fullSet: e.target.value }))}
+                          required
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                          Shirt Only Price <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={jerseyPrices.shirtOnly}
+                          onChange={(e) => setJerseyPrices(prev => ({ ...prev, shirtOnly: e.target.value }))}
+                          required
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                          Shorts Only Price <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={jerseyPrices.shortsOnly}
+                          onChange={(e) => setJerseyPrices(prev => ({ ...prev, shortsOnly: e.target.value }))}
+                          required
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
-                        Shirt Only Price <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={jerseyPrices.shirtOnly}
-                        onChange={(e) => setJerseyPrices(prev => ({ ...prev, shirtOnly: e.target.value }))}
-                        required
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
-                        Shorts Only Price <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={jerseyPrices.shortsOnly}
-                        onChange={(e) => setJerseyPrices(prev => ({ ...prev, shortsOnly: e.target.value }))}
-                        required
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
-                      />
-                    </div>
+
+                    {/* Kids Prices - Only show if kids sizes are available */}
+                    {(jerseySizes.shirts.kids.length > 0 || jerseySizes.shorts.kids.length > 0) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '2px solid #e5e7eb' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#111827', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                          Kids Prices
+                        </h4>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                            Full Set Price (Kids) <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={jerseyPrices.fullSetKids}
+                            onChange={(e) => setJerseyPrices(prev => ({ ...prev, fullSetKids: e.target.value }))}
+                            required
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                            Shirt Only Price (Kids) <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={jerseyPrices.shirtOnlyKids}
+                            onChange={(e) => setJerseyPrices(prev => ({ ...prev, shirtOnlyKids: e.target.value }))}
+                            required
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                            Shorts Only Price (Kids) <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={jerseyPrices.shortsOnlyKids}
+                            onChange={(e) => setJerseyPrices(prev => ({ ...prev, shortsOnlyKids: e.target.value }))}
+                            required
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <small className="form-help">Enter prices for full set, shirt only, and shorts only options</small>
+                  <small className="form-help">
+                    Enter prices for full set, shirt only, and shorts only options. Kids prices are required when kids sizes are added.
+                  </small>
                 </div>
               ) : (
                 <div className="form-group">

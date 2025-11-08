@@ -274,8 +274,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         const parsedPrices = {
           fullSet: parseFloat(prices.fullSet || prices.full_set || product.price || 0),
           shirtOnly: parseFloat(prices.shirtOnly || prices.shirt_only || product.price || 0),
-          shortsOnly: parseFloat(prices.shortsOnly || prices.shorts_only || product.price || 0)
+          shortsOnly: parseFloat(prices.shortsOnly || prices.shorts_only || product.price || 0),
+          fullSetKids: prices.fullSetKids || prices.full_set_kids || null,
+          shirtOnlyKids: prices.shirtOnlyKids || prices.shirt_only_kids || null,
+          shortsOnlyKids: prices.shortsOnlyKids || prices.shorts_only_kids || null
         };
+        
+        // Convert kids prices to numbers if they exist
+        if (parsedPrices.fullSetKids !== null) parsedPrices.fullSetKids = parseFloat(parsedPrices.fullSetKids);
+        if (parsedPrices.shirtOnlyKids !== null) parsedPrices.shirtOnlyKids = parseFloat(parsedPrices.shirtOnlyKids);
+        if (parsedPrices.shortsOnlyKids !== null) parsedPrices.shortsOnlyKids = parseFloat(parsedPrices.shortsOnlyKids);
         
         console.log('🔍 [ProductModal] Final parsed prices:', parsedPrices);
         return parsedPrices;
@@ -346,32 +354,59 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       }
     } else if (isJerseyCategory && jerseyPrices) {
       // Use jersey-specific prices
-      switch (jerseyType) {
-        case 'full':
-          basePrice = jerseyPrices.fullSet;
-          console.log('💰 [ProductModal] Using fullSet price:', basePrice);
-          break;
-        case 'shirt':
-          basePrice = jerseyPrices.shirtOnly;
-          console.log('💰 [ProductModal] Using shirtOnly price:', basePrice);
-          break;
-        case 'shorts':
-          basePrice = jerseyPrices.shortsOnly;
-          console.log('💰 [ProductModal] Using shortsOnly price:', basePrice);
-          break;
-        default:
-          basePrice = jerseyPrices.fullSet;
-          console.log('💰 [ProductModal] Using default (fullSet) price:', basePrice);
+      // Check if kids prices are available and sizeType is kids
+      const useKidsPrices = sizeType === 'kids' && 
+        (jerseyPrices.fullSetKids !== null && jerseyPrices.fullSetKids !== undefined) &&
+        (jerseyPrices.shirtOnlyKids !== null && jerseyPrices.shirtOnlyKids !== undefined) &&
+        (jerseyPrices.shortsOnlyKids !== null && jerseyPrices.shortsOnlyKids !== undefined);
+      
+      if (useKidsPrices) {
+        // Use kids prices
+        switch (jerseyType) {
+          case 'full':
+            basePrice = jerseyPrices.fullSetKids;
+            console.log('💰 [ProductModal] Using fullSetKids price:', basePrice);
+            break;
+          case 'shirt':
+            basePrice = jerseyPrices.shirtOnlyKids;
+            console.log('💰 [ProductModal] Using shirtOnlyKids price:', basePrice);
+            break;
+          case 'shorts':
+            basePrice = jerseyPrices.shortsOnlyKids;
+            console.log('💰 [ProductModal] Using shortsOnlyKids price:', basePrice);
+            break;
+          default:
+            basePrice = jerseyPrices.fullSetKids;
+            console.log('💰 [ProductModal] Using default (fullSetKids) price:', basePrice);
+        }
+      } else {
+        // Use adult prices
+        switch (jerseyType) {
+          case 'full':
+            basePrice = jerseyPrices.fullSet;
+            console.log('💰 [ProductModal] Using fullSet price:', basePrice);
+            break;
+          case 'shirt':
+            basePrice = jerseyPrices.shirtOnly;
+            console.log('💰 [ProductModal] Using shirtOnly price:', basePrice);
+            break;
+          case 'shorts':
+            basePrice = jerseyPrices.shortsOnly;
+            console.log('💰 [ProductModal] Using shortsOnly price:', basePrice);
+            break;
+          default:
+            basePrice = jerseyPrices.fullSet;
+            console.log('💰 [ProductModal] Using default (fullSet) price:', basePrice);
+        }
+        
+        // Apply kids discount if kids prices are not available but sizeType is kids
+        if (sizeType === 'kids' && !useKidsPrices) {
+          basePrice = Math.max(0, basePrice - 200);
+          console.log('💰 [ProductModal] Applied kids discount (fallback):', basePrice);
+        }
       }
     } else {
       console.log('💰 [ProductModal] Using product.price:', basePrice);
-    }
-    
-    // Apply kids discount if applicable (only for jerseys, not trophies)
-    if (sizeType === 'kids' && isJerseyCategory) {
-      const finalPrice = Math.max(0, basePrice - 200);
-      console.log('💰 [ProductModal] Final price (kids):', finalPrice, 'base:', basePrice);
-      return finalPrice;
     }
     
     console.log('💰 [ProductModal] Final price:', basePrice);
