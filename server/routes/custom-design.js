@@ -227,13 +227,16 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
           
           if (!taskFetchError && assignedTask?.artist_id) {
             // Check if chat room already exists
-            const { data: existingRoom } = await supabase
+            const { data: existingRoom, error: existingRoomError } = await supabase
               .from('design_chat_rooms')
               .select('id')
               .eq('order_id', insertedOrder.id)
-              .single();
-            
-            if (!existingRoom) {
+              .limit(1)
+              .maybeSingle();
+          
+            if (existingRoomError && existingRoomError.code === 'PGRST116') {
+              console.warn(`⚠️ Multiple chat rooms already exist for custom order ${insertedOrder.id}. Skipping creation.`);
+            } else if (!existingRoom) {
               // Create chat room
               const { data: chatRoom, error: roomError } = await supabase
                 .from('design_chat_rooms')

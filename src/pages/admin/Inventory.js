@@ -137,6 +137,59 @@ const Inventory = () => {
     }));
   };
 
+  const getProductSizes = (product) => {
+    let sizes = [];
+    let jerseySizes = null;
+    let hasSizes = false;
+
+    if (product.size) {
+      try {
+        if (typeof product.size === 'string' && product.size.startsWith('{')) {
+          const parsed = JSON.parse(product.size);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            jerseySizes = parsed;
+            hasSizes = !!(
+              parsed.shirts?.adults?.length ||
+              parsed.shirts?.kids?.length ||
+              parsed.shorts?.adults?.length ||
+              parsed.shorts?.kids?.length
+            );
+          }
+        } else if (typeof product.size === 'string' && product.size.startsWith('[')) {
+          const parsed = JSON.parse(product.size);
+          if (Array.isArray(parsed)) {
+            sizes = parsed;
+            hasSizes = sizes.length > 0;
+          }
+        } else if (Array.isArray(product.size)) {
+          sizes = product.size;
+          hasSizes = sizes.length > 0;
+        } else {
+          sizes = [product.size];
+          hasSizes = true;
+        }
+      } catch (e) {
+        sizes = [product.size];
+        hasSizes = true;
+      }
+    }
+
+    if (!hasSizes && product.available_sizes) {
+      if (Array.isArray(product.available_sizes)) {
+        sizes = product.available_sizes;
+        hasSizes = sizes.length > 0;
+      } else if (typeof product.available_sizes === 'string') {
+        sizes = product.available_sizes
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+        hasSizes = sizes.length > 0;
+      }
+    }
+
+    return { sizes, jerseySizes, hasSizes };
+  };
+
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
@@ -310,57 +363,17 @@ const Inventory = () => {
                           <td className="product-available-sizes-cell">
                             <div className="product-available-sizes">
                               {(() => {
-                                let sizes = [];
-                                let jerseySizes = null;
-                                let hasSizes = false;
-                                // Parse from size field (stored as JSON string for trophies/jerseys)
-                                if (product.size) {
-                                  try {
-                                    if (product.size.startsWith('{')) {
-                                      // Jersey sizes object
-                                      const parsed = JSON.parse(product.size);
-                                      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                                        jerseySizes = parsed;
-                                        hasSizes = !!(parsed.shirts?.adults?.length || parsed.shirts?.kids?.length || 
-                                                     parsed.shorts?.adults?.length || parsed.shorts?.kids?.length);
-                                      }
-                                    } else if (product.size.startsWith('[')) {
-                                      // Trophy sizes array
-                                      const parsed = JSON.parse(product.size);
-                                      if (Array.isArray(parsed)) {
-                                        sizes = parsed;
-                                        hasSizes = sizes.length > 0;
-                                      }
-                                    } else {
-                                      sizes = [product.size];
-                                      hasSizes = true;
-                                    }
-                                  } catch (e) {
-                                    // If not JSON, treat as single size
-                                    sizes = [product.size];
-                                    hasSizes = true;
-                                  }
-                                }
-                                // Fallback to available_sizes if present (for backwards compatibility)
-                                if (!hasSizes && product.available_sizes) {
-                                  if (Array.isArray(product.available_sizes)) {
-                                    sizes = product.available_sizes;
-                                    hasSizes = sizes.length > 0;
-                                  } else if (typeof product.available_sizes === 'string') {
-                                    sizes = product.available_sizes.split(',').map(s => s.trim()).filter(s => s);
-                                    hasSizes = sizes.length > 0;
-                                  }
-                                }
+                                const { sizes, jerseySizes, hasSizes } = getProductSizes(product);
 
                                 if (!hasSizes) {
                                   return <span className="no-sizes">No sizes</span>;
                                 }
 
                                 const isExpanded = expandedSizes[product.id];
-                                
+
                                 return (
                                   <div className="sizes-dropdown-container">
-                                    <button 
+                                    <button
                                       className="sizes-dropdown-toggle"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -371,8 +384,8 @@ const Inventory = () => {
                                       <span className="sizes-preview">
                                         {jerseySizes ? 'View Sizes' : `${sizes.length} size${sizes.length > 1 ? 's' : ''}`}
                                       </span>
-                                      <FontAwesomeIcon 
-                                        icon={isExpanded ? faChevronUp : faChevronDown} 
+                                      <FontAwesomeIcon
+                                        icon={isExpanded ? faChevronUp : faChevronDown}
                                         className="sizes-chevron"
                                       />
                                     </button>
@@ -402,9 +415,9 @@ const Inventory = () => {
                                             )}
                                           </div>
                                         ) : (
-                                          <div className="simple-sizes-dropdown">
+                                          <div className="sizes-list">
                                             {sizes.map((size, index) => (
-                                              <span key={index} className="size-chip">{size}</span>
+                                              <span key={index} className="size-item">{size}</span>
                                             ))}
                                           </div>
                                         )}
@@ -504,53 +517,14 @@ const Inventory = () => {
                               <span className="stat-label">Available Sizes</span>
                               <div className="product-available-sizes">
                                 {(() => {
-                                  let sizes = [];
-                                  let jerseySizes = null;
-                                  let hasSizes = false;
-                                  // Parse from size field (stored as JSON string for trophies/jerseys)
-                                  if (product.size) {
-                                    try {
-                                      if (product.size.startsWith('{')) {
-                                        // Jersey sizes object
-                                        const parsed = JSON.parse(product.size);
-                                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                                          jerseySizes = parsed;
-                                          hasSizes = !!(parsed.shirts?.adults?.length || parsed.shirts?.kids?.length || 
-                                                       parsed.shorts?.adults?.length || parsed.shorts?.kids?.length);
-                                        }
-                                      } else if (product.size.startsWith('[')) {
-                                        // Trophy sizes array
-                                        const parsed = JSON.parse(product.size);
-                                        if (Array.isArray(parsed)) {
-                                          sizes = parsed;
-                                          hasSizes = sizes.length > 0;
-                                        }
-                                      } else {
-                                        sizes = [product.size];
-                                        hasSizes = true;
-                                      }
-                                    } catch (e) {
-                                      // If not JSON, treat as single size
-                                      sizes = [product.size];
-                                      hasSizes = true;
-                                    }
-                                  }
-                                  // Fallback to available_sizes if present (for backwards compatibility)
-                                  if (!hasSizes && product.available_sizes) {
-                                    if (Array.isArray(product.available_sizes)) {
-                                      sizes = product.available_sizes;
-                                      hasSizes = sizes.length > 0;
-                                    } else if (typeof product.available_sizes === 'string') {
-                                      sizes = product.available_sizes.split(',').map(s => s.trim()).filter(s => s);
-                                      hasSizes = sizes.length > 0;
-                                    }
-                                  }
+                                  const { sizes, jerseySizes, hasSizes } = getProductSizes(product);
 
                                   if (!hasSizes) {
                                     return <span className="no-sizes">No sizes</span>;
                                   }
 
-                                  const isExpanded = expandedSizes[product.id];
+                                  const dropdownKey = `${product.id}-mobile`;
+                                  const isExpanded = expandedSizes[dropdownKey];
                                   
                                   return (
                                     <div className="sizes-dropdown-container">
@@ -558,7 +532,7 @@ const Inventory = () => {
                                         className="sizes-dropdown-toggle"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleSizesDropdown(product.id);
+                                          toggleSizesDropdown(dropdownKey);
                                         }}
                                         type="button"
                                       >
@@ -596,9 +570,9 @@ const Inventory = () => {
                                               )}
                                             </div>
                                           ) : (
-                                            <div className="simple-sizes-dropdown">
+                                            <div className="sizes-list">
                                               {sizes.map((size, index) => (
-                                                <span key={index} className="size-chip">{size}</span>
+                                                <span key={index} className="size-item">{size}</span>
                                               ))}
                                             </div>
                                           )}

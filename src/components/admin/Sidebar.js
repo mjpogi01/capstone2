@@ -12,7 +12,8 @@ import {
   faUsers, 
   faSignOutAlt, 
   faChevronLeft, 
-  faChevronRight
+  faChevronRight,
+  faComments
 } from '@fortawesome/free-solid-svg-icons';
 
 const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuOpen }) => {
@@ -28,6 +29,7 @@ const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuO
     { id: 'home', label: 'Dashboard', icon: faHouse, path: basePath },
     { id: 'analytics', label: 'Analytics', icon: faChartLine, path: `${basePath}/analytics` },
     { id: 'orders', label: 'Orders', icon: faClipboardList, path: `${basePath}/orders` },
+    { id: 'support', label: 'Support Chats', icon: faComments, path: `${basePath}/support` },
     { id: 'inventory', label: 'Inventory', icon: faBoxesStacked, path: '/inventory' },
     { id: 'accounts', label: 'Accounts', icon: faUsers, path: `${basePath}/accounts` },
   ];

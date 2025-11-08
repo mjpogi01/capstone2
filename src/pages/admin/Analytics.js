@@ -4,6 +4,7 @@ import BranchMap from '../../components/admin/BranchMap';
 import '../admin/AdminDashboard.css';
 import './admin-shared.css';
 import { API_URL } from '../../config/api';
+import { authFetch } from '../../services/apiClient';
 import { FaSearch, FaPlay, FaFilter, FaChartLine, FaStore, FaClipboardList, FaTshirt, FaMapMarkerAlt, FaLayerGroup, FaMapMarkedAlt, FaChartArea } from 'react-icons/fa';
 import './Analytics.css';
 
@@ -75,7 +76,7 @@ const Analytics = () => {
       
       // Try to fetch real data from API
       try {
-        const response = await fetch(`${API_URL}/api/analytics/dashboard`);
+        const response = await authFetch(`${API_URL}/api/analytics/dashboard`);
         const result = await response.json();
         
         console.log('Analytics API Response:', result);
@@ -144,7 +145,7 @@ const Analytics = () => {
   const fetchGeographicDistribution = async () => {
     try {
       setGeoLoading(true);
-      const response = await fetch(`${API_URL}/api/analytics/geographic-distribution`);
+      const response = await authFetch(`${API_URL}/api/analytics/geographic-distribution`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -163,7 +164,7 @@ const Analytics = () => {
   const fetchTopCategories = async () => {
     try {
       setCategoriesLoading(true);
-      const response = await fetch(`${API_URL}/api/analytics/top-categories`);
+      const response = await authFetch(`${API_URL}/api/analytics/top-categories`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -182,7 +183,7 @@ const Analytics = () => {
   const fetchBuyingTrends = async () => {
     try {
       setTrendsLoading(true);
-      const response = await fetch(`${API_URL}/api/analytics/customer-buying-trends`);
+      const response = await authFetch(`${API_URL}/api/analytics/customer-buying-trends`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -201,7 +202,7 @@ const Analytics = () => {
   const fetchRegionalPerformance = async () => {
     try {
       setRegionalLoading(true);
-      const response = await fetch(`${API_URL}/api/analytics/regional-performance`);
+      const response = await authFetch(`${API_URL}/api/analytics/regional-performance`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -220,7 +221,7 @@ const Analytics = () => {
   const fetchSalesForecast = async () => {
     try {
       setForecastLoading(true);
-      const response = await fetch(`${API_URL}/api/analytics/sales-forecast`);
+      const response = await authFetch(`${API_URL}/api/analytics/sales-forecast`);
       const result = await response.json();
       
       if (result.success && result.data) {

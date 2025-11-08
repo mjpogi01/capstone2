@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import API_URL from '../config/api';
+import { authFetch, authJsonFetch } from './apiClient';
 
 class OrderService {
   async getAllOrders(filters = {}) {
@@ -15,7 +16,7 @@ class OrderService {
       if (filters.page) params.append('page', filters.page);
       if (filters.limit) params.append('limit', filters.limit);
 
-      const response = await fetch(`${API_URL}/api/orders?${params.toString()}`);
+      const response = await authFetch(`${API_URL}/api/orders?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -48,7 +49,7 @@ class OrderService {
 
   async getOrderById(orderId) {
     try {
-      const response = await fetch(`${API_URL}/api/orders/${orderId}`);
+      const response = await authFetch(`${API_URL}/api/orders/${orderId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -167,34 +168,19 @@ class OrderService {
 
   async updateOrderStatus(orderId, status) {
     try {
-      // Get current session token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('User not authenticated');
-      }
+      console.log('🔐 Updating order status with authenticated request');
 
-      console.log('🔐 Updating order status with authentication token');
-
-      // Use backend API to trigger email automation
-      const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+      const data = await authJsonFetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
           status,
           skipEmail: false // Ensure email is sent
         })
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update order status');
-      }
-
-      const data = await response.json();
-      
+ 
       // Log email status
       if (data.emailSent) {
         console.log('✅ Email notification sent successfully');

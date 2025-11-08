@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import orderTrackingService from '../../services/orderTrackingService';
 import './OrderStatusManager.css';
+import API_URL from '../../config/api';
+import { authFetch, authJsonFetch } from '../../services/apiClient';
 
 const OrderStatusManager = () => {
   const [orders, setOrders] = useState([]);
@@ -19,7 +21,7 @@ const OrderStatusManager = () => {
       setError(null);
       
       // Fetch from orders API
-      const response = await fetch('/api/orders');
+      const response = await authFetch(`${API_URL}/api/orders`);
       const data = await response.json();
       
       if (data.error) {
@@ -81,20 +83,14 @@ const OrderStatusManager = () => {
       setError(null);
 
       // Update order status via server API
-      const response = await fetch(`/api/orders/${orderId}/status`, {
+      const data = await authJsonFetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, skipEmail: false })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
       if (data.error) {
         throw new Error(data.error);
       }

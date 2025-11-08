@@ -21,6 +21,7 @@ import Accounts from './pages/admin/Accounts';
 import Orders from './pages/admin/Orders';
 import WalkInOrders from './pages/admin/WalkInOrders';
 import Analytics from './pages/admin/Analytics';
+import BranchSupport from './pages/admin/BranchSupport';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleRedirect from './components/RoleRedirect';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
@@ -116,6 +117,14 @@ const AppContent = () => {
             </ProtectedRoute>
           } 
         />
+        <Route
+          path="/admin/support"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <BranchSupport />
+            </ProtectedRoute>
+          }
+        />
         <Route 
           path="/admin/walk-in-orders"
           element={
@@ -131,6 +140,14 @@ const AppContent = () => {
               <Orders />
             </ProtectedRoute>
           } 
+        />
+        <Route
+          path="/owner/support"
+          element={
+            <ProtectedRoute requireOwner={true}>
+              <BranchSupport />
+            </ProtectedRoute>
+          }
         />
         <Route 
           path="/owner/walk-in-orders"

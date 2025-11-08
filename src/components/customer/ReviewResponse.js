@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ReviewResponse.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -9,6 +9,12 @@ import {
   faCheck
 } from '@fortawesome/free-solid-svg-icons';
 
+const actionLabels = {
+  approve: 'Design Approved',
+  request_changes: 'Changes Requested',
+  feedback: 'Feedback Sent'
+};
+
 const ReviewResponse = ({ reviewMessage, onRespond }) => {
   const [response, setResponse] = useState('');
   const [showResponseForm, setShowResponseForm] = useState(false);
@@ -16,6 +22,19 @@ const ReviewResponse = ({ reviewMessage, onRespond }) => {
 
   console.log('🎨 ReviewResponse received data:', reviewMessage);
   console.log('🎨 Attachments:', reviewMessage.attachments);
+
+  const hasResponded = Boolean(reviewMessage.reviewResponded);
+  const responseAction = reviewMessage.reviewResponseAction || 'feedback';
+  const responseAt = reviewMessage.reviewResponseAt;
+  const responseSummary = reviewMessage.reviewResponseSummary?.trim() || '';
+
+  useEffect(() => {
+    if (hasResponded) {
+      setShowResponseForm(false);
+      setResponse('');
+      setSelectedAction('');
+    }
+  }, [hasResponded]);
 
   const handleResponse = (action) => {
     setSelectedAction(action);
@@ -72,13 +91,18 @@ const ReviewResponse = ({ reviewMessage, onRespond }) => {
           <div className="review-files">
             <h5>Design Files:</h5>
             <div className="files-grid">
-              {reviewMessage.attachments.map((file, index) => (
+              {reviewMessage.attachments.map((file, index) => {
+                const fileName = file.name || file.filename || `File ${index + 1}`;
+                const fileType = file.type || '';
+                const isImage = fileType.startsWith('image/') || (!fileType && file.url && /(png|jpe?g|gif|webp)$/i.test(file.url));
+
+                return (
                 <div key={index} className="file-card">
                   <div className="review-file-preview">
-                    {file.type.startsWith('image/') ? (
+                    {isImage ? (
                       <img 
                         src={file.url} 
-                        alt={file.name}
+                        alt={fileName}
                         className="review-file-image"
                       />
                     ) : (
@@ -88,7 +112,7 @@ const ReviewResponse = ({ reviewMessage, onRespond }) => {
                     )}
                   </div>
                   <div className="review-file-info">
-                    <span className="review-file-name">{file.name}</span>
+                    <span className="review-file-name">{fileName}</span>
                     <div className="review-file-actions">
                       <button 
                         className="review-view-btn"
@@ -107,13 +131,34 @@ const ReviewResponse = ({ reviewMessage, onRespond }) => {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
         )}
       </div>
 
-      {!showResponseForm ? (
+      {hasResponded ? (
+        <div className={`review-status ${responseAction}`}>
+          <div className="review-status-header">
+            <FontAwesomeIcon icon={faCheck} />
+            <div>
+              <strong>{actionLabels[responseAction] || 'Response Recorded'}</strong>
+              {responseAt && (
+                <span className="review-status-timestamp">
+                  {new Date(responseAt).toLocaleString()}
+                </span>
+              )}
+            </div>
+          </div>
+          {responseSummary && (
+            <div className="review-status-notes">
+              <strong>Your Notes:</strong>
+              <p>{responseSummary}</p>
+            </div>
+          )}
+        </div>
+      ) : !showResponseForm ? (
         <div className="review-actions">
           <button 
             className="approve-btn"

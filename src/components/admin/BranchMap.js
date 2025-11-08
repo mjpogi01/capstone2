@@ -5,6 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './BranchMap.css';
 import { API_URL } from '../../config/api';
+import { authFetch } from '../../services/apiClient';
 
 // Fix for default marker icons in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -41,7 +42,7 @@ const BranchMap = () => {
   const fetchCustomerLocations = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/analytics/customer-locations`);
+      const response = await authFetch(`${API_URL}/api/analytics/customer-locations`);
       
       if (response.ok) {
         const data = await response.json();

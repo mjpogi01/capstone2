@@ -21,6 +21,7 @@ import {
   faTrash,
   faTimes
 } from '@fortawesome/free-solid-svg-icons';
+import { authFetch } from '../../services/apiClient';
 
 const Dashboard1 = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -385,7 +386,7 @@ const Dashboard1 = () => {
       setLoadingStats(true);
       
       // Fetch analytics data from API
-      const response = await fetch(`${API_URL}/api/analytics/dashboard`);
+      const response = await authFetch(`${API_URL}/api/analytics/dashboard`);
       const result = await response.json();
       
       if (result.success && result.data) {

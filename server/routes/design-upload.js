@@ -1,6 +1,6 @@
 const express = require('express');
 const { upload, uploadToCloudinary } = require('../middleware/upload');
-const { authenticateSupabaseToken } = require('../middleware/supabaseAuth');
+const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
@@ -10,6 +10,26 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const STATUS_ORDER = [
+  'pending',
+  'confirmed',
+  'layout',
+  'sizing',
+  'printing',
+  'press',
+  'prod',
+  'packing_completing',
+  'picked_up_delivered',
+  'cancelled'
+];
+
+const STATUS_PRIORITY = STATUS_ORDER.reduce((acc, status, index) => {
+  acc[status] = index;
+  return acc;
+}, {});
+
+const TARGET_STATUS = 'sizing';
 
 const router = express.Router();
 
@@ -86,6 +106,17 @@ router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 
     console.log('🎨 Current order status:', currentOrder.status);
     console.log('🎨 Current design files count:', currentOrder.design_files?.length || 0);
 
+    const existingDesignFiles = Array.isArray(currentOrder.design_files)
+      ? currentOrder.design_files
+      : [];
+
+    const combinedDesignFiles = [
+      ...existingDesignFiles.filter(existing =>
+        !designFiles.some(newFile => newFile.publicId === existing.publicId)
+      ),
+      ...designFiles
+    ];
+
     // Check if user is an artist (only artists can upload designs and auto-move to sizing)
     const userRole = req.user.role || req.user.user_metadata?.role || 'customer';
     if (userRole !== 'artist') {
@@ -99,8 +130,15 @@ router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 
 
     // Determine new status based on current status
     let newStatus = currentOrder.status;
-    if (currentOrder.status === 'confirmed' || currentOrder.status === 'layout') {
-      newStatus = 'sizing';
+    const currentPriority = STATUS_PRIORITY[currentOrder.status];
+    const targetPriority = STATUS_PRIORITY[TARGET_STATUS];
+
+    if (
+      typeof currentPriority === 'number' &&
+      typeof targetPriority === 'number' &&
+      currentPriority < targetPriority
+    ) {
+      newStatus = TARGET_STATUS;
       console.log('🎨 Auto-moving order to sizing status after design upload');
     }
 
@@ -108,7 +146,7 @@ router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 
     const { data, error } = await supabase
       .from('orders')
       .update({
-        design_files: designFiles,
+        design_files: combinedDesignFiles,
         status: newStatus,
         updated_at: new Date().toISOString()
       })
@@ -135,7 +173,7 @@ router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 
     res.json({
       success: true,
       message: `Design files uploaded successfully${newStatus !== currentOrder.status ? ` and order moved to ${newStatus} status` : ''}`,
-      designFiles,
+      designFiles: combinedDesignFiles,
       order: data[0],
       statusChanged: newStatus !== currentOrder.status,
       previousStatus: currentOrder.status,

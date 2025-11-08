@@ -264,17 +264,11 @@ class ChatService {
       
       const { data, error } = await supabase
         .from('artist_tasks')
-        .select(`
-          artist_id,
-          artist_profiles!inner(
-            id,
-            artist_name,
-            is_active
-          )
-        `)
+        .select('artist_id, created_at')
         .eq('order_id', orderId)
-        .eq('artist_profiles.is_active', true)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -285,8 +279,51 @@ class ChatService {
         throw new Error(`Failed to get assigned artist: ${error.message}`);
       }
 
-      console.log('✅ Found assigned artist:', data.artist_profiles.artist_name);
-      return data.artist_profiles;
+      const artistId = data?.artist_id;
+
+      if (!artistId) {
+        console.log('⚠️ Task found for order but no artist assigned:', orderId);
+        return null;
+      }
+
+      let artistName = 'Assigned Artist';
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('artist_profiles')
+        .select('id, artist_name, is_active')
+        .eq('id', artistId)
+        .maybeSingle();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.warn('⚠️ Could not load artist profile:', profileError.message);
+      }
+
+      if (profileData?.artist_name) {
+        artistName = profileData.artist_name;
+      }
+
+      if (!artistName) {
+        const { data: userProfile, error: userError } = await supabase
+          .rpc('get_artist_display_name', { p_artist_id: artistId });
+
+        if (!userError && userProfile && typeof userProfile === 'string' && userProfile.trim().length > 0) {
+          artistName = userProfile.trim();
+        } else if (userError) {
+          console.warn('⚠️ Could not load artist display name:', userError.message);
+        }
+      }
+
+      if (profileData?.is_active === false) {
+        console.warn('⚠️ Assigned artist profile is inactive for order:', orderId);
+      }
+
+      const artistInfo = {
+        id: profileData?.id || artistId,
+        artist_name: artistName || 'Assigned Artist'
+      };
+
+      console.log('✅ Found assigned artist:', artistInfo.artist_name);
+      return artistInfo;
     } catch (error) {
       console.error('❌ Error in getAssignedArtist:', error);
       throw error;

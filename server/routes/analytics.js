@@ -1,6 +1,127 @@
 const express = require('express');
 const { supabase } = require('../lib/db');
+const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
 const router = express.Router();
+
+router.use(authenticateSupabaseToken);
+router.use(requireAdminOrOwner);
+
+async function resolveBranchContext(user) {
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
+
+  if (!user.branch_id) {
+    const error = new Error('Admin account is missing branch assignment');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const branchId = parseInt(user.branch_id, 10);
+  if (Number.isNaN(branchId)) {
+    const error = new Error('Admin account has invalid branch assignment');
+    error.statusCode = 403;
+    throw error;
+  }
+  let branchName = null;
+
+  try {
+    const { data: branchData, error: branchError } = await supabase
+      .from('branches')
+      .select('id, name')
+      .eq('id', branchId)
+      .single();
+
+    if (!branchError && branchData?.name) {
+      branchName = branchData.name;
+    }
+  } catch (err) {
+    console.warn('⚠️ Unable to resolve branch name for admin:', err.message);
+  }
+
+  return { branchId, branchName, normalizedName: normalizeBranchValue(branchName) };
+}
+
+function filterOrdersByBranch(orders, branchContext) {
+  if (!branchContext) {
+    return Array.isArray(orders) ? orders : [];
+  }
+
+  const { branchId, normalizedName } = branchContext;
+  const normalizedBranchId = Number.isNaN(branchId) ? null : branchId;
+
+  return (orders || []).filter(order => {
+    const orderBranchId = order?.pickup_branch_id !== undefined && order?.pickup_branch_id !== null
+      ? parseInt(order.pickup_branch_id, 10)
+      : order?.branch_id !== undefined && order?.branch_id !== null
+        ? parseInt(order.branch_id, 10)
+        : null;
+
+    const matchesId = normalizedBranchId !== null && orderBranchId === normalizedBranchId;
+    const matchesName = normalizedName ? orderMatchesBranchName(order, normalizedName) : false;
+
+    return matchesId || matchesName;
+  });
+}
+
+function getBranchDisplayName(order, branchContext) {
+  if (branchContext) {
+    return branchContext.branchName || `Branch ${branchContext.branchId}`;
+  }
+ 
+  return order.pickup_location
+    || order.branch_name
+    || (order.pickup_branch_id ? `Branch ${order.pickup_branch_id}` : 'Online Orders');
+}
+
+function handleAnalyticsError(res, error, defaultMessage) {
+  const status = error.statusCode || 500;
+  const isPermissionError = status === 403;
+  const message = isPermissionError ? error.message : defaultMessage;
+
+  if (isPermissionError) {
+    console.warn('🚫 Analytics permission error:', message);
+  } else {
+    console.error(defaultMessage, error);
+  }
+
+  return res.status(status).json({
+    success: false,
+    error: message
+  });
+}
+
+function normalizeBranchValue(value) {
+  if (!value) {
+    return null;
+  }
+
+  return value
+    .toString()
+    .toLowerCase()
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/branch/g, ' ')
+    .replace(/main/g, ' ')
+    .replace(/[^a-z0-9]+/g, '')
+    .trim();
+}
+
+function orderMatchesBranchName(order, normalizedBranchName) {
+  const normalizedTargets = [
+    order?.pickup_location,
+    order?.branch_name,
+    order?.managing_branch_name
+  ]
+    .filter(Boolean)
+    .map(normalizeBranchValue)
+    .filter(Boolean);
+
+  if (normalizedTargets.length === 0) {
+    return false;
+  }
+
+  return normalizedTargets.includes(normalizedBranchName);
+}
 
 // Get analytics dashboard data
 router.get('/dashboard', async (req, res) => {
@@ -25,11 +146,23 @@ router.get('/dashboard', async (req, res) => {
     console.log(`📊 [DEBUG] allOrders length: ${allOrders?.length}`);
     console.log(`📊 [DEBUG] First 3 orders:`, allOrders?.slice(0, 3));
 
+    const branchContext = await resolveBranchContext(req.user);
+    const scopedOrders = filterOrdersByBranch(allOrders, branchContext);
+
+    if (branchContext) {
+      console.log('🏪 Applying branch scope for admin user:', {
+        userId: req.user.id,
+        branchId: branchContext.branchId,
+        branchName: branchContext.branchName,
+        scopedOrders: scopedOrders.length
+      });
+    }
+ 
     // Get orders from last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const recentOrders = allOrders.filter(order => 
+    const recentOrders = scopedOrders.filter(order => 
       new Date(order.created_at) >= thirtyDaysAgo
     );
 
@@ -38,7 +171,7 @@ router.get('/dashboard', async (req, res) => {
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-    allOrders
+    scopedOrders
       .filter(order => new Date(order.created_at) >= twelveMonthsAgo)
       .forEach(order => {
         const month = new Date(order.created_at).toLocaleDateString('en-US', { month: 'short' });
@@ -50,8 +183,8 @@ router.get('/dashboard', async (req, res) => {
 
     // Calculate sales by branch
     const salesByBranch = {};
-    allOrders.forEach(order => {
-      const branch = order.pickup_location || 'Online Orders';
+    scopedOrders.forEach(order => {
+      const branch = getBranchDisplayName(order, branchContext);
       if (!salesByBranch[branch]) {
         salesByBranch[branch] = 0;
       }
@@ -104,7 +237,7 @@ router.get('/dashboard', async (req, res) => {
     );
 
     // For metrics, use ALL orders (not just recent)
-    const totalOrders = allOrders.length;
+    const totalOrders = scopedOrders.length;
     console.log(`📊 [DEBUG] totalOrders: ${totalOrders}`);
     
     // For recent charts and analysis, use recentOrders (last 30 days)
@@ -158,10 +291,10 @@ router.get('/dashboard', async (req, res) => {
     };
 
     // Calculate unique customers from ALL orders
-    const uniqueCustomers = new Set(allOrders.map(order => order.user_id)).size;
+    const uniqueCustomers = new Set(scopedOrders.map(order => order.user_id)).size;
     
     // Calculate total revenue from ALL orders
-    const allOrdersRevenue = allOrders.reduce((sum, order) => 
+    const allOrdersRevenue = scopedOrders.reduce((sum, order) => 
       sum + parseFloat(order.total_amount || 0), 0
     );
 
@@ -198,11 +331,7 @@ router.get('/dashboard', async (req, res) => {
       data: processedData
     });
   } catch (error) {
-    console.error('Error fetching analytics data:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch analytics data' 
-    });
+    return handleAnalyticsError(res, error, 'Failed to fetch analytics data');
   }
 });
 
@@ -220,12 +349,15 @@ router.get('/sales-trends', async (req, res) => {
       .select('*')
       .neq('status', 'cancelled')
       .gte('created_at', startDate.toISOString());
-
+ 
     if (error) throw error;
+ 
+    const branchContext = await resolveBranchContext(req.user);
+    const scopedOrders = filterOrdersByBranch(orders, branchContext);
 
     // Group by day
     const dailyData = {};
-    orders.forEach(order => {
+    scopedOrders.forEach(order => {
       const date = new Date(order.created_at).toISOString().split('T')[0];
       if (!dailyData[date]) {
         dailyData[date] = {
@@ -250,11 +382,7 @@ router.get('/sales-trends', async (req, res) => {
       data: trends
     });
   } catch (error) {
-    console.error('Error fetching sales trends:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch sales trends' 
-    });
+    return handleAnalyticsError(res, error, 'Failed to fetch sales trends');
   }
 });
 
@@ -272,9 +400,12 @@ router.get('/product-performance', async (req, res) => {
 
     if (error) throw error;
 
+    const branchContext = await resolveBranchContext(req.user);
+    const scopedOrders = filterOrdersByBranch(orders, branchContext);
+
     // Process product performance
     const productStats = {};
-    orders.forEach(order => {
+    scopedOrders.forEach(order => {
       if (order.order_items && Array.isArray(order.order_items)) {
         order.order_items.forEach(item => {
           const name = item.name || 'Unknown';
@@ -321,11 +452,7 @@ router.get('/product-performance', async (req, res) => {
       data: performance
     });
   } catch (error) {
-    console.error('Error fetching product performance:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch product performance' 
-    });
+    return handleAnalyticsError(res, error, 'Failed to fetch product performance');
   }
 });
 
@@ -336,9 +463,12 @@ router.get('/customer-analytics', async (req, res) => {
       .from('orders')
       .select('*')
       .neq('status', 'cancelled');
-
+ 
     if (error) throw error;
 
+    const branchContext = await resolveBranchContext(req.user);
+    const scopedOrders = filterOrdersByBranch(orders, branchContext);
+ 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -346,7 +476,7 @@ router.get('/customer-analytics', async (req, res) => {
     const customerStats = {};
     let newCustomers = new Set();
 
-    orders.forEach(order => {
+    scopedOrders.forEach(order => {
       const userId = order.user_id;
       if (!customerStats[userId]) {
         customerStats[userId] = {
@@ -401,11 +531,7 @@ router.get('/customer-analytics', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching customer analytics:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch customer analytics' 
-    });
+    return handleAnalyticsError(res, error, 'Failed to fetch customer analytics');
   }
 });
 
@@ -421,10 +547,13 @@ router.get('/geographic-distribution', async (req, res) => {
 
     if (error) throw error;
 
+    const branchContext = await resolveBranchContext(req.user);
+    const scopedOrders = filterOrdersByBranch(orders, branchContext);
+ 
     // Process geographic data from delivery addresses
     const locationData = {};
     
-    orders.forEach(order => {
+    scopedOrders.forEach(order => {
       // Get city from delivery_address
       let city = 'Unknown Location';
       if (order.delivery_address && typeof order.delivery_address === 'object') {
@@ -469,7 +598,7 @@ router.get('/geographic-distribution', async (req, res) => {
     });
 
     // Calculate total orders for percentage calculation
-    const totalOrders = orders.length;
+    const totalOrders = scopedOrders.length;
     
     // Convert to array and add additional metrics
     const geoDistribution = Object.entries(locationData)
@@ -499,11 +628,7 @@ router.get('/geographic-distribution', async (req, res) => {
       data: geoDistribution
     });
   } catch (error) {
-    console.error('Error fetching geographic distribution:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch geographic distribution' 
-    });
+    return handleAnalyticsError(res, error, 'Failed to fetch geographic distribution');
   }
 });
 
@@ -535,20 +660,29 @@ router.get('/customer-locations', async (req, res) => {
     // Also get delivery addresses from orders
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
-      .select('delivery_address')
+      .select('user_id, delivery_address, pickup_branch_id, pickup_location')
       .not('delivery_address', 'is', null)
       .eq('shipping_method', 'cod');
-
+ 
     if (ordersError) {
       console.error('❌ Error fetching orders:', ordersError);
     }
 
+    const branchContext = await resolveBranchContext(req.user);
+    const scopedOrders = filterOrdersByBranch(orders, branchContext);
+    const allowedUserIds = branchContext
+      ? new Set(scopedOrders.map(order => order.user_id).filter(Boolean))
+      : null;
+ 
     // Aggregate customers by city
     const cityCounts = {};
     
     // Count from user_addresses
     if (addresses && addresses.length > 0) {
       addresses.forEach(addr => {
+        if (allowedUserIds && !allowedUserIds.has(addr.user_id)) {
+          return;
+        }
         const cityKey = `${addr.city || 'Unknown'}, ${addr.province || 'Unknown'}`;
         if (!cityCounts[cityKey]) {
           cityCounts[cityKey] = { count: 0, city: addr.city, province: addr.province };
@@ -556,10 +690,10 @@ router.get('/customer-locations', async (req, res) => {
         cityCounts[cityKey].count++;
       });
     }
-
+ 
     // Count from order delivery addresses
-    if (orders && orders.length > 0) {
-      orders.forEach(order => {
+    if (scopedOrders && scopedOrders.length > 0) {
+      scopedOrders.forEach(order => {
         if (order.delivery_address && typeof order.delivery_address === 'object') {
           const city = order.delivery_address.city || order.delivery_address.City;
           const province = order.delivery_address.province || order.delivery_address.Province;
@@ -667,6 +801,10 @@ router.get('/customer-locations', async (req, res) => {
       })).sort((a, b) => b.count - a.count) // Sort by count descending
     });
   } catch (error) {
+    if (error.statusCode === 403) {
+      return handleAnalyticsError(res, error, 'Failed to fetch customer locations');
+    }
+
     console.error('❌ Error fetching customer locations:', error);
     
     // Fallback: Return demo data even on error

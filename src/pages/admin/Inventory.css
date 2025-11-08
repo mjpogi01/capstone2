@@ -366,18 +366,78 @@ body.sidebar-collapsed .inventory-table-container {
 }
 
 /* Desktop Table */
+
 .inventory-table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  table-layout: auto;
-  min-width: fit-content;
+  table-layout: fixed;
   box-sizing: border-box;
 }
 
-/* Ensure table has minimum width for all columns to display properly */
-.inventory-table {
-  min-width: 1200px;
+.inventory-table thead th {
+  text-align: left;
+}
+
+.inventory-table th,
+.inventory-table td {
+  padding: 1rem 0.75rem;
+  vertical-align: middle;
+}
+
+.inventory-table th:first-child,
+.inventory-table td:first-child {
+  width: 8%;
+}
+
+.inventory-table th:nth-child(2),
+.inventory-table td:nth-child(2) {
+  width: 20%;
+}
+
+.inventory-table th:nth-child(3),
+.inventory-table td:nth-child(3) {
+  width: 8%;
+}
+
+.inventory-table th:nth-child(4),
+.inventory-table td:nth-child(4) {
+  width: 7%;
+}
+
+.inventory-table th:nth-child(5),
+.inventory-table td:nth-child(5) {
+  width: 7%;
+}
+
+.inventory-table th:nth-child(6),
+.inventory-table td:nth-child(6) {
+  width: 12%;
+}
+
+.inventory-table th:nth-child(7),
+.inventory-table td:nth-child(7) {
+  width: 10%;
+}
+
+.inventory-table th:nth-child(8),
+.inventory-table td:nth-child(8) {
+  width: 18%;
+}
+
+.inventory-table th:nth-child(9),
+.inventory-table td:nth-child(9) {
+  width: 10%;
+}
+
+.inventory-table .inventory-product-name-cell,
+.inventory-table .product-description-cell,
+.inventory-table .product-category-cell,
+.inventory-table .product-available-sizes-cell,
+.inventory-table .product-actions-cell {
+  min-width: 0 !important;
+  max-width: none !important;
 }
 
 /* On very large screens, allow table to expand naturally */
@@ -766,8 +826,8 @@ body.sidebar-collapsed .inventory-table,
 /* Category */
 .product-category-cell {
   width: auto;
-  min-width: 100px;
-  max-width: 120px;
+  min-width: 0;
+  max-width: none;
 }
 
 .product-category {
@@ -785,8 +845,8 @@ body.sidebar-collapsed .inventory-table,
 /* Description */
 .product-description-cell {
   width: auto;
-  min-width: 150px;
-  max-width: 200px;
+  min-width: 0;
+  max-width: none;
   flex-shrink: 1;
 }
 
@@ -813,8 +873,8 @@ body.sidebar-collapsed .inventory-table,
 /* Actions */
 .product-actions-cell {
   width: auto;
-  min-width: 100px;
-  max-width: 120px;
+  min-width: 0;
+  max-width: none;
   text-align: center;
   flex-shrink: 0;
   white-space: nowrap;

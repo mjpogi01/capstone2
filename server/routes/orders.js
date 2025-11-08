@@ -1,6 +1,7 @@
 const express = require('express');
 const { supabase, query } = require('../lib/db');
 const emailService = require('../lib/emailService');
+const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
 const router = express.Router();
 
 // Test endpoint to verify server is working
@@ -8,6 +9,125 @@ router.get('/test', (req, res) => {
   console.log('🧪 Test endpoint called');
   res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
 });
+
+async function resolveAdminBranchContext(user) {
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
+
+  const branchIdRaw = user.branch_id;
+  if (!branchIdRaw && branchIdRaw !== 0) {
+    const error = new Error('Admin account is missing branch assignment');
+    error.statusCode = 403;
+    throw error;
+  }
+ 
+  const branchId = parseInt(branchIdRaw, 10);
+  if (Number.isNaN(branchId)) {
+    const error = new Error('Admin account has invalid branch assignment');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  let branchName = null;
+
+  try {
+    const { data: branchData, error: branchError } = await supabase
+      .from('branches')
+      .select('id, name')
+      .eq('id', branchId)
+      .single();
+
+    if (!branchError && branchData?.name) {
+      branchName = branchData.name;
+    }
+  } catch (err) {
+    console.warn('⚠️ Unable to resolve branch name for admin:', err.message);
+  }
+
+  return { branchId, branchName, normalizedName: normalizeBranchValue(branchName) };
+}
+
+function orderMatchesBranch(order, branchContext) {
+  if (!branchContext) {
+    return true;
+  }
+ 
+  const { branchId, normalizedName } = branchContext;
+  const normalizedBranchId = Number.isNaN(branchId) ? null : branchId;
+  const orderBranchId = order?.pickup_branch_id !== undefined && order?.pickup_branch_id !== null
+    ? parseInt(order.pickup_branch_id, 10)
+    : order?.branch_id !== undefined && order?.branch_id !== null
+      ? parseInt(order.branch_id, 10)
+      : null;
+
+  const matchesId = normalizedBranchId !== null && orderBranchId === normalizedBranchId;
+  const matchesName = normalizedName ? shouldMatchByName(branchContext, order) : false;
+
+  return matchesId || matchesName;
+}
+
+function applyBranchFilter(queryBuilder, branchContext) {
+  if (!branchContext || !branchContext.branchId) {
+    return queryBuilder;
+  }
+ 
+  const branchIdValue = String(branchContext.branchId);
+ 
+  if (branchContext.branchName) {
+    const escapedName = branchContext.branchName.replace(/"/g, '\\"').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const pattern = `%${escapedName}%`;
+    return queryBuilder.or(
+      `pickup_branch_id.eq.${branchIdValue},pickup_location.ilike."${pattern}"`
+    );
+  }
+
+  return queryBuilder.eq('pickup_branch_id', branchIdValue);
+}
+
+function ensureOrderAccess(order, branchContext) {
+  if (!orderMatchesBranch(order, branchContext)) {
+    const error = new Error('Access denied for orders outside assigned branch');
+    error.statusCode = 403;
+    throw error;
+  }
+}
+
+function normalizeBranchValue(value) {
+  if (!value) {
+    return null;
+  }
+
+  return value
+    .toString()
+    .toLowerCase()
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/branch/g, ' ')
+    .replace(/main/g, ' ')
+    .replace(/[^a-z0-9]+/g, '')
+    .trim();
+}
+
+function shouldMatchByName(branchContext, order) {
+  if (!branchContext?.normalizedName) {
+    return false;
+  }
+
+  const normalizedTargets = [
+    order?.pickup_location,
+    order?.branch_name,
+    order?.managing_branch_name
+  ]
+    .filter(Boolean)
+    .map(normalizeBranchValue)
+    .filter(Boolean);
+
+  if (normalizedTargets.length === 0) {
+    return false;
+  }
+
+  return normalizedTargets.includes(branchContext.normalizedName);
+}
 
 // Supabase client and query helper are provided by ../lib/db
 
@@ -58,7 +178,7 @@ async function updateSoldQuantityForOrder(orderItems) {
 }
 
 // Get all orders with filters
-router.get('/', async (req, res) => {
+router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
     const {
       dateSort,
@@ -71,6 +191,11 @@ router.get('/', async (req, res) => {
     } = req.query;
 
     console.log(`📦 [Orders API] Fetching orders - page: ${page}, limit: ${limit}, branch: ${pickupBranch}, status: ${status}`);
+
+    let branchContext = null;
+    if (req.user.role === 'admin') {
+      branchContext = await resolveAdminBranchContext(req.user);
+    }
 
     // Check if any filter is applied
     const hasFilters = pickupBranch || status;
@@ -88,6 +213,8 @@ router.get('/', async (req, res) => {
     if (status) {
       query = query.eq('status', status);
     }
+
+    query = applyBranchFilter(query, branchContext);
 
     // Apply sorting
     if (dateSort === 'asc') {
@@ -108,7 +235,7 @@ router.get('/', async (req, res) => {
     }
 
     // Get total count BEFORE applying range
-    const countQuery = supabase
+    let countQuery = supabase
       .from('orders')
       .select('*', { count: 'exact' });
     
@@ -118,6 +245,8 @@ router.get('/', async (req, res) => {
     if (status) {
       countQuery.eq('status', status);
     }
+
+    countQuery = applyBranchFilter(countQuery, branchContext);
     
     const { count: totalCount } = await countQuery;
     console.log(`📦 [Orders API] Total count from DB: ${totalCount}`);
@@ -139,10 +268,16 @@ router.get('/', async (req, res) => {
       throw new Error(`Supabase error: ${error.message}`);
     }
 
-    console.log(`📦 [Orders API] Returning ${orders?.length} orders, total: ${totalCount}`);
+    const filteredOrders = branchContext
+      ? (orders || []).filter(order => orderMatchesBranch(order, branchContext))
+      : (orders || []);
+
+    const effectiveTotal = branchContext ? filteredOrders.length : totalCount;
+
+    console.log(`📦 [Orders API] Returning ${filteredOrders?.length} orders, total: ${effectiveTotal}`);
 
     // Get unique user IDs from orders
-    const userIds = [...new Set(orders.map(order => order.user_id).filter(Boolean))];
+    const userIds = [...new Set(filteredOrders.map(order => order.user_id).filter(Boolean))];
     
     // Fetch user data for all unique user IDs
     let userData = {};
@@ -167,7 +302,7 @@ router.get('/', async (req, res) => {
     }
 
     // Transform data to match expected format
-    const transformedOrders = (orders || []).map(order => {
+    const transformedOrders = (filteredOrders || []).map(order => {
       // Extract customer info from user data or delivery address
       let customerName = 'Unknown Customer';
       let customerEmail = 'N/A';
@@ -206,21 +341,27 @@ router.get('/', async (req, res) => {
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: totalCount || 0,
-        totalPages: Math.ceil((totalCount || 0) / parseInt(limit))
+        total: effectiveTotal || 0,
+        totalPages: Math.ceil((effectiveTotal || 0) / parseInt(limit))
       }
     });
 
   } catch (error) {
     console.error('Error fetching orders:', error);
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    const status = error.statusCode || 500;
+    res.status(status).json({ error: status === 403 ? error.message : 'Failed to fetch orders' });
   }
 });
 
 // Get single order by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
     const { id } = req.params;
+
+    let branchContext = null;
+    if (req.user.role === 'admin') {
+      branchContext = await resolveAdminBranchContext(req.user);
+    }
 
     const { data: order, error } = await supabase
       .from('orders')
@@ -234,6 +375,8 @@ router.get('/:id', async (req, res) => {
       }
       throw new Error(`Supabase error: ${error.message}`);
     }
+
+    ensureOrderAccess(order, branchContext);
 
     // Fetch user data for this order
     let userData = null;
@@ -293,12 +436,13 @@ router.get('/:id', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching order:', error);
-    res.status(500).json({ error: 'Failed to fetch order' });
+    const status = error.statusCode || 500;
+    res.status(status).json({ error: status === 403 ? error.message : 'Failed to fetch order' });
   }
 });
 
 // Update order status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   console.log('🚀 STATUS UPDATE ROUTE CALLED');
   console.log('🚀 Request params:', req.params);
   console.log('🚀 Request body:', req.body);
@@ -321,21 +465,11 @@ router.patch('/:id/status', async (req, res) => {
       });
     }
 
-    // Get user making the request (for role validation)
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Authorization token required' });
-    }
+    const userRole = req.user.role;
+    const isAdminOrOwner = ['admin', 'owner'].includes(userRole);
+    const branchContext = userRole === 'admin' ? await resolveAdminBranchContext(req.user) : null;
 
-    const token = authHeader.split(' ')[1];
-    const { data: { user: requestingUser }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !requestingUser) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-
-    const userRole = requestingUser.user_metadata?.role || 'customer';
-    console.log('👤 User making request:', { id: requestingUser.id, role: userRole });
+    console.log('👤 User making request:', { id: req.user.id, role: userRole });
 
     // Get current order data before update
     const { data: currentOrderData, error: currentError } = await supabase
@@ -348,6 +482,8 @@ router.patch('/:id/status', async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    ensureOrderAccess(currentOrderData, branchContext);
+
     // Get user data separately
     const { data: userData, error: userError } = await supabase.auth.admin.getUserById(currentOrderData.user_id);
     
@@ -357,6 +493,16 @@ router.patch('/:id/status', async (req, res) => {
       customer_name: userData?.user?.user_metadata?.full_name || null
     };
     const previousStatus = currentOrder.status;
+
+    // ADMIN/OWNER-ONLY LAYOUT CONTROL
+    if (status === 'layout' && !isAdminOrOwner) {
+      console.log('❌ Non-admin attempting to move to layout:', userRole);
+      return res.status(403).json({
+        error: 'Only admins or owners can move orders to layout status',
+        requiredRole: 'admin or owner',
+        currentRole: userRole
+      });
+    }
 
     // ARTIST-ONLY SIZING CONTROL
     if (status === 'sizing') {
@@ -421,6 +567,16 @@ router.patch('/:id/status', async (req, res) => {
 
     // Assign artist task when order moves to 'layout' status
     if (status === 'layout' && previousStatus !== 'layout') {
+      // Enforce admin/owner control at this point as well (defensive)
+      if (!isAdminOrOwner) {
+        console.log('❌ Non-admin attempting to trigger layout assignment logic:', userRole);
+        return res.status(403).json({
+          error: 'Only admins or owners can initiate layout stage',
+          requiredRole: 'admin or owner',
+          currentRole: userRole
+        });
+      }
+
       try {
         console.log(`🎨 Assigning artist task for order ${updatedOrder.order_number}`);
         console.log(`🎨 Order ID: ${currentOrder.id}`);
@@ -535,6 +691,50 @@ router.patch('/:id/status', async (req, res) => {
         
         if (taskId) {
           console.log(`🎨 Artist task successfully assigned for order ${updatedOrder.order_number}`);
+
+          // Create chat room automatically when task is assigned (admin/owner initiated)
+          try {
+            const { data: assignedTask, error: taskFetchError } = await supabase
+              .from('artist_tasks')
+              .select('artist_id')
+              .eq('id', taskId)
+              .single();
+
+            if (!taskFetchError && assignedTask?.artist_id) {
+              const { data: existingRoom, error: existingRoomError } = await supabase
+                .from('design_chat_rooms')
+                .select('id')
+                .eq('order_id', currentOrder.id)
+                .limit(1)
+                .maybeSingle();
+
+              if (existingRoomError && existingRoomError.code === 'PGRST116') {
+                console.warn(`⚠️ Multiple chat rooms already exist for order ${currentOrder.id}. Skipping creation.`);
+              } else if (!existingRoom) {
+                const { data: chatRoom, error: roomError } = await supabase
+                  .from('design_chat_rooms')
+                  .insert({
+                    order_id: currentOrder.id,
+                    customer_id: currentOrder.user_id,
+                    artist_id: assignedTask.artist_id,
+                    task_id: taskId,
+                    room_name: `Order ${updatedOrder.order_number} Chat`
+                  })
+                  .select()
+                  .single();
+
+                if (roomError) {
+                  console.error('❌ Error creating chat room:', roomError);
+                } else {
+                  console.log(`✅ Chat room created automatically: ${chatRoom.id}`);
+                }
+              } else {
+                console.log(`✅ Chat room already exists: ${existingRoom.id}`);
+              }
+            }
+          } catch (chatError) {
+            console.error('❌ Error in chat room creation after layout assignment:', chatError);
+          }
         } else {
           console.warn(`⚠️ Failed to assign artist task for order ${updatedOrder.order_number}`);
         }
@@ -583,7 +783,8 @@ router.patch('/:id/status', async (req, res) => {
 
   } catch (error) {
     console.error('Error updating order status:', error);
-    res.status(500).json({ error: 'Failed to update order status' });
+    const status = error.statusCode || 500;
+    res.status(status).json({ error: status === 403 ? error.message : 'Failed to update order status' });
   }
 });
 
@@ -595,6 +796,7 @@ router.post('/', async (req, res) => {
     const orderNumber = body.orderNumber || body.order_number;
     const shippingMethod = body.shippingMethod || body.shipping_method;
     const pickupLocation = body.pickupLocation || body.pickup_location;
+    const pickupBranchId = body.pickupBranchId || body.pickup_branch_id || null;
     const deliveryAddress = body.deliveryAddress || body.delivery_address;
     const orderNotes = body.orderNotes || body.order_notes || null;
     const subtotalAmount = body.subtotalAmount || body.subtotal_amount || 0;
@@ -606,6 +808,24 @@ router.post('/', async (req, res) => {
     // Generate order number if not provided
     const finalOrderNumber = orderNumber || `ORD-${Date.now()}`;
 
+    let resolvedPickupLocation = pickupLocation;
+
+    if (pickupBranchId && !resolvedPickupLocation) {
+      try {
+        const { data: branchData } = await supabase
+          .from('branches')
+          .select('name')
+          .eq('id', pickupBranchId)
+          .single();
+
+        if (branchData?.name) {
+          resolvedPickupLocation = branchData.name;
+        }
+      } catch (branchLookupError) {
+        console.warn('⚠️ Could not resolve branch name for pickup:', branchLookupError.message);
+      }
+    }
+
     // Insert using Supabase client
     const { data: inserted, error: insertError } = await supabase
       .from('orders')
@@ -615,7 +835,8 @@ router.post('/', async (req, res) => {
           order_number: finalOrderNumber,
           status: body.status || 'pending',
           shipping_method: shippingMethod,
-          pickup_location: pickupLocation,
+          pickup_location: resolvedPickupLocation,
+          pickup_branch_id: pickupBranchId,
           delivery_address: deliveryAddress || null,
           order_notes: orderNotes,
           subtotal_amount: subtotalAmount,
@@ -635,173 +856,6 @@ router.post('/', async (req, res) => {
     }
 
     const newOrder = inserted;
-
-    // Assign artist task immediately when order is created
-    // This ensures every order has an assigned artist from the start
-    if (newOrder.status === 'pending' || newOrder.status === 'confirmed') {
-      try {
-        console.log(`🎨 Assigning artist task for new order ${newOrder.order_number}`);
-        console.log(`🎨 Order ID: ${newOrder.id}`);
-        console.log(`🎨 Order Type: ${newOrder.order_type || 'regular'}`);
-        
-        let taskId = null;
-        
-        // Determine order type and assign appropriate task
-        if (newOrder.order_type === 'custom_design') {
-          // Custom design order
-          const { data: customTaskData, error: customError } = await supabase.rpc('assign_custom_design_task', {
-            p_order_id: newOrder.id,
-            p_product_name: newOrder.order_items?.[0]?.name || 'Custom Design',
-            p_quantity: newOrder.total_items || 1,
-            p_customer_requirements: newOrder.order_notes || null,
-            p_priority: 'medium',
-            p_deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
-            p_product_id: newOrder.order_items?.[0]?.id || null
-          });
-          
-          if (customError) {
-            console.error('❌ Error assigning custom design task:', customError);
-          } else {
-            taskId = customTaskData;
-            console.log(`✅ Custom design task assigned: ${taskId}`);
-          }
-        } else if (newOrder.order_number?.startsWith('WALKIN-')) {
-          // Walk-in order
-          const { data: walkInTaskData, error: walkInError } = await supabase.rpc('assign_walk_in_order_task', {
-            p_product_name: newOrder.order_items?.[0]?.name || 'Walk-in Product',
-            p_quantity: newOrder.total_items || 1,
-            p_customer_requirements: newOrder.order_notes || null,
-            p_priority: 'high',
-            p_deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
-            p_order_id: newOrder.id,
-            p_product_id: newOrder.order_items?.[0]?.id || null
-          });
-          
-          if (walkInError) {
-            console.error('❌ Error assigning walk-in order task:', walkInError);
-          } else {
-            taskId = walkInTaskData;
-            console.log(`✅ Walk-in order task assigned: ${taskId}`);
-          }
-        } else {
-          // Regular order (store products)
-          // Get product image from order items for artist reference
-          const firstItem = newOrder.order_items?.[0];
-          const productImage = firstItem?.image || firstItem?.main_image || null;
-          let customerRequirements = newOrder.order_notes || '';
-          
-          // Add product image to requirements if available
-          if (productImage) {
-            customerRequirements = customerRequirements 
-              ? `${customerRequirements}\n\n📸 Product Image: ${productImage}`
-              : `📸 Product Image: ${productImage}`;
-          }
-          
-          const { data: regularTaskData, error: regularError } = await supabase.rpc('assign_regular_order_task', {
-            p_product_name: firstItem?.name || 'Store Product',
-            p_quantity: newOrder.total_items || 1,
-            p_customer_requirements: customerRequirements || null,
-            p_priority: 'medium',
-            p_deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
-            p_order_id: newOrder.id,
-            p_product_id: firstItem?.id || null,
-            p_order_source: 'online'
-          });
-          
-          if (regularError) {
-            console.error('❌ Error assigning regular order task:', regularError);
-          } else {
-            taskId = regularTaskData;
-            console.log(`✅ Regular order task assigned: ${taskId}`);
-            
-            // If task was created successfully and we have an image, update the task with image reference
-            if (taskId && productImage) {
-              try {
-                // Update the task's design_requirements and product_thumbnail to include the image
-                const { data: existingTask } = await supabase
-                  .from('artist_tasks')
-                  .select('design_requirements')
-                  .eq('id', taskId)
-                  .single();
-                
-                if (existingTask) {
-                  const updatedRequirements = existingTask.design_requirements 
-                    ? `${existingTask.design_requirements}\n\n🖼️ Product Reference Image: ${productImage}`
-                    : `🖼️ Product Reference Image: ${productImage}`;
-                  
-                  // Update both design_requirements and product_thumbnail
-                  await supabase
-                    .from('artist_tasks')
-                    .update({ 
-                      design_requirements: updatedRequirements,
-                      product_thumbnail: productImage
-                    })
-                    .eq('id', taskId);
-                  
-                  console.log(`✅ Added product image to task ${taskId}`);
-                }
-              } catch (updateError) {
-                console.error('⚠️ Could not update task with image (non-critical):', updateError);
-              }
-            }
-          }
-        }
-        
-        if (taskId) {
-          console.log(`🎨 Artist task successfully assigned for order ${newOrder.order_number}`);
-          
-          // Create chat room automatically when task is assigned
-          try {
-            // Get the assigned artist ID from the task
-            const { data: assignedTask, error: taskFetchError } = await supabase
-              .from('artist_tasks')
-              .select('artist_id')
-              .eq('id', taskId)
-              .single();
-            
-            if (!taskFetchError && assignedTask?.artist_id) {
-              // Check if chat room already exists
-              const { data: existingRoom } = await supabase
-                .from('design_chat_rooms')
-                .select('id')
-                .eq('order_id', newOrder.id)
-                .single();
-              
-              if (!existingRoom) {
-                // Create chat room
-                const { data: chatRoom, error: roomError } = await supabase
-                  .from('design_chat_rooms')
-                  .insert({
-                    order_id: newOrder.id,
-                    customer_id: newOrder.user_id,
-                    artist_id: assignedTask.artist_id,
-                    task_id: taskId,
-                    room_name: `Order ${newOrder.order_number} Chat`
-                  })
-                  .select()
-                  .single();
-                
-                if (roomError) {
-                  console.error('❌ Error creating chat room:', roomError);
-                } else {
-                  console.log(`✅ Chat room created automatically: ${chatRoom.id}`);
-                }
-              } else {
-                console.log(`✅ Chat room already exists: ${existingRoom.id}`);
-              }
-            }
-          } catch (chatError) {
-            console.error('❌ Error in chat room creation during order creation:', chatError);
-            // Don't fail the entire request if chat room creation fails
-          }
-        } else {
-          console.warn(`⚠️ Failed to assign artist task for order ${newOrder.order_number}`);
-        }
-      } catch (error) {
-        console.error('❌ Error in artist task assignment during order creation:', error);
-        // Don't fail the entire request if artist assignment fails
-      }
-    }
 
     // Note: sold_quantity will be updated when order status changes to 'picked_up_delivered'
     // This prevents double-counting when orders are created and then completed

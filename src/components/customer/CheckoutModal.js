@@ -1,7 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaChevronUp, FaTshirt, FaImage } from 'react-icons/fa';
 import userService from '../../services/userService';
+import branchService from '../../services/branchService';
 import './CheckoutModal.css';
+
+const FALLBACK_BRANCHES = [
+  { id: 1, name: 'SAN PASCUAL (MAIN BRANCH)' },
+  { id: 2, name: 'CALAPAN BRANCH' },
+  { id: 3, name: 'MUZON BRANCH' },
+  { id: 4, name: 'LEMERY BRANCH' },
+  { id: 5, name: 'BATANGAS CITY BRANCH' },
+  { id: 6, name: 'BAUAN BRANCH' },
+  { id: 7, name: 'CALACA BRANCH' },
+  { id: 8, name: 'PINAMALAYAN BRANCH' },
+  { id: 9, name: 'ROSARIO BRANCH' }
+];
 
 const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartItems }) => {
   // Use the filtered cart items passed as props, not all cart items from context
@@ -42,10 +55,18 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   const [orderErrors, setOrderErrors] = useState({}); // For order validation
   
   const [shippingMethod, setShippingMethod] = useState('pickup');
-  const [selectedLocation, setSelectedLocation] = useState('BATANGAS CITY');
+  const [selectedLocation, setSelectedLocation] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [branches, setBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState(null);
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
+
+  const branchOptions = useMemo(
+    () => (branches.length > 0 ? branches : FALLBACK_BRANCHES),
+    [branches]
+  );
+
   const [showConfirmation, setShowConfirmation] = useState(false); // Confirmation dialog
   const [showOrderComplete, setShowOrderComplete] = useState(false); // Order complete message
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Delete address confirmation
@@ -79,19 +100,48 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+     if (!isOpen) {
+       return;
+     }
+ 
+     let isCancelled = false;
+ 
+     const loadBranches = async () => {
+       try {
+         const branchData = await branchService.getBranches();
+         if (isCancelled) return;
+ 
+         setBranches(branchData);
+ 
+         if (branchData.length > 0) {
+           setSelectedBranchId(prev => (prev ?? branchData[0].id));
+           setSelectedLocation(prev => (prev && prev.trim() !== '' ? prev : branchData[0].name));
+         }
+       } catch (error) {
+         if (!isCancelled) {
+           console.error('Failed to load branches for checkout:', error);
+         }
+       }
+     };
+ 
+     loadBranches();
+ 
+     return () => {
+       isCancelled = true;
+     };
+  }, [isOpen]);
 
-  const locations = [
-    'BATANGAS CITY',
-    'BAUAN',
-    'SAN PASCUAL (MAIN BRANCH)',
-    'CALAPAN',
-    'PINAMALAYAN',
-    'MUZON',
-    'LEMERY',
-    'ROSARIO',
-    'CALACA'
-  ];
+  useEffect(() => {
+    if (!isOpen || branchOptions.length === 0) {
+      return;
+    }
+
+    setSelectedBranchId(prev => prev ?? branchOptions[0].id);
+    setSelectedLocation(prev => (prev && prev.trim() !== '' ? prev : branchOptions[0].name));
+  }, [isOpen, branchOptions]);
+
+  if (!isOpen) return null;
 
   const subtotalAmount = cartItems.reduce((total, item) => {
     const price = parseFloat(item.price || item.product_price || item.productPrice || 0);
@@ -133,6 +183,10 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     
     // Always require location selection
     if (!selectedLocation || selectedLocation.trim() === '') {
+      errors.location = 'Please select a branch location';
+    }
+
+    if (!selectedBranchId && branches.length > 0) {
       errors.location = 'Please select a branch location';
     }
     
@@ -178,6 +232,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
       deliveryAddress,
       shippingMethod,
       selectedLocation,
+      selectedBranchId,
       orderNotes,
       items: cartItems,
       subtotalAmount,
@@ -1042,19 +1097,30 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                   </div>
                   {showLocationDropdown && (
                     <div className="location-options">
-                      {locations.map((location, index) => (
-                        <div
-                          key={index}
-                          className="location-option"
-                          onClick={() => {
-                            setSelectedLocation(location);
-                            setShowLocationDropdown(false);
-                            setOrderErrors(prev => ({ ...prev, location: '' }));
-                          }}
-                        >
-                          {location}
-                        </div>
-                      ))}
+                      {branchOptions.map((branch, index) => {
+                        const branchName = branch?.name || '';
+                        const branchId = branch?.id ?? null;
+
+                        return (
+                          <div
+                            key={`${branchId ?? 'fallback'}-${index}`}
+                            className={`location-option ${selectedLocation === branchName ? 'selected' : ''}`}
+                            onClick={() => {
+                              setSelectedLocation(branchName);
+                              setSelectedBranchId(branchId);
+                              setShowLocationDropdown(false);
+                            }}
+                          >
+                            <div className="location-info">
+                              <FaMapMarkerAlt className="location-icon" />
+                              <span className="location-text">{branchName}</span>
+                            </div>
+                            {selectedLocation === branchName && (
+                              <div className="location-selected-badge">Selected</div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {orderErrors.location && (

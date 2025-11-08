@@ -77,6 +77,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
       } else {
         const messagesWithSenders = messagesData.map(msg => ({
           ...msg,
+          client_id: msg.client_id || msg.id,
           sender_name: msg.sender_type === 'artist' ? 'You' : customerName
         }));
         console.log('📥 Messages with senders:', messagesWithSenders);
@@ -97,6 +98,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
             if (!exists) {
               const messageWithSender = {
                 ...payload.new,
+                client_id: payload.new.id,
                 sender_name: payload.new.sender_type === 'artist' ? 'You' : (customer?.full_name || customerName || 'Customer')
               };
               console.log('📨 Message added to state, new count:', prev.length + 1);
@@ -136,10 +138,12 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
     e.preventDefault();
     if (!newMessage.trim() && attachments.length === 0) return;
 
+    const messageText = newMessage.trim();
+    const messageAttachments = [...attachments];
+    let optimisticId = null;
+
     try {
       setSending(true);
-      const messageText = newMessage.trim();
-      const messageAttachments = [...attachments];
       
       console.log('📤 Sending message:', {
         roomId: room.id,
@@ -148,21 +152,11 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
         attachments: messageAttachments
       });
       
-      // Send message to database
-      const sentMessage = await chatService.sendMessage(
-        room.id, 
-        user.id, 
-        'artist', 
-        messageText, 
-        'text', 
-        messageAttachments
-      );
-      
-      console.log('✅ Message sent successfully:', sentMessage);
-      
-      // Immediately add message to state (optimistic update)
-      const messageWithSender = {
-        id: sentMessage.id || `temp-${Date.now()}`,
+      // Optimistically add message
+      optimisticId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        id: optimisticId,
+        client_id: optimisticId,
         room_id: room.id,
         sender_id: user.id,
         sender_type: 'artist',
@@ -170,16 +164,15 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
         message_type: 'text',
         attachments: messageAttachments,
         is_read: false,
-        created_at: sentMessage.created_at || new Date().toISOString(),
-        updated_at: sentMessage.updated_at || new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         sender_name: 'You'
       };
       
       setMessages(prev => {
-        // Check if message already exists (avoid duplicates)
-        const exists = prev.some(msg => msg.id === messageWithSender.id);
+        const exists = prev.some(msg => (msg.client_id || msg.id) === optimisticId);
         if (!exists) {
-          return [...prev, messageWithSender];
+          return [...prev, optimisticMessage];
         }
         return prev;
       });
@@ -191,11 +184,44 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
       // Scroll to bottom after message is added
       setTimeout(() => {
         scrollToBottom();
-      }, 100);
+      }, 50);
+
+      // Send message to database
+      const sentMessage = await chatService.sendMessage(
+        room.id,
+        user.id,
+        'artist',
+        messageText,
+        'text',
+        messageAttachments
+      );
+
+      console.log('✅ Message sent successfully:', sentMessage);
+
+      // Replace optimistic message with actual message details
+      setMessages(prev => prev.map(msg => {
+        if ((msg.client_id || msg.id) === optimisticId) {
+          return {
+            ...msg,
+            id: sentMessage.id,
+            client_id: optimisticId,
+            created_at: sentMessage.created_at || msg.created_at,
+            updated_at: sentMessage.updated_at || msg.updated_at,
+            is_read: sentMessage.is_read ?? msg.is_read,
+            attachments: sentMessage.attachments || msg.attachments
+          };
+        }
+        return msg;
+      }));
       
     } catch (error) {
       console.error('❌ Error sending message:', error);
       alert('Failed to send message. Please try again.');
+
+      // Remove optimistic message on failure
+      if (optimisticId) {
+        setMessages(prev => prev.filter(msg => (msg.client_id || msg.id) !== optimisticId));
+      }
     } finally {
       setSending(false);
     }
@@ -303,19 +329,56 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
       return;
     }
 
+    let optimisticId = null;
+
     try {
       setSubmittingReview(true);
       
       // Submit review request with files and notes
 
-      await chatService.sendMessage(
+      optimisticId = `review-${Date.now()}`;
+      const optimisticMessage = {
+        id: optimisticId,
+        client_id: optimisticId,
+        room_id: room.id,
+        sender_id: user.id,
+        sender_type: 'artist',
+        message: `Design Review Request\n\n${reviewNotes || 'Please review the attached design files and provide your feedback.'}`,
+        message_type: 'review_request',
+        attachments: reviewFiles,
+        is_read: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sender_name: 'You'
+      };
+
+      setMessages(prev => [...prev, optimisticMessage]);
+      setShowReviewModal(false);
+      setReviewFiles([]);
+      setReviewNotes('');
+      setTimeout(() => scrollToBottom(), 50);
+
+      const sentMessage = await chatService.sendMessage(
         room.id,
         user.id,
         'artist',
-        `Design Review Request\n\n${reviewNotes || 'Please review the attached design files and provide your feedback.'}`,
+        optimisticMessage.message,
         'review_request',
         reviewFiles
       );
+
+      setMessages(prev => prev.map(msg => (
+        (msg.client_id || msg.id) === optimisticId
+          ? {
+              ...msg,
+              id: sentMessage.id,
+              created_at: sentMessage.created_at || msg.created_at,
+              updated_at: sentMessage.updated_at || msg.updated_at,
+              attachments: sentMessage.attachments || msg.attachments,
+              is_read: sentMessage.is_read ?? msg.is_read
+            }
+          : msg
+      )));
 
       // Close review modal and reset state
       setShowReviewModal(false);
@@ -327,6 +390,9 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
     } catch (error) {
       console.error('Error submitting review:', error);
       alert('Failed to submit review request. Please try again.');
+      if (optimisticId) {
+        setMessages(prev => prev.filter(msg => (msg.client_id || msg.id) !== optimisticId));
+      }
     } finally {
       setSubmittingReview(false);
     }
@@ -373,7 +439,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
                 console.log('🎨 Rendering message:', message.id, message.message);
                 return (
                   <div 
-                    key={message.id} 
+                    key={message.client_id || message.id}
                     className={`message ${message.sender_type === 'artist' ? 'sent' : 'received'}`}
                   >
                   <div className="message-content">
