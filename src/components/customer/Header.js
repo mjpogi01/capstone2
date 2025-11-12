@@ -236,135 +236,143 @@ const Header = () => {
         </div>
         
         {/* Hamburger Menu Button */}
-        <button 
-          className={`hamburger-menu ${mobileMenuOpen ? 'active' : ''} ${isAnyModalOpen ? 'disabled' : ''}`}
-          onClick={isAnyModalOpen ? null : toggleMobileMenu}
-          aria-label="Toggle navigation menu"
-          aria-expanded={mobileMenuOpen}
-          disabled={isAnyModalOpen}
-          style={{ cursor: isAnyModalOpen ? 'not-allowed' : 'pointer', opacity: isAnyModalOpen ? 0.5 : 1 }}
-        >
-          {mobileMenuOpen ? <FaTimes /> : <FaBars />}
-        </button>
+        {isAnyModalOpen ? (
+          <span className="hamburger-menu-spacer" aria-hidden="true" />
+        ) : (
+          <button 
+            className={`hamburger-menu ${mobileMenuOpen ? 'active' : ''}`}
+            onClick={toggleMobileMenu}
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? <FaTimes /> : <FaBars />}
+          </button>
+        )}
         
         <nav className={`nav-menu ${mobileMenuOpen ? 'mobile-open' : ''}`} key={location.pathname}>
-          <Link 
-            to="/" 
-            className={`nav-link ${isActive('/') ? 'active' : ''}`}
-          >
-            HOME
-          </Link>
-          <Link 
-            to="/about" 
-            className={`nav-link ${isActive('/about') ? 'active' : ''}`}
-          >
-            ABOUT
-          </Link>
-          <Link 
-            to="/highlights" 
-            className={`nav-link ${isActive('/highlights') ? 'active' : ''}`}
-          >
-            HIGHLIGHTS
-          </Link>
-          <Link 
-            to="/branches" 
-            className={`nav-link ${isActive('/branches') ? 'active' : ''}`}
-          >
-            BRANCHES
-          </Link>
-          <Link 
-            to="/faqs" 
-            className={`nav-link ${isActive('/faqs') ? 'active' : ''}`}
-          >
-            FAQs
-          </Link>
-          <Link 
-            to="/contacts" 
-            className={`nav-link ${isActive('/contacts') ? 'active' : ''}`}
-          >
-            CONTACTS
-          </Link>
-          
-          {/* Mobile Menu Actions - Text Links */}
-          <div className="mobile-menu-actions">
-            <button 
-              className="mobile-action-link" 
-              onClick={() => {
-                openCart();
-                setMobileMenuOpen(false);
-              }}
+          <div className="nav-menu-content">
+            <Link 
+              to="/" 
+              className={`nav-link ${isActive('/') ? 'active' : ''}`}
+              >
+              HOME
+            </Link>
+            <Link 
+              to="/about" 
+              className={`nav-link ${isActive('/about') ? 'active' : ''}`}
             >
-              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                <path d="M3 3h2l3 12h10l3-8H6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="9" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
-                <circle cx="17" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
-              </svg>
-              <span>Cart</span>
-              {getCartItemsCount() > 0 && (
-                <span className="mobile-action-badge">{getCartItemsCount()}</span>
-              )}
-            </button>
-            
-            <button 
-              className="mobile-action-link" 
-              onClick={() => {
-                openWishlist();
-                setMobileMenuOpen(false);
-              }}
+              ABOUT
+            </Link>
+            <Link 
+              to="/highlights" 
+              className={`nav-link ${isActive('/highlights') ? 'active' : ''}`}
             >
-              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span>Wishlist</span>
-              {wishlistItems.length > 0 && (
-                <span className="mobile-action-badge">{wishlistItems.length}</span>
-              )}
-            </button>
+              HIGHLIGHTS
+            </Link>
+            <Link 
+              to="/branches" 
+              className={`nav-link ${isActive('/branches') ? 'active' : ''}`}
+            >
+              BRANCHES
+            </Link>
+            <Link 
+              to="/faqs" 
+              className={`nav-link ${isActive('/faqs') ? 'active' : ''}`}
+            >
+              FAQs
+            </Link>
+            <Link 
+              to="/contacts" 
+              className={`nav-link ${isActive('/contacts') ? 'active' : ''}`}
+            >
+              CONTACTS
+            </Link>
             
-            {isAuthenticated && !isAdmin() && !isOwner() && (
-              <button 
-                className="mobile-action-link" 
-                onClick={async () => {
-                  if (user) {
-                    try {
-                      const userOrders = await orderService.getUserOrders(user.id);
-                      setOrdersCount(userOrders.length);
-                    } catch (error) {
-                      console.error('Error refreshing orders count:', error);
-                    }
-                  }
+            {/* Mobile Menu Actions - Text Links */}
+            <div className="mobile-menu-actions">
+              <button
+                className="mobile-action-link"
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  openCart();
                   setMobileMenuOpen(false);
-                  setShowOrdersModal(true);
                 }}
               >
                 <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor" />
+                  <path d="M3 3h2l3 12h10l3-8H6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="9" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
+                  <circle cx="17" cy="19" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
                 </svg>
-                <span>Orders</span>
-                {ordersCount > 0 && (
-                  <span className="mobile-action-badge">{ordersCount}</span>
+                <span>Cart</span>
+                {getCartItemsCount() > 0 && (
+                  <span className="mobile-action-badge">{getCartItemsCount()}</span>
                 )}
               </button>
-            )}
             
-            {isAuthenticated && (
-              <button 
-                className="mobile-action-link" 
-                onClick={() => {
+              <button
+                className="mobile-action-link"
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  openWishlist();
                   setMobileMenuOpen(false);
-                  setShowChatModal(true);
                 }}
               >
                 <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" fill="currentColor" />
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span>Chat</span>
+                <span>Wishlist</span>
+                {wishlistItems.length > 0 && (
+                  <span className="mobile-action-badge">{wishlistItems.length}</span>
+                )}
               </button>
-            )}
-            
-            <button 
+              
+              {isAuthenticated && !isAdmin() && !isOwner() && (
+                <button
+                  className="mobile-action-link"
+                  onClick={async (e) => {
+                    e.currentTarget.blur();
+                    if (user) {
+                      try {
+                        const userOrders = await orderService.getUserOrders(user.id);
+                        setOrdersCount(userOrders.length);
+                      } catch (error) {
+                        console.error('Error refreshing orders count:', error);
+                      }
+                    }
+                    setMobileMenuOpen(false);
+                    setShowOrdersModal(true);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor" />
+                  </svg>
+                  <span>Orders</span>
+                  {ordersCount > 0 && (
+                    <span className="mobile-action-badge">{ordersCount}</span>
+                  )}
+                </button>
+              )}
+              
+              {isAuthenticated && (
+                <button
+                  className="mobile-action-link"
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    setMobileMenuOpen(false);
+                    setShowChatModal(true);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" fill="currentColor" />
+                  </svg>
+                  <span>Chat</span>
+                </button>
+              )}
+              
+              <button 
               className="mobile-action-link" 
-              onClick={() => {
+              onClick={(e) => {
+                e.currentTarget.blur();
                 setMobileMenuOpen(false);
                 if (!isAuthenticated) {
                   openSignIn();
@@ -377,13 +385,14 @@ const Header = () => {
                 <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
                 <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span>{isAuthenticated ? 'Account' : 'Sign In'}</span>
-            </button>
-            
-            {isAuthenticated && (
-              <button 
+                  <span>{isAuthenticated ? 'Account' : 'Sign In'}</span>
+              </button>
+              
+              {isAuthenticated && (
+                <button 
                 className="mobile-action-link mobile-logout-link" 
-                onClick={() => {
+                onClick={(e) => {
+                  e.currentTarget.blur();
                   setMobileMenuOpen(false);
                   handleLogout();
                 }}
@@ -391,9 +400,10 @@ const Header = () => {
                 <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
                   <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" fill="currentColor" />
                 </svg>
-                <span>Logout</span>
-              </button>
-            )}
+                  <span>Logout</span>
+                </button>
+              )}
+            </div>
           </div>
         </nav>
         

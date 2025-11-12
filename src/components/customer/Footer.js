@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Footer.css';
 import logo from '../../images/yohanns_logo-removebg-preview 3.png';
+import CustomerChatModal from './CustomerChatModal';
 
 const Footer = () => {
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+
+  const handleCustomerServiceClick = (event) => {
+    event.preventDefault();
+    setIsChatModalOpen(true);
+  };
+
   return (
     <footer className="footer">
       <div className="footer-content">
@@ -27,7 +35,13 @@ const Footer = () => {
             </div>
             <div className="nav-column">
               <a href="/faqs" className="footer-link">FAQs</a>
-              <a href="#service" className="footer-link">CUSTOMER SERVICE</a>
+              <a 
+                href="#customer-service" 
+                className="footer-link"
+                onClick={handleCustomerServiceClick}
+              >
+                CUSTOMER SERVICE
+              </a>
               <a href="/privacy" className="footer-link">PRIVACY POLICY</a>
               <a href="/terms" className="footer-link">TERMS AND CONDITIONS</a>
             </div>
@@ -88,6 +102,11 @@ const Footer = () => {
           © 2025 Yohann's Sportswear House | All Rights Reserved
         </p>
       </div>
+
+      <CustomerChatModal 
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+      />
     </footer>
   );
 };

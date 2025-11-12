@@ -123,7 +123,10 @@ const CustomerChatModal = ({ isOpen, onClose }) => {
   return (
     <>
       <div className="customer-chat-modal-overlay" onClick={onClose}>
-        <div className="customer-chat-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`customer-chat-modal ${activeTab === 'support' ? 'is-support-active' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="customer-chat-modal-header">
             <h2>
               <FontAwesomeIcon icon={faComments} />

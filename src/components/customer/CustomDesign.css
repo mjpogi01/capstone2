@@ -419,7 +419,9 @@
 
 /* Hide floating button when checkout modal overlay is present */
 .checkout-modal-overlay ~ .custom-design-floating-btn,
+.customer-chat-modal-overlay ~ .custom-design-floating-btn,
 body:has(.checkout-modal-overlay) .custom-design-floating-btn,
+body:has(.customer-chat-modal-overlay) .custom-design-floating-btn,
 body.checkout-modal-open .custom-design-floating-btn {
   display: none !important;
   visibility: hidden !important;
@@ -471,6 +473,7 @@ body.checkout-modal-open .custom-design-floating-btn {
   
   /* Hide floating button when checkout modal overlay is present on mobile */
   body:has(.checkout-modal-overlay) .custom-design-floating-btn,
+  body:has(.customer-chat-modal-overlay) .custom-design-floating-btn,
   body.checkout-modal-open .custom-design-floating-btn {
     display: none !important;
     visibility: hidden !important;
@@ -493,6 +496,7 @@ body.checkout-modal-open .custom-design-floating-btn {
   
   /* Hide floating button when checkout modal overlay is present */
   body:has(.checkout-modal-overlay) .custom-design-floating-btn,
+  body:has(.customer-chat-modal-overlay) .custom-design-floating-btn,
   body.checkout-modal-open .custom-design-floating-btn {
     display: none !important;
     visibility: hidden !important;
@@ -515,6 +519,7 @@ body.checkout-modal-open .custom-design-floating-btn {
   
   /* Hide floating button when checkout modal overlay is present */
   body:has(.checkout-modal-overlay) .custom-design-floating-btn,
+  body:has(.customer-chat-modal-overlay) .custom-design-floating-btn,
   body.checkout-modal-open .custom-design-floating-btn {
     display: none !important;
     visibility: hidden !important;
