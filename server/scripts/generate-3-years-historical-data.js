@@ -149,9 +149,10 @@ function normaliseKey(value) {
 function buildBarangayLookups(dataset) {
   const cityLookup = new Map();
   const provinceLookup = new Map();
+  const cityProvinceLookup = new Map();
 
   if (!dataset || !Array.isArray(dataset.provinces)) {
-    return { cityLookup, provinceLookup };
+    return { cityLookup, provinceLookup, cityProvinceLookup };
   }
 
   dataset.provinces.forEach((province) => {
@@ -199,34 +200,45 @@ function buildBarangayLookups(dataset) {
             return;
           }
 
+          const combinedKey = `${provinceKey}|${key}`;
+          if (!cityProvinceLookup.has(combinedKey)) {
+            cityProvinceLookup.set(combinedKey, new Map());
+          }
+          const combinedBucket = cityProvinceLookup.get(combinedKey);
+          const entryPairs = barangayEntries.map((entry) => {
+            const entryKey = entry.code || `${entry.name}:${localGovernment.code}`;
+            combinedBucket.set(entryKey, entry);
+            return [entryKey, entry];
+          });
+
           const existing = cityLookup.get(key);
           if (!existing) {
             cityLookup.set(key, {
               province: province.name,
               region: province.regionName,
-              barangays: new Map(barangayEntries.map((entry) => {
-                const entryKey = entry.code || `${entry.name}:${localGovernment.code}`;
-                return [entryKey, entry];
-              }))
+              barangays: new Map(entryPairs)
             });
-            return;
+          } else {
+            entryPairs.forEach(([entryKey, entry]) => {
+              existing.barangays.set(entryKey, entry);
+            });
           }
-
-          barangayEntries.forEach((entry) => {
-            const entryKey = entry.code || `${entry.name}:${localGovernment.code}`;
-            existing.barangays.set(entryKey, entry);
-          });
         });
       });
   });
 
   return {
     cityLookup,
-    provinceLookup
+    provinceLookup,
+    cityProvinceLookup
   };
 }
 
-const { cityLookup: BARANGAY_CITY_LOOKUP, provinceLookup: BARANGAY_PROVINCE_LOOKUP } =
+const {
+  cityLookup: BARANGAY_CITY_LOOKUP,
+  provinceLookup: BARANGAY_PROVINCE_LOOKUP,
+  cityProvinceLookup: BARANGAY_CITY_PROVINCE_LOOKUP
+} =
   buildBarangayLookups(barangayDataset);
 
 const CITY_DATA = [
@@ -278,6 +290,42 @@ const CITY_DATA = [
       'Santa Cruz',
       'Santo Niño',
       'Tilos'
+    ]
+  },
+  {
+    city: 'San Luis',
+    province: 'Batangas',
+    region: 'CALABARZON',
+    postalCode: 4210,
+    lat: 13.822,
+    lng: 120.918,
+    barangays: [
+      'Abelo',
+      'Aplaya',
+      'Bagong Tubig',
+      'Balite',
+      'Banoyo',
+      'Boboy',
+      'Bolbok',
+      'Calumpang',
+      'Calumpit',
+      'Cumba',
+      'Durungao',
+      'Hugom',
+      'Mahabang Parang',
+      'Muzon',
+      'Nagsaulay',
+      'San Antonio',
+      'San Isidro',
+      'San Jose',
+      'San Martin',
+      'San Miguel',
+      'San Nicolas',
+      'San Pedro',
+      'San Roque',
+      'San Vicente',
+      'Talaga',
+      'Ticalan'
     ]
   },
   {
@@ -619,17 +667,16 @@ const CUSTOMER_CREATION_DELAY_MS = 50;
 const LOYAL_SHARE = 0.12;
 const ENGAGED_SHARE = 0.38;
 const BRANCH_PRIORITY_WEIGHTS = {
-  'BATANGAS CITY': 1.8,
   'BATANGAS CITY BRANCH': 1.8,
   'SAN PASCUAL (MAIN BRANCH)': 1.6,
-  'SAN PASCUAL BRANCH': 1.6,
   'CALAPAN BRANCH': 1.35,
   'LEMERY BRANCH': 1.3,
   'BAUAN BRANCH': 1.28,
   'CALACA BRANCH': 1.28,
   'PINAMALAYAN BRANCH': 1.25,
   'ROSARIO BRANCH': 1.25,
-  'MUZON BRANCH': 1.25
+  'MUZON BRANCH': 1.55,
+  'SAN LUIS BRANCH': 1.55
 };
 
 const BRANCH_TO_CITY = new Map(
@@ -644,9 +691,21 @@ const BRANCH_TO_CITY = new Map(
     ['CALACA BRANCH', 'CALACA'],
     ['PINAMALAYAN BRANCH', 'PINAMALAYAN'],
     ['ROSARIO BRANCH', 'ROSARIO'],
-    ['MUZON BRANCH', 'SAN JOSE DEL MONTE CITY']
+    ['MUZON BRANCH', 'SAN LUIS'],
+    ['SAN LUIS BRANCH', 'SAN LUIS']
   ].map(([branch, city]) => [branch.toUpperCase(), city.toUpperCase()])
 );
+
+const BRANCH_FOCUS_BARANGAYS = new Map(
+  [
+    ['MUZON BRANCH', ['Muzon', 'San Antonio', 'San Jose', 'San Nicolas', 'Calumpit']],
+    ['SAN LUIS BRANCH', ['Muzon', 'San Antonio', 'San Martin', 'San Roque']]
+  ].map(([branch, barangays]) => [normaliseKey(branch), barangays])
+);
+
+const CUSTOMER_JERSEY_DESIGNS = new Map();
+const GLOBAL_JERSEY_DESIGNS = new Set();
+let syntheticProductCounter = 0;
 const COVID_RECOVERY_END = new Date(2022, 6, 1);
 
 // Product categories and prices
@@ -682,7 +741,7 @@ const CATEGORY_MAP = {
 
 const APPAREL_CATEGORY_KEYS = ['jerseys', 'hoodies', 'uniforms', 'tshirts', 'longsleeves'];
 
-const BALL_BRANDS = ['Molten', 'Spalding', 'Wilson', 'Yohann’s', 'Mikasa', 'Meteor'];
+const BALL_BRANDS = ['Molten', 'Spalding', 'Wilson', 'Yohann's', 'Mikasa', 'Meteor'];
 const BALL_MATERIALS = ['Composite Leather', 'Synthetic Leather', 'Rubber', 'Microfiber', 'PU Leather'];
 const BALL_SIZES = ['4', '5', '6', '7'];
 
@@ -789,6 +848,100 @@ function parsePrice(value, fallback = 0) {
   return fallback;
 }
 
+function generateAlphaNumericToken(length = 5) {
+  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+  for (let i = 0; i < length; i += 1) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
+function createSyntheticProduct(category, options = {}) {
+  syntheticProductCounter += 1;
+  const token = generateAlphaNumericToken(4);
+  const baseId = `SYN-${category.toUpperCase()}-${syntheticProductCounter}-${token}`;
+  const teamLabel = (options.teamName || 'Elite Squad').toString().trim();
+
+  switch (category) {
+    case 'jersey': {
+      const sport = options.sportType || 'Sports';
+      const fullSetPrice = options.fullSetPrice || getRandomInt(1180, 1420);
+      const shirtOnlyPrice = options.shirtOnlyPrice || Math.max(680, Math.round(fullSetPrice * 0.68));
+      const shortsOnlyPrice = options.shortsOnlyPrice || Math.max(520, Math.round(fullSetPrice * 0.48));
+      return {
+        id: baseId,
+        name: `Custom ${sport} Jersey - ${teamLabel} ${token}`,
+        category: 'jerseys',
+        price: fullSetPrice,
+        jersey_prices: {
+          fullSet: fullSetPrice,
+          shirtOnly: shirtOnlyPrice,
+          shortsOnly: shortsOnlyPrice
+        },
+        main_image: null
+      };
+    }
+    case 'hoodies':
+    case 'uniforms':
+    case 'tshirts':
+    case 'longsleeves': {
+      const price = options.basePrice || getRandomInt(780, 1220);
+      const label = category.replace(/s$/, '');
+      return {
+        id: baseId,
+        name: `${teamLabel} ${label.charAt(0).toUpperCase()}${label.slice(1)} Set ${token}`,
+        category,
+        price,
+        main_image: null
+      };
+    }
+    case 'ball': {
+      const ballType = options.ballType || 'basketball';
+      const price = options.basePrice || getRandomInt(1650, 2250);
+      return {
+        id: baseId,
+        name: `${ballType.charAt(0).toUpperCase()}${ballType.slice(1)} Velocity Ball ${token}`,
+        category: 'Balls',
+        price,
+        main_image: null
+      };
+    }
+    case 'trophy': {
+      const size = options.size || getRandomElement(['Small', 'Medium', 'Large']);
+      const price = options.basePrice || getRandomInt(820, 1450);
+      return {
+        id: baseId,
+        name: `${size} Victory Trophy ${token}`,
+        category: 'Trophies',
+        price,
+        main_image: null
+      };
+    }
+    case 'medal': {
+      const medalType = options.medalType || getRandomElement(['Gold', 'Silver', 'Bronze']);
+      const price = options.basePrice || getRandomInt(95, 190);
+      return {
+        id: baseId,
+        name: `${medalType} Achievement Medal ${token}`,
+        category: 'Medals',
+        price,
+        main_image: null
+      };
+    }
+    default: {
+      const price = options.basePrice || getRandomInt(650, 1100);
+      return {
+        id: baseId,
+        name: `${teamLabel} Custom Gear ${token}`,
+        category: category || 'apparel',
+        price,
+        main_image: null
+      };
+    }
+  }
+}
+
 function buildTeamMembers(teamName, teamSize, sizeType, variantKey = 'fullSet') {
   const normalisedSizeType = sizeType === 'kids' ? 'kids' : 'adult';
   const sizePool = normalisedSizeType === 'kids' ? sizes.kids : sizes.adult;
@@ -863,20 +1016,20 @@ function buildSingleOrderDetails(teamName, sizeType, variantKey = 'fullSet') {
 
   if (normalisedVariant === 'shirtOnly') {
     shortsSize = null;
-  } else if (normalisedVariant === 'fullSet') {
-    shortsSize = jerseySize;
-  } else {
+  } else if (normalisedVariant === 'shortsOnly') {
     shortsSize = getRandomElement(sizePool);
+  } else {
+    shortsSize = jerseySize;
   }
   const jerseyNumber = getRandomInt(1, 99);
   let baseSize = null;
 
-  if (normalisedVariant === 'fullSet') {
-    baseSize = jerseySize || getRandomElement(sizePool);
-  } else if (normalisedVariant === 'shirtOnly') {
+  if (normalisedVariant === 'shirtOnly') {
     baseSize = jerseySize;
   } else if (normalisedVariant === 'shortsOnly') {
     baseSize = null;
+  } else {
+    baseSize = jerseySize || getRandomElement(sizePool);
   }
 
   const details = {
@@ -953,13 +1106,101 @@ function generatePhoneNumber() {
   return `${getRandomElement(prefixes)}${getRandomInt(1000000, 9999999)}`;
 }
 
-function getBarangaysForLocation(cityName, provinceName) {
-  const cityKey = normaliseKey(cityName);
-  if (cityKey && BARANGAY_CITY_LOOKUP.has(cityKey)) {
-    return Array.from(BARANGAY_CITY_LOOKUP.get(cityKey).barangays.values());
+function assignUniqueJerseyDesigns(orderItems, userId, orderDate) {
+  if (!Array.isArray(orderItems) || !userId) {
+    return orderItems;
   }
 
+  const existingDesigns = CUSTOMER_JERSEY_DESIGNS.get(userId) || new Set();
+  const yearSegment = orderDate instanceof Date ? orderDate.getFullYear() : null;
+
+  const updatedItems = orderItems.map((item) => {
+    if (!item) {
+      return item;
+    }
+
+    const productType = (item.product_type || '').toString().toLowerCase();
+    const categoryType = (item.category || '').toString().toLowerCase();
+    const isJerseyProduct = productType.includes('jersey')
+      || productType.includes('sublimation')
+      || categoryType.includes('jersey')
+      || categoryType.includes('sublimation');
+
+    if (!isJerseyProduct) {
+      return item;
+    }
+
+    const baseTeamName =
+      item.teamName
+      || item.team_name
+      || item.singleOrderDetails?.teamName
+      || item.single_order_details?.teamName
+      || 'Custom';
+
+    let designName;
+    let attempts = 0;
+
+    do {
+      const token = generateAlphaNumericToken(4 + (attempts % 2));
+      const yearPart = yearSegment ? `${yearSegment}` : '';
+      const baseLabel = `${baseTeamName} ${yearPart}`.trim();
+      designName = baseLabel ? `${baseLabel} ${token}` : `Custom Design ${token}`;
+      attempts += 1;
+    } while ((existingDesigns.has(designName) || GLOBAL_JERSEY_DESIGNS.has(designName)) && attempts < 6);
+
+    while (existingDesigns.has(designName) || GLOBAL_JERSEY_DESIGNS.has(designName)) {
+      designName = `${designName}-${generateAlphaNumericToken(2)}`;
+    }
+
+    existingDesigns.add(designName);
+    GLOBAL_JERSEY_DESIGNS.add(designName);
+
+    const updated = { ...item };
+    updated.jerseyDesignName = designName;
+    updated.design_name = designName;
+    updated.name = `Custom ${(updated.sport || 'Team')} Jersey - ${designName}`;
+    return updated;
+  });
+
+  CUSTOMER_JERSEY_DESIGNS.set(userId, existingDesigns);
+  return updatedItems;
+}
+
+function getBarangaysForLocation(cityName, provinceName) {
+  const cityKey = normaliseKey(cityName);
   const provinceKey = normaliseKey(provinceName);
+
+  if (cityKey && provinceKey) {
+    const combinedKey = `${provinceKey}|${cityKey}`;
+    if (BARANGAY_CITY_PROVINCE_LOOKUP.has(combinedKey)) {
+      const entries = Array.from(BARANGAY_CITY_PROVINCE_LOOKUP.get(combinedKey).values());
+      if (entries.length > 0) {
+        return entries;
+      }
+    }
+  }
+
+  if (cityKey && BARANGAY_CITY_LOOKUP.has(cityKey)) {
+    const entries = Array.from(BARANGAY_CITY_LOOKUP.get(cityKey).barangays.values());
+    if (provinceKey) {
+      const filtered = entries.filter((entry) => {
+        if (!entry?.provinceCode) {
+          return true;
+        }
+        const provinceBucket = BARANGAY_PROVINCE_LOOKUP.get(provinceKey);
+        if (!provinceBucket) {
+          return true;
+        }
+        const entryKey = entry.code || `${entry.name}:${entry.cityCode || ''}`;
+        return provinceBucket.has(entryKey);
+      });
+      if (filtered.length > 0) {
+        return filtered;
+      }
+    }
+    return entries;
+  }
+
   if (provinceKey && BARANGAY_PROVINCE_LOOKUP.has(provinceKey)) {
     return Array.from(BARANGAY_PROVINCE_LOOKUP.get(provinceKey).values());
   }
@@ -1022,7 +1263,29 @@ function generateAddress(branchName) {
     }))
     : fallbackBarangays;
 
-  const barangayEntry = toBarangayObject(getRandomElement(resolvedBarangays), {
+  const focusBarangays = BRANCH_FOCUS_BARANGAYS.get(normaliseKey(branchName)) || null;
+  let selectionPool = resolvedBarangays;
+
+  if (focusBarangays && focusBarangays.length) {
+    const focusSet = new Set(focusBarangays.map(normaliseKey));
+    const prioritized = resolvedBarangays.filter(entry =>
+      entry && entry.name && focusSet.has(normaliseKey(entry.name))
+    );
+    if (prioritized.length > 0) {
+      // Strong bias towards focus barangays while keeping global coverage
+      if (Math.random() < 0.75) {
+        selectionPool = prioritized;
+      } else {
+        selectionPool = prioritized.concat(resolvedBarangays);
+      }
+    }
+  }
+
+  const selectedBarangay = selectionPool.length > 0
+    ? getRandomElement(selectionPool)
+    : getRandomElement(resolvedBarangays);
+
+  const barangayEntry = toBarangayObject(selectedBarangay, {
     provinceCode: null,
     cityCode: null,
     regionCode: null
@@ -1173,6 +1436,7 @@ async function prepareCustomers(targetCount) {
   }));
 
   let createdCount = 0;
+  const createdCustomerIds = [];
   while (customers.length < targetCount) {
     try {
       const newCustomer = await createCustomerAccount();
@@ -1183,6 +1447,7 @@ async function prepareCustomers(targetCount) {
         yearBucket: null
       });
       createdCount += 1;
+      createdCustomerIds.push(newCustomer.id);
       if (createdCount % 100 === 0) {
         console.log(`   Created ${createdCount} new customer accounts...`);
       }
@@ -1195,8 +1460,51 @@ async function prepareCustomers(targetCount) {
   return {
     customers,
     existingCount: existingCustomers.length,
-    createdCount
+    createdCount,
+    createdCustomerIds
   };
+}
+
+async function removeCustomersWithoutOrders(customerIds = []) {
+  if (!Array.isArray(customerIds) || customerIds.length === 0) {
+    return { removed: 0, skipped: [], failures: [] };
+  }
+
+  let removed = 0;
+  const skipped = [];
+  const failures = [];
+
+  for (const customerId of customerIds) {
+    try {
+      const { count, error: countError } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', customerId);
+
+      if (countError) {
+        failures.push({ customerId, reason: countError.message });
+        continue;
+      }
+
+      if ((count ?? 0) > 0) {
+        skipped.push(customerId);
+        continue;
+      }
+
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(customerId);
+      if (deleteError) {
+        failures.push({ customerId, reason: deleteError.message });
+      } else {
+        removed += 1;
+      }
+    } catch (error) {
+      failures.push({ customerId, reason: error.message });
+    }
+
+    await delay(CUSTOMER_CREATION_DELAY_MS);
+  }
+
+  return { removed, skipped, failures };
 }
 
 function configureCustomers(customers, yearTargets) {
@@ -1234,7 +1542,7 @@ function configureCustomers(customers, yearTargets) {
 
 function buildBranchPicker(branches) {
   if (!Array.isArray(branches) || branches.length === 0) {
-    return () => 'BATANGAS CITY';
+    return () => 'BATANGAS CITY BRANCH';
   }
 
   const entries = branches.map(name => {
@@ -1482,12 +1790,12 @@ function generateSingleOrderLegacy(date) {
     const jerseyTypeRoll = Math.random();
     let jerseyType, isFullSet, isShirtOnly, isShortOnly;
     
-    if (jerseyTypeRoll < 0.60) {
+    if (jerseyTypeRoll < 0.50) {
       isFullSet = true;
       isShirtOnly = false;
       isShortOnly = false;
       jerseyType = 'Full Set';
-    } else if (jerseyTypeRoll < 0.85) {
+    } else if (jerseyTypeRoll < 0.80) {
       isFullSet = false;
       isShirtOnly = true;
       isShortOnly = false;
@@ -1504,7 +1812,7 @@ function generateSingleOrderLegacy(date) {
     
     const players = [];
     for (let j = 0; j < teamSize; j++) {
-      const isKids = isTeamOrder ? Math.random() < 0.25 : Math.random() < 0.35;
+      const isKids = isTeamOrder ? Math.random() < 0.7 : Math.random() < 0.6;
       const playerSizes = isKids ? sizes.kids : sizes.adult;
       const size = getRandomElement(playerSizes);
       
@@ -1679,178 +1987,235 @@ function generateSingleOrder(date) {
 
   // 70% Jerseys, 20% other apparel, 10% sports materials (balls/trophies)
   if (orderCategoryRoll < 0.7) {
-    const product = pickProductFromCatalog('jerseys', APPAREL_CATEGORY_KEYS);
-    if (product) {
-      isTeamOrder = Math.random() < 0.85;
-      const variantRoll = Math.random();
-      let variantKey = 'fullSet';
-      let variantLabel = 'Full Set';
+    let product = pickProductFromCatalog('jerseys', APPAREL_CATEGORY_KEYS);
+    isTeamOrder = Math.random() < 0.85;
+    const variantRoll = Math.random();
+    let variantKey = 'fullSet';
+    let variantLabel = 'Full Set';
 
-      if (variantRoll >= 0.60 && variantRoll < 0.85) {
-        variantKey = 'shirtOnly';
-        variantLabel = 'Shirt Only';
-      } else if (variantRoll >= 0.85) {
-        variantKey = 'shortsOnly';
-        variantLabel = 'Short Only';
-      }
+    if (variantRoll >= 0.50 && variantRoll < 0.80) {
+      variantKey = 'shirtOnly';
+      variantLabel = 'Shirt Only';
+    } else if (variantRoll >= 0.80) {
+      variantKey = 'shortsOnly';
+      variantLabel = 'Short Only';
+    }
+
+    if (!product) {
+      product = createSyntheticProduct('jersey', {
+        sportType,
+        teamName,
+        fullSetPrice: getRandomInt(1180, 1420),
+        shirtOnlyPrice: getRandomInt(690, 890),
+        shortsOnlyPrice: getRandomInt(520, 680)
+      });
+    }
 
       const jerseyPrices = product.jersey_prices || {};
-      const pricePerUnit = parsePrice(jerseyPrices[variantKey], parsePrice(product.price, 1000));
-      const sizeType = isTeamOrder && Math.random() < 0.3 ? 'kids' : 'adult';
+      let pricePerUnit = parsePrice(jerseyPrices[variantKey], parsePrice(product.price, 1000));
+      const sizeType = isTeamOrder
+        ? (Math.random() < 0.7 ? 'kids' : 'adult')
+        : (Math.random() < 0.6 ? 'kids' : 'adult');
+      const sportKey = sportType.toLowerCase();
 
-      if (isTeamOrder) {
-        const teamSize = getRandomInt(8, 15);
-        const teamMembers = buildTeamMembers(teamName, teamSize, sizeType, variantKey);
-        const quantity = teamMembers.length;
-        orderTeamName = teamName;
-        totalAmount += pricePerUnit * quantity;
-        totalItems += quantity;
-        orderItems.push({
-          id: product.id,
-          name: product.name,
-          image: product.main_image,
-          category: product.category,
-          price: pricePerUnit,
-          pricePerUnit,
-          quantity,
-          totalPrice: pricePerUnit * quantity,
-          product_type: 'jersey',
-          jerseyType: variantLabel,
-          sport: sportType,
-          isTeamOrder: true,
-          teamName,
-          team_name: teamName,
-          teamMembers,
-          team_members: teamMembers,
-          sizeType
-        });
-      } else {
-        const singleDetails = buildSingleOrderDetails(teamName, sizeType, variantKey);
-        orderTeamName = singleDetails.teamName || teamName;
-        totalAmount += pricePerUnit;
-        totalItems += 1;
-        orderItems.push({
-          id: product.id,
-          name: product.name,
-          image: product.main_image,
-          category: product.category,
-          price: pricePerUnit,
-          pricePerUnit,
-          quantity: 1,
-          totalPrice: pricePerUnit,
-          product_type: 'jersey',
-          jerseyType: variantLabel,
-          sport: sportType,
-          isTeamOrder: false,
-          teamName: singleDetails.teamName,
-          team_name: singleDetails.teamName,
-          singleOrderDetails: singleDetails,
-          single_order_details: singleDetails,
-          sizeType
-        });
+      if (sizeType === 'kids' && productCategories.sublimation[sportKey]) {
+        const pricing = productCategories.sublimation[sportKey];
+        if (variantKey === 'fullSet') {
+          pricePerUnit = pricing.kids;
+        } else if (variantKey === 'shirtOnly') {
+          pricePerUnit = pricing.upper_kids;
+        } else if (variantKey === 'shortsOnly') {
+          pricePerUnit = Math.max(400, Math.round(pricing.kids * 0.45));
+        }
+      } else if (sizeType === 'adult' && productCategories.sublimation[sportKey]) {
+        const pricing = productCategories.sublimation[sportKey];
+        if (variantKey === 'fullSet') {
+          pricePerUnit = pricing.adult;
+        } else if (variantKey === 'shirtOnly') {
+          pricePerUnit = pricing.upper_adult;
+        } else if (variantKey === 'shortsOnly') {
+          pricePerUnit = Math.max(520, Math.round(pricing.adult * 0.5));
+        }
       }
+
+    if (isTeamOrder) {
+      const teamSize = getRandomInt(8, 15);
+      const teamMembers = buildTeamMembers(teamName, teamSize, sizeType, variantKey);
+      const quantity = teamMembers.length;
+      orderTeamName = teamName;
+      totalAmount += pricePerUnit * quantity;
+      totalItems += quantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity,
+        totalPrice: pricePerUnit * quantity,
+        product_type: 'jersey',
+        jerseyType: variantLabel,
+        sport: sportType,
+        isTeamOrder: true,
+        teamName,
+        team_name: teamName,
+        teamMembers,
+        team_members: teamMembers,
+        sizeType
+      });
+    } else {
+      const singleDetails = buildSingleOrderDetails(teamName, sizeType, variantKey);
+      orderTeamName = singleDetails.teamName || teamName;
+      totalAmount += pricePerUnit;
+      totalItems += 1;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity: 1,
+        totalPrice: pricePerUnit,
+        product_type: 'jersey',
+        jerseyType: variantLabel,
+        sport: sportType,
+        isTeamOrder: false,
+        teamName: singleDetails.teamName,
+        team_name: singleDetails.teamName,
+        singleOrderDetails: singleDetails,
+        single_order_details: singleDetails,
+        sizeType
+      });
     }
   } else if (orderCategoryRoll < 0.9) {
-    const product = pickProductFromCatalog(['hoodies', 'uniforms', 'tshirts', 'longsleeves'], APPAREL_CATEGORY_KEYS);
-    if (product) {
-      isTeamOrder = Math.random() < 0.7;
-      const pricePerUnit = parsePrice(product.price, 850);
-      const sizeType = isTeamOrder && Math.random() < 0.3 ? 'kids' : 'adult';
+    const apparelCategories = ['uniforms', 'uniforms', 'hoodies', 'tshirts', 'longsleeves'];
+    const fallbackCategory = getRandomElement(apparelCategories);
+    let product = pickProductFromCatalog(apparelCategories, APPAREL_CATEGORY_KEYS);
 
-      if (isTeamOrder) {
-        const teamSize = getRandomInt(6, 12);
-        const teamMembers = buildTeamMembers(teamName, teamSize, sizeType);
-        const quantity = teamMembers.length;
-        orderTeamName = teamName;
-        totalAmount += pricePerUnit * quantity;
-        totalItems += quantity;
-        orderItems.push({
-          id: product.id,
-          name: product.name,
-          image: product.main_image,
-          category: product.category,
-          price: pricePerUnit,
-          pricePerUnit,
-          quantity,
-          totalPrice: pricePerUnit * quantity,
-          product_type: product.category.toLowerCase(),
-          isTeamOrder: true,
-          teamName,
-          team_name: teamName,
-          teamMembers,
-          team_members: teamMembers,
-          sizeType
-        });
-      } else {
-        const singleDetails = buildSingleOrderDetails(teamName, sizeType);
-        orderTeamName = singleDetails.teamName || teamName;
-        totalAmount += pricePerUnit;
-        totalItems += 1;
-        orderItems.push({
-          id: product.id,
-          name: product.name,
-          image: product.main_image,
-          category: product.category,
-          price: pricePerUnit,
-          pricePerUnit,
-          quantity: 1,
-          totalPrice: pricePerUnit,
-          product_type: product.category.toLowerCase(),
-          isTeamOrder: false,
-          teamName: singleDetails.teamName,
-          team_name: singleDetails.teamName,
-          singleOrderDetails: singleDetails,
-          single_order_details: singleDetails,
-          sizeType
-        });
-      }
+    if (!product) {
+      product = createSyntheticProduct(fallbackCategory, {
+        teamName,
+        basePrice: getRandomInt(720, 1080)
+      });
+    }
+
+    isTeamOrder = Math.random() < 0.7;
+    const sizeType = isTeamOrder
+      ? (Math.random() < 0.65 ? 'kids' : 'adult')
+      : (Math.random() < 0.55 ? 'kids' : 'adult');
+
+    let pricePerUnit = parsePrice(product.price, sizeType === 'kids' ? 700 : 900);
+    if (sizeType === 'kids') {
+      const cap = fallbackCategory === 'uniforms' ? 780 : 640;
+      pricePerUnit = Math.min(pricePerUnit, cap);
+    } else if (fallbackCategory === 'uniforms') {
+      pricePerUnit = Math.max(pricePerUnit, 920);
+    }
+
+    if (isTeamOrder) {
+      const teamSize = getRandomInt(6, 12);
+      const teamMembers = buildTeamMembers(teamName, teamSize, sizeType);
+      const quantity = teamMembers.length;
+      orderTeamName = teamName;
+      totalAmount += pricePerUnit * quantity;
+      totalItems += quantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity,
+        totalPrice: pricePerUnit * quantity,
+        product_type: (product.category || fallbackCategory).toLowerCase(),
+        isTeamOrder: true,
+        teamName,
+        team_name: teamName,
+        teamMembers,
+        team_members: teamMembers,
+        sizeType
+      });
+    } else {
+      const singleDetails = buildSingleOrderDetails(teamName, sizeType);
+      orderTeamName = singleDetails.teamName || teamName;
+      totalAmount += pricePerUnit;
+      totalItems += 1;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity: 1,
+        totalPrice: pricePerUnit,
+        product_type: (product.category || fallbackCategory).toLowerCase(),
+        isTeamOrder: false,
+        teamName: singleDetails.teamName,
+        team_name: singleDetails.teamName,
+        singleOrderDetails: singleDetails,
+        single_order_details: singleDetails,
+        sizeType
+      });
     }
   } else {
     const gearRoll = Math.random();
     if (gearRoll < 0.55) {
-      const product = pickProductFromCatalog('balls', 'others');
-      if (product) {
-        const quantity = getRandomInt(3, 12);
+      let product = pickProductFromCatalog('balls', 'others');
+      if (!product) {
+        const ballType = getRandomElement(['basketball', 'volleyball', 'football']);
+        product = createSyntheticProduct('ball', {
+          ballType,
+          basePrice: getRandomInt(1650, 2250)
+        });
+      }
+      const quantity = getRandomInt(3, 12);
         const pricePerUnit = parsePrice(product.price, 1800);
         const ballDetails = buildBallDetails(product.name);
-        totalAmount += pricePerUnit * quantity;
-        totalItems += quantity;
-        orderItems.push({
-          id: product.id,
-          name: product.name,
-          image: product.main_image,
-          category: product.category || 'Balls',
-          price: pricePerUnit,
-          pricePerUnit,
-          quantity,
-          totalPrice: pricePerUnit * quantity,
-          product_type: 'ball',
-          ballDetails,
-          ball_details: ballDetails
+      totalAmount += pricePerUnit * quantity;
+      totalItems += quantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category || 'Balls',
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity,
+        totalPrice: pricePerUnit * quantity,
+        product_type: 'ball',
+        ballDetails,
+        ball_details: ballDetails
+      });
+    } else {
+      let product = pickProductFromCatalog('trophies', 'others');
+      if (!product) {
+        product = createSyntheticProduct('trophy', {
+          teamName,
+          basePrice: getRandomInt(820, 1450)
         });
       }
-    } else {
-      const product = pickProductFromCatalog('trophies', 'others');
-      if (product) {
-        const quantity = getRandomInt(3, 8);
+      const quantity = getRandomInt(3, 8);
         const pricePerUnit = parsePrice(product.price, 900);
         const trophyDetails = buildTrophyDetails(product.name, teamName);
-        totalAmount += pricePerUnit * quantity;
-        totalItems += quantity;
-        orderItems.push({
-          id: product.id,
-          name: product.name,
-          image: product.main_image,
-          category: product.category || 'Trophies',
-          price: pricePerUnit,
-          pricePerUnit,
-          quantity,
-          totalPrice: pricePerUnit * quantity,
-          product_type: 'trophy',
-          trophyDetails,
-          trophy_details: trophyDetails
-        });
-      }
+      totalAmount += pricePerUnit * quantity;
+      totalItems += quantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category || 'Trophies',
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity,
+        totalPrice: pricePerUnit * quantity,
+        product_type: 'trophy',
+        trophyDetails,
+        trophy_details: trophyDetails
+      });
     }
   }
 
@@ -1935,7 +2300,7 @@ async function generateAndInsertData() {
   
   // Ensure a sufficient pool of real customer accounts
   console.log('👥 Preparing customer accounts...');
-  const { customers, existingCount, createdCount } = await prepareCustomers(TOTAL_CUSTOMER_TARGET);
+  const { customers, existingCount, createdCount, createdCustomerIds } = await prepareCustomers(TOTAL_CUSTOMER_TARGET);
   configureCustomers(customers, YEARLY_CUSTOMER_TARGETS);
   const customerSelector = buildCustomerSelector(customers, YEARLY_CUSTOMER_TARGETS, startDate.getFullYear());
   const allCustomerIds = customerSelector.allCustomerIds;
@@ -1976,6 +2341,8 @@ async function generateAndInsertData() {
       // Generate unique order number with counter and random string
       const orderNumber = `ORD-${currentDate.getTime()}-${orderCounter++}-${Math.random().toString(36).substring(7)}`;
       
+      const enrichedOrderItems = assignUniqueJerseyDesigns(order.orderItems, userId, order.orderDate);
+
       allOrders.push({
         user_id: userId,
         order_number: orderNumber,
@@ -1988,7 +2355,7 @@ async function generateAndInsertData() {
         shipping_cost: order.shippingCost.toString(),
         total_amount: order.totalAmount.toString(),
         total_items: order.totalItems,
-        order_items: order.orderItems,
+        order_items: enrichedOrderItems,
         created_at: order.orderDate.toISOString(),
         updated_at: order.orderDate.toISOString(),
         design_files: []
@@ -2090,6 +2457,29 @@ async function generateAndInsertData() {
       console.log(`     • ${name}: ${count} orders`);
     });
   }
+  const usedCustomerIds = new Set(allOrders.map(order => order.user_id));
+  const orphanedCustomerIds = createdCustomerIds.filter((id) => !usedCustomerIds.has(id));
+
+  if (orphanedCustomerIds.length > 0) {
+    console.log(`\n🧹 Cleaning up ${orphanedCustomerIds.length} newly created customers without orders...`);
+    const cleanupResult = await removeCustomersWithoutOrders(orphanedCustomerIds);
+    console.log(`   Removed: ${cleanupResult.removed}`);
+    if (cleanupResult.skipped.length) {
+      console.log(`   Skipped (already had orders): ${cleanupResult.skipped.length}`);
+    }
+    if (cleanupResult.failures.length) {
+      console.log(`   Failures: ${cleanupResult.failures.length}`);
+      cleanupResult.failures.slice(0, 10).forEach((failure) => {
+        console.log(`     • ${failure.customerId}: ${failure.reason}`);
+      });
+      if (cleanupResult.failures.length > 10) {
+        console.log('     • ... additional failures not shown');
+      }
+    }
+  } else {
+    console.log('\n✅ All newly created customers placed at least one order.');
+  }
+
   console.log(`   - Date Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
 }
 

@@ -25,7 +25,19 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch branches' });
     }
 
-    res.json(branches);
+    const uniqueBranches = [];
+    const seenNames = new Set();
+
+    for (const branch of branches ?? []) {
+      const key = (branch?.name || '').trim().toLowerCase();
+      if (!key || seenNames.has(key)) {
+        continue;
+      }
+      seenNames.add(key);
+      uniqueBranches.push(branch);
+    }
+
+    res.json(uniqueBranches);
   } catch (error) {
     console.error('Error fetching branches:', error);
     res.status(500).json({ error: 'Failed to fetch branches' });

@@ -1,0 +1,1053 @@
+const express = require('express');
+const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
+const { executeSql } = require('../lib/sqlClient');
+const { sanitizeMessages, callGroq } = require('./aiCommon');
+const analyticsModule = require('./analytics');
+const computeSalesForecast = analyticsModule.computeSalesForecast;
+const resolveBranchContextAnalytics = analyticsModule.resolveBranchContext;
+const SALES_FORECAST_RANGE_LABELS = analyticsModule.SALES_FORECAST_RANGE_LABELS;
+
+const router = express.Router();
+
+const groqConfigured = Boolean(process.env.GROQ_API_KEY);
+if (!groqConfigured) {
+  // eslint-disable-next-line no-console
+  console.warn('⚠️  GROQ_API_KEY is not set. AI analytics endpoint will be disabled.');
+}
+
+const SCHEMA_GUIDE = [
+  'Database tables:',
+  "orders(id, user_id, order_number, status, shipping_method, pickup_location TEXT, delivery_address, order_notes, subtotal_amount, shipping_cost, total_amount, total_items, order_items JSONB, created_at, updated_at, design_files)",
+  "branches(id, name, address, city, phone, email, is_main_manufacturing, created_at)",
+  'There is no branch_id column on orders; use orders.pickup_location (branch name) or join to branches.name when aggregating by branch.',
+  'When joining, match upper(trim(pickup_location)) to upper(trim(branches.name)).'
+].join('\n');
+
+const MAX_SQL_GENERATION_ATTEMPTS = 2;
+const MAX_SQL_EXECUTION_ATTEMPTS = 3;
+
+// Test endpoint BEFORE auth to check if route is accessible
+router.get('/health', (_req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'AI analytics route is accessible',
+    groqConfigured,
+    supabaseUrl: process.env.SUPABASE_URL ? 'Set' : 'Missing',
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'Missing'
+  });
+});
+
+router.use(authenticateSupabaseToken);
+router.use(requireAdminOrOwner);
+
+// Test endpoint to verify route is accessible AFTER auth
+router.get('/test', (_req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'AI analytics route is working',
+    user: req.user ? {
+      id: req.user.id,
+      email: req.user.email,
+      role: req.user.role
+    } : null
+  });
+});
+
+function coerceNumber(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function coerceDate(value) {
+  if (!value) {
+    return null;
+  }
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toISOString();
+  } catch (error) {
+    return value;
+  }
+}
+
+function normalizeFilters(rawFilters = {}) {
+  const filters = {};
+  if (rawFilters.timeRange && typeof rawFilters.timeRange === 'string') {
+    filters.timeRange = rawFilters.timeRange.toLowerCase();
+  }
+  if (rawFilters.branch && typeof rawFilters.branch === 'string' && rawFilters.branch.toLowerCase() !== 'all') {
+    filters.branch = rawFilters.branch.toLowerCase();
+  }
+  if (rawFilters.orderStatus && typeof rawFilters.orderStatus === 'string' && rawFilters.orderStatus.toLowerCase() !== 'all') {
+    filters.orderStatus = rawFilters.orderStatus.toLowerCase();
+  }
+  const yearStart = Number.parseInt(rawFilters.yearStart, 10);
+  if (!Number.isNaN(yearStart)) {
+    filters.yearStart = yearStart;
+  }
+  const yearEnd = Number.parseInt(rawFilters.yearEnd, 10);
+  if (!Number.isNaN(yearEnd)) {
+    filters.yearEnd = yearEnd;
+  }
+  return filters;
+}
+
+function buildWhereClause(filters = {}) {
+  const clauses = [];
+  const params = [];
+  let index = 1;
+
+  if (filters.branchId && Number.isInteger(filters.branchId)) {
+    clauses.push(`pickup_branch_id = $${index}`);
+    params.push(filters.branchId);
+    index += 1;
+  }
+
+  if (filters.branchName) {
+    clauses.push(`LOWER(TRIM(pickup_location)) = LOWER(TRIM($${index}))`);
+    params.push(filters.branchName);
+    index += 1;
+  }
+
+  if (filters.status && Array.isArray(filters.status) && filters.status.length > 0) {
+    const placeholders = filters.status.map((_, idx) => `$${index + idx}`).join(',');
+    clauses.push(`LOWER(status) IN (${placeholders})`);
+    params.push(...filters.status.map((status) => status.toLowerCase()));
+    index += filters.status.length;
+  }
+
+  if (filters.startDate instanceof Date && !Number.isNaN(filters.startDate)) {
+    clauses.push(`created_at >= $${index}`);
+    params.push(filters.startDate.toISOString());
+    index += 1;
+  }
+
+  if (filters.endDate instanceof Date && !Number.isNaN(filters.endDate)) {
+    clauses.push(`created_at < $${index}`);
+    params.push(filters.endDate.toISOString());
+    index += 1;
+  }
+
+  if (filters.orderStatus && typeof filters.orderStatus === 'string') {
+    clauses.push(`LOWER(status) = $${index}`);
+    params.push(filters.orderStatus.trim().toLowerCase());
+    index += 1;
+  }
+
+  const hasExplicitStatusFilter = (
+    (Array.isArray(filters.status) && filters.status.length > 0)
+    || (typeof filters.orderStatus === 'string' && filters.orderStatus.trim() !== '')
+  );
+
+  if (Number.isInteger(filters.yearStart)) {
+    clauses.push(`EXTRACT(YEAR FROM created_at) >= $${index}`);
+    params.push(filters.yearStart);
+    index += 1;
+  }
+
+  if (Number.isInteger(filters.yearEnd)) {
+    clauses.push(`EXTRACT(YEAR FROM created_at) <= $${index}`);
+    params.push(filters.yearEnd);
+    index += 1;
+  }
+
+  clauses.push("created_at < date_trunc('month', CURRENT_TIMESTAMP)");
+
+  if (!hasExplicitStatusFilter) {
+    clauses.push("LOWER(status) NOT IN ('cancelled', 'canceled')");
+  }
+
+  return {
+    clause: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
+    params
+  };
+}
+
+function parseDeliveryAddress(order = {}) {
+  let deliveryAddress = order?.delivery_address ?? order?.deliveryAddress ?? null;
+
+  if (deliveryAddress && typeof deliveryAddress === 'string') {
+    try {
+      deliveryAddress = JSON.parse(deliveryAddress);
+    } catch (error) {
+      deliveryAddress = null;
+    }
+  }
+
+  if (deliveryAddress && (typeof deliveryAddress !== 'object' || Array.isArray(deliveryAddress))) {
+    return null;
+  }
+
+  return deliveryAddress;
+}
+
+function resolveOrderCustomerName(order) {
+  if (!order) {
+    return null;
+  }
+
+  const deliveryAddress = parseDeliveryAddress(order);
+  const customerInfo = order?.customer && typeof order.customer === 'object' ? order.customer : null;
+
+  const candidates = [
+    order?.display_name,
+    order?.customer_display_name,
+    order?.customer_name,
+    order?.customerName,
+    order?.customer_full_name,
+    order?.customerFullName,
+    order?.user_full_name,
+    order?.userFullName,
+    customerInfo?.full_name,
+    customerInfo?.fullName,
+    customerInfo?.name,
+    deliveryAddress?.receiver,
+    deliveryAddress?.receiver_name,
+    deliveryAddress?.full_name,
+    deliveryAddress?.fullName,
+    deliveryAddress?.name,
+    deliveryAddress?.contact_name,
+    deliveryAddress?.contactName
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+
+  return null;
+}
+
+function resolveOrderCustomerEmail(order) {
+  if (!order) {
+    return null;
+  }
+
+  const deliveryAddress = parseDeliveryAddress(order);
+  const customerInfo = order?.customer && typeof order.customer === 'object' ? order.customer : null;
+
+  const candidates = [
+    order?.customer_email,
+    order?.customerEmail,
+    order?.email,
+    order?.user_email,
+    order?.userEmail,
+    customerInfo?.email,
+    deliveryAddress?.email,
+    deliveryAddress?.Email,
+    deliveryAddress?.contact_email,
+    deliveryAddress?.contactEmail
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        return trimmed.toLowerCase();
+      }
+    }
+  }
+
+  return null;
+}
+
+async function enrichTopCustomerRows(rows = []) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return rows;
+  }
+
+  const uniqueUserIds = Array.from(
+    new Set(
+      rows
+        .map((row) => (row?.user_id ? String(row.user_id).trim() : ''))
+        .filter((userId) => userId.length > 0)
+    )
+  );
+
+  if (uniqueUserIds.length === 0) {
+    return rows;
+  }
+
+  const placeholders = uniqueUserIds.map((_, index) => `$${index + 1}`).join(', ');
+  const detailSql = `
+    SELECT DISTINCT ON (user_id) *
+    FROM orders
+    WHERE user_id IN (${placeholders})
+    ORDER BY user_id, created_at DESC
+  `;
+
+  const { rows: detailRows } = await executeSql(detailSql, uniqueUserIds);
+  const detailsMap = new Map(detailRows.map((row) => [row.user_id, row]));
+
+  return rows.map((row, index) => {
+    const details = detailsMap.get(row.user_id);
+    const resolvedName = details ? resolveOrderCustomerName(details) : resolveOrderCustomerName(row);
+    const resolvedEmail = details ? resolveOrderCustomerEmail(details) : resolveOrderCustomerEmail(row);
+
+    const displayName = resolvedName && resolvedName !== row.user_id
+      ? resolvedName
+      : `Customer ${index + 1}`;
+
+    return {
+      ...row,
+      display_name: displayName,
+      customer_email: resolvedEmail ?? null
+    };
+  });
+}
+
+async function getChartDataset(chartId, filters = {}, options = {}) {
+  const normalizedFilters = normalizeFilters(filters);
+  const where = buildWhereClause(normalizedFilters);
+
+  switch (chartId) {
+    case 'totalSales': {
+      const sql = `
+        SELECT
+          date_trunc('month', created_at) AS period_start,
+          TO_CHAR(date_trunc('month', created_at), 'YYYY-MM') AS period_label,
+          SUM(total_amount)::numeric AS total_revenue,
+          COUNT(*)::int AS order_count
+        FROM orders
+        ${where.clause}
+        GROUP BY period_start, period_label
+        ORDER BY period_start DESC
+        LIMIT 18;
+      `;
+      const { rows } = await executeSql(sql, where.params);
+      const formattedRows = rows.map((row) => ({
+        period_start: coerceDate(row.period_start),
+        period_label: row.period_label,
+        total_revenue: coerceNumber(row.total_revenue),
+        order_count: coerceNumber(row.order_count)
+      }));
+      return { sql, rows: formattedRows };
+    }
+    case 'salesTrends': {
+      const sql = `
+        SELECT
+          date_trunc('day', created_at)::date AS day,
+          SUM(total_amount)::numeric AS total_revenue,
+          COUNT(*)::int AS order_count
+        FROM orders
+        ${where.clause}
+        GROUP BY day
+        ORDER BY day DESC
+        LIMIT 35;
+      `;
+      const { rows } = await executeSql(sql, where.params);
+      const formattedRows = rows.map((row) => ({
+        day: coerceDate(row.day),
+        total_revenue: coerceNumber(row.total_revenue),
+        order_count: coerceNumber(row.order_count)
+      }));
+      return { sql, rows: formattedRows };
+    }
+    case 'salesByBranch': {
+      const sql = `
+        SELECT
+          COALESCE(NULLIF(TRIM(pickup_location), ''), 'Unspecified') AS branch_label,
+          SUM(total_amount)::numeric AS total_revenue,
+          COUNT(*)::int AS order_count
+        FROM orders
+        ${where.clause}
+        GROUP BY branch_label
+        ORDER BY total_revenue DESC
+        LIMIT 12;
+      `;
+      const { rows } = await executeSql(sql, where.params);
+      const formattedRows = rows.map((row) => ({
+        branch_label: row.branch_label,
+        total_revenue: coerceNumber(row.total_revenue),
+        order_count: coerceNumber(row.order_count)
+      }));
+      return { sql, rows: formattedRows };
+    }
+    case 'orderStatus': {
+      const sql = `
+        SELECT
+          LOWER(status) AS status_key,
+          COUNT(*)::int AS total_orders,
+          SUM(total_amount)::numeric AS total_revenue
+        FROM orders
+        ${where.clause}
+        GROUP BY status_key
+        ORDER BY total_orders DESC;
+      `;
+      const { rows } = await executeSql(sql, where.params);
+      const formattedRows = rows.map((row) => ({
+        status_key: row.status_key,
+        total_orders: coerceNumber(row.total_orders),
+        total_revenue: coerceNumber(row.total_revenue)
+      }));
+      return { sql, rows: formattedRows };
+    }
+    case 'topProducts': {
+      const sql = `
+        WITH expanded AS (
+          SELECT
+            CASE
+              WHEN LOWER(item.value->>'category') LIKE '%basketball%' OR LOWER(item.value->>'name') LIKE '%basketball%' THEN 'Basketball Jerseys'
+              WHEN LOWER(item.value->>'category') LIKE '%volleyball%' OR LOWER(item.value->>'name') LIKE '%volleyball%' THEN 'Volleyball Jerseys'
+              WHEN LOWER(item.value->>'category') LIKE '%hoodie%' OR LOWER(item.value->>'name') LIKE '%hoodie%' THEN 'Hoodies'
+              WHEN LOWER(item.value->>'category') LIKE '%uniform%' OR LOWER(item.value->>'name') LIKE '%uniform%' THEN 'Uniforms'
+              WHEN LOWER(item.value->>'category') LIKE '%jersey%' OR LOWER(item.value->>'name') LIKE '%jersey%' THEN 'Custom Jerseys'
+              WHEN LOWER(item.value->>'category') LIKE 'ball%' OR LOWER(item.value->>'name') LIKE '%ball%' THEN 'Sports Balls'
+              WHEN LOWER(item.value->>'category') LIKE 'troph%' OR LOWER(item.value->>'name') LIKE '%trophy%' THEN 'Trophies'
+              WHEN LOWER(item.value->>'category') LIKE 'medal%' OR LOWER(item.value->>'name') LIKE '%medal%' THEN 'Medals'
+              ELSE 'Other Products'
+            END AS product_group,
+            (item.value->>'quantity')::numeric AS quantity,
+            (item.value->>'price')::numeric AS unit_price,
+            o.id AS order_id
+          FROM orders o
+          CROSS JOIN LATERAL jsonb_array_elements(o.order_items) AS item(value)
+          ${where.clause}
+        )
+        SELECT
+          product_group,
+          SUM(quantity)::numeric AS total_quantity,
+          SUM(quantity * unit_price)::numeric AS total_revenue,
+          COUNT(DISTINCT order_id)::int AS order_count
+        FROM expanded
+        GROUP BY product_group
+        ORDER BY total_quantity DESC
+        LIMIT 7;
+      `;
+      const { rows } = await executeSql(sql, where.params);
+      const formattedRows = rows.map((row) => ({
+        product_group: row.product_group,
+        total_quantity: coerceNumber(row.total_quantity),
+        total_revenue: coerceNumber(row.total_revenue),
+        order_count: coerceNumber(row.order_count)
+      }));
+      return { sql, rows: formattedRows };
+    }
+    case 'topCustomers': {
+      const sql = `
+        SELECT
+          user_id,
+          COUNT(*)::int AS order_count,
+          SUM(total_amount)::numeric AS total_spent,
+          MAX(created_at) AS last_order
+        FROM orders
+        ${where.clause}
+        GROUP BY user_id
+        ORDER BY total_spent DESC
+        LIMIT 10;
+      `;
+      const { rows } = await executeSql(sql, where.params);
+      const formattedRows = rows.map((row) => ({
+        user_id: row.user_id,
+        order_count: coerceNumber(row.order_count),
+        total_spent: coerceNumber(row.total_spent),
+        last_order: coerceDate(row.last_order)
+      }));
+      const enrichedRows = await enrichTopCustomerRows(formattedRows);
+      return { sql, rows: enrichedRows };
+    }
+    case 'customerLocations': {
+      const sql = `
+        SELECT
+          COALESCE(NULLIF(TRIM(delivery_address->>'city'), ''), NULLIF(TRIM(pickup_location), ''), 'Unknown City') AS city,
+          COALESCE(NULLIF(TRIM(delivery_address->>'province'), ''), 'Unknown Province') AS province,
+          COUNT(*)::int AS orders,
+          COUNT(DISTINCT user_id)::int AS customers,
+          SUM(total_amount)::numeric AS total_revenue,
+          AVG(total_amount)::numeric AS average_order_value,
+          MAX(created_at) AS last_order
+        FROM orders
+        ${where.clause}
+        GROUP BY city, province
+        ORDER BY orders DESC
+        LIMIT 25;
+      `;
+      const { rows } = await executeSql(sql, where.params);
+      const formattedRows = rows.map((row) => ({
+        city: row.city,
+        province: row.province,
+        orders: coerceNumber(row.orders),
+        customers: coerceNumber(row.customers),
+        total_revenue: coerceNumber(row.total_revenue),
+        average_order_value: coerceNumber(row.average_order_value),
+        last_order: coerceDate(row.last_order)
+      }));
+      return { sql, rows: formattedRows };
+    }
+    case 'buyingTrends': {
+      const sql = `
+        SELECT
+          TO_CHAR(date_trunc('week', created_at), 'IYYY-"W"IW') AS week_label,
+          date_trunc('week', created_at) AS week_start,
+          COUNT(*)::int AS orders,
+          COUNT(DISTINCT user_id)::int AS customers
+        FROM orders
+        ${where.clause}
+        GROUP BY week_label, week_start
+        ORDER BY week_start DESC
+        LIMIT 12;
+      `;
+      const { rows } = await executeSql(sql, where.params);
+      const formattedRows = rows.map((row) => ({
+        week_label: row.week_label,
+        week_start: coerceDate(row.week_start),
+        orders: coerceNumber(row.orders),
+        customers: coerceNumber(row.customers)
+      }));
+      return { sql, rows: formattedRows };
+    }
+    case 'salesForecast': {
+      const branchContext = await resolveBranchContextAnalytics(options.user || {});
+      const forecastData = await computeSalesForecast({
+        requestedRange: options.range || 'restOfYear',
+        branchContext
+      });
+      const rows = Array.isArray(forecastData.forecast) ? forecastData.forecast : [];
+      return {
+        sql: 'MODEL: weighted_fourier_regression',
+        rows,
+        metadata: {
+          historical: forecastData.historical || [],
+          summary: forecastData.summary || null,
+          model: forecastData.model || null,
+          range: forecastData.range || options.range || 'restOfYear'
+        }
+      };
+    }
+    default:
+      return { sql: 'N/A', rows: [] };
+  }
+}
+
+function buildContextMessage(chartId, filters, sql, rows) {
+  const previewLimit = 25;
+  const previewRows = rows.slice(0, previewLimit);
+  return [
+    `Chart ID: ${chartId}`,
+    filters && Object.keys(filters).length
+      ? `Applied filters: ${JSON.stringify(filters)}`
+      : 'Applied filters: none',
+    `SQL executed:\n${sql.trim()}`,
+    `Rows returned: ${rows.length}`,
+    `Preview (first ${Math.min(previewLimit, rows.length)} rows):\n${JSON.stringify(previewRows, null, 2)}`
+  ].join('\n\n');
+}
+
+const pesoFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 });
+
+function formatPeso(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return '₱0';
+  }
+  return pesoFormatter.format(value);
+}
+
+function buildForecastMetadataMessage(metadata = {}, chartData = {}) {
+  const summary = metadata.summary || chartData.summary;
+  if (!summary) {
+    return null;
+  }
+
+  const rangeLabel = SALES_FORECAST_RANGE_LABELS?.[summary.range] || metadata.rangeLabel || summary.range || 'selected range';
+  const lines = [
+    `Sales forecast summary for ${rangeLabel}:`,
+    `- Projected revenue: ${formatPeso(summary.projectedRevenue)}`,
+    `- Projected orders: ${summary.projectedOrders ?? 'n/a'}`,
+    `- Baseline revenue: ${formatPeso(summary.baselineRevenue)}`,
+    `- Expected growth vs baseline: ${summary.expectedGrowthRate != null ? `${summary.expectedGrowthRate}%` : 'n/a'}`,
+    `- Confidence: ${summary.confidence != null ? `${summary.confidence}%` : 'n/a'}`
+  ];
+
+  if (metadata.model?.type || metadata.modelType || chartData.model?.type) {
+    const modelInfo = metadata.model?.type || metadata.modelType || chartData.model?.type;
+    lines.push(`- Model: ${modelInfo}`);
+  }
+
+  const trainingMape = typeof metadata.trainingMape === 'number'
+    ? metadata.trainingMape
+    : typeof chartData.trainingMape === 'number'
+      ? chartData.trainingMape
+      : null;
+  if (trainingMape !== null) {
+    lines.push(`- Training MAPE: ${trainingMape.toFixed(2)}%`);
+  }
+
+  if (metadata.fallbackUsed || chartData.fallbackUsed) {
+    lines.push('- Note: Seasonal naïve fallback used due to insufficient data for regression.');
+  }
+
+  return lines.join('\n');
+}
+
+function extractSqlBlock(text = '') {
+  const inlineMatch = text.match(/<SQL>([\s\S]*?)<\/SQL>/i);
+  if (inlineMatch) {
+    return inlineMatch[1].trim();
+  }
+
+  const fencedMatch = text.match(/```sql([\s\S]*?)```/i);
+  if (fencedMatch) {
+    return fencedMatch[1].trim();
+  }
+
+  return null;
+}
+
+function stripSqlBlocks(text = '') {
+  return text
+    .replace(/<SQL>[\s\S]*?<\/SQL>/gi, '')
+    .replace(/<THINK>[\s\S]*?<\/THINK>/gi, '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<internal>[\s\S]*?<\/internal>/gi, '')
+    .trim();
+}
+
+function isSelectStatement(sql = '') {
+  return /^\s*select\b/i.test(sql);
+}
+
+function buildSqlResultSummary(sqlText, result) {
+  const sampleLimit = 50;
+  const rows = Array.isArray(result?.rows) ? result.rows.slice(0, sampleLimit) : [];
+  const duration = typeof result?.durationMs === 'number' ? `${result.durationMs} ms` : 'n/a';
+  const columns = Array.isArray(result?.fields) ? result.fields.map((field) => field.name) : [];
+
+  return {
+    executedSql: sqlText,
+    rowCount: result?.rowCount ?? rows.length,
+    durationMs: result?.durationMs ?? null,
+    columns,
+    sampleRows: rows
+  };
+}
+
+router.post('/analytics', async (req, res, next) => {
+  try {
+    // Log request for debugging
+    console.log('AI analytics request received:', {
+      chartId: req.body?.chartId,
+      hasUser: !!req.user,
+      userId: req.user?.id,
+      userRole: req.user?.role,
+      general: req.body?.general
+    });
+
+    // Verify user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    const {
+      question,
+      filters,
+      messages: conversationMessages,
+      general,
+      range,
+      chartData
+    } = req.body || {};
+
+    let { chartId } = req.body || {};
+    const isGeneralConversation = Boolean(general);
+
+    const sanitizedMessages = sanitizeMessages(conversationMessages);
+
+    if (!chartId || typeof chartId !== 'string') {
+      if (!isGeneralConversation) {
+        return res.status(400).json({
+          success: false,
+          error: 'chartId is required.'
+        });
+      }
+      chartId = null;
+    }
+
+    const rawQuestion = typeof question === 'string' ? question.trim() : '';
+    const lastUserMessage = [...sanitizedMessages].reverse().find((msg) => msg.role === 'user');
+    const lastAssistantMessage = [...sanitizedMessages].reverse().find((msg) => msg.role === 'assistant');
+    const lastUserIndex = sanitizedMessages.lastIndexOf(lastUserMessage ?? {});
+    const lastAssistantIndex = sanitizedMessages.lastIndexOf(lastAssistantMessage ?? {});
+    const greetingRegex = /^(hi|hello|hey|greetings|good (morning|afternoon|evening))\b/i;
+    const isGreetingOnly =
+      lastUserMessage &&
+      greetingRegex.test((lastUserMessage.content || rawQuestion || '').trim()) &&
+      (lastAssistantIndex === -1 || lastUserIndex > lastAssistantIndex);
+    const helpRegex = /(what\s+can\s+you\s+help|who\s+are\s+you|what\s+do\s+you\s+do|capabilities|how\s+can\s+you\s+assist)/i;
+    const isGeneralHelp =
+      isGeneralConversation &&
+      lastUserMessage &&
+      (greetingRegex.test((lastUserMessage.content || rawQuestion || '').trim()) ||
+        helpRegex.test((lastUserMessage.content || rawQuestion || '').toLowerCase())) &&
+      (lastAssistantIndex === -1 || lastUserIndex > lastAssistantIndex);
+
+    const identityRegex = /(who\s+created\s+you|who\s+built\s+you|who\s+made\s+you|where\s+are\s+you|where\s+do\s+you\s+live|how\s+old\s+are\s+you|your\s+purpose|what\s+is\s+your\s+name|who\s+developed\s+you)/i;
+    const isIdentityQuestion =
+      isGeneralConversation &&
+      lastUserMessage &&
+      identityRegex.test((lastUserMessage.content || rawQuestion || '').toLowerCase()) &&
+      (lastAssistantIndex === -1 || lastUserIndex > lastAssistantIndex);
+
+    const businessSuggestionReply = `**Executive Summary**\n\nI'm designed to help you explore business metrics in this dashboard. Ask about trends, branches, products, customers, or time periods and I'll analyze the data for you.\n\n**Example Questions**\n- "Which branch led sales in March 2024?"\n- "What were our top 5 products last quarter?"\n- "Show me monthly revenue trends for 2024."\n- "Who are our best customers this year?"`;
+
+    if (isGreetingOnly || isGeneralHelp) {
+      const capabilityReply = `**Executive Summary**\n\nI am Nexus, the AI analytics assistant built into this dashboard. I can translate business questions into safe SQL, run the queries on your data, and present the findings in a clear format so you can act quickly.\n\n**What I Can Help With**\n- Summaries of charts or datasets you are viewing\n- Ad-hoc questions such as top branches, products, or time periods\n- Follow-up explorations by generating and executing new SELECT queries\n- Highlighting trends, anomalies, or comparisons you care about\n\nAsk me about any metric, branch, product, or time window and I will fetch the data if it is available.`;
+      return res.json({
+        success: true,
+        reply: capabilityReply,
+        sql: null,
+        rows: [],
+        rowCount: 0,
+        chartId: null,
+        model: null,
+        usage: null
+      });
+    }
+
+    if (isIdentityQuestion) {
+      return res.json({
+        success: true,
+        reply: businessSuggestionReply,
+        sql: null,
+        rows: [],
+        rowCount: 0,
+        chartId: null,
+        model: null,
+        usage: null
+      });
+    }
+    
+    let dataset = null;
+    let normalizedFilters = null;
+    if (chartId) {
+      try {
+        dataset = await getChartDataset(chartId, filters, {
+          range,
+          user: req.user
+        });
+        if (!dataset || !dataset.rows) {
+          throw new Error('Invalid dataset returned from getChartDataset');
+        }
+        normalizedFilters = normalizeFilters(filters);
+      } catch (dbError) {
+        console.error('Error fetching chart dataset:', dbError);
+        console.error('Database error stack:', dbError.stack);
+        return res.status(500).json({
+          success: false,
+          error: `Failed to fetch chart data: ${dbError.message || 'Unknown database error'}`
+        });
+      }
+    }
+
+    const systemPrompt = [
+      'You are Nexus, an AI data analyst embedded in the Yohanns admin analytics suite.',
+      'Use the provided SQL output to craft clear, data-driven insights.',
+      'Adopt a concise, professional tone—no emojis—and avoid conversational filler.',
+      'Begin your response with a bold **Executive Summary** paragraph (1-2 sentences).',
+      'Follow with clearly labeled sections such as **Key Metrics** and **Recommended Actions**, using bullet lists when appropriate.',
+      'Follow all section headings with bold formatting (e.g., **Key Metrics**).',
+      'When listing items, use markdown bullet syntax (`- `) and indent sub-points properly.',
+      'Do not prefix bullet items with apostrophes or other decorative characters.',
+      'Always explain what the numbers mean for the business, highlight noteworthy changes, and suggest potential follow-up actions.',
+      'Unless the user explicitly requests cancelled orders, treat them as excluded from revenue and order counts (status values "cancelled" / "canceled"); do not sum their total_amount.',
+      'If the user specifically asks about cancelled orders, centre the analysis on cancellation metrics (counts, rates, branch comparisons) and avoid mixing in unrelated revenue totals unless the user also asks for them.',
+      'Branch information is stored in orders.pickup_location (text); there is no branch_id column in orders. Use pickup_location (or join to the branches table by name) when aggregating by branch.',
+      'When analyzing top product groups, use the standardized categories returned by the dataset (Basketball Jerseys, Volleyball Jerseys, Hoodies, Uniforms, Custom Jerseys, Sports Balls, Trophies, Medals, Other Products) and discuss them explicitly rather than inventing new groupings.',
+      'The business operates in the Philippines; refer to seasons as dry or rainy and never mention winter.',
+      'If the available dataset does not contain the information needed to answer the user, respond by proposing a SAFE SELECT query wrapped in <SQL>...</SQL> and wait for the query result before providing conclusions.',
+      'If a question cannot be answered with the provided data, state that explicitly and recommend what additional data is needed.',
+      'Respond using markdown formatting only.'
+    ].join(' ');
+
+    const conversation = [
+      { role: 'system', content: systemPrompt },
+      { role: 'system', content: SCHEMA_GUIDE }
+    ];
+
+    if (dataset) {
+      conversation.push({
+        role: 'system',
+        content: buildContextMessage(chartId, normalizedFilters, dataset.sql, dataset.rows)
+      });
+      if (chartId === 'salesForecast') {
+        const metadataMessage = buildForecastMetadataMessage(dataset.metadata || {}, chartData || {});
+        if (metadataMessage) {
+          conversation.push({
+            role: 'system',
+            content: metadataMessage
+          });
+        }
+      }
+    } else {
+      conversation.push({
+        role: 'system',
+        content: 'General analytics conversation: the user may ask for any metric across the business. Use the schema guide to craft safe SELECT queries when needed.'
+      });
+    }
+
+    if (sanitizedMessages.length > 0) {
+      conversation.push(...sanitizedMessages);
+    } else if (rawQuestion) {
+      conversation.push({ role: 'user', content: rawQuestion });
+    } else {
+      conversation.push({ role: 'user', content: 'Please analyze this dataset and highlight the most important business insights.' });
+    }
+
+    const hasDataset = dataset && Array.isArray(dataset.rows) && dataset.rows.length > 0;
+
+    if (hasDataset) {
+      const datasetAnalysisConversation = [...conversation];
+      const lastMessage = datasetAnalysisConversation.pop();
+
+      datasetAnalysisConversation.push({
+        role: 'system',
+        content: 'The dataset above already contains all values needed. Do not request or generate additional SQL. Provide insights and recommended actions based solely on the provided rows.'
+      });
+
+      if (lastMessage) {
+        datasetAnalysisConversation.push(lastMessage);
+      }
+
+      const analysisResponse = await callGroq(datasetAnalysisConversation, { estimatedTokens: 2500 });
+      const cleanedReply = stripSqlBlocks(analysisResponse.reply);
+
+      return res.json({
+        success: true,
+        reply: cleanedReply,
+        sql: dataset.sql,
+        rows: dataset.rows,
+        rowCount: dataset.rows.length,
+        chartId,
+        model: analysisResponse.model,
+        usage: analysisResponse.usage || null
+      });
+    }
+
+    let aiResponse;
+    let initialReply;
+    let proposedSql;
+    let draftAttempts = 0;
+
+    while (draftAttempts <= MAX_SQL_GENERATION_ATTEMPTS) {
+      aiResponse = await callGroq(conversation, { estimatedTokens: 4000 });
+      initialReply = aiResponse.reply;
+      proposedSql = extractSqlBlock(initialReply);
+
+      if (proposedSql) {
+        break;
+      }
+
+      conversation.push({ role: 'assistant', content: initialReply });
+      conversation.push({
+        role: 'user',
+        content: 'You did not provide SQL. Respond with only the SELECT query required, wrapped in <SQL>...</SQL>, with no additional commentary.'
+      });
+
+      draftAttempts += 1;
+    }
+
+    if (!proposedSql) {
+      const cleanedReply = stripSqlBlocks(initialReply);
+      return res.json({
+        success: true,
+        reply: cleanedReply,
+        sql: dataset ? dataset.sql : null,
+        rows: dataset ? dataset.rows : [],
+        rowCount: dataset ? dataset.rows.length : 0,
+        chartId,
+        model: aiResponse.model,
+        usage: aiResponse.usage || null
+      });
+    }
+
+    let normalizedSql = proposedSql.replace(/;\s*$/g, '').trim();
+
+    if (!isSelectStatement(normalizedSql)) {
+      conversation.push({ role: 'assistant', content: initialReply });
+      conversation.push({
+        role: 'user',
+        content: 'You proposed an unsupported statement. Provide only a SELECT query wrapped in <SQL>...</SQL> with no commentary.'
+      });
+
+      aiResponse = await callGroq(conversation, { estimatedTokens: 3500 });
+      initialReply = aiResponse.reply;
+      proposedSql = extractSqlBlock(initialReply);
+      normalizedSql = proposedSql ? proposedSql.replace(/;\s*$/g, '').trim() : '';
+    }
+
+    if (!proposedSql || !isSelectStatement(normalizedSql)) {
+      console.warn('Rejected non-SELECT SQL proposed by Nexus:', normalizedSql);
+
+      if (dataset && Array.isArray(dataset.rows) && dataset.rows.length > 0) {
+        conversation.push({ role: 'assistant', content: initialReply });
+        conversation.push({
+          role: 'user',
+          content: 'Use the dataset that was already provided to you and respond with insights only. Do not request or generate any additional SQL.'
+        });
+
+        const fallbackResponse = await callGroq(conversation, { estimatedTokens: 2500 });
+        const cleanedFallback = stripSqlBlocks(fallbackResponse.reply);
+
+        return res.json({
+          success: true,
+          reply: cleanedFallback,
+          sql: dataset.sql,
+          rows: dataset.rows,
+          rowCount: dataset.rows.length,
+          chartId,
+          model: fallbackResponse.model,
+          usage: fallbackResponse.usage || null
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        error: 'Nexus proposed an unsupported SQL statement. Please refine your question to request data (SELECT queries only).'
+      });
+    }
+
+    let sqlResult;
+    let sqlAttempts = 0;
+
+    while (sqlAttempts < MAX_SQL_EXECUTION_ATTEMPTS) {
+      try {
+        sqlResult = await executeSql(normalizedSql);
+        break;
+      } catch (sqlError) {
+        console.error('SQL execution error for Nexus follow-up query:', sqlError);
+        sqlAttempts += 1;
+
+        if (sqlAttempts >= MAX_SQL_EXECUTION_ATTEMPTS) {
+          return res.status(500).json({
+            success: false,
+            error: `SQL execution failed: ${sqlError.message}`
+          });
+        }
+
+        conversation.push({ role: 'assistant', content: initialReply });
+        conversation.push({
+          role: 'user',
+          content: `The SQL failed with error: ${sqlError.message}. Provide a corrected SELECT query wrapped in <SQL>...</SQL> with no additional commentary.`
+        });
+
+        aiResponse = await callGroq(conversation, { estimatedTokens: 4000 });
+        initialReply = aiResponse.reply;
+        proposedSql = extractSqlBlock(initialReply);
+
+        if (!proposedSql) {
+          conversation.push({ role: 'assistant', content: initialReply });
+          conversation.push({
+            role: 'user',
+            content: 'You still have not provided SQL. Respond with only the SELECT query required, wrapped in <SQL>...</SQL>, with no narration.'
+          });
+          continue;
+        }
+
+        normalizedSql = proposedSql.replace(/;\s*$/g, '').trim();
+
+        if (!isSelectStatement(normalizedSql)) {
+          console.warn('Rejected non-SELECT SQL after retry:', normalizedSql);
+          return res.status(400).json({
+            success: false,
+            error: 'Nexus proposed an unsupported SQL statement after retry. Please adjust the request.'
+          });
+        }
+      }
+    }
+
+    const sampleLimit = 50;
+    const rows = Array.isArray(sqlResult?.rows) ? sqlResult.rows.slice(0, sampleLimit) : [];
+    const duration = typeof sqlResult?.durationMs === 'number' ? `${sqlResult.durationMs} ms` : 'n/a';
+    const columns = Array.isArray(sqlResult?.fields) ? sqlResult.fields.map((field) => field.name) : [];
+
+    const resultSummaryContent = [
+      'SQL query executed successfully.',
+      `Rows returned: ${sqlResult?.rowCount ?? rows.length}`,
+      `Columns: ${columns.join(', ') || 'n/a'}`,
+      `Execution time: ${duration}`,
+      `Sample rows:\n${JSON.stringify(rows, null, 2)}`,
+      'Provide a single consolidated analysis that incorporates these results. Do not restate prior interim responses, do not produce multiple executive summaries, and respond once using the required bold headings and bullet formatting.'
+    ].join('\n\n');
+
+    const followUpMessages = [
+      ...conversation,
+      { role: 'assistant', content: initialReply },
+      { role: 'user', content: resultSummaryContent }
+    ];
+
+    let followUp;
+    try {
+      followUp = await callGroq(followUpMessages, { estimatedTokens: 3000 });
+    } catch (groqError) {
+      console.error('Groq API error during follow-up analysis:', groqError);
+      return res.status(500).json({
+        success: false,
+        error: `AI service error: ${groqError.message || 'Failed during follow-up analysis'}`
+      });
+    }
+
+    const finalReply = stripSqlBlocks(followUp.reply);
+
+    return res.json({
+      success: true,
+      reply: finalReply,
+      sql: normalizedSql,
+      rows,
+      rowCount: sqlResult?.rowCount ?? rows.length,
+      columns,
+      durationMs: sqlResult?.durationMs ?? null,
+      chartId,
+      model: followUp.model,
+      usage: followUp.usage || null
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('AI analytics error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Make sure we haven't already sent a response
+    if (res.headersSent) {
+      console.error('Response already sent, cannot send error response');
+      return;
+    }
+    
+    // Check for specific error types
+    const errorMessage = error.message || String(error) || 'Unknown error';
+    const errorLower = errorMessage.toLowerCase();
+    
+    if (errorLower.includes('tenant') || errorLower.includes('user not found')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication failed. Please refresh your session and try again.'
+      });
+    }
+    
+    if (errorLower.includes('groq') || errorLower.includes('api key')) {
+      return res.status(500).json({
+        success: false,
+        error: 'AI service error. Please check your GROQ_API_KEY configuration.'
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      error: errorMessage || 'Failed to process AI analytics request.'
+    });
+  }
+});
+
+module.exports = router;
+

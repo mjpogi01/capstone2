@@ -1,32 +1,104 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
+import * as echarts from 'echarts/core';
+import { LineChart, BarChart, PieChart } from 'echarts/charts';
+import {
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  TitleComponent,
+  DatasetComponent,
+  TransformComponent
+} from 'echarts/components';
+import { SVGRenderer } from 'echarts/renderers';
+import ReactEChartsCore from 'echarts-for-react/lib/core';
 import Sidebar from '../../components/admin/Sidebar';
-import BranchMap from '../../components/admin/BranchMap';
+import NexusChatModal from '../../components/admin/NexusChatModal';
 import '../admin/AdminDashboard.css';
 import './admin-shared.css';
 import { API_URL } from '../../config/api';
-import { authFetch } from '../../services/apiClient';
-import { FaSearch, FaPlay, FaFilter, FaChartLine, FaStore, FaClipboardList, FaTshirt, FaMapMarkerAlt, FaLayerGroup, FaMapMarkedAlt, FaChartArea } from 'react-icons/fa';
+import { authFetch, authJsonFetch } from '../../services/apiClient';
+import { FaSearch, FaPlay, FaFilter, FaStore, FaClipboardList, FaTshirt, FaMap, FaChartLine, FaChartArea, FaUsers, FaUserPlus, FaShoppingCart, FaMoneyBillWave, FaRobot } from 'react-icons/fa';
 import './Analytics.css';
+import '../../components/Loading.css';
+
+const BranchMap = lazy(() => import('../../components/admin/BranchMap'));
+
+echarts.use([
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  TitleComponent,
+  DatasetComponent,
+  TransformComponent,
+  LineChart,
+  BarChart,
+  PieChart,
+  SVGRenderer
+]);
+
+const CHART_LABELS = {
+  totalSales: 'Total Sales Over Time',
+  salesTrends: 'Daily Sales & Orders',
+  salesByBranch: 'Sales by Branch',
+  orderStatus: 'Order Pipeline Health',
+  topProducts: 'Top Product Groups',
+  topCustomers: 'Top Customers',
+  customerLocations: 'Customer Locations',
+  salesForecast: 'Sales Forecast'
+};
+
+const SALES_FORECAST_RANGE_LABELS = {
+  nextMonth: 'Next Month',
+  restOfYear: 'Rest of Year',
+  nextYear: 'Next 12 Months'
+};
+
+const QUESTION_KEYWORDS = [
+  { id: 'salesTrends', keywords: ['daily sales', 'sales & orders', 'orders chart', 'daily revenue'] },
+  { id: 'totalSales', keywords: ['total sales', 'sales over time', 'monthly revenue', 'revenue trend'] },
+  { id: 'salesByBranch', keywords: ['branch', 'pickup location', 'store performance'] },
+  { id: 'orderStatus', keywords: ['order status', 'pipeline', 'processing', 'pending'] },
+  { id: 'topProducts', keywords: ['product', 'category', 'top selling product'] },
+  { id: 'topCustomers', keywords: ['customer', 'buyer', 'best customer'] },
+  { id: 'customerLocations', keywords: ['customer location', 'map', 'geo', 'heatmap'] },
+  { id: 'salesForecast', keywords: ['forecast', 'projection', 'predict'] }
+];
+
+const resolveChartIdFromText = (text = '') => {
+  const lower = text.toLowerCase();
+  const match = QUESTION_KEYWORDS.find(({ keywords }) =>
+    keywords.some((phrase) => lower.includes(phrase))
+  );
+  return match ? match.id : null;
+};
 
 const Analytics = () => {
   const [analyticsData, setAnalyticsData] = useState({
     totalSales: [],
+    totalSalesMonthly: [],
+    totalSalesYearly: [],
+    totalSalesGranularity: 'monthly',
     salesByBranch: [],
     orderStatus: {},
-    topProducts: []
+    topProducts: [],
+    summary: {},
+    hasData: false
   });
   const [rawData, setRawData] = useState(null);
-  const [geoDistribution, setGeoDistribution] = useState([]);
-  const [topCategories, setTopCategories] = useState([]);
-  const [buyingTrends, setBuyingTrends] = useState([]);
-  const [regionalPerformance, setRegionalPerformance] = useState([]);
   const [salesForecast, setSalesForecast] = useState({ historical: [], forecast: [], combined: [] });
+  const [salesTrends, setSalesTrends] = useState([]);
+  const [customerSummary, setCustomerSummary] = useState(null);
+  const [topCustomers, setTopCustomers] = useState([]);
+  const [salesForecastRange, setSalesForecastRange] = useState('restOfYear');
+  const [customerLocationsData, setCustomerLocationsData] = useState({
+    points: [],
+    cityStats: [],
+    summary: null
+  });
   const [loading, setLoading] = useState(true);
-  const [geoLoading, setGeoLoading] = useState(true);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [trendsLoading, setTrendsLoading] = useState(true);
-  const [regionalLoading, setRegionalLoading] = useState(true);
   const [forecastLoading, setForecastLoading] = useState(true);
+  const [salesTrendsLoading, setSalesTrendsLoading] = useState(true);
+  const [customerLoading, setCustomerLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -36,15 +108,52 @@ const Analytics = () => {
     yearStart: '',
     yearEnd: ''
   });
+  const [totalSalesLoading, setTotalSalesLoading] = useState(true);
   const filterRef = useRef(null);
+  const [isNexusOpen, setIsNexusOpen] = useState(false);
+  const [nexusMessages, setNexusMessages] = useState([]);
+  const [nexusLoading, setNexusLoading] = useState(false);
+  const [nexusError, setNexusError] = useState(null);
+  const [nexusContext, setNexusContext] = useState({
+    chartId: null,
+    filters: null,
+    lastSql: null,
+    model: null
+  });
+  const hasCustomerLocationData = useMemo(() => {
+    const pointsCount = Array.isArray(customerLocationsData?.points) ? customerLocationsData.points.length : 0;
+    const cityCount = Array.isArray(customerLocationsData?.cityStats) ? customerLocationsData.cityStats.length : 0;
+    return pointsCount > 0 || cityCount > 0;
+  }, [customerLocationsData]);
+
 
   useEffect(() => {
     fetchAnalyticsData();
-    fetchGeographicDistribution();
-    fetchTopCategories();
-    fetchBuyingTrends();
-    fetchRegionalPerformance();
-    fetchSalesForecast();
+
+    const runDeferredFetches = () => {
+      fetchSalesTrends();
+      fetchCustomerAnalytics();
+    };
+
+    let idleId = null;
+    let timeoutId = null;
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(runDeferredFetches, { timeout: 500 });
+    } else if (typeof window !== 'undefined') {
+      timeoutId = window.setTimeout(runDeferredFetches, 120);
+    } else {
+      runDeferredFetches();
+    }
+
+    return () => {
+      if (idleId !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null && typeof window !== 'undefined') {
+        window.clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -82,33 +191,57 @@ const Analytics = () => {
         console.log('Analytics API Response:', result);
         
         if (result.success && result.data) {
-          const hasData = result.data.summary.totalOrders > 0;
+          const salesOverTime = result.data.salesOverTime || {};
+          const salesOverTimeMonthly = Array.isArray(salesOverTime.monthly) ? salesOverTime.monthly : [];
+          const salesOverTimeYearly = Array.isArray(salesOverTime.yearly) ? salesOverTime.yearly : [];
+          const initialMonthlySeries = salesOverTimeMonthly.length > 12
+            ? salesOverTimeMonthly.slice(-12)
+            : salesOverTimeMonthly;
+          const hasInitialMonthly = initialMonthlySeries.length > 0;
+          const fallbackYearlySeries = salesOverTimeYearly.length > 0 ? salesOverTimeYearly : [];
+          const initialSeries = hasInitialMonthly ? initialMonthlySeries : fallbackYearlySeries;
+          const initialGranularity = hasInitialMonthly ? 'monthly' : (fallbackYearlySeries.length > 0 ? 'yearly' : 'monthly');
+          const topProductsRaw = Array.isArray(result.data.topProducts) ? result.data.topProducts : [];
+          const maxTopProductQuantity = topProductsRaw.length > 0
+            ? Math.max(...topProductsRaw.map(p => p.quantity || 0))
+            : 0;
+          const hasData = initialSeries.length > 0 && initialSeries.some(item => Number(item.sales || item.total || 0) > 0);
           
           // Store raw data for filtering
           setRawData({
-            totalSales: result.data.salesOverTime || [],
+            totalSalesMonthly: salesOverTimeMonthly,
+            totalSalesYearly: salesOverTimeYearly,
             salesByBranch: result.data.salesByBranch || [],
             orderStatus: result.data.orderStatus || {},
-            topProducts: result.data.topProducts || [],
+            topProducts: topProductsRaw,
             summary: result.data.summary,
             hasData
           });
           
           // Initial display (no filters applied)
           setAnalyticsData({
-            totalSales: result.data.salesOverTime || [],
+            totalSales: initialSeries,
+            totalSalesGranularity: initialGranularity,
+            totalSalesMonthly: salesOverTimeMonthly,
+            totalSalesYearly: salesOverTimeYearly,
             salesByBranch: result.data.salesByBranch || [],
             orderStatus: result.data.orderStatus || {},
-            topProducts: hasData && result.data.topProducts.length > 0 
-              ? result.data.topProducts.map(product => ({
+            topProducts: hasData && topProductsRaw.length > 0 
+              ? topProductsRaw.map(product => ({
                   product: product.product,
-                  percentage: Math.round((product.quantity / Math.max(...result.data.topProducts.map(p => p.quantity))) * 100)
+                  quantity: product.quantity || 0,
+                  orders: product.orders || 0,
+                  revenue: product.revenue || 0,
+                  percentage: maxTopProductQuantity > 0
+                    ? Math.round(((product.quantity || 0) / maxTopProductQuantity) * 100)
+                    : 0
                 }))
               : [],
             summary: result.data.summary,
             hasData
           });
           setLoading(false);
+          setTotalSalesLoading(false);
           return;
         }
       } catch (apiError) {
@@ -116,6 +249,9 @@ const Analytics = () => {
         // Don't use mock data, show empty state instead
         setAnalyticsData({
           totalSales: [],
+          totalSalesGranularity: 'monthly',
+          totalSalesMonthly: [],
+          totalSalesYearly: [],
           salesByBranch: [],
           orderStatus: {
             completed: { count: 0, percentage: 0 },
@@ -132,120 +268,148 @@ const Analytics = () => {
           },
           hasData: false
         });
+        setRawData(null);
         setLoading(false);
+        setTotalSalesLoading(false);
         return;
       }
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {
       setLoading(false);
+      setTotalSalesLoading(false);
     }
   };
 
-  const fetchGeographicDistribution = async () => {
+  const handleSendNexusMessage = (messageText) => {
+    if (!nexusContext.chartId && !nexusContext.isGeneralConversation) {
+      return;
+    }
+
+    const trimmed = (messageText || '').trim();
+    if (!trimmed) {
+      return;
+    }
+
+    const resolvedChartId = resolveChartIdFromText(trimmed) || nexusContext.chartId;
+    const useGeneralConversation = nexusContext.isGeneralConversation && !resolvedChartId;
+
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: trimmed
+    };
+
+    const nextConversation = [...nexusMessages, userMessage];
+    setNexusMessages(nextConversation);
+
+    setNexusContext((prev) => ({
+      ...prev,
+      chartId: resolvedChartId || null,
+      isGeneralConversation: useGeneralConversation
+    }));
+
+    const chartRange = nexusContext.range || salesForecastRange;
+    const chartData = nexusContext.chartData || (resolvedChartId === 'salesForecast' ? salesForecast : null);
+
+    fetchNexusResponse(
+      resolvedChartId || null,
+      nextConversation,
+      nexusContext.filters,
+      useGeneralConversation,
+      {
+        range: chartRange,
+        data: chartData
+      }
+    );
+  };
+
+  const handleCloseNexus = () => {
+    setIsNexusOpen(false);
+    setNexusLoading(false);
+  };
+
+  const fetchSalesTrends = async () => {
     try {
-      setGeoLoading(true);
-      const response = await authFetch(`${API_URL}/api/analytics/geographic-distribution`);
+      setSalesTrendsLoading(true);
+      const response = await authFetch(`${API_URL}/api/analytics/sales-trends?period=30`);
+      const result = await response.json();
+      
+      if (result.success && Array.isArray(result.data)) {
+        setSalesTrends(result.data);
+      } else {
+        setSalesTrends([]);
+      }
+    } catch (error) {
+      console.error('Error fetching sales trends:', error);
+      setSalesTrends([]);
+    } finally {
+      setSalesTrendsLoading(false);
+    }
+  };
+
+  const fetchCustomerAnalytics = async () => {
+    try {
+      setCustomerLoading(true);
+      const response = await authFetch(`${API_URL}/api/analytics/customer-analytics`);
       const result = await response.json();
       
       if (result.success && result.data) {
-        setGeoDistribution(result.data);
+        setCustomerSummary(result.data.summary || null);
+        const topCustomersRaw = Array.isArray(result.data.topCustomers) ? result.data.topCustomers : [];
+        const formattedTopCustomers = topCustomersRaw.map((customer, index) => ({
+          ...customer,
+          displayName: getCustomerDisplayName(customer, index)
+        }));
+        setTopCustomers(formattedTopCustomers);
       } else {
-        setGeoDistribution([]);
+        setCustomerSummary(null);
+        setTopCustomers([]);
       }
     } catch (error) {
-      console.error('Error fetching geographic distribution:', error);
-      setGeoDistribution([]);
+      console.error('Error fetching customer analytics:', error);
+      setCustomerSummary(null);
+      setTopCustomers([]);
     } finally {
-      setGeoLoading(false);
+      setCustomerLoading(false);
     }
   };
 
-  const fetchTopCategories = async () => {
-    try {
-      setCategoriesLoading(true);
-      const response = await authFetch(`${API_URL}/api/analytics/top-categories`);
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        setTopCategories(result.data);
-      } else {
-        setTopCategories([]);
-      }
-    } catch (error) {
-      console.error('Error fetching top categories:', error);
-      setTopCategories([]);
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-
-  const fetchBuyingTrends = async () => {
-    try {
-      setTrendsLoading(true);
-      const response = await authFetch(`${API_URL}/api/analytics/customer-buying-trends`);
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        setBuyingTrends(result.data);
-      } else {
-        setBuyingTrends([]);
-      }
-    } catch (error) {
-      console.error('Error fetching buying trends:', error);
-      setBuyingTrends([]);
-    } finally {
-      setTrendsLoading(false);
-    }
-  };
-
-  const fetchRegionalPerformance = async () => {
-    try {
-      setRegionalLoading(true);
-      const response = await authFetch(`${API_URL}/api/analytics/regional-performance`);
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        setRegionalPerformance(result.data);
-      } else {
-        setRegionalPerformance([]);
-      }
-    } catch (error) {
-      console.error('Error fetching regional performance:', error);
-      setRegionalPerformance([]);
-    } finally {
-      setRegionalLoading(false);
-    }
-  };
-
-  const fetchSalesForecast = async () => {
+  const fetchSalesForecast = useCallback(async (rangeOverride) => {
+    const activeRange = rangeOverride || salesForecastRange;
     try {
       setForecastLoading(true);
-      const response = await authFetch(`${API_URL}/api/analytics/sales-forecast`);
+      const response = await authFetch(`${API_URL}/api/analytics/sales-forecast?range=${encodeURIComponent(activeRange)}`);
       const result = await response.json();
       
       if (result.success && result.data) {
         setSalesForecast(result.data);
       } else {
-        setSalesForecast({ historical: [], forecast: [], combined: [] });
+        setSalesForecast({ historical: [], forecast: [], combined: [], summary: null, range: activeRange });
       }
     } catch (error) {
       console.error('Error fetching sales forecast:', error);
-      setSalesForecast({ historical: [], forecast: [], combined: [] });
+      setSalesForecast({ historical: [], forecast: [], combined: [], summary: null, range: activeRange });
     } finally {
       setForecastLoading(false);
     }
-  };
+  }, [salesForecastRange]);
+
+  useEffect(() => {
+    fetchSalesForecast(salesForecastRange);
+  }, [salesForecastRange, fetchSalesForecast]);
 
   const formatNumber = (num) => {
-    if (num >= 1000) {
-      return (num / 1000).toFixed(0) + 'k';
+    if (num === null || num === undefined || Number.isNaN(num)) {
+      return '0';
     }
-    return num.toString();
-  };
-
-  const getMaxValue = (data, key) => {
-    return Math.max(...data.map(item => item[key]));
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    }
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toLocaleString();
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -265,6 +429,124 @@ const Analytics = () => {
     });
   };
 
+  const fetchNexusResponse = async (
+    chart,
+    conversation,
+    appliedFilters,
+    isGeneralConversation = false,
+    chartContext = {}
+  ) => {
+    try {
+      setNexusLoading(true);
+      setNexusError(null);
+
+      const payload = {
+        chartId: chart,
+        filters: appliedFilters,
+        messages: conversation,
+        general: isGeneralConversation,
+        range: chartContext.range || null,
+        chartData: chartContext.data || null
+      };
+
+      const response = await authJsonFetch(`${API_URL}/api/ai/analytics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          question: conversation[conversation.length - 1]?.content || ''
+        })
+      });
+
+      const assistantMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: response.reply,
+        metadata: {
+          sql: response.sql,
+          rowCount: response.rowCount,
+          rows: response.rows,
+          model: response.model
+        }
+      };
+
+      setNexusMessages((prev) => {
+        const cleaned = [...prev];
+        while (
+          cleaned.length > 0 &&
+          cleaned[cleaned.length - 1].role === 'assistant' &&
+          cleaned[cleaned.length - 1].metadata?.error
+        ) {
+          cleaned.pop();
+        }
+        return [...cleaned, assistantMessage];
+      });
+      setNexusContext((prev) => ({
+        ...prev,
+        chartId: chart,
+        lastSql: response.sql,
+        model: response.model,
+        lastRows: response.rows,
+        isGeneralConversation
+      }));
+    } catch (error) {
+      console.error('Nexus analysis error:', error);
+      setNexusError(error.message || 'Failed to fetch Nexus analysis.');
+      setNexusMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-error-${Date.now()}`,
+          role: 'assistant',
+          content: `⚠️ Nexus could not complete the analysis.\n\n${error.message || 'Unexpected error occurred.'}`,
+          metadata: { error: true }
+        }
+      ]);
+    } finally {
+      setNexusLoading(false);
+    }
+  };
+
+  const handleAnalyzeClick = (chartId, context = {}) => {
+    if (!chartId) {
+      return;
+    }
+
+    const appliedFilters = context.filters || filters;
+    const rangeContext = context.range || salesForecastRange;
+    const defaultPrompt =
+      chartId === 'salesForecast'
+        ? `Please analyze the ${CHART_LABELS[chartId] || chartId} chart for the ${SALES_FORECAST_RANGE_LABELS[rangeContext] || rangeContext}. Summarize projected revenue, orders, confidence, and how it compares to the baseline.`
+        : `Please analyze the ${CHART_LABELS[chartId] || chartId} chart and highlight the most important insights.`;
+    const initialPrompt = typeof context.question === 'string' && context.question.trim().length > 0
+      ? context.question.trim()
+      : defaultPrompt;
+
+    const initialUserMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: initialPrompt
+    };
+
+    const initialConversation = [initialUserMessage];
+
+    setNexusMessages(initialConversation);
+    setNexusContext({
+      chartId,
+      filters: appliedFilters,
+      lastSql: null,
+      model: null,
+      lastRows: null,
+      range: rangeContext,
+      chartData: context.data || null
+    });
+    setIsNexusOpen(true);
+
+    fetchNexusResponse(chartId, initialConversation, appliedFilters, false, {
+      range: rangeContext,
+      data: context.data || (chartId === 'salesForecast' ? salesForecast : null)
+    });
+  };
+
   const hasActiveFilters = () => {
     return filters.timeRange !== 'all' || 
            filters.branch !== 'all' || 
@@ -276,109 +558,779 @@ const Analytics = () => {
   const applyFilters = () => {
     if (!rawData) return;
 
+    setTotalSalesLoading(true);
     console.log('Applying filters:', filters);
-    let filtered = { ...rawData };
 
-    // Apply Time Range Filter
-    if (filters.timeRange !== 'all') {
-      const now = new Date();
-      let startDate;
+    const monthlySource = Array.isArray(rawData.totalSalesMonthly) ? [...rawData.totalSalesMonthly] : [];
+    const yearlySource = Array.isArray(rawData.totalSalesYearly) ? [...rawData.totalSalesYearly] : [];
+    const baseGranularity = filters.timeRange === 'year' ? 'yearly' : 'monthly';
+    let effectiveGranularity = baseGranularity;
+    let selectedSales = effectiveGranularity === 'yearly' ? yearlySource : monthlySource;
 
+    if (effectiveGranularity === 'monthly' && selectedSales.length === 0 && yearlySource.length > 0) {
+      effectiveGranularity = 'yearly';
+      selectedSales = [...yearlySource];
+    } else if (effectiveGranularity === 'yearly' && selectedSales.length === 0 && monthlySource.length > 0) {
+      effectiveGranularity = 'monthly';
+      selectedSales = [...monthlySource];
+    }
+
+    selectedSales = selectedSales
+      .filter(item => typeof item === 'object' && item !== null)
+      .map(item => ({
+        ...item,
+        date: item.date || (item.year ? new Date(item.year, (item.month ? item.month - 1 : 0), 1).toISOString() : null),
+        label: item.label || item.month || (item.year ? String(item.year) : '')
+      }));
+
+    selectedSales.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date) : new Date(a.year || 0, (a.month || 1) - 1, 1);
+      const dateB = b.date ? new Date(b.date) : new Date(b.year || 0, (b.month || 1) - 1, 1);
+      return dateA - dateB;
+    });
+
+    const now = new Date();
+    if (baseGranularity === 'monthly') {
       switch (filters.timeRange) {
-        case 'today':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        case 'today': {
+          const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          selectedSales = selectedSales.filter(item => item.date && new Date(item.date) >= startDate);
           break;
-        case 'week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        }
+        case 'week': {
+          const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          selectedSales = selectedSales.filter(item => item.date && new Date(item.date) >= startDate);
           break;
-        case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+        case 'month': {
+          selectedSales = selectedSales.slice(-12);
           break;
-        case 'quarter':
+        }
+        case 'quarter': {
           const quarter = Math.floor(now.getMonth() / 3);
-          startDate = new Date(now.getFullYear(), quarter * 3, 1);
+          const startDate = new Date(now.getFullYear(), quarter * 3, 1);
+          selectedSales = selectedSales.filter(item => item.date && new Date(item.date) >= startDate);
           break;
-        case 'year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          break;
+        }
+        case 'all':
         default:
-          startDate = null;
-      }
-
-      if (startDate && filtered.totalSales) {
-        filtered.totalSales = filtered.totalSales.filter(item => {
-          const itemDate = new Date(item.date || item.month);
-          return itemDate >= startDate;
-        });
+          // Keep full series
+          break;
       }
     }
 
-    // Apply Custom Year Range Filter
     if (filters.yearStart || filters.yearEnd) {
-      const startYear = filters.yearStart ? parseInt(filters.yearStart) : 2000;
-      const endYear = filters.yearEnd ? parseInt(filters.yearEnd) : 2100;
-
-      if (filtered.totalSales) {
-        filtered.totalSales = filtered.totalSales.filter(item => {
-          const itemDate = new Date(item.date || item.month);
-          const year = itemDate.getFullYear();
-          return year >= startYear && year <= endYear;
-        });
-      }
+      const startYear = filters.yearStart ? parseInt(filters.yearStart, 10) : 2000;
+      const endYear = filters.yearEnd ? parseInt(filters.yearEnd, 10) : 2100;
+      selectedSales = selectedSales.filter(item => {
+        const itemYear = item.year ?? (item.date ? new Date(item.date).getFullYear() : undefined);
+        if (itemYear === undefined) {
+          return true;
+        }
+        return itemYear >= startYear && itemYear <= endYear;
+      });
     }
 
-    // Apply Branch Filter
-    if (filters.branch !== 'all' && filtered.salesByBranch) {
-      filtered.salesByBranch = filtered.salesByBranch.filter(
-        item => item.branch.toLowerCase().replace(/\s+/g, '_') === filters.branch
+    const branchFilter = filters.branch !== 'all'
+      ? filters.branch.toLowerCase().replace(/\s+/g, '_')
+      : null;
+
+    let salesByBranch = rawData.salesByBranch ? [...rawData.salesByBranch] : [];
+    if (branchFilter) {
+      salesByBranch = salesByBranch.filter(
+        item => item.branch && item.branch.toLowerCase().replace(/\s+/g, '_') === branchFilter
       );
     }
 
-    // Apply Order Status Filter
-    if (filters.orderStatus !== 'all' && filtered.orderStatus) {
+    let orderStatus = rawData.orderStatus
+      ? Object.keys(rawData.orderStatus).reduce((acc, key) => {
+          const value = rawData.orderStatus[key];
+          acc[key] = typeof value === 'object' && value !== null ? { ...value } : value;
+          return acc;
+        }, {})
+      : {};
+
+    if (filters.orderStatus !== 'all' && orderStatus) {
       const selectedStatus = filters.orderStatus;
-      const statusData = rawData.orderStatus[selectedStatus];
-      
+      const statusData = orderStatus[selectedStatus];
       if (statusData) {
-        filtered.orderStatus = {
-          [selectedStatus]: statusData,
+        orderStatus = {
+          [selectedStatus]: { ...statusData },
           total: statusData.count
         };
       }
     }
 
-    // Recalculate top products percentages
-    if (filtered.topProducts && filtered.topProducts.length > 0) {
-      const maxQuantity = Math.max(...filtered.topProducts.map(p => p.quantity || 0));
-      filtered.topProducts = filtered.topProducts.map(product => ({
-        product: product.product,
-        quantity: product.quantity,
-        percentage: maxQuantity > 0 ? Math.round((product.quantity / maxQuantity) * 100) : 0
+    let topProducts = rawData.topProducts ? rawData.topProducts.map(product => ({ ...product })) : [];
+    if (topProducts.length > 0) {
+      const maxQuantity = Math.max(...topProducts.map(p => p.quantity || 0));
+      topProducts = topProducts.map(product => ({
+        ...product,
+        percentage: maxQuantity > 0 ? Math.round(((product.quantity || 0) / maxQuantity) * 100) : 0
       }));
     }
 
-    // Recalculate summary based on filtered data
-    if (filtered.orderStatus) {
-      const total = Object.values(filtered.orderStatus)
-        .reduce((sum, status) => sum + (typeof status === 'object' ? status.count : 0), 0);
-      
-      filtered.summary = {
-        ...filtered.summary,
+    let summary = rawData.summary ? { ...rawData.summary } : {};
+    if (orderStatus && typeof orderStatus === 'object') {
+      const total = Object.values(orderStatus)
+        .reduce((sum, status) => sum + (typeof status === 'object' ? status.count || 0 : 0), 0);
+      summary = {
+        ...summary,
         totalOrders: total
       };
     }
 
-    console.log('Filtered data:', filtered);
-    setAnalyticsData(filtered);
+    if (selectedSales.length === 0) {
+      if (effectiveGranularity === 'monthly' && yearlySource.length > 0) {
+        effectiveGranularity = 'yearly';
+        selectedSales = [...yearlySource];
+      } else if (effectiveGranularity === 'yearly' && monthlySource.length > 0) {
+        effectiveGranularity = 'monthly';
+        selectedSales = [...monthlySource];
+      }
+    }
+
+    const filteredData = {
+      totalSales: selectedSales,
+      totalSalesGranularity: effectiveGranularity,
+      totalSalesMonthly: rawData.totalSalesMonthly,
+      totalSalesYearly: rawData.totalSalesYearly,
+      salesByBranch,
+      orderStatus,
+      topProducts,
+      summary,
+      hasData: rawData.hasData
+    };
+
+    console.log('Filtered data:', filteredData);
+    setAnalyticsData(filteredData);
+    setTotalSalesLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="analytics-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading analytics data...</p>
-      </div>
+  const totalSalesChart = useMemo(() => {
+    const dataset = Array.isArray(analyticsData?.totalSales) ? analyticsData.totalSales : [];
+    const categories = dataset.map(item => item.label || item.month || item.year || item.date || '');
+    const values = dataset.map(item => Number(item.sales || item.total || 0));
+    const hasData = dataset.length > 0 && values.some(value => value > 0);
+
+    const rotateLabels = categories.length > 12 && analyticsData.totalSalesGranularity !== 'yearly' ? 35 : 0;
+    const seriesName = analyticsData.totalSalesGranularity === 'yearly' ? 'Yearly Sales' : 'Monthly Sales';
+
+    const option = {
+      animation: hasData,
+      animationDuration: hasData ? 600 : 0,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'line' },
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
+        formatter: (params) => {
+          if (!Array.isArray(params) || !params.length) return '';
+          const point = params[0];
+          return `${point.axisValue}<br/>${seriesName}: ₱${formatNumber(point.data || 0)}`;
+        }
+      },
+      grid: { left: '4%', right: '3%', bottom: rotateLabels ? '14%' : '8%', top: '10%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: categories,
+        axisLabel: { color: '#6b7280', rotate: rotateLabels },
+        axisLine: { lineStyle: { color: '#d1d5db' } },
+        axisTick: { alignWithLabel: true }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          color: '#6b7280',
+          formatter: (value) => `₱${formatNumber(value)}`
+        },
+        splitLine: { lineStyle: { color: '#e5e7eb' } }
+      },
+      series: [
+        {
+          name: seriesName,
+          type: 'line',
+          smooth: true,
+          data: values,
+          showSymbol: false,
+          lineStyle: { width: 3, color: '#8b5cf6' },
+          areaStyle: { color: 'rgba(139, 92, 246, 0.15)' },
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0,
+          emphasis: { focus: 'series' }
+        }
+      ]
+    };
+
+    return { option, hasData };
+  }, [analyticsData.totalSales, analyticsData.totalSalesGranularity]);
+
+  const salesByBranchChart = useMemo(() => {
+    const branchData = Array.isArray(analyticsData?.salesByBranch) ? analyticsData.salesByBranch : [];
+    const values = branchData.map(item => Number(item.sales || 0));
+    const hasData = branchData.length > 0 && values.some(value => value > 0);
+    const colors = ['#8b5cf6', '#6366f1', '#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#f97316', '#84cc16'];
+
+    const option = {
+      animation: hasData,
+      animationDuration: hasData ? 600 : 0,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
+        formatter: (params) => {
+          if (!Array.isArray(params) || !params.length) return '';
+          const bar = params[0];
+          return `${bar.axisValueLabel}<br/>Sales: ₱${formatNumber(bar.data?.value ?? bar.data ?? 0)}`;
+        }
+      },
+      grid: { left: '6%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: branchData.map(item => item.branch),
+        axisLabel: {
+          color: '#6b7280',
+          interval: 0,
+          rotate: branchData.length > 6 ? 30 : 0
+        },
+        axisLine: { lineStyle: { color: '#d1d5db' } },
+        axisTick: { alignWithLabel: true }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          color: '#6b7280',
+          formatter: (value) => `₱${formatNumber(value)}`
+        },
+        splitLine: { lineStyle: { color: '#e5e7eb' } }
+      },
+      series: [
+        {
+          name: 'Branch Sales',
+          type: 'bar',
+          barMaxWidth: 42,
+          data: branchData.map((item, index) => ({
+            value: Number(item.sales || 0),
+            itemStyle: {
+              color: item.color || colors[index % colors.length],
+              borderRadius: [6, 6, 0, 0]
+            }
+          })),
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0,
+          emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(31, 41, 55, 0.25)' } },
+          label: {
+            show: branchData.length <= 6 && branchData.length > 0,
+            position: 'top',
+            formatter: ({ value }) => `₱${formatNumber(value)}`,
+            color: '#475569',
+            fontWeight: 600
+          }
+        }
+      ]
+    };
+
+    return { option, hasData };
+  }, [analyticsData.salesByBranch]);
+
+  const orderStatusChart = useMemo(() => {
+    const status = analyticsData?.orderStatus;
+    const entries = status
+      ? ['completed', 'processing', 'pending', 'cancelled']
+          .map((key) => {
+            const entry = status[key];
+            if (!entry || entry.count === undefined) {
+              return null;
+            }
+            const label = key.charAt(0).toUpperCase() + key.slice(1);
+            const total = status.total || Object.values(status)
+              .filter(val => typeof val === 'object' && val.count !== undefined)
+              .reduce((sum, val) => sum + (val.count || 0), 0);
+            const percentage = entry.percentage !== undefined
+              ? entry.percentage
+              : total > 0 ? Math.round(((entry.count || 0) / total) * 100) : 0;
+            return {
+              name: label,
+              value: entry.count || 0,
+              percentage
+            };
+          })
+          .filter(Boolean)
+      : [];
+
+    const hasData = entries.length > 0 && entries.some(entry => entry.value > 0);
+
+    const option = {
+      animation: hasData,
+      animationDuration: hasData ? 400 : 0,
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
+        formatter: ({ name, value, data }) => {
+          const percentage = data?.percentage ?? 0;
+          return `${name}<br/>${value} orders (${percentage}%)`;
+        }
+      },
+      legend: {
+        orient: 'vertical',
+        right: 0,
+        top: 'center',
+        textStyle: { color: '#4b5563' }
+      },
+      series: [
+        {
+          name: 'Order Status',
+          type: 'pie',
+          radius: ['45%', '70%'],
+          center: ['38%', '52%'],
+          avoidLabelOverlap: true,
+          itemStyle: {
+            borderRadius: 8,
+            borderColor: '#ffffff',
+            borderWidth: 2
+          },
+          label: { show: false },
+          labelLine: { show: false },
+          data: entries.map((entry) => ({
+            ...entry,
+            value: entry.value,
+            name: entry.name
+          })),
+          animation: hasData,
+          animationDuration: hasData ? 400 : 0
+        }
+      ]
+    };
+
+    return { option, hasData };
+  }, [analyticsData.orderStatus]);
+
+  const salesTrendsChart = useMemo(() => {
+    const trends = Array.isArray(salesTrends) ? salesTrends : [];
+    const categories = trends.map(item => {
+      const rawDate = item.date || item.day || item.period;
+      if (!rawDate) {
+        return '';
+      }
+      const parsed = new Date(rawDate);
+      if (Number.isNaN(parsed.getTime())) {
+        return rawDate;
+      }
+      return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    const salesValues = trends.map(item => Number(item.sales || 0));
+    const ordersValues = trends.map(item => Number(item.orders || 0));
+    const hasData =
+      trends.length > 0 &&
+      (salesValues.some(value => value > 0) || ordersValues.some(value => value > 0));
+
+    const option = {
+      animation: hasData,
+      animationDuration: hasData ? 600 : 0,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
+        formatter: (params) => {
+          if (!Array.isArray(params) || !params.length) return '';
+          const lines = params.map(point => {
+            if (point.seriesName === 'Sales') {
+              return `${point.marker}${point.seriesName}: ₱${formatNumber(point.data ?? 0)}`;
+            }
+            return `${point.marker}${point.seriesName}: ${formatNumber(point.data ?? 0)}`;
+          });
+          return [`${params[0].axisValue}`, ...lines].join('<br/>');
+        }
+      },
+      legend: {
+        data: ['Sales', 'Orders'],
+        top: 0,
+        textStyle: { color: '#4b5563' }
+      },
+      grid: { left: '4%', right: '5%', bottom: '10%', top: '14%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: categories,
+        axisLabel: { color: '#6b7280' },
+        axisLine: { lineStyle: { color: '#d1d5db' } },
+        axisTick: { alignWithLabel: true }
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: 'Sales',
+          axisLabel: {
+            color: '#6b7280',
+            formatter: (value) => `₱${formatNumber(value)}`
+          },
+          splitLine: { lineStyle: { color: '#e5e7eb' } }
+        },
+        {
+          type: 'value',
+          name: 'Orders',
+          axisLabel: { color: '#6b7280', formatter: (value) => formatNumber(value) },
+          splitLine: { show: false }
+        }
+      ],
+      series: [
+        {
+          name: 'Sales',
+          type: 'line',
+          yAxisIndex: 0,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { width: 3, color: '#6366f1' },
+          areaStyle: { color: 'rgba(99, 102, 241, 0.15)' },
+          data: salesValues,
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0
+        },
+        {
+          name: 'Orders',
+          type: 'line',
+          yAxisIndex: 1,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { width: 2, color: '#f97316', type: 'dashed' },
+          data: ordersValues,
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0
+        }
+      ]
+    };
+
+    return { option, hasData };
+  }, [salesTrends]);
+
+  const topProductsChart = useMemo(() => {
+    const products = Array.isArray(analyticsData?.topProducts) ? analyticsData.topProducts : [];
+    const values = products.map(item => Number(item.quantity || 0));
+    const hasData = products.length > 0 && values.some(value => value > 0);
+    const maxValue = Math.max(0, ...values);
+    const paddedMax = maxValue <= 0 ? 10 : Math.ceil(maxValue * 1.1);
+    const gradientStops = [
+      { offset: 0, color: '#c084fc' },
+      { offset: 0.45, color: '#a855f7' },
+      { offset: 1, color: '#6366f1' }
+    ];
+
+    const option = {
+      animation: hasData,
+      animationDuration: hasData ? 650 : 0,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
+        formatter: (params) => {
+          if (!Array.isArray(params) || !params.length) return '';
+          const bar = params[0];
+          const product = products[bar.dataIndex];
+          if (!product) return '';
+          const quantity = product.quantity ?? 0;
+          const orders = product.orders ?? 0;
+          const share = product.percentage ?? 0;
+          const revenue = product.revenue ?? 0;
+          const lines = [
+            `${bar.axisValueLabel}`,
+            `Quantity: ${formatNumber(quantity)}`,
+            `Share: ${share}%`
+          ];
+          if (orders) {
+            lines.push(`Orders: ${formatNumber(orders)}`);
+          }
+          if (revenue) {
+            lines.push(`Revenue: ₱${formatNumber(revenue)}`);
+          }
+          return lines.join('<br/>');
+        }
+      },
+      grid: { left: '6%', right: '6%', bottom: '6%', top: '6%', containLabel: true },
+      xAxis: {
+        type: 'value',
+        min: 0,
+        max: paddedMax,
+        axisLabel: {
+          color: '#6b7280',
+          formatter: (value) => formatNumber(value)
+        },
+        splitLine: { lineStyle: { color: '#e5e7eb' } }
+      },
+      yAxis: {
+        type: 'category',
+        data: products.map(item => item.product),
+        inverse: true,
+        axisLabel: {
+          color: '#4338ca',
+          fontWeight: 600,
+          fontSize: 13
+        },
+        axisTick: { show: false },
+        axisLine: { show: false }
+      },
+      series: [
+        {
+          type: 'bar',
+          barWidth: 28,
+          showBackground: true,
+          backgroundStyle: {
+            color: 'rgba(99, 102, 241, 0.08)',
+            borderRadius: [0, 12, 12, 0]
+          },
+          data: values.map((value, index) => ({
+            value,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, gradientStops),
+              shadowBlur: 6,
+              shadowOffsetX: 2,
+              shadowColor: 'rgba(99, 102, 241, 0.35)'
+            },
+            emphasis: {
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                  { offset: 0, color: '#a855f7' },
+                  { offset: 1, color: '#4c1d95' }
+                ])
+              }
+            }
+          })),
+          itemStyle: { borderRadius: [0, 12, 12, 0] },
+          animation: hasData,
+          animationDuration: hasData ? 650 : 0,
+          label: {
+            show: products.length > 0,
+            position: 'right',
+            formatter: ({ value, dataIndex }) => {
+              const share = products[dataIndex]?.percentage ?? 0;
+              return `${formatNumber(value)} • ${share}%`;
+            },
+            color: '#312e81',
+            fontWeight: 600,
+            fontSize: 12
+          }
+        }
+      ]
+    };
+
+    return { option, hasData };
+  }, [analyticsData.topProducts]);
+
+  const topCustomersChart = useMemo(() => {
+    const customers = Array.isArray(topCustomers) ? topCustomers.slice(0, 8) : [];
+    const values = customers.map(item => Number(item.totalSpent || item.totalSpentValue || item.total || 0));
+    const hasData = customers.length > 0 && values.some(value => value > 0);
+
+    const option = {
+      animation: hasData,
+      animationDuration: hasData ? 600 : 0,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
+        formatter: (params) => {
+          if (!Array.isArray(params) || !params.length) return '';
+          const bar = params[0];
+          const customer = customers[bar.dataIndex];
+          if (!customer) return '';
+          const name = getCustomerDisplayName(customer, bar.dataIndex);
+          const spent = customer.totalSpent || customer.totalSpentValue || customer.total || 0;
+          const orderCount = customer.orderCount || customer.order_count || customer.orderCountValue || customer.orders || 0;
+          return `${name}<br/>Spent: ₱${formatNumber(spent)}<br/>Orders: ${formatNumber(orderCount)}`;
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '4%', top: '6%', containLabel: true },
+      xAxis: {
+        type: 'value',
+        min: 0,
+        axisLabel: {
+          color: '#6b7280',
+          formatter: (value) => `₱${formatNumber(value)}`
+        },
+        splitLine: { lineStyle: { color: '#e5e7eb' } }
+      },
+      yAxis: {
+        type: 'category',
+        data: customers.map((customer, index) => getCustomerDisplayName(customer, index)),
+        inverse: true,
+        axisLabel: { color: '#4b5563' },
+        axisTick: { show: false },
+        axisLine: { show: false }
+      },
+      series: [
+        {
+          type: 'bar',
+          barWidth: 18,
+          data: values,
+          itemStyle: { color: '#10b981', borderRadius: [0, 8, 8, 0] },
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0,
+          label: {
+            show: customers.length > 0,
+            position: 'right',
+            formatter: ({ value }) => `₱${formatNumber(value)}`,
+            color: '#4b5563',
+            fontWeight: 600
+          }
+        }
+      ]
+    };
+
+    return { option, hasData };
+  }, [topCustomers]);
+
+  const salesForecastChart = useMemo(() => {
+    const combined = Array.isArray(salesForecast?.combined) ? salesForecast.combined : [];
+    const categories = combined.map(item => item.month || item.label || '');
+    const historicalData = combined.map(item => item.type === 'historical' ? Number(item.revenue || 0) : null);
+    const forecastData = combined.map(item => item.type === 'forecast' ? Number(item.revenue || 0) : null);
+    const confidenceMap = new Map(
+      (salesForecast?.forecast || []).map(item => [String(item.month || item.label || ''), item.confidence])
     );
+    const hasData = combined.length > 0 && (
+      historicalData.some(value => value !== null && value !== undefined && value !== 0) ||
+      forecastData.some(value => value !== null && value !== undefined && value !== 0)
+    );
+
+    const option = {
+      animation: hasData,
+      animationDuration: hasData ? 600 : 0,
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
+        formatter: (params) => {
+          if (!Array.isArray(params) || !params.length) return '';
+          const lines = params
+            .filter(point => point.value !== null && point.value !== undefined)
+            .map(point => {
+              let line = `${point.marker}${point.seriesName}: ₱${formatNumber(point.value || 0)}`;
+              if (point.seriesName === 'Forecast') {
+                const confidence = confidenceMap.get(String(point.axisValueLabel));
+                if (confidence !== undefined) {
+                  line += `<br/>Confidence: ${confidence}%`;
+                }
+              }
+              return line;
+            });
+          return [params[0]?.axisValueLabel || '', ...lines].join('<br/>');
+        }
+      },
+      legend: {
+        data: ['Historical', 'Forecast'],
+        top: 0,
+        textStyle: { color: '#4b5563' }
+      },
+      grid: { left: '4%', right: '4%', bottom: '8%', top: '12%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: categories,
+        axisLabel: { color: '#6b7280', interval: 0, rotate: categories.length > 8 ? 30 : 0 },
+        axisLine: { lineStyle: { color: '#d1d5db' } },
+        axisTick: { alignWithLabel: true }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          color: '#6b7280',
+          formatter: (value) => `₱${formatNumber(value)}`
+        },
+        splitLine: { lineStyle: { color: '#e5e7eb' } }
+      },
+      series: [
+        {
+          name: 'Historical',
+          type: 'line',
+          smooth: true,
+          showSymbol: false,
+          data: historicalData,
+          lineStyle: { width: 3, color: '#3b82f6' },
+          areaStyle: { color: 'rgba(59, 130, 246, 0.12)' },
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0,
+          emphasis: { focus: 'series' }
+        },
+        {
+          name: 'Forecast',
+          type: 'line',
+          smooth: true,
+          showSymbol: true,
+          symbol: 'circle',
+          symbolSize: 7,
+          data: forecastData,
+          lineStyle: { width: 3, color: '#10b981', type: 'dashed' },
+          itemStyle: { color: '#10b981' },
+          areaStyle: { color: 'rgba(16, 185, 129, 0.1)' },
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0,
+          emphasis: { focus: 'series' }
+        }
+      ]
+    };
+    return { option, hasData };
+  }, [salesForecast]);
+
+  const { option: salesTrendsOption, hasData: hasSalesTrendsData } = salesTrendsChart;
+  const { option: totalSalesOption, hasData: hasTotalSalesData } = totalSalesChart;
+  const { option: salesByBranchOption, hasData: hasSalesByBranchData } = salesByBranchChart;
+  const { option: orderStatusOption, hasData: hasOrderStatusData } = orderStatusChart;
+  const { option: topProductsOption, hasData: hasTopProductsData } = topProductsChart;
+  const { option: topCustomersOption, hasData: hasTopCustomersData } = topCustomersChart;
+  const { option: salesForecastOption, hasData: hasSalesForecastData } = salesForecastChart;
+  const forecastSummary = salesForecast?.summary || null;
+
+  const handleOpenFloatingChat = () => {
+    setNexusMessages([]);
+    setNexusContext({
+      chartId: null,
+      filters,
+      lastSql: null,
+      model: null,
+      lastRows: null,
+      isGeneralConversation: true
+    });
+    setIsNexusOpen(true);
+    setNexusError(null);
+  };
+
+  function getCustomerDisplayName(customer = {}, index = 0) {
+    const candidates = [
+      customer.displayName,
+      customer.customerName,
+      customer.name,
+      customer.fullName,
+      customer.userName,
+      customer.customer_email,
+      customer.customerEmail,
+      customer.email,
+      customer.userEmail,
+      customer.user_id,
+      customer.userId,
+      customer.id
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string') {
+        const trimmed = candidate.trim();
+        if (trimmed) {
+          return trimmed;
+        }
+      }
+    }
+
+    return `Customer ${index + 1}`;
   }
 
   return (
@@ -388,6 +1340,12 @@ const Analytics = () => {
         setActivePage={() => {}} 
       />
       <div className="admin-main-content">
+        {loading ? (
+          <div className="analytics-loading">
+            <div className="loading-spinner"></div>
+            <p>Loading analytics data...</p>
+          </div>
+        ) : (
     <div className="analytics-page">
       {/* Header */}
       <div className="analytics-header">
@@ -412,7 +1370,16 @@ const Analytics = () => {
           )}
         </div>
         <div className="header-right">
-          <button className="analyze-btn">
+          <button
+            className="analyze-btn"
+            type="button"
+            onClick={() =>
+              handleAnalyzeClick('totalSales', {
+                filters,
+                question: 'Give me a quick overview of overall sales performance.'
+              })
+            }
+          >
             <FaPlay className="btn-icon" />
             Analyze
           </button>
@@ -518,7 +1485,7 @@ const Analytics = () => {
           </div>
           <div className="summary-content">
             <h3>Total Orders</h3>
-            <p className="summary-value">{analyticsData.orderStatus?.total || analyticsData.summary?.totalOrders || 0}</p>
+            <p className="summary-value">{formatNumber(analyticsData.orderStatus?.total || analyticsData.summary?.totalOrders || 0)}</p>
           </div>
         </div>
         <div className="summary-card">
@@ -527,7 +1494,7 @@ const Analytics = () => {
           </div>
           <div className="summary-content">
             <h3>Completed</h3>
-            <p className="summary-value">{analyticsData.orderStatus?.completed?.count || 0}</p>
+            <p className="summary-value">{formatNumber(analyticsData.orderStatus?.completed?.count || 0)}</p>
             <p className="summary-percentage">({analyticsData.orderStatus?.completed?.percentage || 0}%)</p>
           </div>
         </div>
@@ -537,7 +1504,7 @@ const Analytics = () => {
           </div>
           <div className="summary-content">
             <h3>Processing</h3>
-            <p className="summary-value">{analyticsData.orderStatus?.processing?.count || 0}</p>
+            <p className="summary-value">{formatNumber(analyticsData.orderStatus?.processing?.count || 0)}</p>
             <p className="summary-percentage">({analyticsData.orderStatus?.processing?.percentage || 0}%)</p>
           </div>
         </div>
@@ -547,7 +1514,7 @@ const Analytics = () => {
           </div>
           <div className="summary-content">
             <h3>Pending</h3>
-            <p className="summary-value">{analyticsData.orderStatus?.pending?.count || 0}</p>
+            <p className="summary-value">{formatNumber(analyticsData.orderStatus?.pending?.count || 0)}</p>
             <p className="summary-percentage">({analyticsData.orderStatus?.pending?.percentage || 0}%)</p>
           </div>
         </div>
@@ -560,84 +1527,101 @@ const Analytics = () => {
           <div className="card-header">
             <FaChartLine className="card-icon" />
             <h3>Total Sales Over Time</h3>
+            <div className="card-controls">
+              <button 
+                className={`time-range-btn ${filters.timeRange === 'month' ? 'active' : ''}`}
+                onClick={() => {
+                  setFilters(prev => ({ ...prev, timeRange: 'month' }));
+                }}
+              >
+                Monthly
+              </button>
+              <button 
+                className={`time-range-btn ${filters.timeRange === 'year' ? 'active' : ''}`}
+                onClick={() => {
+                  setFilters(prev => ({ ...prev, timeRange: 'year' }));
+                }}
+              >
+                Yearly
+              </button>
+              <button 
+                className={`time-range-btn ${filters.timeRange === 'all' ? 'active' : ''}`}
+                onClick={() => {
+                  setFilters(prev => ({ ...prev, timeRange: 'all' }));
+                }}
+              >
+                All Time
+              </button>
+          </div>
+            <button
+              className="analytics-header-analyze-btn"
+              type="button"
+              onClick={() => handleAnalyzeClick('totalSales', { data: analyticsData.totalSales, filters })}
+          >
+              Analyze
+            </button>
           </div>
           <div className="chart-container">
-            {analyticsData.totalSales && analyticsData.totalSales.length > 0 && analyticsData.totalSales.some(item => item.sales > 0) ? (
-            <div className="line-chart">
-              <svg viewBox="0 0 400 200" className="chart-svg">
-                {/* Grid lines */}
-                {[0, 1, 2, 3, 4, 5, 6].map(i => (
-                  <line
-                    key={i}
-                    x1="40"
-                    y1={40 + i * 20}
-                    x2="360"
-                    y2={40 + i * 20}
-                    stroke="#e5e7eb"
-                    strokeWidth="1"
-                  />
-                ))}
-                
-                {/* Y-axis labels */}
-                {[0, 1, 2, 3, 4, 5, 6].map(i => (
-                  <text
-                    key={i}
-                    x="35"
-                    y={45 + i * 20}
-                    className="axis-label"
-                    textAnchor="end"
-                  >
-                    {formatNumber(i * 10)}
-                  </text>
-                ))}
-                
-                {/* X-axis labels */}
-                {analyticsData.totalSales.map((item, index) => (
-                  <text
-                    key={index}
-                    x={40 + (index * 320) / (analyticsData.totalSales.length - 1)}
-                    y="195"
-                    className="axis-label"
-                    textAnchor="middle"
-                  >
-                    {item.month}
-                  </text>
-                ))}
-                
-                {/* Line chart */}
-                <path
-                  d={analyticsData.totalSales.length > 0 ? analyticsData.totalSales.map((item, index) => {
-                    const x = 40 + (index * 320) / Math.max(analyticsData.totalSales.length - 1, 1);
-                    const y = 160 - (item.sales / 60000) * 120;
-                    return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-                  }).join(' ') : 'M 40 160'}
-                  fill="none"
-                  stroke="#8b5cf6"
-                  strokeWidth="3"
-                />
-                
-                {/* Area fill */}
-                <path
-                  d={analyticsData.totalSales.length > 0 ? `M 40 160 L ${analyticsData.totalSales.map((item, index) => {
-                    const x = 40 + (index * 320) / Math.max(analyticsData.totalSales.length - 1, 1);
-                    const y = 160 - (item.sales / 60000) * 120;
-                    return `${x} ${y}`;
-                  }).join(' L ')} L 360 160 Z` : 'M 40 160 L 40 160 Z'}
-                  fill="url(#gradient)"
-                />
-                
-                <defs>
-                  <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3"/>
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>No sales data available</p>
+            {totalSalesLoading ? (
+              <div className="analytics-loading-inline">
+                <div className="loading-spinner"></div>
+                <p>Loading sales data...</p>
               </div>
+            ) : (
+              <>
+                <ReactEChartsCore
+                  echarts={echarts}
+                  option={totalSalesOption}
+                  notMerge
+                  lazyUpdate
+                  opts={{ renderer: 'svg' }}
+                  style={{ height: '280px', width: '100%' }}
+                />
+                {!hasTotalSalesData && (
+                  <div className="chart-empty-state">
+                    <p>No sales data available</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Daily Sales & Orders */}
+        <div className="analytics-card">
+          <div className="card-header">
+            <FaChartArea className="card-icon" />
+            <h3>Daily Sales & Orders (Trailing 30 Days)</h3>
+                  <button
+              className="analytics-header-analyze-btn"
+                    type="button"
+              onClick={() => handleAnalyzeClick('salesTrends', { data: salesTrends })}
+                  >
+                    Analyze
+                  </button>
+          </div>
+          <div className="chart-container">
+            {salesTrendsLoading ? (
+              <div className="analytics-loading-inline">
+                <div className="loading-spinner"></div>
+                <p>Loading daily trends...</p>
+              </div>
+            ) : (
+              <>
+                <ReactEChartsCore
+                  echarts={echarts}
+                  option={salesTrendsOption}
+                  notMerge
+                  lazyUpdate
+                  opts={{ renderer: 'svg' }}
+                  style={{ height: '280px', width: '100%' }}
+                />
+                {!hasSalesTrendsData && (
+                  <div className="chart-empty-state">
+                    <p>No daily trend data available</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -647,202 +1631,30 @@ const Analytics = () => {
           <div className="card-header">
             <FaStore className="card-icon" />
             <h3>Sales By Branch</h3>
+                <button
+              className="analytics-header-analyze-btn"
+                  type="button"
+                  onClick={() => handleAnalyzeClick('salesByBranch', { data: analyticsData.salesByBranch, filters })}
+                >
+                  Analyze
+                </button>
           </div>
           <div className="chart-container">
-            {analyticsData.salesByBranch && analyticsData.salesByBranch.length > 0 ? (
-            <div className="vertical-bar-chart">
-              <svg viewBox="0 0 500 280" className="bar-chart-svg">
-                {/* Y-axis grid lines */}
-                {[0, 1, 2, 3, 4, 5].map(i => (
-                  <line
-                    key={`grid-${i}`}
-                    x1="45"
-                    y1={30 + i * 38}
-                    x2="490"
-                    y2={30 + i * 38}
-                    stroke="#e5e7eb"
-                    strokeWidth="1"
-                    strokeDasharray="4 4"
-                  />
-                ))}
-                
-                {/* Y-axis */}
-                <line
-                  x1="45"
-                  y1="30"
-                  x2="45"
-                  y2="240"
-                  stroke="#475569"
-                  strokeWidth="2"
-                />
-                
-                {/* X-axis */}
-                <line
-                  x1="45"
-                  y1="240"
-                  x2="490"
-                  y2="240"
-                  stroke="#475569"
-                  strokeWidth="2"
-                />
-                
-                {/* Y-axis labels */}
-                {[0, 1, 2, 3, 4, 5].map(i => {
-                  const maxSales = getMaxValue(analyticsData.salesByBranch, 'sales');
-                  const value = Math.round((maxSales / 5) * (5 - i));
-                  return (
-                    <text
-                      key={`y-label-${i}`}
-                      x="40"
-                      y={35 + i * 38}
-                      className="axis-label"
-                      textAnchor="end"
-                    >
-                      {formatNumber(value)}
-                    </text>
-                  );
-                })}
-                
-                {/* Bars */}
-                {analyticsData.salesByBranch.map((branch, index) => {
-                  const maxSales = getMaxValue(analyticsData.salesByBranch, 'sales');
-                  const barHeight = (branch.sales / maxSales) * 210;
-                  const numBranches = analyticsData.salesByBranch.length;
-                  const chartWidth = 445;
-                  const barWidth = Math.max(30, (chartWidth / numBranches) - 8);
-                  const spacing = chartWidth / numBranches;
-                  const x = 50 + index * spacing + (spacing - barWidth) / 2;
-                  const y = 240 - barHeight;
-                  const isHighest = branch.sales === maxSales;
-                  
-                  return (
-                    <g key={`bar-${index}`} className="bar-group">
-                      {/* Bar shadow */}
-                      <rect
-                        x={x + 1.5}
-                        y={y + 1.5}
-                        width={barWidth}
-                        height={barHeight}
-                        fill="rgba(0, 0, 0, 0.08)"
-                        rx="3"
-                      />
-                      
-                      {/* Gradient definition */}
-                      <defs>
-                        <linearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor={branch.color} stopOpacity="1"/>
-                          <stop offset="100%" stopColor={branch.color} stopOpacity="0.7"/>
-                        </linearGradient>
-                      </defs>
-                      
-                      {/* Main bar */}
-                      <rect
-                        x={x}
-                        y={y}
-                        width={barWidth}
-                        height={barHeight}
-                        fill={`url(#gradient-${index})`}
-                        rx="3"
-                        className={`bar-rect ${isHighest ? 'highest-bar' : ''}`}
-                      >
-                        <animate
-                          attributeName="height"
-                          from="0"
-                          to={barHeight}
-                          dur="0.8s"
-                          fill="freeze"
-                        />
-                        <animate
-                          attributeName="y"
-                          from="240"
-                          to={y}
-                          dur="0.8s"
-                          fill="freeze"
-                        />
-                      </rect>
-                      
-                      {/* Value label on top of bar */}
-                      {barHeight > 30 && (
-                        <text
-                          x={x + barWidth / 2}
-                          y={y - 6}
-                          className="bar-value-label"
-                          textAnchor="middle"
-                          fill={isHighest ? '#1e40af' : '#475569'}
-                          fontWeight={isHighest ? '700' : '600'}
-                          fontSize={numBranches > 6 ? '9' : '10'}
-                        >
-                          ₱{formatNumber(branch.sales)}
-                        </text>
-                      )}
-                      
-                      {/* Branch icon - only show if bar is tall enough */}
-                      {barHeight > 40 && barWidth > 35 && (
-                        <foreignObject
-                          x={x + barWidth / 2 - 8}
-                          y={y + barHeight / 2 - 8}
-                          width="16"
-                          height="16"
-                        >
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '16px',
-                            height: '16px',
-                            color: '#ffffff',
-                            fontSize: '8px'
-                          }}>
-                            <FaStore />
-                          </div>
-                        </foreignObject>
-                      )}
-                      
-                      {/* X-axis label - abbreviated for many branches */}
-                      <text
-                        x={x + barWidth / 2}
-                        y="256"
-                        className="axis-label branch-label"
-                        textAnchor="middle"
-                        fontSize={numBranches > 6 ? '8' : '9'}
-                      >
-                        {numBranches > 7 
-                          ? branch.branch.substring(0, 6) + (branch.branch.length > 6 ? '.' : '')
-                          : branch.branch.length > 12 
-                            ? branch.branch.substring(0, 12) + '...' 
-                            : branch.branch
-                        }
-                      </text>
-                    </g>
-                  );
-                })}
-                
-                {/* Axis titles */}
-                <text
-                  x="20"
-                  y="135"
-                  className="axis-title"
-                  textAnchor="middle"
-                  transform="rotate(-90 20 135)"
-                >
-                  Sales (₱)
-                </text>
-                
-                <text
-                  x="270"
-                  y="273"
-                  className="axis-title"
-                  textAnchor="middle"
-                >
-                  Branch
-                </text>
-              </svg>
-            </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>No branch data available</p>
-              </div>
-            )}
+            <>
+              <ReactEChartsCore
+                echarts={echarts}
+                option={salesByBranchOption}
+                notMerge
+                lazyUpdate
+                opts={{ renderer: 'svg' }}
+                style={{ height: '300px', width: '100%' }}
+              />
+              {!hasSalesByBranchData && (
+                <div className="chart-empty-state">
+                  <p>No branch data available</p>
+                </div>
+              )}
+            </>
           </div>
         </div>
 
@@ -851,65 +1663,30 @@ const Analytics = () => {
           <div className="card-header">
             <FaClipboardList className="card-icon" />
             <h3>Pending vs. Completed Orders</h3>
+                <button
+              className="analytics-header-analyze-btn"
+                  type="button"
+                  onClick={() => handleAnalyzeClick('orderStatus', { data: analyticsData.orderStatus, filters })}
+                >
+                  Analyze
+                </button>
           </div>
           <div className="chart-container">
-            {analyticsData.orderStatus && analyticsData.orderStatus.total > 0 ? (
-            <div className="donut-chart">
-              <svg viewBox="0 0 200 200" className="chart-svg">
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="80"
-                  fill="none"
-                  stroke="#e5e7eb"
-                  strokeWidth="20"
-                />
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="80"
-                  fill="none"
-                  stroke="#1e3a8a"
-                  strokeWidth="20"
-                  strokeDasharray={`${2 * Math.PI * 80 * ((analyticsData.orderStatus?.completed?.percentage || 0) / 100)} ${2 * Math.PI * 80}`}
-                  strokeDashoffset="0"
-                  transform="rotate(-90 100 100)"
-                />
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="80"
-                  fill="none"
-                  stroke="#0d9488"
-                  strokeWidth="20"
-                  strokeDasharray={`${2 * Math.PI * 80 * ((analyticsData.orderStatus?.pending?.percentage || 0) / 100)} ${2 * Math.PI * 80}`}
-                  strokeDashoffset={`-${2 * Math.PI * 80 * ((analyticsData.orderStatus?.completed?.percentage || 0) / 100)}`}
-                  transform="rotate(-90 100 100)"
-                />
-                <text x="100" y="100" textAnchor="middle" className="donut-center-text">
-                  {analyticsData.orderStatus?.completed?.percentage || 0}%
-                </text>
-                <text x="100" y="115" textAnchor="middle" className="donut-center-label">
-                  Completed
-                </text>
-              </svg>
-              
-              <div className="donut-legend">
-                <div className="legend-item">
-                  <div className="legend-color" style={{ backgroundColor: '#1e3a8a' }}></div>
-                  <span>Completed</span>
+            <>
+              <ReactEChartsCore
+                echarts={echarts}
+                option={orderStatusOption}
+                notMerge
+                lazyUpdate
+                opts={{ renderer: 'svg' }}
+                style={{ height: '260px', width: '100%' }}
+              />
+              {!hasOrderStatusData && (
+                <div className="chart-empty-state">
+                  <p>No order data available</p>
                 </div>
-                <div className="legend-item">
-                  <div className="legend-color" style={{ backgroundColor: '#0d9488' }}></div>
-                  <span>Pending</span>
-                </div>
-              </div>
-            </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>No order data available</p>
-              </div>
-            )}
+              )}
+            </>
           </div>
         </div>
 
@@ -918,448 +1695,269 @@ const Analytics = () => {
           <div className="card-header">
             <FaTshirt className="card-icon" />
             <h3>Top Selling Products</h3>
+                <button
+              className="analytics-header-analyze-btn"
+                  type="button"
+                  onClick={() => handleAnalyzeClick('topProducts', { data: analyticsData.topProducts, filters })}
+                >
+                  Analyze
+                </button>
           </div>
           <div className="chart-container">
-            {analyticsData.topProducts && analyticsData.topProducts.length > 0 ? (
-            <div className="bar-chart">
-              {analyticsData.topProducts.map((product, index) => (
-                <div key={index} className="bar-item">
-                  <div className="bar-label">{product.product}</div>
-                  <div className="bar-container">
-                    <div 
-                      className="bar-fill"
-                      style={{ 
-                        width: `${product.percentage}%`,
-                        backgroundColor: '#8b5cf6'
-                      }}
-                    ></div>
-                  </div>
-                  <div className="bar-value">
-                    {product.product === 'Tarpulins' ? '30' : `${product.percentage}%`}
-                  </div>
+            <>
+              <ReactEChartsCore
+                echarts={echarts}
+                option={topProductsOption}
+                notMerge
+                lazyUpdate
+                opts={{ renderer: 'svg' }}
+                style={{ height: '380px', width: '100%' }}
+              />
+              {!hasTopProductsData && (
+                <div className="chart-empty-state">
+                  <p>No product data available</p>
                 </div>
-              ))}
-            </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>No product data available</p>
-              </div>
-            )}
+              )}
+            </>
           </div>
         </div>
 
-        {/* Branch Geographic Map */}
-        <div className="analytics-card geo-distribution-card">
-          <BranchMap />
-        </div>
-
-        {/* Geographic Distribution */}
-        <div className="analytics-card geo-distribution-card">
-          <div className="card-header">
-            <FaMapMarkerAlt className="card-icon" />
-            <h3>Geographic Distribution</h3>
-          </div>
-          <div className="chart-container">
-            {geoLoading ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>Loading geographic data...</p>
-              </div>
-            ) : geoDistribution && geoDistribution.length > 0 ? (
-              <div className="geo-distribution-list">
-                {geoDistribution.slice(0, 10).map((location, index) => (
-                  <div key={index} className="geo-item">
-                    <div className="geo-item-header">
-                      <div className="geo-location-info">
-                        <div className="geo-location-marker" style={{ 
-                          background: `linear-gradient(135deg, ${['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#ec4899', '#14b8a6'][index % 9]} 0%, ${['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#65a30d', '#db2777', '#0d9488'][index % 9]} 100%)` 
-                        }}>
-                          <FaMapMarkerAlt />
-                        </div>
-                        <div className="geo-location-details">
-                          <h4 className="geo-location-name">{location.location}</h4>
-                          <div className="geo-location-stats">
-                            <span className="geo-stat-item">{location.orders} orders</span>
-                            <span className="geo-stat-separator">•</span>
-                            <span className="geo-stat-item">{location.customers} customers</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="geo-item-value">
-                        <span className="geo-revenue">₱{location.revenue.toLocaleString()}</span>
-                        <span className="geo-avg-order">Avg: ₱{location.avgOrderValue.toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <div className="geo-progress-bar">
-                      <div 
-                        className="geo-progress-fill" 
-                        style={{ 
-                          width: `${location.percentage}%`,
-                          background: `linear-gradient(90deg, ${['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#ec4899', '#14b8a6'][index % 9]} 0%, ${['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#65a30d', '#db2777', '#0d9488'][index % 9]} 100%)`
-                        }}
-                      >
-                        <span className="geo-percentage">{location.percentage}%</span>
-                      </div>
-                    </div>
-                    {location.topProducts && location.topProducts.length > 0 && (
-                      <div className="geo-top-products">
-                        <span className="geo-products-label">Top Items:</span>
-                        {location.topProducts.map((product, idx) => (
-                          <span key={idx} className="geo-product-badge">{product}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>No geographic data available</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Top Categories */}
+        {/* Customer Insights */}
         <div className="analytics-card">
           <div className="card-header">
-            <FaLayerGroup className="card-icon" />
-            <h3>Top Categories</h3>
+            <FaUsers className="card-icon" />
+            <h3>Customer Insights</h3>
+            <button
+              className="analytics-header-analyze-btn"
+              type="button"
+              onClick={() => handleAnalyzeClick('topCustomers', { data: topCustomers })}
+            >
+              Analyze
+            </button>
           </div>
-          <div className="chart-container">
-            {categoriesLoading ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>Loading categories data...</p>
+          {customerLoading ? (
+            <div className="analytics-loading-inline">
+              <div className="loading-spinner"></div>
+              <p>Loading customer analytics...</p>
               </div>
-            ) : topCategories && topCategories.length > 0 ? (
-              <div className="vertical-bar-chart">
-                <svg viewBox="0 0 500 280" className="bar-chart-svg">
-                  {[0, 1, 2, 3, 4, 5].map(i => (
-                    <line key={`grid-${i}`} x1="60" y1={30 + i * 38} x2="490" y2={30 + i * 38} stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" />
-                  ))}
-                  <line x1="60" y1="30" x2="60" y2="240" stroke="#475569" strokeWidth="2" />
-                  <line x1="60" y1="240" x2="490" y2="240" stroke="#475569" strokeWidth="2" />
-                  
-                  {[0, 1, 2, 3, 4, 5].map(i => {
-                    const maxRevenue = Math.max(...topCategories.slice(0, 8).map(c => c.revenue));
-                    const value = Math.round((maxRevenue / 5) * (5 - i));
-                    return (
-                      <text key={`y-label-${i}`} x="55" y={35 + i * 38} className="axis-label" textAnchor="end">
-                        ₱{formatNumber(value)}
-                      </text>
-                    );
-                  })}
-                  
-                  {topCategories.slice(0, 8).map((category, index) => {
-                    const maxRevenue = Math.max(...topCategories.slice(0, 8).map(c => c.revenue));
-                    const barHeight = (category.revenue / maxRevenue) * 210;
-                    const numCategories = Math.min(8, topCategories.length);
-                    const chartWidth = 430;
-                    const barWidth = Math.max(35, (chartWidth / numCategories) - 10);
-                    const spacing = chartWidth / numCategories;
-                    const x = 65 + index * spacing + (spacing - barWidth) / 2;
-                    const y = 240 - barHeight;
-                    const isHighest = category.revenue === maxRevenue;
-                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#ec4899'];
-                    const color = colors[index % colors.length];
-                    
-                    return (
-                      <g key={`bar-${index}`} className="bar-group">
-                        <defs>
-                          <linearGradient id={`cat-gradient-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor={color} stopOpacity="1"/>
-                            <stop offset="100%" stopColor={color} stopOpacity="0.7"/>
-                          </linearGradient>
-                        </defs>
-                        
-                        <rect x={x} y={y} width={barWidth} height={barHeight} fill={`url(#cat-gradient-${index})`} rx="3"
-                          className={`bar-rect ${isHighest ? 'highest-bar' : ''}`}>
-                          <animate attributeName="height" from="0" to={barHeight} dur="0.8s" fill="freeze" />
-                          <animate attributeName="y" from="240" to={y} dur="0.8s" fill="freeze" />
-                        </rect>
-                        
-                        {barHeight > 25 && (
-                          <text x={x + barWidth / 2} y={y - 6} className="bar-value-label" textAnchor="middle"
-                            fill={isHighest ? '#1e40af' : '#475569'} fontWeight={isHighest ? '700' : '600'} fontSize="10">
-                            ₱{formatNumber(category.revenue)}
-                          </text>
-                        )}
-                        
-                        {barHeight > 30 && (
-                          <text x={x + barWidth / 2} y={y + barHeight / 2} textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="600">
-                            {category.stockStatus}
-                          </text>
-                        )}
-                        
-                        <text x={x + barWidth / 2} y="256" className="axis-label branch-label" textAnchor="middle" fontSize="9">
-                          {category.category.length > 10 ? category.category.substring(0, 10) + '...' : category.category}
-                        </text>
-                      </g>
-                    );
-                  })}
-                  
-                  <text x="25" y="135" className="axis-title" textAnchor="middle" transform="rotate(-90 25 135)">Revenue (₱)</text>
-                  <text x="275" y="273" className="axis-title" textAnchor="middle">Category</text>
-                </svg>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>No category data available</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Customer Buying Trends */}
-        <div className="analytics-card">
-          <div className="card-header">
-            <FaChartLine className="card-icon" />
-            <h3>Customer Buying Trends</h3>
-          </div>
-          <div className="chart-container">
-            {trendsLoading ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>Loading trends data...</p>
-              </div>
-            ) : buyingTrends && buyingTrends.length > 0 ? (
-              <div className="line-chart">
-                <svg viewBox="0 0 450 220" className="chart-svg">
-                  {[0, 1, 2, 3, 4, 5].map(i => (
-                    <line key={i} x1="50" y1={30 + i * 30} x2="420" y2={30 + i * 30} stroke="#e5e7eb" strokeWidth="1" strokeDasharray="3 3" />
-                  ))}
-                  
-                  {[0, 1, 2, 3, 4, 5].map(i => {
-                    const maxOrders = Math.max(...buyingTrends.map(t => t.orders));
-                    const value = Math.round((maxOrders / 5) * (5 - i));
-                    return (
-                      <text key={i} x="45" y={35 + i * 30} className="axis-label" textAnchor="end">{value}</text>
-                    );
-                  })}
-                  
-                  {buyingTrends.map((trend, index) => {
-                    if (index % Math.ceil(buyingTrends.length / 8) === 0 || index === buyingTrends.length - 1) {
-                      return (
-                        <text key={index} x={50 + (index * 370) / (buyingTrends.length - 1)} y="205" className="axis-label"
-                          textAnchor="middle" fontSize="9">{trend.week}</text>
-                      );
-                    }
-                    return null;
-                  })}
-                  
-                  <path d={buyingTrends.map((trend, index) => {
-                      const maxOrders = Math.max(...buyingTrends.map(t => t.orders));
-                      const x = 50 + (index * 370) / (buyingTrends.length - 1);
-                      const y = 180 - (trend.orders / maxOrders) * 150;
-                      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-                    }).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
-                  
-                  <path d={buyingTrends.map((trend, index) => {
-                      const maxCustomers = Math.max(...buyingTrends.map(t => t.customers));
-                      const x = 50 + (index * 370) / (buyingTrends.length - 1);
-                      const y = 180 - (trend.customers / maxCustomers) * 150;
-                      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-                    }).join(' ')} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeDasharray="5 5" />
-                  
-                  {buyingTrends.map((trend, index) => {
-                    const maxOrders = Math.max(...buyingTrends.map(t => t.orders));
-                    const x = 50 + (index * 370) / (buyingTrends.length - 1);
-                    const y = 180 - (trend.orders / maxOrders) * 150;
-                    return (
-                      <circle key={`point-${index}`} cx={x} cy={y} r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
-                    );
-                  })}
-                  
-                  <g transform="translate(50, 15)">
-                    <rect x="0" y="0" width="12" height="3" fill="#3b82f6" />
-                    <text x="18" y="5" fontSize="10" fill="#64748b">Orders</text>
-                    <line x1="80" y1="2" x2="92" y2="2" stroke="#10b981" strokeWidth="2" strokeDasharray="3 3" />
-                    <text x="98" y="5" fontSize="10" fill="#64748b">Customers</text>
-                  </g>
-                </svg>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>No trends data available</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Regional Performance */}
-        <div className="analytics-card geo-distribution-card">
-          <div className="card-header">
-            <FaMapMarkedAlt className="card-icon" />
-            <h3>Regional Performance</h3>
-          </div>
-          <div className="chart-container">
-            {regionalLoading ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>Loading regional data...</p>
-              </div>
-            ) : regionalPerformance && regionalPerformance.length > 0 ? (
-              <div className="geo-distribution-list">
-                {regionalPerformance.slice(0, 10).map((region, index) => (
-                  <div key={index} className="geo-item">
-                    <div className="geo-item-header">
-                      <div className="geo-location-info">
-                        <div className="geo-location-marker" style={{ 
-                          background: `linear-gradient(135deg, ${['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#84cc16', '#ec4899', '#14b8a6'][index % 9]} 0%, ${['#7c3aed', '#0891b2', '#d97706', '#059669', '#dc2626', '#2563eb', '#65a30d', '#db2777', '#0d9488'][index % 9]} 100%)` 
-                        }}>
-                          <FaMapMarkedAlt />
+          ) : (
+            <>
+              <div className="analytics-summary customer-insights-summary">
+                <div className="summary-card">
+                  <div className="summary-icon">
+                    <FaUsers />
                         </div>
-                        <div className="geo-location-details">
-                          <h4 className="geo-location-name">{region.region}</h4>
-                          <div className="geo-location-stats">
-                            <span className="geo-stat-item">{region.orders} orders</span>
-                            <span className="geo-stat-separator">•</span>
-                            <span className="geo-stat-item">{region.customers} customers</span>
-                            <span className="geo-stat-separator">•</span>
-                            <span className="geo-stat-item" style={{ color: region.growth >= 0 ? '#10b981' : '#ef4444' }}>
-                              {region.growth >= 0 ? '+' : ''}{region.growth}% growth
-                            </span>
+                  <div className="summary-content">
+                    <h3>Total Customers</h3>
+                    <p className="summary-value">{formatNumber(customerSummary?.totalCustomers || 0)}</p>
                           </div>
                         </div>
+                <div className="summary-card">
+                  <div className="summary-icon completed">
+                    <FaUserPlus />
                       </div>
-                      <div className="geo-item-value">
-                        <span className="geo-revenue">₱{region.revenue.toLocaleString()}</span>
-                        <span className="geo-avg-order">Market Share: {region.marketShare}%</span>
-                      </div>
-                    </div>
-                    <div className="geo-progress-bar">
-                      <div className="geo-progress-fill" style={{ 
-                          width: `${region.marketShare}%`,
-                          background: `linear-gradient(90deg, ${['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#84cc16', '#ec4899', '#14b8a6'][index % 9]} 0%, ${['#7c3aed', '#0891b2', '#d97706', '#059669', '#dc2626', '#2563eb', '#65a30d', '#db2777', '#0d9488'][index % 9]} 100%)`
-                        }}>
-                        <span className="geo-percentage">{region.marketShare}%</span>
+                  <div className="summary-content">
+                    <h3>New Customers (30d)</h3>
+                    <p className="summary-value">{formatNumber(customerSummary?.newCustomers || 0)}</p>
                       </div>
                     </div>
+                <div className="summary-card">
+                  <div className="summary-icon processing">
+                    <FaShoppingCart />
+                      </div>
+                  <div className="summary-content">
+                    <h3>Avg Orders / Customer</h3>
+                    <p className="summary-value">
+                      {Number(customerSummary?.avgOrdersPerCustomer || 0).toFixed(2)}
+                    </p>
+                    </div>
+                      </div>
+                <div className="summary-card">
+                  <div className="summary-icon">
+                    <FaMoneyBillWave />
                   </div>
-                ))}
+                  <div className="summary-content">
+                    <h3>Avg Spend / Customer</h3>
+                    <p className="summary-value">
+                      ₱{Number(customerSummary?.avgSpentPerCustomer || 0).toFixed(2)}
+                    </p>
               </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <p>No regional data available</p>
               </div>
+          </div>
+              <div className="chart-container">
+                <ReactEChartsCore
+                  echarts={echarts}
+                  option={topCustomersOption}
+                  notMerge
+                  lazyUpdate
+                  opts={{ renderer: 'svg' }}
+                  style={{ height: '280px', width: '100%' }}
+                />
+                {!hasTopCustomersData && (
+                  <div className="chart-empty-state">
+                    <p>No customer spend data available</p>
+                  </div>
+                )}
+              </div>
+              </>
             )}
           </div>
+
+        {/* Customer Locations */}
+        <div className="analytics-card geo-distribution-card">
+          <div className="card-header">
+            <FaMap className="card-icon" />
+            <h3>Customer Locations</h3>
+            <button
+              className="analytics-header-analyze-btn"
+              type="button"
+              onClick={() => handleAnalyzeClick('customerLocations', { data: customerLocationsData, filters })}
+              disabled={!hasCustomerLocationData}
+            >
+              Analyze
+            </button>
+          </div>
+          <Suspense
+            fallback={
+              <div className="analytics-loading-inline">
+                <div className="loading-spinner"></div>
+                <p>Loading map...</p>
+              </div>
+            }
+          >
+            <BranchMap onDataLoaded={setCustomerLocationsData} />
+          </Suspense>
         </div>
 
         {/* Sales Forecast */}
         <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaChartArea className="card-icon" />
-            <h3>Sales Forecast - Next 3 Months</h3>
+            <h3>Sales Forecast — {SALES_FORECAST_RANGE_LABELS[salesForecastRange]}</h3>
+            <div className="card-controls">
+              <button
+                type="button"
+                className={`time-range-btn ${salesForecastRange === 'nextMonth' ? 'active' : ''}`}
+                onClick={() => setSalesForecastRange('nextMonth')}
+              >
+                Next Month
+              </button>
+              <button
+                type="button"
+                className={`time-range-btn ${salesForecastRange === 'restOfYear' ? 'active' : ''}`}
+                onClick={() => setSalesForecastRange('restOfYear')}
+              >
+                Rest of Year
+              </button>
+              <button
+                type="button"
+                className={`time-range-btn ${salesForecastRange === 'nextYear' ? 'active' : ''}`}
+                onClick={() => setSalesForecastRange('nextYear')}
+              >
+                Next 12 Months
+              </button>
+            </div>
+            <button
+              className="analytics-header-analyze-btn"
+              type="button"
+              onClick={() => handleAnalyzeClick('salesForecast', { data: salesForecast, filters, range: salesForecastRange })}
+            >
+              Analyze
+            </button>
           </div>
+          {forecastSummary && hasSalesForecastData && (
+            <div className="analytics-summary forecast-summary">
+              <div className="summary-card">
+                <div className="summary-icon completed">
+                  <FaMoneyBillWave />
+                </div>
+                <div className="summary-content">
+                  <h3>Projected Revenue</h3>
+                  <p className="summary-value">₱{formatNumber(Math.round(forecastSummary.projectedRevenue || 0))}</p>
+                  <p className="summary-percentage">
+                    {typeof forecastSummary.expectedGrowthRate === 'number'
+                      ? `${forecastSummary.expectedGrowthRate >= 0 ? '+' : ''}${forecastSummary.expectedGrowthRate.toFixed(1)}% vs baseline`
+                      : 'Baseline unavailable'}
+                  </p>
+                </div>
+              </div>
+              <div className="summary-card">
+                <div className="summary-icon processing">
+                  <FaShoppingCart />
+                </div>
+                <div className="summary-content">
+                  <h3>Projected Orders</h3>
+                  <p className="summary-value">{formatNumber(Math.round(forecastSummary.projectedOrders || 0))}</p>
+                  <p className="summary-percentage">
+                    Avg monthly ₱{formatNumber(Math.round(forecastSummary.averageMonthlyRevenue || 0))}
+                  </p>
+                </div>
+              </div>
+              <div className="summary-card">
+                <div className="summary-icon">
+                  <FaChartLine />
+                </div>
+                <div className="summary-content">
+                  <h3>Confidence</h3>
+                  <p className="summary-value">
+                    {forecastSummary.confidence != null ? `${forecastSummary.confidence}%` : '—'}
+                  </p>
+                  <p className="summary-percentage">
+                    Plan spans {forecastSummary.months || 0} {forecastSummary.months === 1 ? 'month' : 'months'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="chart-container">
+            <ReactEChartsCore
+              echarts={echarts}
+              option={salesForecastOption}
+              notMerge
+              lazyUpdate
+              opts={{ renderer: 'svg' }}
+              style={{ height: '320px', width: '100%' }}
+            />
             {forecastLoading ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+              <div className="chart-empty-state">
                 <p>Generating forecast...</p>
               </div>
-            ) : salesForecast.combined && salesForecast.combined.length > 0 ? (
-              <div className="line-chart">
-                <svg viewBox="0 0 500 250" className="chart-svg">
-                  {[0, 1, 2, 3, 4, 5, 6].map(i => (
-                    <line key={i} x1="60" y1={30 + i * 30} x2="480" y2={30 + i * 30} stroke="#e5e7eb" strokeWidth="1" strokeDasharray="3 3" />
-                  ))}
-                  
-                  {[0, 1, 2, 3, 4, 5, 6].map(i => {
-                    const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
-                    const value = Math.round((maxRevenue / 6) * (6 - i));
-                    return (
-                      <text key={i} x="55" y={35 + i * 30} className="axis-label" textAnchor="end">
-                        ₱{formatNumber(value)}
-                      </text>
-                    );
-                  })}
-                  
-                  {salesForecast.combined.map((item, index) => {
-                    if (index % 2 === 0 || index === salesForecast.combined.length - 1) {
-                      return (
-                        <text key={index} x={60 + (index * 420) / (salesForecast.combined.length - 1)} y="225"
-                          className="axis-label" textAnchor="middle" fontSize="9">{item.month.split(' ')[0]}</text>
-                      );
-                    }
-                    return null;
-                  })}
-                  
-                  {salesForecast.historical.length > 0 && (
-                    <path d={salesForecast.combined.filter(f => f.type === 'historical').map((item, index) => {
-                        const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
-                        const x = 60 + (index * 420) / (salesForecast.combined.length - 1);
-                        const y = 210 - (item.revenue / maxRevenue) * 180;
-                        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-                      }).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
-                  )}
-                  
-                  {salesForecast.forecast.length > 0 && (
-                    <path d={[...salesForecast.historical.slice(-1), ...salesForecast.forecast].map((item, index) => {
-                        const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
-                        const actualIndex = salesForecast.historical.length - 1 + index;
-                        const x = 60 + (actualIndex * 420) / (salesForecast.combined.length - 1);
-                        const y = 210 - (item.revenue / maxRevenue) * 180;
-                        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-                      }).join(' ')} fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeDasharray="8 4" />
-                  )}
-                  
-                  {salesForecast.forecast.length > 0 && (
-                    <path d={`M ${60 + ((salesForecast.historical.length - 1) * 420) / (salesForecast.combined.length - 1)} 210 ` +
-                        [...salesForecast.historical.slice(-1), ...salesForecast.forecast].map((item, index) => {
-                          const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
-                          const actualIndex = salesForecast.historical.length - 1 + index;
-                          const x = 60 + (actualIndex * 420) / (salesForecast.combined.length - 1);
-                          const y = 210 - (item.revenue / maxRevenue) * 180;
-                          return `L ${x} ${y}`;
-                        }).join(' ') +
-                        ` L ${60 + ((salesForecast.combined.length - 1) * 420) / (salesForecast.combined.length - 1)} 210 Z`}
-                      fill="#10b981" fillOpacity="0.1" />
-                  )}
-                  
-                  {salesForecast.historical.map((item, index) => {
-                    const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
-                    const x = 60 + (index * 420) / (salesForecast.combined.length - 1);
-                    const y = 210 - (item.revenue / maxRevenue) * 180;
-                    return (
-                      <circle key={`hist-${index}`} cx={x} cy={y} r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
-                    );
-                  })}
-                  
-                  {salesForecast.forecast.map((item, index) => {
-                    const maxRevenue = Math.max(...salesForecast.combined.map(f => f.revenue));
-                    const actualIndex = salesForecast.historical.length + index;
-                    const x = 60 + (actualIndex * 420) / (salesForecast.combined.length - 1);
-                    const y = 210 - (item.revenue / maxRevenue) * 180;
-                    return (
-                      <g key={`fore-${index}`}>
-                        <circle cx={x} cy={y} r="5" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
-                        <text x={x} y={y - 12} fontSize="9" fill="#10b981" textAnchor="middle" fontWeight="600">
-                          {item.confidence}%
-                        </text>
-                      </g>
-                    );
-                  })}
-                  
-                  <g transform="translate(60, 15)">
-                    <rect x="0" y="0" width="16" height="3" fill="#3b82f6" />
-                    <text x="22" y="5" fontSize="10" fill="#64748b" fontWeight="500">Historical</text>
-                    <line x1="100" y1="2" x2="116" y2="2" stroke="#10b981" strokeWidth="3" strokeDasharray="6 3" />
-                    <text x="122" y="5" fontSize="10" fill="#64748b" fontWeight="500">Forecast</text>
-                  </g>
-                  
-                  <text x="25" y="125" className="axis-title" textAnchor="middle" transform="rotate(-90 25 125)">Revenue (₱)</text>
-                  <text x="270" y="243" className="axis-title" textAnchor="middle">Month</text>
-                </svg>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+            ) : !hasSalesForecastData ? (
+              <div className="chart-empty-state">
                 <p>No forecast data available</p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
     </div>
+        )}
       </div>
+      <NexusChatModal
+        open={isNexusOpen}
+        onClose={handleCloseNexus}
+        messages={nexusMessages}
+        loading={nexusLoading}
+        error={nexusError}
+        onSend={handleSendNexusMessage}
+        activeChart={nexusContext.chartId}
+        chartTitle={CHART_LABELS[nexusContext.chartId] || nexusContext.chartId}
+        lastSql={nexusContext.lastSql}
+        model={nexusContext.model}
+        isGeneralConversation={nexusContext.isGeneralConversation}
+      />
+      <button
+        type="button"
+        className="nexus-floating-button"
+        onClick={handleOpenFloatingChat}
+        aria-label="Open Nexus AI chat"
+      >
+        <FaRobot />
+        <span>Chat with Nexus</span>
+      </button>
     </div>
   );
 };
 
 export default Analytics;
+

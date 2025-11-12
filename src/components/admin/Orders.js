@@ -61,9 +61,16 @@ const Orders = () => {
   // Pagination state
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 150,
+    limit: 100,
     total: 0,
     totalPages: 1
+  });
+
+  const [stats, setStats] = useState({
+    total: 0,
+    delivered: 0,
+    inProgress: 0,
+    pending: 0
   });
   
   // Filter states
@@ -78,12 +85,10 @@ const Orders = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        // Pass pagination parameters to API if filters are active
-        const hasFilters = filters.pickupBranch || filters.status;
         const response = await orderService.getAllOrders({
           ...filters,
-          page: hasFilters ? pagination.page : 1,
-          limit: hasFilters ? pagination.limit : undefined
+          page: pagination.page,
+          limit: pagination.limit
         });
         console.log('📦 [Orders Component] API Response:', response);
         console.log('📦 [Orders Component] Total orders returned:', response.orders?.length);
@@ -98,22 +103,50 @@ const Orders = () => {
           if (response.pagination) {
             setPagination(response.pagination);
           }
+
+          if (response.stats) {
+            setStats({
+              total: response.stats.total ?? formattedOrders.length,
+              delivered: response.stats.delivered ?? formattedOrders.filter(o => o.status === 'picked_up_delivered').length,
+              inProgress: response.stats.inProgress ?? formattedOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length,
+              pending: response.stats.pending ?? formattedOrders.filter(o => o.status === 'pending').length
+            });
+          } else {
+            setStats({
+              total: formattedOrders.length,
+              delivered: formattedOrders.filter(o => o.status === 'picked_up_delivered').length,
+              inProgress: formattedOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length,
+              pending: formattedOrders.filter(o => o.status === 'pending').length
+            });
+          }
         } else {
           console.warn('No orders data received or invalid format:', response);
           setOrders([]);
           setFilteredOrders([]);
+          setStats({
+            total: 0,
+            delivered: 0,
+            inProgress: 0,
+            pending: 0
+          });
         }
       } catch (error) {
         console.error('Error fetching orders:', error);
         setOrders([]);
         setFilteredOrders([]);
+        setStats({
+          total: 0,
+          delivered: 0,
+          inProgress: 0,
+          pending: 0
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrders();
-  }, [filters.pickupBranch, filters.status, pagination.page]);
+  }, [filters.pickupBranch, filters.status, pagination.page, pagination.limit]);
 
   // Apply filters and sorting
   useEffect(() => {
@@ -671,24 +704,24 @@ const Orders = () => {
         <h1>Order Management</h1>
         <div className="orders-stats">
           <div className="stat-card">
-            <span className="stat-number">{filteredOrders.length}</span>
+            <span className="stat-number">{stats.total ?? pagination.total ?? filteredOrders.length}</span>
             <span className="stat-label">Total Orders</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {filteredOrders.filter(o => o.status === 'picked_up_delivered').length}
+              {stats.delivered ?? filteredOrders.filter(o => o.status === 'picked_up_delivered').length}
             </span>
             <span className="stat-label">Delivered</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {filteredOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length}
+              {stats.inProgress ?? filteredOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length}
             </span>
             <span className="stat-label">In Progress</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {filteredOrders.filter(o => o.status === 'pending').length}
+              {stats.pending ?? filteredOrders.filter(o => o.status === 'pending').length}
             </span>
             <span className="stat-label">Pending</span>
           </div>
@@ -863,7 +896,7 @@ const Orders = () => {
       </div>
 
       {/* Pagination Controls - shown only when filters are applied */}
-      {(filters.pickupBranch || filters.status) && pagination.totalPages > 1 && (
+      {pagination.totalPages > 1 && (
         <div className="pagination-controls">
           <div className="pagination-info">
             Showing page {pagination.page} of {pagination.totalPages} ({pagination.total} total orders)
@@ -913,11 +946,9 @@ const Orders = () => {
       )}
       
       {/* Show all orders count when no filters are applied */}
-      {!filters.pickupBranch && !filters.status && (
-        <div className="orders-count-info">
-          Showing all {filteredOrders.length} orders
-        </div>
-      )}
+      <div className="orders-count-info">
+        Showing {filteredOrders.length} orders on this page (limit {pagination.limit}) out of {stats.total ?? pagination.total ?? filteredOrders.length} total
+      </div>
 
       {/* Expanded Order Details Modal */}
       {expandedOrder && (

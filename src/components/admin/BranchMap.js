@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet';
 import { FaMap, FaUsers } from 'react-icons/fa';
 import L from 'leaflet';
@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import './BranchMap.css';
 import { API_URL } from '../../config/api';
 import { authFetch } from '../../services/apiClient';
+import 'leaflet.heat';
 
 // Fix for default marker icons in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -30,10 +31,97 @@ function FitBounds({ points }) {
   return null;
 }
 
-const BranchMap = () => {
+function HeatmapLayer({ points, visible }) {
+  const map = useMap();
+  const heatLayerRef = React.useRef(null);
+
+  useEffect(() => {
+    if (!map) {
+      return undefined;
+    }
+
+    const removeLayer = () => {
+      const layer = heatLayerRef.current;
+      if (!layer) {
+        return;
+      }
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+      heatLayerRef.current = null;
+    };
+
+    const ensureLayer = () => {
+      if (!heatLayerRef.current) {
+    const layer = L.heatLayer([], {
+      radius: 20,
+      blur: 28,
+      maxZoom: 11,
+      minOpacity: 0.35,
+      gradient: {
+        0.0: '#fee2e2',
+        0.45: '#fca5a5',
+        0.65: '#f87171',
+        0.85: '#ef4444',
+        1.0: '#b91c1c'
+      }
+    });
+    heatLayerRef.current = layer;
+      }
+      return heatLayerRef.current;
+    };
+
+    const updateLayer = () => {
+      if (!visible) {
+        removeLayer();
+        return;
+      }
+      const layer = ensureLayer();
+      if (!layer) {
+      return;
+    }
+      const latLngs = Array.isArray(points) && points.length > 0 ? points : [];
+      layer.setLatLngs(latLngs);
+      if (!map.hasLayer(layer)) {
+        layer.addTo(map);
+      }
+    };
+
+    updateLayer();
+
+    return () => {
+      removeLayer();
+    };
+  }, [map, points, visible]);
+
+  return null;
+}
+
+const BranchMap = ({ onDataLoaded }) => {
   const [heatmapData, setHeatmapData] = useState([]);
   const [cityStats, setCityStats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [showMarkers, setShowMarkers] = useState(true);
+
+  const reportData = useCallback((points = [], stats = [], extra = {}) => {
+    if (typeof onDataLoaded === 'function') {
+      const totalCustomers = Array.isArray(stats)
+        ? stats.reduce((sum, item) => sum + (Number(item.count) || 0), 0)
+        : 0;
+      onDataLoaded({
+        points,
+        cityStats: stats,
+        summary: {
+          totalPoints: Array.isArray(points) ? points.length : 0,
+          totalCities: Array.isArray(stats) ? stats.length : 0,
+          totalCustomers,
+          topCity: Array.isArray(stats) && stats.length ? stats[0].city : null,
+          ...extra
+        }
+      });
+    }
+  }, [onDataLoaded]);
 
   useEffect(() => {
     fetchCustomerLocations();
@@ -42,14 +130,19 @@ const BranchMap = () => {
   const fetchCustomerLocations = async () => {
     try {
       setLoading(true);
+      reportData([], [], { status: 'loading' });
       const response = await authFetch(`${API_URL}/api/analytics/customer-locations`);
       
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
-          setHeatmapData(data.data);
-          setCityStats(data.cityStats || []);
-          console.log(`✅ Loaded ${data.data.length} customer location points`);
+          const points = Array.isArray(data.data) ? data.data : [];
+          const statsRaw = Array.isArray(data.cityStats) ? data.cityStats : [];
+          const stats = [...statsRaw].sort((a, b) => (Number(b.count) || 0) - (Number(a.count) || 0));
+          setHeatmapData(points);
+          setCityStats(stats);
+          reportData(points, stats, { status: 'loaded', source: 'api' });
+          console.log(`✅ Loaded ${points.length} customer location points`);
         }
       } else {
         console.log('⚠️ API returned error, using demo data');
@@ -128,10 +221,24 @@ const BranchMap = () => {
       }
     });
 
+    const sortedStats = [...cityStats].sort((a, b) => (Number(b.count) || 0) - (Number(a.count) || 0));
     setHeatmapData(heatmapData);
-    setCityStats(cityStats.sort((a, b) => b.count - a.count));
+    setCityStats(sortedStats);
+    reportData(heatmapData, sortedStats, { status: 'loaded', source: 'demo' });
     console.log(`✅ Loaded ${heatmapData.length} demo customer location points`);
   };
+
+  const heatmapPoints = useMemo(() => {
+    if (!heatmapData || heatmapData.length === 0) {
+      return [];
+    }
+
+    return heatmapData.map(point => [
+      point[0],
+      point[1],
+      typeof point[2] === 'number' ? point[2] : 1
+    ]);
+  }, [heatmapData]);
 
   if (loading) {
     return (
@@ -153,7 +260,25 @@ const BranchMap = () => {
           <FaUsers className="header-icon" />
           Customer Locations
         </h3>
-        <p>Each red dot represents a customer location</p>
+        <p>Visualize customer density with heatmap and red dot markers</p>
+        <div className="branch-map-controls">
+          <label className="map-toggle">
+            <input
+              type="checkbox"
+              checked={showHeatmap}
+              onChange={() => setShowHeatmap(prev => !prev)}
+            />
+            <span>Heatmap</span>
+          </label>
+          <label className="map-toggle">
+            <input
+              type="checkbox"
+              checked={showMarkers}
+              onChange={() => setShowMarkers(prev => !prev)}
+            />
+            <span>Red Dots</span>
+          </label>
+        </div>
       </div>
       
       <div className="branch-map-wrapper">
@@ -162,6 +287,7 @@ const BranchMap = () => {
           zoom={mapZoom}
           style={{ height: '600px', width: '100%', borderRadius: '12px' }}
           scrollWheelZoom={true}
+          preferCanvas={true}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -169,21 +295,23 @@ const BranchMap = () => {
           />
           
           <FitBounds points={heatmapData} />
+          <HeatmapLayer points={heatmapPoints} visible={showHeatmap} />
           
           {/* Render red dots for each customer location */}
-          {heatmapData.map((point, index) => (
-            <CircleMarker
-              key={index}
-              center={[point[0], point[1]]}
-              radius={4}
-              pathOptions={{
-                fillColor: '#ef4444',
-                color: '#dc2626',
-                fillOpacity: 0.8,
-                weight: 1
-              }}
-            />
-          ))}
+          {showMarkers &&
+            heatmapData.map((point, index) => (
+              <CircleMarker
+                key={index}
+                center={[point[0], point[1]]}
+                radius={4}
+                pathOptions={{
+                  fillColor: '#ef4444',
+                  color: '#dc2626',
+                  fillOpacity: 0.8,
+                  weight: 1
+                }}
+              />
+            ))}
           
         </MapContainer>
       </div>

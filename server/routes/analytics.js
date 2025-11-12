@@ -1,10 +1,327 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { supabase } = require('../lib/db');
+const { executeSql } = require('../lib/sqlClient');
 const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
 const router = express.Router();
 
 router.use(authenticateSupabaseToken);
 router.use(requireAdminOrOwner);
+
+const SERVICE_AREA_BOUNDS = {
+  minLat: 12.7,
+  maxLat: 14.7,
+  minLng: 120,
+  maxLng: 122.5
+};
+
+const ALLOWED_PROVINCES = new Set(['BATANGAS', 'ORIENTAL MINDORO']);
+
+const CITY_PROVINCE_OVERRIDES = {
+  ROSARIO: { city: 'Rosario', province: 'Batangas' },
+  'SAN PASCUAL': { city: 'San Pascual', province: 'Batangas' },
+  'SAN JOSE DEL MONTE CITY': { city: 'San Jose del Monte City', province: 'Bulacan', block: true },
+  'QUEZON CITY': { city: 'Quezon City', province: 'Metro Manila', block: true },
+  'CEBU CITY': { city: 'Cebu City', province: 'Cebu', block: true },
+  'DAVAO CITY': { city: 'Davao City', province: 'Davao del Sur', block: true },
+  'ILOILO CITY': { city: 'Iloilo City', province: 'Iloilo', block: true },
+  'BAGUIO CITY': { city: 'Baguio City', province: 'Benguet', block: true }
+};
+
+const SALES_FORECAST_RANGE_LABELS = {
+  nextMonth: 'Next Month',
+  restOfYear: 'Rest of Year',
+  nextYear: 'Next 12 Months'
+};
+
+let barangayGeoCache = null;
+
+const MAX_FORECAST_HISTORY_MONTHS = 36;
+
+function titleCase(value) {
+  return value
+    .toLowerCase()
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function normalizeValue(value) {
+  if (!value) {
+    return null;
+  }
+  return value
+    .toString()
+    .trim()
+    .replace(/^CITY OF\s+/i, '')
+    .replace(/^MUNICIPALITY OF\s+/i, '')
+    .replace(/\s+/g, ' ')
+    .toUpperCase();
+}
+
+function normalizeBarangayName(value) {
+  if (!value) {
+    return null;
+  }
+  return value
+    .toString()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase();
+}
+
+function determineProductGroup(item = {}) {
+  const rawCategory = (item.category || item.product_type || '').toString().toLowerCase();
+  const rawName = (item.name || '').toString().toLowerCase();
+
+  const text = `${rawCategory} ${rawName}`;
+
+  if (text.includes('basketball')) {
+    return 'Basketball Jerseys';
+  }
+
+  if (text.includes('volleyball')) {
+    return 'Volleyball Jerseys';
+  }
+
+  if (text.includes('hoodie')) {
+    return 'Hoodies';
+  }
+
+  if (text.includes('uniform')) {
+    return 'Uniforms';
+  }
+
+  if (text.includes('jersey')) {
+    return 'Custom Jerseys';
+  }
+
+  if (text.includes('ball')) {
+    return 'Sports Balls';
+  }
+
+  if (text.includes('troph')) {
+    return 'Trophies';
+  }
+
+  if (text.includes('medal')) {
+    return 'Medals';
+  }
+
+  return 'Other Products';
+}
+
+function canonicalizeCityProvince(city, province) {
+  const normalizedCity = normalizeValue(city);
+  const normalizedProvince = normalizeValue(province);
+
+  if (!normalizedCity) {
+    return {
+      city: 'Unknown',
+      province: normalizedProvince ? titleCase(normalizedProvince) : 'Unknown',
+      normalizedCity: 'UNKNOWN',
+      normalizedProvince: normalizedProvince || 'UNKNOWN',
+      blocked: false
+    };
+  }
+
+  const override = CITY_PROVINCE_OVERRIDES[normalizedCity];
+  if (override) {
+    return {
+      city: override.city,
+      province: override.province,
+      normalizedCity,
+      normalizedProvince: normalizeValue(override.province),
+      blocked: override.block === true
+    };
+  }
+
+  return {
+    city: titleCase(normalizedCity),
+    province: normalizedProvince ? titleCase(normalizedProvince) : 'Unknown',
+    normalizedCity,
+    normalizedProvince: normalizedProvince || 'UNKNOWN',
+    blocked: false
+  };
+}
+
+function isWithinServiceArea(lat, lng) {
+  return Number.isFinite(lat)
+    && Number.isFinite(lng)
+    && lat >= SERVICE_AREA_BOUNDS.minLat
+    && lat <= SERVICE_AREA_BOUNDS.maxLat
+    && lng >= SERVICE_AREA_BOUNDS.minLng
+    && lng <= SERVICE_AREA_BOUNDS.maxLng;
+}
+
+function ensureBarangayGeo() {
+  if (barangayGeoCache) {
+    return barangayGeoCache;
+  }
+
+  try {
+    const csvPath = path.join(__dirname, 'data', 'barangay-centroids.csv');
+    const jsonPath = path.join(__dirname, 'data', 'barangays-calabarzon-oriental-mindoro.json');
+
+    const csvContent = fs.readFileSync(csvPath, 'utf8');
+    const barangayDataset = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+
+    const cityByCode = new Map();
+    const cityBarangays = new Map();
+    const barangayByCode = new Map();
+    const barangayByNameKey = new Map();
+    const cityProvinceByCode = new Map();
+    let totalBarangays = 0;
+
+    barangayDataset.provinces.forEach(province => {
+      const normalizedProvince = normalizeValue(province.name);
+      province.citiesAndMunicipalities.forEach(city => {
+        const normalizedCity = normalizeValue(city.name);
+        const cityKey = `${normalizedProvince}|${normalizedCity}`;
+        const cityEntry = {
+          name: city.name,
+          province: province.name,
+          normalizedCity,
+          normalizedProvince,
+          cityKey
+        };
+        cityByCode.set(city.code, cityEntry);
+        cityProvinceByCode.set(city.code, {
+          normalizedCity,
+          normalizedProvince
+        });
+        if (!cityBarangays.has(cityKey)) {
+          cityBarangays.set(cityKey, []);
+        }
+        city.barangays.forEach(barangay => {
+          const normalizedBarangay = normalizeBarangayName(barangay.name);
+          const barangayEntry = {
+            code: barangay.code,
+            name: barangay.name,
+            normalizedBarangay,
+            normalizedCity,
+            normalizedProvince,
+            city: city.name,
+            province: province.name,
+            latitude: null,
+            longitude: null
+          };
+          cityBarangays.get(cityKey).push(barangayEntry);
+          if (barangay.code) {
+            barangayByCode.set(barangay.code, barangayEntry);
+          }
+          if (normalizedBarangay) {
+            const nameKey = `${cityKey}|${normalizedBarangay}`;
+            barangayByNameKey.set(nameKey, barangayEntry);
+          }
+          totalBarangays += 1;
+        });
+      });
+    });
+
+    const lines = csvContent.split(/\r?\n/);
+    for (let i = 1; i < lines.length; i += 1) {
+      const line = lines[i];
+      if (!line) {
+        continue;
+      }
+      const parts = line.split(',');
+      if (parts.length < 7) {
+        continue;
+      }
+      const [, , cityCode, barangayCode, rawBarangayName, latStr, lngStr] = parts;
+      const latitude = parseFloat(latStr);
+      const longitude = parseFloat(lngStr);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        continue;
+      }
+
+      const normalizedBarangay = normalizeBarangayName(rawBarangayName);
+      let entry = barangayByCode.get(barangayCode);
+      if (!entry) {
+        const cityMeta = cityByCode.get(cityCode);
+        if (cityMeta) {
+          entry = {
+            code: barangayCode,
+            name: titleCase(normalizedBarangay || rawBarangayName),
+            normalizedBarangay,
+            normalizedCity: cityMeta.normalizedCity,
+            normalizedProvince: cityMeta.normalizedProvince,
+            city: cityMeta.name,
+            province: cityMeta.province,
+            latitude: null,
+            longitude: null
+          };
+          barangayByCode.set(barangayCode, entry);
+          const cityKey = cityMeta.cityKey;
+          if (!cityBarangays.has(cityKey)) {
+            cityBarangays.set(cityKey, []);
+          }
+          cityBarangays.get(cityKey).push(entry);
+        }
+      }
+
+      if (entry) {
+        entry.latitude = latitude;
+        entry.longitude = longitude;
+        const nameKey = `${entry.normalizedProvince}|${entry.normalizedCity}|${normalizedBarangay}`;
+        if (normalizedBarangay) {
+          barangayByNameKey.set(nameKey, entry);
+        }
+      }
+    }
+
+    barangayGeoCache = {
+      barangayByCode,
+      barangayByNameKey,
+      cityBarangays,
+      totalBarangays
+    };
+
+    console.log(`🗺️ Loaded ${barangayByCode.size} barangay centroids spanning ${cityBarangays.size} cities`);
+  } catch (error) {
+    console.warn('⚠️ Unable to load barangay centroid dataset, falling back to city coordinates:', error.message);
+    barangayGeoCache = {
+      barangayByCode: new Map(),
+      barangayByNameKey: new Map(),
+      cityBarangays: new Map(),
+      totalBarangays: 0
+    };
+  }
+
+  return barangayGeoCache;
+}
+
+function getBarangayCoordinate({
+  barangayCode,
+  barangayName,
+  normalizedCity,
+  normalizedProvince,
+  barangayByCode,
+  barangayByNameKey
+}) {
+  if (barangayCode && barangayByCode.has(barangayCode)) {
+    const entry = barangayByCode.get(barangayCode);
+    if (Number.isFinite(entry.latitude) && Number.isFinite(entry.longitude)) {
+      return entry;
+    }
+  }
+
+  const normalizedBarangay = normalizeBarangayName(barangayName);
+  if (normalizedBarangay) {
+    const key = `${normalizedProvince}|${normalizedCity}|${normalizedBarangay}`;
+    if (barangayByNameKey.has(key)) {
+      const entry = barangayByNameKey.get(key);
+      if (Number.isFinite(entry.latitude) && Number.isFinite(entry.longitude)) {
+        return entry;
+      }
+    }
+  }
+
+  return null;
+}
 
 async function resolveBranchContext(user) {
   if (!user || user.role !== 'admin') {
@@ -66,12 +383,15 @@ function filterOrdersByBranch(orders, branchContext) {
 
 function getBranchDisplayName(order, branchContext) {
   if (branchContext) {
-    return branchContext.branchName || `Branch ${branchContext.branchId}`;
+    const contextName = branchContext.branchName || `Branch ${branchContext.branchId}`;
+    return canonicalizeBranchName(contextName);
   }
  
-  return order.pickup_location
+  const candidate = order.pickup_location
     || order.branch_name
     || (order.pickup_branch_id ? `Branch ${order.pickup_branch_id}` : 'Online Orders');
+
+  return canonicalizeBranchName(candidate);
 }
 
 function handleAnalyticsError(res, error, defaultMessage) {
@@ -106,6 +426,28 @@ function normalizeBranchValue(value) {
     .trim();
 }
 
+const BRANCH_NAME_ALIASES = new Map([
+  ['batangascity', 'BATANGAS CITY BRANCH']
+]);
+
+function canonicalizeBranchName(value) {
+  if (!value) {
+    return value;
+  }
+
+  const normalized = normalizeBranchValue(value);
+  if (!normalized) {
+    return value;
+  }
+
+  const alias = BRANCH_NAME_ALIASES.get(normalized);
+  if (alias) {
+    return alias;
+  }
+
+  return value;
+}
+
 function orderMatchesBranchName(order, normalizedBranchName) {
   const normalizedTargets = [
     order?.pickup_location,
@@ -123,204 +465,689 @@ function orderMatchesBranchName(order, normalizedBranchName) {
   return normalizedTargets.includes(normalizedBranchName);
 }
 
+function escapeLike(value) {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
+function buildBranchFilterClause(branchContext, startIndex = 1) {
+  if (!branchContext) {
+    return { clause: '', params: [] };
+  }
+
+  const conditions = [];
+  const params = [];
+  let index = startIndex;
+
+  if (branchContext.branchName) {
+    const escapedFull = escapeLike(branchContext.branchName);
+    params.push(`%${escapedFull}%`);
+    const patternIndex = index;
+    index += 1;
+    conditions.push(`pickup_location ILIKE $${patternIndex} ESCAPE '\\'`);
+
+    const simplified = branchContext.branchName
+      .replace(/\(.*?\)/g, ' ')
+      .replace(/branch/gi, ' ')
+      .replace(/main/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (simplified && simplified.toLowerCase() !== branchContext.branchName.toLowerCase()) {
+      params.push(`%${escapeLike(simplified)}%`);
+      const simpleIndex = index;
+      index += 1;
+      conditions.push(`pickup_location ILIKE $${simpleIndex} ESCAPE '\\'`);
+    }
+  }
+
+  if (conditions.length === 0) {
+    return { clause: '', params: [] };
+  }
+
+  return {
+    clause: ` AND (${conditions.join(' OR ')})`,
+    params
+  };
+}
+
+function addMonthsUTC(date, count) {
+  const utcYear = date.getUTCFullYear();
+  const utcMonth = date.getUTCMonth();
+  return new Date(Date.UTC(utcYear, utcMonth + count, 1));
+}
+
+function startOfMonthUTC(date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+}
+
+function formatMonthLabel(date) {
+  return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+}
+
+function calculateStandardDeviation(values, mean) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return 0;
+  }
+  const safeMean = Number.isFinite(mean) ? mean : (values.reduce((sum, value) => sum + value, 0) / values.length || 0);
+  const variance = values.reduce((sum, value) => sum + Math.pow(value - safeMean, 2), 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+function roundCurrency(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Number.parseFloat(value.toFixed(2));
+}
+
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(Math.max(value, min), max);
+}
+
+function generateForecastMonths(rangeKey, startDate) {
+  const months = [];
+  const safeStart = startOfMonthUTC(startDate);
+
+  if (rangeKey === 'nextMonth') {
+    months.push(addMonthsUTC(safeStart, 1));
+    return months;
+  }
+
+  if (rangeKey === 'restOfYear') {
+    let pointer = safeStart;
+    const currentYear = safeStart.getUTCFullYear();
+    while (pointer.getUTCFullYear() === currentYear) {
+      months.push(pointer);
+      pointer = addMonthsUTC(pointer, 1);
+    }
+    if (!months.length) {
+      months.push(addMonthsUTC(safeStart, 1));
+    }
+    return months;
+  }
+
+  let pointer = safeStart;
+  for (let i = 0; i < 12; i += 1) {
+    months.push(pointer);
+    pointer = addMonthsUTC(pointer, 1);
+  }
+  return months;
+}
+
+function monthsBetween(startDate, targetDate) {
+  return (
+    (targetDate.getUTCFullYear() - startDate.getUTCFullYear()) * 12 +
+    (targetDate.getUTCMonth() - startDate.getUTCMonth())
+  );
+}
+
+function buildFourierFeatures(monthIndex, harmonics = 6) {
+  const features = [1, monthIndex];
+  for (let k = 1; k <= harmonics; k += 1) {
+    const angle = (2 * Math.PI * k * monthIndex) / 12;
+    features.push(Math.sin(angle));
+    features.push(Math.cos(angle));
+  }
+  return features;
+}
+
+function solveLinearSystem(matrix, vector, epsilon = 1e-6) {
+  const n = vector.length;
+  const a = matrix.map((row) => row.slice());
+  const b = vector.slice();
+
+  for (let i = 0; i < n; i += 1) {
+    a[i][i] += epsilon;
+  }
+
+  for (let i = 0; i < n; i += 1) {
+    let pivot = i;
+    for (let row = i + 1; row < n; row += 1) {
+      if (Math.abs(a[row][i]) > Math.abs(a[pivot][i])) {
+        pivot = row;
+      }
+    }
+
+    if (Math.abs(a[pivot][i]) < 1e-8) {
+      return null;
+    }
+
+    if (pivot !== i) {
+      [a[i], a[pivot]] = [a[pivot], a[i]];
+      [b[i], b[pivot]] = [b[pivot], b[i]];
+    }
+
+    const pivotValue = a[i][i];
+    for (let j = i; j < n; j += 1) {
+      a[i][j] /= pivotValue;
+    }
+    b[i] /= pivotValue;
+
+    for (let row = 0; row < n; row += 1) {
+      if (row === i) continue;
+      const factor = a[row][i];
+      if (factor === 0) continue;
+      for (let col = i; col < n; col += 1) {
+        a[row][col] -= factor * a[i][col];
+      }
+      b[row] -= factor * b[i];
+    }
+  }
+
+  return b;
+}
+
+function seasonalNaiveForecast(series, horizon, seasonLength = 12) {
+  if (!Array.isArray(series) || series.length < seasonLength || horizon <= 0) {
+    return null;
+  }
+  const forecast = [];
+  for (let h = 1; h <= horizon; h += 1) {
+    const index = series.length - seasonLength + ((h - 1) % seasonLength);
+    forecast.push(series[index]);
+  }
+  return forecast;
+}
+
+function fitWeightedFourierRegression(points, forecastDates, options = {}) {
+  if (!Array.isArray(points) || points.length < 18 || !Array.isArray(forecastDates)) {
+    return null;
+  }
+
+  const harmonics = options.harmonics ?? 6;
+  const recencyDecay = options.recencyDecay ?? 0.55;
+  const minWeight = options.minWeight ?? 0.3;
+  const baseDate = points[0].monthDate;
+
+  const featureLength = 2 + harmonics * 2;
+  const normalMatrix = Array.from({ length: featureLength }, () => Array(featureLength).fill(0));
+  const normalVector = Array(featureLength).fill(0);
+  const weights = [];
+  const logValues = [];
+
+  points.forEach((point, idx) => {
+    const monthsIndex = monthsBetween(baseDate, point.monthDate);
+    const features = buildFourierFeatures(monthsIndex, harmonics);
+    const revenue = Math.max(0, point.revenue);
+    const logValue = Math.log(revenue + 1);
+    const monthsAgo = points.length - 1 - idx;
+    const decayFactor = Math.pow(recencyDecay, monthsAgo / 12);
+    const weight = Math.max(minWeight, decayFactor);
+
+    weights.push(weight);
+    logValues.push(logValue);
+
+    for (let i = 0; i < featureLength; i += 1) {
+      normalVector[i] += weight * features[i] * logValue;
+      for (let j = 0; j < featureLength; j += 1) {
+        normalMatrix[i][j] += weight * features[i] * features[j];
+      }
+    }
+  });
+
+  const coefficients = solveLinearSystem(normalMatrix, normalVector);
+  if (!coefficients) {
+    return null;
+  }
+
+  const absPercentErrors = [];
+  let residualSumSquares = 0;
+  let weightSum = 0;
+
+  points.forEach((point, idx) => {
+    const monthsIndex = monthsBetween(baseDate, point.monthDate);
+    const features = buildFourierFeatures(monthsIndex, harmonics);
+    const logPrediction = features.reduce((sum, value, i) => sum + value * coefficients[i], 0);
+    const prediction = Math.max(0, Math.exp(logPrediction) - 1);
+
+    const actual = Math.max(0, point.revenue);
+    if (actual > 0) {
+      absPercentErrors.push(Math.abs((actual - prediction) / actual));
+    }
+
+    const weight = weights[idx];
+    residualSumSquares += weight * Math.pow(logValues[idx] - logPrediction, 2);
+    weightSum += weight;
+  });
+
+  const trainingMape = absPercentErrors.length
+    ? (absPercentErrors.reduce((sum, value) => sum + value, 0) / absPercentErrors.length) * 100
+    : null;
+  const residualStd = weightSum > 0 ? Math.sqrt(residualSumSquares / weightSum) : null;
+
+  let baseConfidence = 0.7;
+  if (trainingMape !== null) {
+    baseConfidence = clamp(1 - Math.min(trainingMape / 120, 0.6), 0.45, 0.92);
+  } else if (residualStd !== null) {
+    baseConfidence = clamp(1 - Math.min(residualStd, 0.6), 0.45, 0.9);
+  }
+
+  const forecastValues = forecastDates.map((date) => {
+    const monthsIndex = monthsBetween(baseDate, date);
+    const features = buildFourierFeatures(monthsIndex, harmonics);
+    const logPrediction = features.reduce((sum, value, i) => sum + value * coefficients[i], 0);
+    return Math.max(0, Math.exp(logPrediction) - 1);
+  });
+
+  return {
+    forecastValues,
+    baseConfidence,
+    trainingMape
+  };
+}
+
+function resolveCustomerName(order) {
+  if (!order) {
+    return null;
+  }
+
+  let deliveryAddress = order.delivery_address || order.deliveryAddress || null;
+  if (deliveryAddress && typeof deliveryAddress === 'string') {
+    try {
+      deliveryAddress = JSON.parse(deliveryAddress);
+    } catch (parseError) {
+      deliveryAddress = null;
+    }
+  }
+
+  const candidates = [
+    order.customer_name,
+    order.customerName,
+    order.customer_full_name,
+    order.customerFullName,
+    order.customer?.full_name,
+    order.customer?.name,
+    deliveryAddress?.receiver,
+    deliveryAddress?.receiver_name,
+    deliveryAddress?.full_name,
+    deliveryAddress?.fullName,
+    deliveryAddress?.name,
+    deliveryAddress?.contact_name,
+    deliveryAddress?.contactName,
+    order.user_full_name,
+    order.userFullName
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+
+  return null;
+}
+
+function resolveCustomerEmail(order) {
+  if (!order) {
+    return null;
+  }
+
+  let deliveryAddress = order.delivery_address || order.deliveryAddress || null;
+  if (deliveryAddress && typeof deliveryAddress === 'string') {
+    try {
+      deliveryAddress = JSON.parse(deliveryAddress);
+    } catch (parseError) {
+      deliveryAddress = null;
+    }
+  }
+
+  const candidates = [
+    order.customer_email,
+    order.customerEmail,
+    order.email,
+    order.user_email,
+    order.userEmail,
+    deliveryAddress?.email,
+    deliveryAddress?.Email,
+    deliveryAddress?.contact_email,
+    deliveryAddress?.contactEmail
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        return trimmed.toLowerCase();
+      }
+    }
+  }
+
+  return null;
+}
+
 // Get analytics dashboard data
 router.get('/dashboard', async (req, res) => {
   try {
-    console.log('📊 Fetching analytics data...');
-    
-    // Get all orders
-    const { data: allOrders, error: ordersError } = await supabase
-      .from('orders')
-      .select('*', { count: 'exact' })
-      .neq('status', 'cancelled')
-      .limit(10000);  // Fetch up to 10,000 orders
-
-    if (ordersError) {
-      console.error('❌ Error fetching orders:', ordersError);
-      throw ordersError;
-    }
-
-    console.log(`✅ Fetched ${allOrders ? allOrders.length : 0} orders from database`);
-    console.log(`📊 [DEBUG] allOrders type: ${Array.isArray(allOrders) ? 'Array' : typeof allOrders}`);
-    console.log(`📊 [DEBUG] allOrders is null? ${allOrders === null}`);
-    console.log(`📊 [DEBUG] allOrders length: ${allOrders?.length}`);
-    console.log(`📊 [DEBUG] First 3 orders:`, allOrders?.slice(0, 3));
+    console.log('📊 Fetching analytics data (optimized)...');
 
     const branchContext = await resolveBranchContext(req.user);
-    const scopedOrders = filterOrdersByBranch(allOrders, branchContext);
 
-    if (branchContext) {
-      console.log('🏪 Applying branch scope for admin user:', {
-        userId: req.user.id,
-        branchId: branchContext.branchId,
-        branchName: branchContext.branchName,
-        scopedOrders: scopedOrders.length
-      });
-    }
- 
-    // Get orders from last 30 days
-    const thirtyDaysAgo = new Date();
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfCurrentMonthIso = startOfCurrentMonth.toISOString();
+
+    const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const recentOrders = scopedOrders.filter(order => 
-      new Date(order.created_at) >= thirtyDaysAgo
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    const thirtyDaysAgoIso = thirtyDaysAgo.toISOString();
+
+    const statusFilter = buildBranchFilterClause(branchContext, 1);
+    const monthlyFilter = buildBranchFilterClause(branchContext, 2);
+    const branchSalesFilter = buildBranchFilterClause(branchContext, 2);
+    const uniqueCustomersFilter = buildBranchFilterClause(branchContext, 2);
+    const recentOrdersFilter = buildBranchFilterClause(branchContext, 2);
+
+    const statusQueryPromise = executeSql(
+      `
+        SELECT LOWER(status) AS status, COUNT(*)::bigint AS total
+        FROM orders
+        WHERE status IS NOT NULL
+        ${statusFilter.clause}
+        GROUP BY LOWER(status)
+      `,
+      statusFilter.params
     );
 
-    // Calculate sales over time (last 12 months)
-    const salesByMonth = {};
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const monthlySalesPromise = executeSql(
+      `
+        SELECT date_trunc('month', created_at) AS month_start,
+               SUM(total_amount)::numeric AS sales
+        FROM orders
+        WHERE LOWER(status) NOT IN ('cancelled', 'canceled')
+          AND created_at < $1
+        ${monthlyFilter.clause}
+        GROUP BY month_start
+        ORDER BY month_start;
+      `,
+      [startOfCurrentMonthIso, ...monthlyFilter.params]
+    );
 
-    scopedOrders
-      .filter(order => new Date(order.created_at) >= twelveMonthsAgo)
-      .forEach(order => {
-        const month = new Date(order.created_at).toLocaleDateString('en-US', { month: 'short' });
-        if (!salesByMonth[month]) {
-          salesByMonth[month] = 0;
+    const salesByBranchPromise = executeSql(
+      `
+        SELECT COALESCE(pickup_location, 'Online Orders') AS pickup_location,
+               SUM(total_amount)::numeric AS sales
+        FROM orders
+        WHERE LOWER(status) NOT IN ('cancelled', 'canceled')
+          AND created_at < $1
+        ${branchSalesFilter.clause}
+        GROUP BY pickup_location;
+      `,
+      [startOfCurrentMonthIso, ...branchSalesFilter.params]
+    );
+
+    const uniqueCustomersPromise = executeSql(
+      `
+        SELECT COUNT(DISTINCT user_id)::bigint AS total_customers
+        FROM orders
+        WHERE LOWER(status) NOT IN ('cancelled', 'canceled')
+          AND created_at < $1
+        ${uniqueCustomersFilter.clause}
+      `,
+      [startOfCurrentMonthIso, ...uniqueCustomersFilter.params]
+    );
+
+    const recentOrdersPromise = executeSql(
+      `
+        SELECT id,
+               order_number,
+               total_amount::numeric AS total_amount,
+               status,
+               created_at,
+               user_id,
+               pickup_location,
+               order_items
+        FROM orders
+        WHERE LOWER(status) NOT IN ('cancelled', 'canceled')
+          AND created_at >= $1
+        ${recentOrdersFilter.clause}
+        ORDER BY created_at DESC
+        LIMIT 1000;
+      `,
+      [thirtyDaysAgoIso, ...recentOrdersFilter.params]
+    );
+
+    const [
+      statusResult,
+      monthlyResult,
+      salesByBranchResult,
+      uniqueCustomersResult,
+      recentOrdersResult
+    ] = await Promise.all([
+      statusQueryPromise,
+      monthlySalesPromise,
+      salesByBranchPromise,
+      uniqueCustomersPromise,
+      recentOrdersPromise
+    ]);
+
+    const CANCELLED_STATUSES = new Set(['cancelled', 'canceled']);
+    const COMPLETED_STATUSES = new Set(['completed', 'delivered', 'picked_up_delivered', 'picked_up', 'finished']);
+    const PROCESSING_STATUSES = new Set(['processing', 'confirmed', 'layout', 'packing_completing', 'in_production', 'ready_for_pickup', 'ready_for_delivery', 'sizing']);
+    const PENDING_STATUSES = new Set(['pending', 'payment_pending', 'awaiting_payment', 'awaiting_confirmation']);
+
+    let totalOrders = 0;
+    let completedCount = 0;
+    let processingCount = 0;
+    let pendingCount = 0;
+    let cancelledCount = 0;
+
+    statusResult.rows.forEach(row => {
+      const status = (row.status || '').toString().toLowerCase();
+      const count = Number(row.total) || 0;
+
+      if (CANCELLED_STATUSES.has(status)) {
+        cancelledCount += count;
+        return;
+      }
+
+      totalOrders += count;
+
+      if (COMPLETED_STATUSES.has(status)) {
+        completedCount += count;
+        return;
+      }
+
+      if (PROCESSING_STATUSES.has(status)) {
+        processingCount += count;
+        return;
+      }
+
+      if (PENDING_STATUSES.has(status)) {
+        pendingCount += count;
+        return;
+      }
+
+      pendingCount += count;
+    });
+
+    const monthlySalesArray = monthlyResult.rows
+      .map(row => {
+        const monthDate = new Date(row.month_start);
+        if (Number.isNaN(monthDate.getTime())) {
+          return null;
         }
-        salesByMonth[month] += parseFloat(order.total_amount || 0);
-      });
+        const sales = Number(row.sales) || 0;
+        const year = monthDate.getFullYear();
+        const month = monthDate.getMonth() + 1;
+        const key = `${year}-${String(month).padStart(2, '0')}`;
 
-    // Calculate sales by branch
-    const salesByBranch = {};
-    scopedOrders.forEach(order => {
-      const branch = getBranchDisplayName(order, branchContext);
-      if (!salesByBranch[branch]) {
-        salesByBranch[branch] = 0;
-      }
-      salesByBranch[branch] += parseFloat(order.total_amount || 0);
+        return {
+          key,
+          year,
+          month,
+          label: monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          date: monthDate.toISOString(),
+          sales: parseFloat(sales.toFixed(2)),
+          granularity: 'monthly'
+        };
+      })
+      .filter(Boolean);
+
+    const yearlySalesMap = new Map();
+    monthlySalesArray.forEach(item => {
+      yearlySalesMap.set(item.year, (yearlySalesMap.get(item.year) || 0) + item.sales);
     });
 
-    // Calculate order status distribution
-    const statusCounts = {
-      pending: 0,
-      processing: 0,
-      completed: 0,
-      cancelled: 0
-    };
+    const yearlySalesArray = Array.from(yearlySalesMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([year, sales]) => ({
+        year,
+        label: String(year),
+        date: new Date(year, 0, 1).toISOString(),
+        sales: parseFloat(sales.toFixed(2)),
+        granularity: 'yearly'
+      }));
 
-    recentOrders.forEach(order => {
-      const status = order.status || 'pending';
-      if (statusCounts.hasOwnProperty(status)) {
-        statusCounts[status]++;
-      } else if (status === 'delivered' || status === 'picked_up_delivered') {
-        statusCounts.completed++;
-      } else if (status === 'confirmed' || status === 'layout' || status === 'packing_completing') {
-        statusCounts.processing++;
-      } else {
-        // For any other status, count as pending
-        statusCounts.pending++;
-      }
+    const branchTotals = new Map();
+    salesByBranchResult.rows.forEach(row => {
+      const branchName = getBranchDisplayName(row, branchContext) || 'Unspecified';
+      const sales = Number(row.sales) || 0;
+      branchTotals.set(branchName, (branchTotals.get(branchName) || 0) + sales);
     });
 
-    // Calculate top selling products
-    const productSales = {};
-    recentOrders.forEach(order => {
-      if (order.order_items && Array.isArray(order.order_items)) {
-        order.order_items.forEach(item => {
-          const productName = item.name || 'Unknown';
-          if (!productSales[productName]) {
-            productSales[productName] = {
-              quantity: 0,
-              orders: new Set()
-            };
-          }
-          productSales[productName].quantity += parseInt(item.quantity || 0);
-          productSales[productName].orders.add(order.id);
-        });
-      }
-    });
-
-    // Calculate total revenue
-    const totalRevenue = recentOrders.reduce((sum, order) => 
-      sum + parseFloat(order.total_amount || 0), 0
-    );
-
-    // For metrics, use ALL orders (not just recent)
-    const totalOrders = scopedOrders.length;
-    console.log(`📊 [DEBUG] totalOrders: ${totalOrders}`);
-    
-    // For recent charts and analysis, use recentOrders (last 30 days)
-    const recentOrdersCount = recentOrders.length;
-
-    // Convert sales by month to array format
-    const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const salesOverTimeArray = monthOrder.map(month => ({
-      month,
-      sales: salesByMonth[month] || 0
-    }));
-
-    // Convert sales by branch to array format
-    const salesByBranchArray = Object.entries(salesByBranch)
+    const salesByBranchArray = Array.from(branchTotals.entries())
+      .sort((a, b) => b[1] - a[1])
       .map(([branch, sales], index) => ({
         branch,
-        sales,
+        sales: parseFloat(sales.toFixed(2)),
         color: getBranchColor(index)
-      }))
-      .sort((a, b) => b.sales - a.sales);
+      }));
 
-    // Convert product sales to array format
-    const topProductsArray = Object.entries(productSales)
-      .map(([product, data]) => ({
-        product,
+    const totalRevenue = monthlySalesArray.reduce((sum, item) => sum + item.sales, 0);
+    const totalCustomers = Number(uniqueCustomersResult.rows?.[0]?.total_customers) || 0;
+
+    const recentOrdersRows = recentOrdersResult.rows || [];
+    const recentOrdersList = recentOrdersRows
+      .slice(0, 10)
+      .map(order => ({
+        id: order.id,
+        order_number: order.order_number,
+        total_amount: Number(order.total_amount) || 0,
+        status: order.status,
+        created_at: order.created_at,
+        user_id: order.user_id
+      }));
+
+    const productGroupSales = {};
+    const categorySales = {};
+
+    recentOrdersRows.forEach(order => {
+      let orderItems = order.order_items;
+      if (!orderItems) {
+        return;
+      }
+
+      if (typeof orderItems === 'string') {
+        try {
+          orderItems = JSON.parse(orderItems);
+        } catch (parseError) {
+          orderItems = [];
+        }
+      }
+
+      if (!Array.isArray(orderItems)) {
+        return;
+      }
+
+      orderItems.forEach(item => {
+        let categoryName = item?.category || 'Other';
+        if (typeof categoryName === 'string') {
+          categoryName = categoryName.trim();
+        }
+        if (!categoryName) {
+          categoryName = 'Other';
+        }
+
+        const quantity = parseInt(item?.quantity || 0, 10);
+        const price = parseFloat(item?.price || 0);
+        const groupName = determineProductGroup(item);
+
+        if (!productGroupSales[groupName]) {
+          productGroupSales[groupName] = {
+            quantity: 0,
+            revenue: 0,
+            orders: new Set()
+          };
+        }
+        productGroupSales[groupName].quantity += quantity;
+        productGroupSales[groupName].revenue += quantity * price;
+        productGroupSales[groupName].orders.add(order.id);
+
+        if (!categorySales[categoryName]) {
+          categorySales[categoryName] = {
+            quantity: 0,
+            orders: new Set()
+          };
+        }
+        categorySales[categoryName].quantity += quantity;
+        categorySales[categoryName].orders.add(order.id);
+      });
+    });
+
+    const topProductsArray = Object.entries(productGroupSales)
+      .map(([group, data]) => ({
+        product: group,
+        quantity: data.quantity,
+        orders: data.orders.size,
+        revenue: parseFloat(data.revenue.toFixed(2))
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 7);
+
+    const topCategoriesArray = Object.entries(categorySales)
+      .map(([category, data]) => ({
+        category,
         quantity: data.quantity,
         orders: data.orders.size
       }))
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 10);
+      .sort((a, b) => b.quantity - a.quantity);
 
-    // Calculate order status percentages
+    const denominator = totalOrders > 0 ? totalOrders : 1;
     const orderStatusData = {
       completed: {
-        count: statusCounts.completed,
-        percentage: totalOrders > 0 ? Math.round((statusCounts.completed / totalOrders) * 100) : 0
+        count: completedCount,
+        percentage: totalOrders > 0 ? Math.round((completedCount / denominator) * 100) : 0
       },
       processing: {
-        count: statusCounts.processing,
-        percentage: totalOrders > 0 ? Math.round((statusCounts.processing / totalOrders) * 100) : 0
+        count: processingCount,
+        percentage: totalOrders > 0 ? Math.round((processingCount / denominator) * 100) : 0
       },
       pending: {
-        count: statusCounts.pending,
-        percentage: totalOrders > 0 ? Math.round((statusCounts.pending / totalOrders) * 100) : 0
+        count: pendingCount,
+        percentage: totalOrders > 0 ? Math.round((pendingCount / denominator) * 100) : 0
       },
       cancelled: {
-        count: statusCounts.cancelled,
-        percentage: totalOrders > 0 ? Math.round((statusCounts.cancelled / totalOrders) * 100) : 0
+        count: cancelledCount,
+        percentage: totalOrders > 0 ? Math.round((cancelledCount / denominator) * 100) : 0
       },
       total: totalOrders
     };
 
-    // Calculate unique customers from ALL orders
-    const uniqueCustomers = new Set(scopedOrders.map(order => order.user_id)).size;
-    
-    // Calculate total revenue from ALL orders
-    const allOrdersRevenue = scopedOrders.reduce((sum, order) => 
-      sum + parseFloat(order.total_amount || 0), 0
-    );
-
-    // Process data for frontend
     const processedData = {
-      salesOverTime: salesOverTimeArray,
+      salesOverTime: {
+        monthly: monthlySalesArray,
+        yearly: yearlySalesArray
+      },
       salesByBranch: salesByBranchArray,
       orderStatus: orderStatusData,
       topProducts: topProductsArray,
+      topCategories: topCategoriesArray,
       summary: {
-        totalRevenue: allOrdersRevenue,
-        totalOrders: totalOrders,
-        totalCustomers: uniqueCustomers,
-        averageOrderValue: totalOrders > 0 ? allOrdersRevenue / totalOrders : 0
+        totalRevenue,
+        totalOrders,
+        totalCustomers,
+        averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0
       },
-      recentOrders: recentOrders.slice(0, 10).map(order => ({
-        id: order.id,
-        order_number: order.order_number,
-        total_amount: order.total_amount,
-        status: order.status,
-        created_at: order.created_at,
-        user_id: order.user_id
-      }))
+      recentOrders: recentOrdersList
     };
 
-    console.log(`📊 [DEBUG] FINAL RESPONSE DATA:`, {
+    console.log('📊 [DEBUG] Optimized analytics response:', {
       totalOrders: processedData.summary.totalOrders,
       totalRevenue: processedData.summary.totalRevenue,
       totalCustomers: processedData.summary.totalCustomers
@@ -354,7 +1181,6 @@ router.get('/sales-trends', async (req, res) => {
  
     const branchContext = await resolveBranchContext(req.user);
     const scopedOrders = filterOrdersByBranch(orders, branchContext);
-
     // Group by day
     const dailyData = {};
     scopedOrders.forEach(order => {
@@ -403,9 +1229,18 @@ router.get('/product-performance', async (req, res) => {
     const branchContext = await resolveBranchContext(req.user);
     const scopedOrders = filterOrdersByBranch(orders, branchContext);
 
+    const startOfCurrentMonth = new Date();
+    startOfCurrentMonth.setDate(1);
+    startOfCurrentMonth.setHours(0, 0, 0, 0);
+
+    const filteredOrders = scopedOrders.filter(order => {
+      const createdAt = new Date(order.created_at);
+      return Number.isFinite(createdAt.getTime()) && createdAt < startOfCurrentMonth;
+    });
+
     // Process product performance
     const productStats = {};
-    scopedOrders.forEach(order => {
+    filteredOrders.forEach(order => {
       if (order.order_items && Array.isArray(order.order_items)) {
         order.order_items.forEach(item => {
           const name = item.name || 'Unknown';
@@ -469,20 +1304,31 @@ router.get('/customer-analytics', async (req, res) => {
     const branchContext = await resolveBranchContext(req.user);
     const scopedOrders = filterOrdersByBranch(orders, branchContext);
  
-    const thirtyDaysAgo = new Date();
+    const startOfCurrentMonth = new Date();
+    startOfCurrentMonth.setDate(1);
+    startOfCurrentMonth.setHours(0, 0, 0, 0);
+
+    const ordersExcludingCurrentMonth = scopedOrders.filter(order => {
+      const createdAt = new Date(order.created_at);
+      return Number.isFinite(createdAt.getTime()) && createdAt < startOfCurrentMonth;
+    });
+ 
+    const thirtyDaysAgo = new Date(startOfCurrentMonth);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     // Calculate customer statistics
     const customerStats = {};
     let newCustomers = new Set();
 
-    scopedOrders.forEach(order => {
+    ordersExcludingCurrentMonth.forEach(order => {
       const userId = order.user_id;
       if (!customerStats[userId]) {
         customerStats[userId] = {
           orderCount: 0,
           totalSpent: 0,
-          lastOrderDate: null
+          lastOrderDate: null,
+          name: null,
+          email: null
         };
       }
       
@@ -496,6 +1342,16 @@ router.get('/customer-analytics', async (req, res) => {
       
       if (orderDate >= thirtyDaysAgo) {
         newCustomers.add(userId);
+      }
+
+      const resolvedName = resolveCustomerName(order);
+      if (resolvedName) {
+        customerStats[userId].name = resolvedName;
+      }
+
+      const resolvedEmail = resolveCustomerEmail(order);
+      if (resolvedEmail) {
+        customerStats[userId].email = resolvedEmail;
       }
     });
 
@@ -511,6 +1367,8 @@ router.get('/customer-analytics', async (req, res) => {
     const topCustomers = Object.entries(customerStats)
       .map(([userId, stats]) => ({
         userId,
+        customerName: stats.name || null,
+        customerEmail: stats.email || null,
         orderCount: stats.orderCount,
         totalSpent: stats.totalSpent,
         lastOrderDate: stats.lastOrderDate
@@ -532,6 +1390,296 @@ router.get('/customer-analytics', async (req, res) => {
     });
   } catch (error) {
     return handleAnalyticsError(res, error, 'Failed to fetch customer analytics');
+  }
+});
+
+async function computeSalesForecast({ requestedRange, branchContext }) {
+  const allowedRanges = Object.keys(SALES_FORECAST_RANGE_LABELS);
+  const range = allowedRanges.includes(requestedRange) ? requestedRange : 'restOfYear';
+  const rangeLabel = SALES_FORECAST_RANGE_LABELS[range];
+
+  const monthlyFilter = buildBranchFilterClause(branchContext, 2);
+
+  const now = new Date();
+  const startOfCurrentMonthUTC = startOfMonthUTC(new Date(now));
+
+  const { rows } = await executeSql(
+    `
+      SELECT
+        date_trunc('month', created_at) AS month_start,
+        SUM(total_amount)::numeric AS revenue,
+        COUNT(*)::int AS orders
+      FROM orders
+      WHERE LOWER(status) NOT IN ('cancelled', 'canceled')
+        AND created_at < $1
+      ${monthlyFilter.clause}
+      GROUP BY month_start
+      ORDER BY month_start;
+    `,
+    [startOfCurrentMonthUTC.toISOString(), ...monthlyFilter.params]
+  );
+
+  const historicalRaw = rows
+    .map((row) => {
+      const rawDate = row.month_start instanceof Date ? row.month_start : new Date(row.month_start);
+      if (Number.isNaN(rawDate.getTime())) {
+        return null;
+      }
+      const monthDate = startOfMonthUTC(rawDate);
+      return {
+        monthDate,
+        label: formatMonthLabel(monthDate),
+        revenue: Number.parseFloat(row.revenue) || 0,
+        orders: Number.parseInt(row.orders, 10) || 0
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.monthDate.getTime() - b.monthDate.getTime());
+
+  const fullHistorical = historicalRaw;
+
+  const monthKey = (date) => date.toISOString().slice(0, 7);
+
+  const buildDisplayHistorical = () => {
+    const firstDesiredMonth = new Date(Date.UTC(2022, 0, 1));
+
+    if (!fullHistorical.length) {
+      return [
+        {
+          monthDate: firstDesiredMonth,
+          label: formatMonthLabel(firstDesiredMonth),
+          revenue: 0,
+          orders: 0
+        }
+      ];
+    }
+
+    const firstHistoricalMonth = fullHistorical[0].monthDate;
+    const lastHistoricalMonth = fullHistorical[fullHistorical.length - 1].monthDate;
+
+    const pointerStart =
+      firstDesiredMonth < firstHistoricalMonth ? new Date(firstDesiredMonth) : new Date(firstHistoricalMonth);
+
+    const dataMap = new Map(fullHistorical.map((item) => [monthKey(item.monthDate), item]));
+
+    const display = [];
+    let pointer = new Date(pointerStart);
+    while (pointer <= lastHistoricalMonth) {
+      const key = monthKey(pointer);
+      const existing = dataMap.get(key);
+      if (existing) {
+        display.push(existing);
+      } else {
+        display.push({
+          monthDate: new Date(pointer),
+          label: formatMonthLabel(pointer),
+          revenue: 0,
+          orders: 0
+        });
+      }
+      pointer = addMonthsUTC(pointer, 1);
+    }
+
+    return display;
+  };
+
+  const displayHistorical = buildDisplayHistorical();
+
+  const historicalPoints = displayHistorical.map((item) => ({
+    month: item.label,
+    monthIso: item.monthDate.toISOString(),
+    label: item.label,
+    revenue: roundCurrency(item.revenue),
+    orders: item.orders,
+    type: 'historical'
+  }));
+
+  const revenueValues = displayHistorical.map((item) => item.revenue);
+  const positiveRevenues = revenueValues.filter((value) => value > 0);
+  const totalHistoricalRevenue = revenueValues.reduce((sum, value) => sum + value, 0);
+  const totalHistoricalOrders = displayHistorical.reduce((sum, item) => sum + (item.orders || 0), 0);
+  const averageRevenue =
+    (positiveRevenues.length > 0
+      ? positiveRevenues.reduce((sum, value) => sum + value, 0) / positiveRevenues.length
+      : (revenueValues.length > 0 ? totalHistoricalRevenue / revenueValues.length : 0)) || 0;
+  const averageOrderValue = totalHistoricalOrders > 0 ? totalHistoricalRevenue / totalHistoricalOrders : 0;
+
+  const recentAverageRevenue = (() => {
+    const slice = displayHistorical.slice(-12);
+    if (!slice.length) {
+      return averageRevenue;
+    }
+    const sum = slice.reduce((acc, item) => acc + item.revenue, 0);
+    return sum / slice.length;
+  })();
+
+  const forecastMonths = generateForecastMonths(range, startOfCurrentMonthUTC);
+
+  let forecastPoints = [];
+  let baseConfidence = 0.65;
+  let trainingMape = null;
+  let modelType = 'seasonal_naive';
+  let fallbackUsed = false;
+
+  if (forecastMonths.length > 0) {
+    const regressionResult = fitWeightedFourierRegression(displayHistorical, forecastMonths, {
+      harmonics: 6,
+      recencyDecay: 0.55,
+      minWeight: 0.35
+    });
+
+    if (regressionResult && Array.isArray(regressionResult.forecastValues)) {
+      baseConfidence = regressionResult.baseConfidence ?? baseConfidence;
+      trainingMape = regressionResult.trainingMape ?? null;
+      modelType = 'weighted_fourier_regression';
+      const forecastValues = regressionResult.forecastValues;
+      let previousRevenue = displayHistorical.length
+        ? displayHistorical[displayHistorical.length - 1].revenue
+        : forecastValues[0] || 0;
+
+      forecastPoints = forecastMonths.map((monthDate, index) => {
+        const revenueRaw = Math.max(0, forecastValues[index] ?? 0);
+        const revenue = roundCurrency(revenueRaw);
+        const projectedOrders = averageOrderValue > 0 ? Math.max(0, Math.round(revenueRaw / averageOrderValue)) : 0;
+        const distanceFactor =
+          forecastMonths.length > 1 ? index / Math.max(forecastMonths.length - 1, 1) : 0;
+        const rawConfidence = baseConfidence - distanceFactor * 0.12;
+        const pointConfidence = clamp(Math.round(rawConfidence * 100), 45, 95);
+        const growthRate =
+          previousRevenue > 0 ? roundCurrency(((revenueRaw - previousRevenue) / previousRevenue) * 100) : null;
+        previousRevenue = revenueRaw;
+
+        return {
+          month: formatMonthLabel(monthDate),
+          monthIso: monthDate.toISOString(),
+          label: formatMonthLabel(monthDate),
+          revenue,
+          orders: projectedOrders,
+          confidence: pointConfidence,
+          type: 'forecast',
+          growthRate,
+          seasonalFactor: null
+        };
+      });
+    }
+  }
+
+  if (!forecastPoints.length && forecastMonths.length > 0) {
+    const fallbackValues =
+      seasonalNaiveForecast(revenueValues, forecastMonths.length, 12) || new Array(forecastMonths.length).fill(averageRevenue);
+    baseConfidence = 0.55;
+    fallbackUsed = true;
+    let previousRevenue = displayHistorical.length
+      ? displayHistorical[displayHistorical.length - 1].revenue
+      : fallbackValues[0] || averageRevenue;
+
+    forecastPoints = forecastMonths.map((monthDate, index) => {
+      const revenueRaw = Math.max(0, fallbackValues[index] ?? previousRevenue);
+      const revenue = roundCurrency(revenueRaw);
+      const projectedOrders = averageOrderValue > 0 ? Math.max(0, Math.round(revenueRaw / averageOrderValue)) : 0;
+      const distanceFactor =
+        forecastMonths.length > 1 ? index / Math.max(forecastMonths.length - 1, 1) : 0;
+      const pointConfidence = clamp(Math.round((baseConfidence - distanceFactor * 0.1) * 100), 40, 85);
+      const growthRate =
+        previousRevenue > 0 ? roundCurrency(((revenueRaw - previousRevenue) / previousRevenue) * 100) : null;
+      previousRevenue = revenueRaw;
+
+      return {
+        month: formatMonthLabel(monthDate),
+        monthIso: monthDate.toISOString(),
+        label: formatMonthLabel(monthDate),
+        revenue,
+        orders: projectedOrders,
+        confidence: pointConfidence,
+        type: 'forecast',
+        growthRate,
+        seasonalFactor: null
+      };
+    });
+  }
+
+  const combinedSeries = [
+    ...historicalPoints.map((point) => ({
+      month: point.label,
+      label: point.label,
+      revenue: point.revenue,
+      type: 'historical'
+    })),
+    ...forecastPoints.map((point) => ({
+      month: point.label,
+      label: point.label,
+      revenue: point.revenue,
+      type: 'forecast'
+    }))
+  ];
+
+  const projectedRevenueTotal = roundCurrency(forecastPoints.reduce((sum, point) => sum + point.revenue, 0));
+  const projectedOrdersTotal = forecastPoints.reduce((sum, point) => sum + (point.orders || 0), 0);
+  const baselineRevenue = roundCurrency((recentAverageRevenue || averageRevenue) * forecastPoints.length);
+  const expectedGrowthRate =
+    baselineRevenue > 0
+      ? roundCurrency(((projectedRevenueTotal - baselineRevenue) / baselineRevenue) * 100)
+      : null;
+  const averageConfidence = forecastPoints.length
+    ? Math.round(forecastPoints.reduce((sum, point) => sum + (point.confidence || 0), 0) / forecastPoints.length)
+    : null;
+
+  const summary = {
+    range,
+    rangeLabel,
+    months: forecastPoints.length,
+    projectedRevenue: projectedRevenueTotal,
+    projectedOrders: projectedOrdersTotal,
+    averageMonthlyRevenue: roundCurrency(recentAverageRevenue || averageRevenue),
+    baselineRevenue,
+    expectedGrowthRate,
+    confidence: averageConfidence
+  };
+
+  const modelInfo = {
+    type: modelType,
+    harmonics: 6,
+    recencyDecay: 0.55,
+    minWeight: 0.35,
+    trainingMape,
+    fallbackUsed,
+    description: modelType === 'weighted_fourier_regression'
+      ? 'Recency-weighted Fourier regression on log revenue with seasonal harmonics.'
+      : 'Seasonal naïve projection mirroring last year\'s revenue when the regression model is unavailable.'
+  };
+
+  const trainingWindow = {
+    start: historicalPoints[0]?.monthIso ?? null,
+    end: historicalPoints[historicalPoints.length - 1]?.monthIso ?? null
+  };
+
+  return {
+    range,
+    rangeLabel,
+    generatedAt: new Date().toISOString(),
+    historical: historicalPoints,
+    forecast: forecastPoints,
+    combined: combinedSeries,
+    summary,
+    model: modelInfo,
+    trainingWindow
+  };
+}
+
+router.get('/sales-forecast', async (req, res) => {
+  try {
+    const branchContext = await resolveBranchContext(req.user);
+    const data = await computeSalesForecast({
+      requestedRange: typeof req.query.range === 'string' ? req.query.range : '',
+      branchContext
+    });
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    return handleAnalyticsError(res, error, 'Failed to generate sales forecast');
   }
 });
 
@@ -647,6 +1795,15 @@ router.get('/customer-locations', async (req, res) => {
   try {
     console.log('📍 Fetching customer locations for heatmap...');
     
+    const {
+      barangayByCode,
+      barangayByNameKey,
+      cityBarangays,
+      totalBarangays
+    } = ensureBarangayGeo();
+    const barangayCoverageSet = new Set();
+    const fallbackBarangayIndex = new Map();
+
     // Get all user addresses (unique customers)
     const { data: addresses, error: addressesError } = await supabase
       .from('user_addresses')
@@ -660,9 +1817,8 @@ router.get('/customer-locations', async (req, res) => {
     // Also get delivery addresses from orders
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
-      .select('user_id, delivery_address, pickup_location')
-      .not('delivery_address', 'is', null)
-      .eq('shipping_method', 'cod');
+      .select('user_id, delivery_address, pickup_location, shipping_method')
+      .not('delivery_address', 'is', null);
  
     if (ordersError) {
       console.error('❌ Error fetching orders:', ordersError);
@@ -676,6 +1832,9 @@ router.get('/customer-locations', async (req, res) => {
  
     // Aggregate customers by city
     const cityCounts = {};
+    const preciseHeatmapPoints = [];
+    const cityRejected = new Map();
+    console.log(`🧮 Raw records — addresses: ${addresses?.length || 0}, orders: ${orders?.length || 0}, scoped orders: ${scopedOrders.length}`);
     
     // Count from user_addresses
     if (addresses && addresses.length > 0) {
@@ -683,11 +1842,29 @@ router.get('/customer-locations', async (req, res) => {
         if (allowedUserIds && !allowedUserIds.has(addr.user_id)) {
           return;
         }
-        const cityKey = `${addr.city || 'Unknown'}, ${addr.province || 'Unknown'}`;
-        if (!cityCounts[cityKey]) {
-          cityCounts[cityKey] = { count: 0, city: addr.city, province: addr.province };
+        const location = canonicalizeCityProvince(addr.city, addr.province);
+        if (location.blocked) {
+          cityRejected.set(location.normalizedCity, (cityRejected.get(location.normalizedCity) || 0) + 1);
+          return;
         }
-        cityCounts[cityKey].count++;
+
+        if (!ALLOWED_PROVINCES.has(location.normalizedProvince)) {
+          cityRejected.set(location.normalizedCity, (cityRejected.get(location.normalizedCity) || 0) + 1);
+          return;
+        }
+
+        const cityKey = `${location.city}, ${location.province}`;
+        if (!cityCounts[cityKey]) {
+          cityCounts[cityKey] = {
+            count: 0,
+            city: location.city,
+            province: location.province,
+            normalizedCity: location.normalizedCity,
+            normalizedProvince: location.normalizedProvince,
+            locationKey: `${location.normalizedProvince}|${location.normalizedCity}`
+          };
+        }
+        cityCounts[cityKey].count += 1;
       });
     }
  
@@ -695,14 +1872,89 @@ router.get('/customer-locations', async (req, res) => {
     if (scopedOrders && scopedOrders.length > 0) {
       scopedOrders.forEach(order => {
         if (order.delivery_address && typeof order.delivery_address === 'object') {
-          const city = order.delivery_address.city || order.delivery_address.City;
-          const province = order.delivery_address.province || order.delivery_address.Province;
-          if (city) {
-            const cityKey = `${city}, ${province || 'Unknown'}`;
-            if (!cityCounts[cityKey]) {
-              cityCounts[cityKey] = { count: 0, city, province };
+          const address = order.delivery_address;
+          const cityValue = address.city || address.City;
+          const provinceValue = address.province || address.Province;
+          const location = canonicalizeCityProvince(cityValue, provinceValue);
+
+          if (location.blocked) {
+            cityRejected.set(location.normalizedCity, (cityRejected.get(location.normalizedCity) || 0) + 1);
+            return;
+          }
+
+          if (!ALLOWED_PROVINCES.has(location.normalizedProvince)) {
+            cityRejected.set(location.normalizedCity, (cityRejected.get(location.normalizedCity) || 0) + 1);
+            return;
+          }
+
+          const cityKey = `${location.city}, ${location.province}`;
+          if (!cityCounts[cityKey]) {
+            cityCounts[cityKey] = {
+              count: 0,
+              city: location.city,
+              province: location.province,
+              normalizedCity: location.normalizedCity,
+              normalizedProvince: location.normalizedProvince,
+              locationKey: `${location.normalizedProvince}|${location.normalizedCity}`
+            };
+          }
+          cityCounts[cityKey].count += 1;
+
+          const latitudeCandidates = [
+            address.latitude,
+            address.lat,
+            address.latitudeDegrees,
+            address?.coordinates?.latitude,
+            address?.coordinates?.lat
+          ];
+          const longitudeCandidates = [
+            address.longitude,
+            address.lng,
+            address.longitudeDegrees,
+            address?.coordinates?.longitude,
+            address?.coordinates?.lng
+          ];
+
+          let latitude = latitudeCandidates
+            .map(value => (typeof value === 'string' ? parseFloat(value) : value))
+            .find(value => Number.isFinite(value));
+          let longitude = longitudeCandidates
+            .map(value => (typeof value === 'string' ? parseFloat(value) : value))
+            .find(value => Number.isFinite(value));
+
+          const barangayCoordinate = getBarangayCoordinate({
+            barangayCode: address.barangay_code || address.barangayCode || address.barangay_psgc,
+            barangayName: address.barangay || address.barangay_name || address.barangayName,
+            normalizedCity: location.normalizedCity,
+            normalizedProvince: location.normalizedProvince,
+            barangayByCode,
+            barangayByNameKey
+          });
+
+          if ((!Number.isFinite(latitude) || !Number.isFinite(longitude)) && barangayCoordinate) {
+            latitude = barangayCoordinate.latitude;
+            longitude = barangayCoordinate.longitude;
+          }
+
+          if (barangayCoordinate) {
+            const barangayKey = `${location.normalizedProvince}|${location.normalizedCity}|${barangayCoordinate.normalizedBarangay}`;
+            barangayCoverageSet.add(barangayKey);
+          } else if (address.barangay || address.barangay_name) {
+            const barangayKey = `${location.normalizedProvince}|${location.normalizedCity}|${normalizeBarangayName(address.barangay || address.barangay_name)}`;
+            barangayCoverageSet.add(barangayKey);
+          }
+
+          if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+            if (!isWithinServiceArea(latitude, longitude) && barangayCoordinate) {
+              latitude = barangayCoordinate.latitude;
+              longitude = barangayCoordinate.longitude;
             }
-            cityCounts[cityKey].count++;
+
+            if (isWithinServiceArea(latitude, longitude)) {
+              const latOffset = (Math.random() - 0.5) * 0.004;
+              const lngOffset = (Math.random() - 0.5) * 0.004;
+              preciseHeatmapPoints.push([latitude + latOffset, longitude + lngOffset, 1]);
+            }
           }
         }
       });
@@ -769,25 +2021,65 @@ router.get('/customer-locations', async (req, res) => {
     }
 
     // Convert to heatmap data points
-    const heatmapData = [];
+    let heatmapData = [];
+    const fallbackCityPoints = [];
+
+    if (preciseHeatmapPoints.length > 0) {
+      console.log(`📌 Using ${preciseHeatmapPoints.length} precise delivery coordinates for heatmap`);
+      heatmapData = preciseHeatmapPoints;
+    } else {
+      console.log('🧭 Falling back to city-level heatmap points (no precise coordinates found)');
+    }
+
     Object.keys(cityCounts).forEach(cityKey => {
       const cityInfo = cityCounts[cityKey];
       const cityName = cityInfo.city;
       const coords = cityCoordinates[cityName] || cityCoordinates[cityName?.split(' ')[0]];
-      
-      if (coords) {
-        // Add multiple points for each city weighted by customer count
-        // Each customer adds intensity to the heatmap
+      const cityLocationKey = cityInfo.locationKey;
+      const barangays = cityBarangays.get(cityLocationKey) || [];
+      const sanitizedBarangays = barangays.filter(entry => Number.isFinite(entry.latitude) && Number.isFinite(entry.longitude));
+
+      if (sanitizedBarangays.length > 0) {
+        let startIndex = fallbackBarangayIndex.get(cityLocationKey) || 0;
+        for (let i = 0; i < cityInfo.count; i += 1) {
+          const barangayEntry = sanitizedBarangays[(startIndex + i) % sanitizedBarangays.length];
+          if (!barangayEntry) {
+            continue;
+          }
+          const latOffset = (Math.random() - 0.5) * 0.0035;
+          const lngOffset = (Math.random() - 0.5) * 0.0035;
+          const candidateLat = barangayEntry.latitude + latOffset;
+          const candidateLng = barangayEntry.longitude + lngOffset;
+          if (isWithinServiceArea(candidateLat, candidateLng)) {
+            fallbackCityPoints.push([candidateLat, candidateLng, 1]);
+            const barangayKey = `${cityInfo.normalizedProvince}|${cityInfo.normalizedCity}|${barangayEntry.normalizedBarangay}`;
+            barangayCoverageSet.add(barangayKey);
+          }
+        }
+        fallbackBarangayIndex.set(cityLocationKey, startIndex + cityInfo.count);
+      } else if (coords) {
+        const baseRadiusJitter = preciseHeatmapPoints.length > 0 ? 0.006 : 0.02;
         for (let i = 0; i < cityInfo.count; i++) {
-          // Add slight randomization to spread the heat
-          const latOffset = (Math.random() - 0.5) * 0.02; // ~2km spread
-          const lngOffset = (Math.random() - 0.5) * 0.02;
-          heatmapData.push([coords[0] + latOffset, coords[1] + lngOffset, 1]);
+          const latOffset = (Math.random() - 0.5) * baseRadiusJitter;
+          const lngOffset = (Math.random() - 0.5) * baseRadiusJitter;
+          fallbackCityPoints.push([coords[0] + latOffset, coords[1] + lngOffset, 1]);
         }
       } else {
         console.log(`⚠️ No coordinates found for city: ${cityName}`);
       }
     });
+
+    let usedFallback = false;
+    const MIN_HEATMAP_POINTS = 15;
+
+    if (heatmapData.length >= MIN_HEATMAP_POINTS) {
+      console.log(`🔥 Heatmap using ${heatmapData.length} precise points (threshold ${MIN_HEATMAP_POINTS})`);
+    } else {
+      usedFallback = true;
+      const combined = [...heatmapData, ...fallbackCityPoints];
+      console.log(`🌡️ Augmenting heatmap data: precise=${heatmapData.length}, fallback=${fallbackCityPoints.length}, combined=${combined.length}`);
+      heatmapData = combined;
+    }
 
     console.log(`✅ Generated ${heatmapData.length} heatmap points from ${Object.keys(cityCounts).length} cities`);
     
@@ -798,7 +2090,24 @@ router.get('/customer-locations', async (req, res) => {
         city: cityCounts[key].city,
         province: cityCounts[key].province,
         count: cityCounts[key].count
-      })).sort((a, b) => b.count - a.count) // Sort by count descending
+      })).sort((a, b) => b.count - a.count), // Sort by count descending
+      meta: {
+        precisePoints: preciseHeatmapPoints.length,
+        fallbackPoints: fallbackCityPoints.length,
+        combinedPoints: heatmapData.length,
+        usedFallback,
+        scopedOrdersCount: scopedOrders.length,
+        totalOrdersCount: orders?.length || 0,
+        addressCount: addresses?.length || 0,
+        uniqueCities: Object.keys(cityCounts).length,
+        rejectedOutsideServiceArea: Array.from(cityRejected.entries()).map(([city, count]) => ({
+          city,
+          count
+        })),
+        barangaysCovered: barangayCoverageSet.size,
+        totalBarangays,
+        barangayCoverageRatio: totalBarangays > 0 ? parseFloat(((barangayCoverageSet.size / totalBarangays) * 100).toFixed(1)) : null
+      }
     });
   } catch (error) {
     if (error.statusCode === 403) {
@@ -890,3 +2199,6 @@ function generateDemoHeatmapData() {
 }
 
 module.exports = router;
+module.exports.computeSalesForecast = computeSalesForecast;
+module.exports.resolveBranchContext = resolveBranchContext;
+module.exports.SALES_FORECAST_RANGE_LABELS = SALES_FORECAST_RANGE_LABELS;

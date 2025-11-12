@@ -14,7 +14,11 @@ class OrderService {
       if (filters.pickupBranch) params.append('pickupBranch', filters.pickupBranch);
       if (filters.status) params.append('status', filters.status);
       if (filters.page) params.append('page', filters.page);
-      if (filters.limit) params.append('limit', filters.limit);
+      if (filters.limit) {
+        params.append('limit', filters.limit);
+      } else {
+        params.append('limit', 100);
+      }
 
       const response = await authFetch(`${API_URL}/api/orders?${params.toString()}`);
       

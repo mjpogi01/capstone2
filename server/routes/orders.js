@@ -192,7 +192,7 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
       pickupBranch,
       status,
       page = 1,
-      limit = 150  // Changed from 50 to 150
+      limit = 100
     } = req.query;
 
     console.log(`📦 [Orders API] Fetching orders - page: ${page}, limit: ${limit}, branch: ${pickupBranch}, status: ${status}`);
@@ -203,8 +203,6 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
     }
 
     // Check if any filter is applied
-    const hasFilters = pickupBranch || status;
-
     // Build Supabase query
     let query = supabase
       .from('orders')
@@ -256,16 +254,11 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
     const { count: totalCount } = await countQuery;
     console.log(`📦 [Orders API] Total count from DB: ${totalCount}`);
 
-    // Apply pagination ONLY if filters are applied, otherwise fetch all
-    if (hasFilters) {
-      const offset = (parseInt(page) - 1) * parseInt(limit);
-      query = query.range(offset, offset + parseInt(limit) - 1);
-      console.log(`📦 [Orders API] Filters applied - using pagination (offset: ${offset}, limit: ${limit})`);
-    } else {
-      // Fetch ALL orders when no filter - use large limit
-      query = query.limit(10000);
-      console.log(`📦 [Orders API] No filters - fetching all orders (up to 10000)`);
-    }
+    const enforcedLimit = Math.max(1, Math.min(parseInt(limit, 10) || 100, 500));
+    const currentPage = Math.max(1, parseInt(page, 10) || 1);
+    const offset = (currentPage - 1) * enforcedLimit;
+    query = query.range(offset, offset + enforcedLimit - 1);
+    console.log(`📦 [Orders API] Pagination applied - offset: ${offset}, limit: ${enforcedLimit}`);
 
     const { data: orders, error } = await query;
 
@@ -277,9 +270,46 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
       ? (orders || []).filter(order => orderMatchesBranch(order, branchContext))
       : (orders || []);
 
-    const effectiveTotal = branchContext ? filteredOrders.length : totalCount;
+    const resolvedTotal = typeof totalCount === 'number' ? totalCount : filteredOrders.length;
 
-    console.log(`📦 [Orders API] Returning ${filteredOrders?.length} orders, total: ${effectiveTotal}`);
+    const buildStatsQuery = () => {
+      let statsQuery = supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true });
+
+      if (pickupBranch) {
+        statsQuery = statsQuery.eq('pickup_location', pickupBranch);
+      }
+
+      statsQuery = applyBranchFilter(statsQuery, branchContext);
+      return statsQuery;
+    };
+
+    const getCountForStatuses = async (statuses) => {
+      let statsQuery = buildStatsQuery();
+      if (Array.isArray(statuses) && statuses.length > 0) {
+        if (statuses.length === 1) {
+          statsQuery = statsQuery.eq('status', statuses[0]);
+        } else {
+          statsQuery = statsQuery.in('status', statuses);
+        }
+      }
+
+      const { count, error: statsError } = await statsQuery;
+      if (statsError) {
+        throw new Error(`Supabase error: ${statsError.message}`);
+      }
+      return count || 0;
+    };
+
+    const [statsTotal, deliveredCount, inProgressCount, pendingCount] = await Promise.all([
+      getCountForStatuses(),
+      getCountForStatuses(['picked_up_delivered']),
+      getCountForStatuses(['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing']),
+      getCountForStatuses(['pending'])
+    ]);
+
+    console.log(`📦 [Orders API] Returning ${filteredOrders?.length} orders, total: ${resolvedTotal}`);
 
     // Get unique user IDs from orders
     const userIds = [...new Set(filteredOrders.map(order => order.user_id).filter(Boolean))];
@@ -344,10 +374,16 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
     res.json({
       orders: transformedOrders,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: effectiveTotal || 0,
-        totalPages: Math.ceil((effectiveTotal || 0) / parseInt(limit))
+        page: currentPage,
+        limit: enforcedLimit,
+        total: resolvedTotal || 0,
+        totalPages: Math.max(1, Math.ceil((resolvedTotal || 0) / enforcedLimit))
+      },
+      stats: {
+        total: statsTotal || 0,
+        delivered: deliveredCount || 0,
+        inProgress: inProgressCount || 0,
+        pending: pendingCount || 0
       }
     });
 

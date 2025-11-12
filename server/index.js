@@ -15,6 +15,8 @@ const designUploadRouter = require('./routes/design-upload');
 const customDesignRouter = require('./routes/custom-design');
 const emailRouter = require('./routes/email');
 const analyticsRouter = require('./routes/analytics');
+const aiRouter = require('./routes/ai');
+const aiSchemaRouter = require('./routes/aiSchema');
 const productionWorkflowRouter = require('./routes/production-workflow');
 const chatRouter = require('./routes/chat');
 const artistRouter = require('./routes/artist');
@@ -43,6 +45,7 @@ app.get('/', (_req, res) => {
       customDesign: '/api/custom-design',
       email: '/api/email',
       analytics: '/api/analytics',
+      ai: '/api/ai',
       productionWorkflow: '/api/production-workflow',
       chat: '/api/chat',
       artist: '/api/artist'
@@ -67,10 +70,35 @@ app.use('/api/design-upload', designUploadRouter);
 app.use('/api/custom-design', customDesignRouter);
 app.use('/api/email', emailRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/ai', aiRouter);
+app.use('/api/ai-schema', aiSchemaRouter);
 app.use('/api/production-workflow', productionWorkflowRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/artist', artistRouter);
 app.use('/api/branch-chat', branchChatRouter);
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  console.error('Error stack:', err.stack);
+  
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  // Check for Supabase tenant errors
+  if (err.message && (err.message.includes('Tenant') || err.message.includes('tenant'))) {
+    return res.status(401).json({
+      success: false,
+      error: 'Session expired. Please refresh your browser and log in again.'
+    });
+  }
+  
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal server error'
+  });
+});
 
 const port = process.env.PORT || 4000;
 
