@@ -7,7 +7,8 @@ import {
   faPaperPlane,
   faSpinner,
   faMessage,
-  faArrowLeft
+  faArrowLeft,
+  faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import branchChatService from '../../services/branchChatService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -266,9 +267,9 @@ const BranchSupportChat = () => {
                     setSelectedRoomId(null);
                     setShowRoomListOnMobile(true);
                   }}
+                  aria-label="Close conversation"
                 >
-                  <FontAwesomeIcon icon={faArrowLeft} />
-                  Back to conversations
+                  <FontAwesomeIcon icon={faTimes} />
                 </button>
               </div>
 

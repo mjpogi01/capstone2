@@ -8,6 +8,36 @@ const Highlights = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false); // For fade-in
 
+  // Scroll reveal observer
+  useEffect(() => {
+    if (!buyerImages.length) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const elements = document.querySelectorAll('.reveal:not(.is-visible)');
+
+    if (!elements.length) return;
+
+    if (prefersReducedMotion || typeof IntersectionObserver === 'undefined') {
+      elements.forEach((el) => el.classList.add('is-visible'));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.2 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [buyerImages, showAll]);
+
   useEffect(() => {
     // Image file list
     const imageFiles = [
@@ -92,8 +122,8 @@ const Highlights = () => {
       <div className="container">
         {/* Title Section */}
         <div className="title-section">
-          <h1 className="page-title">Highlights</h1>
-          <p>Discover our featured products and latest collections</p>
+          <h1 className="page-title reveal">Highlights</h1>
+          <p className="reveal reveal-delay-1">Discover our featured products and latest collections</p>
         </div>
 
         {/* Buyers Album Section */}
@@ -102,7 +132,7 @@ const Highlights = () => {
             {visibleImages.map((item, index) => (
               <div
                 key={item.id}
-                className="buyer-item"
+                className={`buyer-item reveal reveal-delay-${(index % 5) + 1}`}
                 onClick={() => handleImageClick(index)}
                 role="button"
                 tabIndex={0}
@@ -121,11 +151,11 @@ const Highlights = () => {
 
           <div className="button-container">
             {!showAll ? (
-              <button className="view-more" onClick={() => setShowAll(true)} aria-expanded={showAll}>
+              <button className="view-more reveal reveal-delay-1" onClick={() => setShowAll(true)} aria-expanded={showAll}>
                 View More
               </button>
             ) : (
-              <button className="show-less" onClick={() => setShowAll(false)} aria-expanded={showAll}>
+              <button className="show-less reveal reveal-delay-1" onClick={() => setShowAll(false)} aria-expanded={showAll}>
                 Show Less
               </button>
             )}
@@ -134,9 +164,9 @@ const Highlights = () => {
 
         {/* Call to Action */}
         <div className="cta-section">
-          <h2>Explore Our Collection</h2>
-          <p>Visit our branches to see our full range of products</p>
-          <a href="/branches" className="cta-button" aria-label="Find our branches">
+          <h2 className="reveal">Explore Our Collection</h2>
+          <p className="reveal reveal-delay-1">Visit our branches to see our full range of products</p>
+          <a href="/branches" className="cta-button reveal reveal-delay-2" aria-label="Find our branches">
             Find Our Branches
           </a>
         </div>

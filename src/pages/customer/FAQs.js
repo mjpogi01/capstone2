@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FAQs.css';
 
@@ -45,15 +45,45 @@ const FAQs = () => {
     setOpenFAQ(openFAQ === index ? null : index);
   };
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const elements = document.querySelectorAll('.faqs-container .reveal:not(.is-visible)');
+
+    if (!elements.length) return;
+
+    if (prefersReducedMotion || typeof IntersectionObserver === 'undefined') {
+      elements.forEach((el) => el.classList.add('is-visible'));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.2 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="faqs-container">
       <div className="faqs-wrapper">
         {/* Hero Section */}
-        <div className="faqs-hero">
-          <h1 className="faqs-title page-title">
+        <div className="faqs-hero reveal">
+          <h1 className="faqs-title page-title reveal">
             FAQs
           </h1>
-          <p className="faqs-subtitle">
+          <p className="faqs-subtitle reveal reveal-delay-1">
             Find answers to common questions about our products and services
           </p>
         </div>
@@ -61,7 +91,7 @@ const FAQs = () => {
         {/* FAQs Section */}
         <div className="faqs-section">
           {faqs.map((faq, index) => (
-            <div key={index} className="faq-item">
+            <div key={index} className={`faq-item reveal reveal-delay-${(index % 5) + 1}`}>
               <button
                 onClick={() => toggleFAQ(index)}
                 className="faq-question-button"
@@ -81,7 +111,7 @@ const FAQs = () => {
         </div>
 
         {/* Contact Section */}
-        <div className="faqs-contact">
+        <div className="faqs-contact reveal reveal-delay-2">
           <h2 className="faqs-contact-title">
             Still Have Questions?
           </h2>

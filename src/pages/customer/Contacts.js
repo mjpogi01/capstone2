@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './Contacts.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -69,15 +69,45 @@ const Contacts = () => {
     }
   ];
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const elements = document.querySelectorAll('.contacts-container .reveal:not(.is-visible)');
+
+    if (!elements.length) return;
+
+    if (prefersReducedMotion || typeof IntersectionObserver === 'undefined') {
+      elements.forEach((el) => el.classList.add('is-visible'));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.2 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="contacts-container">
       <div className="contacts-wrapper">
         {/* Hero Section */}
-        <div className="contacts-hero">
-          <h1 className="contacts-title page-title">
+        <div className="contacts-hero reveal">
+          <h1 className="contacts-title page-title reveal">
             Contact Us
           </h1>
-          <p className="contacts-subtitle">
+          <p className="contacts-subtitle reveal reveal-delay-1">
             Get in touch with us at any of our convenient locations
           </p>
         </div>
@@ -85,7 +115,7 @@ const Contacts = () => {
         {/* Contact Info Cards */}
         <div className="contacts-branches-grid">
           {branches.map((branch, index) => (
-            <div key={index} className="contacts-branch-card">
+            <div key={index} className={`contacts-branch-card reveal reveal-delay-${(index % 5) + 1}`}>
               <h3 className="contacts-branch-name">
                 {branch.name}
               </h3>
@@ -109,47 +139,9 @@ const Contacts = () => {
           ))}
         </div>
 
-        {/* Contact Form */}
-        <div className="contacts-form-section">
-          <h2 className="contacts-form-title">
-            Send us a Message
-          </h2>
-          <form className="contacts-form">
-            <div className="contacts-form-row">
-              <input
-                type="text"
-                placeholder="Your Name"
-                className="contacts-form-input"
-              />
-              <input
-                type="email"
-                placeholder="Your Email"
-                className="contacts-form-input"
-              />
-            </div>
-            <input
-              type="text"
-              placeholder="Subject"
-              className="contacts-form-input contacts-form-input-full"
-            />
-            <textarea
-              placeholder="Your Message"
-              rows="5"
-              className="contacts-form-textarea"
-            />
-            <button
-              type="submit"
-              className="contacts-form-button"
-            >
-              <FontAwesomeIcon icon={faPaperPlane} className="contacts-form-icon" />
-              Send Message
-            </button>
-          </form>
-        </div>
-
         {/* Map Link */}
-        <div className="contacts-map-link-section">
-          <a href="/branches" className="contacts-map-link">
+        <div className="contacts-map-link-section reveal reveal-delay-1">
+          <a href="/branches" className="contacts-map-link reveal reveal-delay-2">
             <FontAwesomeIcon icon={faMap} className="contacts-map-icon" />
             View All Branches on Map
           </a>

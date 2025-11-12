@@ -156,6 +156,36 @@ const Branches = () => {
   const [routeCoordinates, setRouteCoordinates] = React.useState([]);
   const [travelInfo, setTravelInfo] = React.useState(null);
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const elements = document.querySelectorAll('.branches-container .reveal:not(.is-visible)');
+
+    if (!elements.length) return;
+
+    if (prefersReducedMotion || typeof IntersectionObserver === 'undefined') {
+      elements.forEach((el) => el.classList.add('is-visible'));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.2 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [activeId, travelInfo]);
+
   // Get user's current location on component mount with improved accuracy
   React.useEffect(() => {
     if (navigator.geolocation) {
@@ -618,17 +648,17 @@ const Branches = () => {
   return (
     <section id="branches" className="branches-container">
       <div className="branches-wrapper">
-        <div className="branches-hero">
-          <h1 className="branches-title page-title">Our Branches</h1>
-          <p className="branches-subtitle">Find the nearest Yohann's Sportswear House branch on the map.</p>
+        <div className="branches-hero reveal">
+          <h1 className="branches-title page-title reveal">Our Branches</h1>
+          <p className="branches-subtitle reveal reveal-delay-1">Find the nearest Yohann's Sportswear House branch on the map.</p>
         </div>
         
         <div className="branches-content">
           <div className="branches-layout">
           
           {/* Left Column: Map + Travel Info */}
-          <div className="branches-map-column">
-          <div className="branches-map-wrapper">
+          <div className="branches-map-column reveal">
+          <div className="branches-map-wrapper reveal reveal-delay-1">
           <MapContainer
             className="branches-map"
             center={userLocation || branches.find(b => b.name === 'BATANGAS CITY BRANCH')?.position || branches[0].position}
@@ -714,7 +744,7 @@ const Branches = () => {
 
           {/* Travel Information Panel */}
           {travelInfo && userLocation && (
-            <div className="branches-travel-info">
+            <div className="branches-travel-info reveal reveal-delay-2">
               <div className="branches-travel-header">
                 <FontAwesomeIcon icon={faRoute} style={{ color: '#00bfff', fontSize: '20px' }} />
                 <span className="branches-travel-distance">{travelInfo.distance} km</span>
@@ -764,8 +794,8 @@ const Branches = () => {
           {/* End Map Column */}
 
           {/* Right Column: Branch List */}
-          <div className="branches-list-wrapper">
-            {branches.map((branch) => (
+          <div className="branches-list-wrapper reveal reveal-delay-2">
+            {branches.map((branch, index) => (
               <div 
                 key={branch.id} 
                 className={`branches-item ${activeId === branch.id ? 'branches-item-active' : ''}`}
