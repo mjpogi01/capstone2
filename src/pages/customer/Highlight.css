@@ -98,7 +98,7 @@
 
 .buyers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 2rem;
   justify-items: center;
   width: 100%;
@@ -121,7 +121,7 @@
   justify-content: center;
   aspect-ratio: 1;
   width: 100%;
-  max-width: 250px;
+  max-width: none !important;
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s ease, filter 0.4s ease;
   box-sizing: border-box;
@@ -386,12 +386,7 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .buyers-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-  }
-  
-  .buyer-item {
-    max-width: 200px;
+    gap: 1.75rem;
   }
 }
 
@@ -418,23 +413,13 @@
   
   .title-section p {
     font-size: clamp(0.95rem, 2vw, 1.1rem);
-    padding: 0 1rem;
-    max-width: 90%;
-    margin: 1rem auto;
+    padding: 0 1.5rem;
   }
   
   .buyers-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1.25rem;
+    gap: 1.4rem;
     margin: 0 auto;
     padding: 0 1rem;
-    max-width: 100%;
-  }
-  
-  .buyer-item {
-    max-width: 200px;
-    margin: 0 auto;
-    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.15);
   }
   
   .cta-section {
@@ -502,22 +487,18 @@
   
   .title-section h1 {
     font-size: 1.8rem;
+    padding: 0 0.5rem;
   }
   
   .title-section p {
     font-size: 0.95rem;
+    padding: 0 1rem;
   }
   
   .buyers-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.8rem;
+    gap: 1rem;
     margin: 0 auto;
-    padding: 0 1rem;
-    max-width: 100%;
-  }
-  
-  .buyer-item {
-    max-width: 140px;
+    padding: 0 0.5rem;
   }
   
   .cta-section {
@@ -586,37 +567,12 @@
   }
   
   .title-section p {
-    font-size: 0.85rem;
-  }
-  
-  .buyers-grid {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.6rem;
-    margin: 0 auto;
-    padding: 0 1rem;
-    max-width: 100%;
-  }
-  
-  .buyer-item {
-    max-width: 120px;
-  }
-  
-  .cta-section {
-    padding: 1rem 0.75rem;
-  }
-  
-  .cta-section h2 {
-    font-size: 1.2rem;
-  }
-  
-  .cta-section p {
     font-size: 0.9rem;
   }
   
-  .cta-button,
   .view-more,
   .show-less {
-    padding: 10px 20px;
+    padding: 10px 22px;
     font-size: 0.85rem;
   }
   
@@ -659,12 +615,7 @@
 @media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
   /* Uses desktop styles - minimal overrides if needed */
   .buyers-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-  }
-  
-  .buyer-item {
-    max-width: 200px;
+    gap: 1.6rem;
   }
 }
 
@@ -698,17 +649,9 @@
   }
   
   .buyers-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1.25rem;
+    gap: 1.4rem;
     margin: 0 auto;
     padding: 0 1rem;
-    max-width: 100%;
-  }
-  
-  .buyer-item {
-    max-width: 200px;
-    margin: 0 auto;
-    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.15);
   }
   
   .cta-section {

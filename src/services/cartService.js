@@ -63,6 +63,14 @@ class CartService {
           teamMembers: item.team_members,
           teamName: teamName, // Extract team name from first team member
           singleOrderDetails: item.single_order_details,
+          sizeType: item.single_order_details?.sizingType ||
+            (Array.isArray(item.team_members) && item.team_members.length > 0
+              ? item.team_members[0]?.sizingType
+              : null),
+          jerseyType: item.single_order_details?.jerseyType ||
+            (Array.isArray(item.team_members) && item.team_members.length > 0
+              ? item.team_members[0]?.jerseyType
+              : null),
           ballDetails: item.ball_details, // Include ball details
           trophyDetails: item.trophy_details, // Include trophy details
           uniqueId: item.id, // Use database ID as unique identifier
@@ -195,6 +203,21 @@ class CartService {
         team_members: cartItem.teamMembers,
         single_order_details: cartItem.singleOrderDetails
       };
+      
+      if (cartItem.jerseyType) {
+        if (insertData.single_order_details) {
+          insertData.single_order_details = {
+            ...insertData.single_order_details,
+            jerseyType: cartItem.jerseyType
+          };
+        }
+        if (Array.isArray(insertData.team_members)) {
+          insertData.team_members = insertData.team_members.map(member => ({
+            ...member,
+            jerseyType: member?.jerseyType || cartItem.jerseyType
+          }));
+        }
+      }
       
       // Add trophy_details and ball_details if they exist
       if (cartItem.trophyDetails) {

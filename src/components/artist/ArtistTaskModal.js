@@ -24,6 +24,7 @@ import { FaBasketballBall, FaTrophy, FaTshirt, FaUser, FaUserFriends } from 'rea
 import designUploadService from '../../services/designUploadService';
 import { useNotification } from '../../contexts/NotificationContext';
 import chatService from '../../services/chatService';
+import { getApparelSizeVisibility } from '../../utils/orderSizing';
 
 const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -380,26 +381,37 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                     </div>
                                     <div className="artist-order-team-divider"></div>
                                     <div className="artist-order-members-list">
-                                      {item.teamMembers.map((member, memberIndex) => (
-                                        <div key={memberIndex} className="artist-order-member-item">
-                                          <div className="artist-order-detail-row">
-                                            <span className="artist-order-detail-label">Surname:</span>
-                                            <span className="artist-order-detail-value">{member.surname || member.lastName || 'N/A'}</span>
+                                      {(() => {
+                                        const fallbackVisibility = {
+                                          jersey: item.teamMembers.some(member => Boolean(member?.jerseySize || member?.size)),
+                                          shorts: item.teamMembers.some(member => Boolean(member?.shortsSize))
+                                        };
+                                        const { showJersey: showTeamJerseySize, showShorts: showTeamShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
+                                        return item.teamMembers.map((member, memberIndex) => (
+                                          <div key={memberIndex} className="artist-order-member-item">
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Surname:</span>
+                                              <span className="artist-order-detail-value">{member.surname || member.lastName || 'N/A'}</span>
+                                            </div>
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Jersey No:</span>
+                                              <span className="artist-order-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                            </div>
+                                            {showTeamJerseySize && (
+                                              <div className="artist-order-detail-row">
+                                                <span className="artist-order-detail-label">Jersey Size:</span>
+                                                <span className="artist-order-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                              </div>
+                                            )}
+                                            {showTeamShortsSize && (
+                                              <div className="artist-order-detail-row">
+                                                <span className="artist-order-detail-label">Shorts Size:</span>
+                                                <span className="artist-order-detail-value">{member.shortsSize || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                              </div>
+                                            )}
                                           </div>
-                                          <div className="artist-order-detail-row">
-                                            <span className="artist-order-detail-label">Jersey No:</span>
-                                            <span className="artist-order-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
-                                          </div>
-                                          <div className="artist-order-detail-row">
-                                            <span className="artist-order-detail-label">Jersey Size:</span>
-                                            <span className="artist-order-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
-                                          </div>
-                                          <div className="artist-order-detail-row">
-                                            <span className="artist-order-detail-label">Shorts Size:</span>
-                                            <span className="artist-order-detail-value">{member.shortsSize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
-                                          </div>
-                                        </div>
-                                      ))}
+                                        ));
+                                      })()}
                                     </div>
                                   </div>
                                 ) : isApparel ? (
@@ -417,14 +429,29 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                       <span className="artist-order-detail-label">Jersey No:</span>
                                       <span className="artist-order-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                     </div>
-                                    <div className="artist-order-detail-row">
-                                      <span className="artist-order-detail-label">Jersey Size:</span>
-                                      <span className="artist-order-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
-                                    </div>
-                                    <div className="artist-order-detail-row">
-                                      <span className="artist-order-detail-label">Shorts Size:</span>
-                                      <span className="artist-order-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
-                                    </div>
+                                    {(() => {
+                                      const fallbackVisibility = {
+                                        jersey: Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size),
+                                        shorts: Boolean(item.singleOrderDetails?.shortsSize)
+                                      };
+                                      const { showJersey: showSingleJerseySize, showShorts: showSingleShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
+                                      return (
+                                        <>
+                                          {showSingleJerseySize && (
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Jersey Size:</span>
+                                              <span className="artist-order-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
+                                            </div>
+                                          )}
+                                          {showSingleShortsSize && (
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Shorts Size:</span>
+                                              <span className="artist-order-detail-value">{item.singleOrderDetails?.shortsSize || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
+                                            </div>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 ) : isBall ? (
                                   /* Balls */

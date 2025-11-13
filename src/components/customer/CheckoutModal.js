@@ -3,6 +3,7 @@ import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, F
 import userService from '../../services/userService';
 import branchService from '../../services/branchService';
 import './CheckoutModal.css';
+import { getApparelSizeVisibility } from '../../utils/orderSizing';
 
 const FALLBACK_BRANCHES = [
   { id: 1, name: 'SAN PASCUAL (MAIN BRANCH)' },
@@ -915,7 +916,13 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                 </div>
                                 <div className="checkout-modal-perfect-team-divider"></div>
                                 <div className="checkout-modal-perfect-members-list">
-                                  {item.teamMembers.map((member, memberIndex) => (
+                                  {(() => {
+                                    const fallbackVisibility = {
+                                      jersey: item.teamMembers.some(member => Boolean(member?.jerseySize || member?.size)),
+                                      shorts: item.teamMembers.some(member => Boolean(member?.shortsSize))
+                                    };
+                                    const { showJersey: showTeamJerseySize, showShorts: showTeamShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
+                                    return item.teamMembers.map((member, memberIndex) => (
                                     <div key={memberIndex} className="checkout-modal-perfect-member-details">
                                       <div className="checkout-modal-perfect-detail-row">
                                         <span className="checkout-modal-perfect-detail-label">Surname:</span>
@@ -925,16 +932,21 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                         <span className="checkout-modal-perfect-detail-label">Jersey No:</span>
                                         <span className="checkout-modal-perfect-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
                                       </div>
-                                      <div className="checkout-modal-perfect-detail-row">
-                                        <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
-                                        <span className="checkout-modal-perfect-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
-                                      </div>
-                                      <div className="checkout-modal-perfect-detail-row">
-                                        <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
-                                        <span className="checkout-modal-perfect-detail-value">{member.shortsSize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
-                                      </div>
+                                      {showTeamJerseySize && (
+                                        <div className="checkout-modal-perfect-detail-row">
+                                          <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
+                                          <span className="checkout-modal-perfect-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                        </div>
+                                      )}
+                                      {showTeamShortsSize && (
+                                        <div className="checkout-modal-perfect-detail-row">
+                                          <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
+                                          <span className="checkout-modal-perfect-detail-value">{member.shortsSize || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                        </div>
+                                      )}
                                     </div>
-                                  ))}
+                                    ));
+                                  })()}
                                 </div>
                               </div>
                             ) : isApparel ? (
@@ -953,14 +965,29 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                     <span className="checkout-modal-perfect-detail-label">Jersey No:</span>
                                     <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                   </div>
-                                  <div className="checkout-modal-perfect-detail-row">
-                                    <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
-                                    <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
-                                  </div>
-                                  <div className="checkout-modal-perfect-detail-row">
-                                    <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
-                                    <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
-                                  </div>
+                                  {(() => {
+                                    const fallbackVisibility = {
+                                      jersey: Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size),
+                                      shorts: Boolean(item.singleOrderDetails?.shortsSize)
+                                    };
+                                    const { showJersey: showSingleJerseySize, showShorts: showSingleShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
+                                    return (
+                                      <>
+                                        {showSingleJerseySize && (
+                                          <div className="checkout-modal-perfect-detail-row">
+                                            <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
+                                            <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
+                                          </div>
+                                        )}
+                                        {showSingleShortsSize && (
+                                          <div className="checkout-modal-perfect-detail-row">
+                                            <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
+                                            <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.shortsSize || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             ) : isBall ? (
