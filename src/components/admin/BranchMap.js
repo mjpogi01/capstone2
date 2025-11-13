@@ -8,6 +8,20 @@ import { API_URL } from '../../config/api';
 import { authFetch } from '../../services/apiClient';
 import 'leaflet.heat';
 
+// Ensure heat layer canvas uses willReadFrequently context for better performance with frequent readbacks
+if (L.HeatLayer && typeof L.HeatLayer.prototype._initCanvas === 'function') {
+  const originalInitCanvas = L.HeatLayer.prototype._initCanvas;
+  L.HeatLayer.prototype._initCanvas = function patchedInitCanvas() {
+    originalInitCanvas.call(this);
+    if (this._canvas && this._canvas.getContext) {
+      const ctx = this._canvas.getContext('2d', { willReadFrequently: true }) || this._canvas.getContext('2d');
+      if (ctx) {
+        this._ctx = ctx;
+      }
+    }
+  };
+}
+
 // Fix for default marker icons in React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
