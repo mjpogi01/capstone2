@@ -163,6 +163,14 @@ async function ensureUsersTable() {
   await query(`CREATE INDEX IF NOT EXISTS idx_user_carts_product_id ON user_carts(product_id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_user_carts_unique_id ON user_carts(unique_id);`);
 
+  await query(`ALTER TABLE user_carts ADD COLUMN IF NOT EXISTS base_price NUMERIC;`);
+  await query(`ALTER TABLE user_carts ADD COLUMN IF NOT EXISTS unit_price NUMERIC;`);
+  await query(`ALTER TABLE user_carts ADD COLUMN IF NOT EXISTS fabric_option TEXT;`);
+  await query(`ALTER TABLE user_carts ADD COLUMN IF NOT EXISTS fabric_surcharge NUMERIC DEFAULT 0;`);
+  await query(`ALTER TABLE user_carts ADD COLUMN IF NOT EXISTS size_surcharge NUMERIC DEFAULT 0;`);
+  await query(`ALTER TABLE user_carts ADD COLUMN IF NOT EXISTS size_surcharge_total NUMERIC DEFAULT 0;`);
+  await query(`ALTER TABLE user_carts ADD COLUMN IF NOT EXISTS surcharge_details JSONB;`);
+
   // Create user_wishlist table
   await query(`
     CREATE TABLE IF NOT EXISTS user_wishlist (

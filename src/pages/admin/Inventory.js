@@ -106,8 +106,39 @@ const Inventory = () => {
     return [...new Set(products.map(p => p.category).filter(Boolean))];
   };
 
+  const normalizeProductSurcharges = (product) => {
+    if (!product) return product;
+
+    let sizeSurcharges = product.size_surcharges;
+    if (typeof sizeSurcharges === 'string') {
+      try {
+        sizeSurcharges = JSON.parse(sizeSurcharges);
+      } catch (error) {
+        console.warn('Failed to parse size_surcharges in Inventory:', error?.message);
+        sizeSurcharges = null;
+      }
+    }
+
+    let fabricSurcharges = product.fabric_surcharges;
+    if (typeof fabricSurcharges === 'string') {
+      try {
+        fabricSurcharges = JSON.parse(fabricSurcharges);
+      } catch (error) {
+        console.warn('Failed to parse fabric_surcharges in Inventory:', error?.message);
+        fabricSurcharges = null;
+      }
+    }
+
+    return {
+      ...product,
+      size_surcharges: sizeSurcharges,
+      fabric_surcharges: fabricSurcharges
+    };
+  };
+
   const handleAddProduct = (newProduct) => {
-    setProducts([newProduct, ...products]);
+    const normalizedProduct = normalizeProductSurcharges(newProduct);
+    setProducts([normalizedProduct, ...products]);
     setShowAddModal(false);
   };
 
@@ -117,7 +148,8 @@ const Inventory = () => {
   };
 
   const handleUpdateProduct = (updatedProduct) => {
-    const updatedProducts = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+    const normalizedProduct = normalizeProductSurcharges(updatedProduct);
+    const updatedProducts = products.map(p => p.id === normalizedProduct.id ? normalizedProduct : p);
     setProducts(updatedProducts);
     setRefreshKey(prev => prev + 1); // Force re-render
     setShowAddModal(false);
