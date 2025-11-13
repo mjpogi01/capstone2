@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './Highlight.css';
 
 const Highlights = () => {
@@ -7,6 +7,23 @@ const Highlights = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false); // For fade-in
+  const [gridConfig, setGridConfig] = useState({ visible: 10, columns: 5 });
+
+  const computeGridConfig = useCallback((width) => {
+    if (width >= 1440) return { visible: 10, columns: 5 };
+    if (width >= 1200) return { visible: 8, columns: 4 };
+    if (width >= 900) return { visible: 6, columns: 3 };
+    if (width >= 640) return { visible: 4, columns: 2 };
+    return { visible: 2, columns: 1 };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const updateGrid = () => setGridConfig(computeGridConfig(window.innerWidth));
+    updateGrid();
+    window.addEventListener('resize', updateGrid);
+    return () => window.removeEventListener('resize', updateGrid);
+  }, [computeGridConfig]);
 
   // Scroll reveal observer
   useEffect(() => {
@@ -106,7 +123,10 @@ const Highlights = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen, closeModal, showPrev, showNext]);
 
-  const visibleImages = showAll ? buyerImages : buyerImages.slice(0, 10);
+  const visibleImages = useMemo(() => {
+    if (showAll) return buyerImages;
+    return buyerImages.slice(0, gridConfig.visible);
+  }, [buyerImages, showAll, gridConfig.visible]);
 
   const handleImageClick = useCallback((index) => {
     setSelectedImageIndex(index);
@@ -128,7 +148,12 @@ const Highlights = () => {
 
         {/* Buyers Album Section */}
         <div className="buyers-album">
-          <div className="buyers-grid" role="grid" aria-label="Image gallery">
+          <div
+            className="buyers-grid"
+            role="grid"
+            aria-label="Image gallery"
+            style={{ gridTemplateColumns: `repeat(${gridConfig.columns}, minmax(0, 1fr))` }}
+          >
             {visibleImages.map((item, index) => (
               <div
                 key={item.id}

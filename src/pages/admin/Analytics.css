@@ -693,6 +693,19 @@ body.sidebar-collapsed .analytics-page {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-container {
+    min-height: 200px;
+  }
 }
 
 .chart-hoverable {
@@ -1340,7 +1353,7 @@ body.sidebar-collapsed .analytics-page {
   }
   
   .chart-container {
-    height: 220px;
+    min-height: 220px;
   }
   
   .vertical-bar-chart {
@@ -1379,6 +1392,18 @@ body.sidebar-collapsed .analytics-page {
 }
 
 /* Geographic Distribution Styles */
+.analytics-map-container {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 420px;
+}
+
+.analytics-map-container > * {
+  flex: 1 1 auto;
+}
+
 .geo-distribution-card {
   grid-column: span 2;
 }

@@ -74,6 +74,8 @@ export const CartProvider = ({ children }) => {
       teamMembers = null,
       teamName = null,
       singleOrderDetails = null,
+      sizeType = null,
+      jerseyType = null,
       ballDetails = null,
       trophyDetails = null,
       isReplacement = false // New flag to indicate if this is replacing an existing item
@@ -93,6 +95,8 @@ export const CartProvider = ({ children }) => {
       teamMembers: isTeamOrder ? teamMembers : null,
       teamName: isTeamOrder ? finalTeamName : null,
       singleOrderDetails: !isTeamOrder ? singleOrderDetails : null,
+      sizeType,
+      jerseyType,
       ballDetails: ballDetails,
       trophyDetails: trophyDetails,
       addedAt: new Date().toISOString(),

@@ -38,6 +38,7 @@ import './Orders.css';
 import './FloatingButton.css';
 import './OrderNotification.css';
 import orderService from '../../services/orderService';
+import { getApparelSizeVisibility } from '../../utils/orderSizing';
 import designUploadService from '../../services/designUploadService';
 import chatService from '../../services/chatService';
 import OrderNotification from './OrderNotification';
@@ -1169,28 +1170,37 @@ const Orders = () => {
                               <div className="team-details">
                                 <div className="team-name">Team: {item.teamName || item.team_name || item.teamMembers?.[0]?.teamName || item.teamMembers?.[0]?.team_name || 'N/A'}</div>
                                 <div className="team-members-table">
-                                  <table className="jersey-details-table">
-                                    <thead>
-                                      <tr>
-                                        <th>Surname</th>
-                                        <th>Jersey #</th>
-                                        <th>Jersey Size</th>
-                                        <th>Shorts Size</th>
-                                        <th>Type</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {item.teamMembers.map((member, memberIndex) => (
-                                        <tr key={memberIndex}>
-                                          <td>{member.surname || 'N/A'}</td>
-                                          <td>{member.number || 'N/A'}</td>
-                                          <td>{member.jerseySize || member.size || 'N/A'}</td>
-                                          <td>{member.shortsSize || member.size || 'N/A'}</td>
-                                          <td>{member.sizingType || item.sizeType || 'Adult'}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                                  {(() => {
+                                    const fallbackVisibility = {
+                                      jersey: item.teamMembers.some(member => Boolean(member?.jerseySize || member?.size)),
+                                      shorts: item.teamMembers.some(member => Boolean(member?.shortsSize))
+                                    };
+                                    const { showJersey: showTeamJerseySize, showShorts: showTeamShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
+                                    return (
+                                     <table className="jersey-details-table">
+                                       <thead>
+                                         <tr>
+                                           <th>Surname</th>
+                                           <th>Jersey #</th>
+                                           {showTeamJerseySize && <th>Jersey Size</th>}
+                                           {showTeamShortsSize && <th>Shorts Size</th>}
+                                           <th>Type</th>
+                                         </tr>
+                                       </thead>
+                                       <tbody>
+                                         {item.teamMembers.map((member, memberIndex) => (
+                                           <tr key={memberIndex}>
+                                             <td>{member.surname || 'N/A'}</td>
+                                             <td>{member.number || 'N/A'}</td>
+                                             {showTeamJerseySize && <td>{member.jerseySize || member.size || 'N/A'}</td>}
+                                             {showTeamShortsSize && <td>{member.shortsSize || 'N/A'}</td>}
+                                             <td>{member.sizingType || item.sizeType || 'Adult'}</td>
+                                           </tr>
+                                         ))}
+                                       </tbody>
+                                     </table>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             )}
@@ -1198,28 +1208,41 @@ const Orders = () => {
                             {!item.isTeamOrder && item.singleOrderDetails && (
                               <div className="single-details">
                                 <div className="single-details-table">
-                                  <table className="jersey-details-table">
-                                    <thead>
-                                      <tr>
-                                        <th>Team</th>
-                                        <th>Surname</th>
-                                        <th>Jersey #</th>
-                                        <th>Jersey Size</th>
-                                        <th>Shorts Size</th>
-                                        <th>Type</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      <tr>
-                                        <td>{item.singleOrderDetails.teamName || 'N/A'}</td>
-                                        <td>{item.singleOrderDetails.surname || 'N/A'}</td>
-                                        <td>{item.singleOrderDetails.number || 'N/A'}</td>
-                                        <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
-                                        <td>{item.singleOrderDetails.shortsSize || item.singleOrderDetails.size || 'N/A'}</td>
-                                        <td>{item.singleOrderDetails.sizingType || item.sizeType || 'Adult'}</td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
+                                  {(() => {
+                                    const fallbackVisibility = {
+                                      jersey: Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size),
+                                      shorts: Boolean(item.singleOrderDetails?.shortsSize)
+                                    };
+                                    const { showJersey: showSingleJerseySize, showShorts: showSingleShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
+                                    return (
+                                      <table className="jersey-details-table">
+                                        <thead>
+                                          <tr>
+                                            <th>Team</th>
+                                            <th>Surname</th>
+                                            <th>Jersey #</th>
+                                            {showSingleJerseySize && <th>Jersey Size</th>}
+                                            {showSingleShortsSize && <th>Shorts Size</th>}
+                                            <th>Type</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          <tr>
+                                            <td>{item.singleOrderDetails.teamName || 'N/A'}</td>
+                                            <td>{item.singleOrderDetails.surname || 'N/A'}</td>
+                                            <td>{item.singleOrderDetails.number || 'N/A'}</td>
+                                            {showSingleJerseySize && (
+                                              <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
+                                            )}
+                                            {showSingleShortsSize && (
+                                              <td>{item.singleOrderDetails.shortsSize || 'N/A'}</td>
+                                            )}
+                                            <td>{item.singleOrderDetails.sizingType || item.sizeType || 'Adult'}</td>
+                                          </tr>
+                                        </tbody>
+                                      </table>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             )}

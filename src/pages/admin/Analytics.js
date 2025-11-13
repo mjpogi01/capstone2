@@ -72,6 +72,46 @@ const resolveChartIdFromText = (text = '') => {
   return match ? match.id : null;
 };
 
+const useViewportWidth = (defaultWidth = 1440) => {
+  const getWidth = () => {
+    if (typeof window === 'undefined') {
+      return defaultWidth;
+    }
+    return window.innerWidth;
+  };
+
+  const [width, setWidth] = useState(getWidth);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    let frame = null;
+
+    const handleResize = () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+      frame = window.requestAnimationFrame(() => {
+        setWidth(window.innerWidth);
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  return width;
+};
+
 const Analytics = () => {
   const [analyticsData, setAnalyticsData] = useState({
     totalSales: [],
@@ -125,6 +165,26 @@ const Analytics = () => {
     const cityCount = Array.isArray(customerLocationsData?.cityStats) ? customerLocationsData.cityStats.length : 0;
     return pointsCount > 0 || cityCount > 0;
   }, [customerLocationsData]);
+
+  const viewportWidth = useViewportWidth();
+  const chartHeights = useMemo(() => {
+    const pickHeight = ({ xl, lg, md, sm, xs }) => {
+      const width = viewportWidth || 0;
+      if (width >= 1600) return xl;
+      if (width >= 1280) return lg;
+      if (width >= 1024) return md;
+      if (width >= 768) return sm;
+      return xs;
+    };
+
+    return {
+      compact: `${pickHeight({ xl: 320, lg: 300, md: 270, sm: 240, xs: 210 })}px`,
+      base: `${pickHeight({ xl: 340, lg: 320, md: 300, sm: 260, xs: 220 })}px`,
+      tall: `${pickHeight({ xl: 420, lg: 380, md: 340, sm: 300, xs: 260 })}px`,
+      wide: `${pickHeight({ xl: 380, lg: 360, md: 320, sm: 280, xs: 240 })}px`,
+      map: `${pickHeight({ xl: 500, lg: 460, md: 420, sm: 360, xs: 300 })}px`
+    };
+  }, [viewportWidth]);
 
 
   useEffect(() => {
@@ -1575,7 +1635,7 @@ const Analytics = () => {
                   notMerge
                   lazyUpdate
                   opts={{ renderer: 'svg' }}
-                  style={{ height: '280px', width: '100%' }}
+                  style={{ height: chartHeights.base, width: '100%' }}
                 />
                 {!hasTotalSalesData && (
                   <div className="chart-empty-state">
@@ -1614,7 +1674,7 @@ const Analytics = () => {
                   notMerge
                   lazyUpdate
                   opts={{ renderer: 'svg' }}
-                  style={{ height: '280px', width: '100%' }}
+                  style={{ height: chartHeights.base, width: '100%' }}
                 />
                 {!hasSalesTrendsData && (
                   <div className="chart-empty-state">
@@ -1647,7 +1707,7 @@ const Analytics = () => {
                 notMerge
                 lazyUpdate
                 opts={{ renderer: 'svg' }}
-                style={{ height: '300px', width: '100%' }}
+                style={{ height: chartHeights.base, width: '100%' }}
               />
               {!hasSalesByBranchData && (
                 <div className="chart-empty-state">
@@ -1679,7 +1739,7 @@ const Analytics = () => {
                 notMerge
                 lazyUpdate
                 opts={{ renderer: 'svg' }}
-                style={{ height: '260px', width: '100%' }}
+                style={{ height: chartHeights.compact, width: '100%' }}
               />
               {!hasOrderStatusData && (
                 <div className="chart-empty-state">
@@ -1711,7 +1771,7 @@ const Analytics = () => {
                 notMerge
                 lazyUpdate
                 opts={{ renderer: 'svg' }}
-                style={{ height: '380px', width: '100%' }}
+                style={{ height: chartHeights.tall, width: '100%' }}
               />
               {!hasTopProductsData && (
                 <div className="chart-empty-state">
@@ -1791,7 +1851,7 @@ const Analytics = () => {
                   notMerge
                   lazyUpdate
                   opts={{ renderer: 'svg' }}
-                  style={{ height: '280px', width: '100%' }}
+                  style={{ height: chartHeights.base, width: '100%' }}
                 />
                 {!hasTopCustomersData && (
                   <div className="chart-empty-state">
@@ -1825,7 +1885,9 @@ const Analytics = () => {
               </div>
             }
           >
-            <BranchMap onDataLoaded={setCustomerLocationsData} />
+            <div className="analytics-map-container" style={{ minHeight: chartHeights.map }}>
+              <BranchMap onDataLoaded={setCustomerLocationsData} />
+            </div>
           </Suspense>
         </div>
 
@@ -1857,20 +1919,20 @@ const Analytics = () => {
                 Next 12 Months
               </button>
             </div>
-            <button
+              <button
               className="analytics-header-analyze-btn"
-              type="button"
+                type="button"
               onClick={() => handleAnalyzeClick('salesForecast', { data: salesForecast, filters, range: salesForecastRange })}
-            >
-              Analyze
-            </button>
+              >
+                Analyze
+              </button>
           </div>
           {forecastSummary && hasSalesForecastData && (
             <div className="analytics-summary forecast-summary">
               <div className="summary-card">
                 <div className="summary-icon completed">
                   <FaMoneyBillWave />
-                </div>
+              </div>
                 <div className="summary-content">
                   <h3>Projected Revenue</h3>
                   <p className="summary-value">₱{formatNumber(Math.round(forecastSummary.projectedRevenue || 0))}</p>
@@ -1879,24 +1941,24 @@ const Analytics = () => {
                       ? `${forecastSummary.expectedGrowthRate >= 0 ? '+' : ''}${forecastSummary.expectedGrowthRate.toFixed(1)}% vs baseline`
                       : 'Baseline unavailable'}
                   </p>
-                </div>
               </div>
+          </div>
               <div className="summary-card">
                 <div className="summary-icon processing">
                   <FaShoppingCart />
-                </div>
+        </div>
                 <div className="summary-content">
                   <h3>Projected Orders</h3>
                   <p className="summary-value">{formatNumber(Math.round(forecastSummary.projectedOrders || 0))}</p>
                   <p className="summary-percentage">
                     Avg monthly ₱{formatNumber(Math.round(forecastSummary.averageMonthlyRevenue || 0))}
                   </p>
-                </div>
+          </div>
               </div>
               <div className="summary-card">
                 <div className="summary-icon">
                   <FaChartLine />
-                </div>
+                        </div>
                 <div className="summary-content">
                   <h3>Confidence</h3>
                   <p className="summary-value">
@@ -1905,10 +1967,10 @@ const Analytics = () => {
                   <p className="summary-percentage">
                     Plan spans {forecastSummary.months || 0} {forecastSummary.months === 1 ? 'month' : 'months'}
                   </p>
-                </div>
+                          </div>
+                        </div>
               </div>
-            </div>
-          )}
+            )}
           <div className="chart-container">
             <ReactEChartsCore
               echarts={echarts}
@@ -1916,7 +1978,7 @@ const Analytics = () => {
               notMerge
               lazyUpdate
               opts={{ renderer: 'svg' }}
-              style={{ height: '320px', width: '100%' }}
+              style={{ height: chartHeights.wide, width: '100%' }}
             />
             {forecastLoading ? (
               <div className="chart-empty-state">

@@ -83,6 +83,46 @@ const parseJerseySizes = (sizeValue) => {
   return defaultSizes;
 };
 
+const sanitizeSingleOrderDetails = (details, variant) => {
+  if (!details) return null;
+
+  const sanitized = { ...details, jerseyType: variant || null };
+
+  if (variant === 'shirt') {
+    sanitized.shortsSize = null;
+    sanitized.size = sanitized.jerseySize ?? sanitized.size ?? null;
+  } else if (variant === 'shorts') {
+    sanitized.jerseySize = null;
+    sanitized.size = null;
+  } else {
+    sanitized.size = sanitized.jerseySize ?? sanitized.size ?? null;
+  }
+
+  return sanitized;
+};
+
+const sanitizeTeamMembers = (members, variant) => {
+  if (!Array.isArray(members)) {
+    return [];
+  }
+
+  return members.map(member => {
+    const sanitized = { ...member, jerseyType: variant || null };
+
+    if (variant === 'shirt') {
+      sanitized.shortsSize = null;
+      sanitized.size = sanitized.jerseySize ?? sanitized.size ?? null;
+    } else if (variant === 'shorts') {
+      sanitized.jerseySize = null;
+      sanitized.size = null;
+    } else {
+      sanitized.size = sanitized.jerseySize ?? sanitized.size ?? null;
+    }
+
+    return sanitized;
+  });
+};
+
 const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCartItemId = null, existingCartItemData = null, onAddToCart, onBuyNow, onConfirm }) => {
   // Always call hooks, but only use CartContext when in customer mode (no callbacks provided)
   const isAdminMode = !!(onAddToCart && onBuyNow);
@@ -101,10 +141,22 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [teamMembers, setTeamMembers] = useState(
     existingCartItemData?.teamMembers && existingCartItemData.teamMembers.length > 0
       ? existingCartItemData.teamMembers
-      : [{ id: Date.now(), teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' }]
+      : [{
+          id: Date.now(),
+          teamName: '',
+          surname: '',
+          number: '',
+          jerseySize: 'M',
+          shortsSize: 'M',
+          jerseyType: existingCartItemData?.jerseyType || 'full'
+        }]
   );
   const [teamName, setTeamName] = useState(existingCartItemData?.teamMembers?.[0]?.teamName || '');
-  const [singleOrderDetails, setSingleOrderDetails] = useState(existingCartItemData?.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M' });
+  const [singleOrderDetails, setSingleOrderDetails] = useState(
+    existingCartItemData?.singleOrderDetails
+      ? { ...existingCartItemData.singleOrderDetails, jerseyType: existingCartItemData?.jerseyType || existingCartItemData.singleOrderDetails?.jerseyType || 'full' }
+      : { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M', jerseyType: 'full' }
+  );
   const [sizeType, setSizeType] = useState(existingCartItemData?.sizeType || 'adult'); // 'adult' or 'kids'
   const [jerseyType, setJerseyType] = useState(existingCartItemData?.jerseyType || 'full'); // 'full', 'shirt', 'shorts'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -172,18 +224,41 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setSelectedSize(existingCartItemData.size || 'M');
       setQuantity(existingCartItemData.quantity || 1);
       setIsTeamOrder(existingCartItemData.isTeamOrder || false);
-      setTeamMembers(existingCartItemData.teamMembers || []);
+      const existingTeamMembers = existingCartItemData.teamMembers || [];
+      if (existingTeamMembers.length > 0) {
+        setTeamMembers(existingTeamMembers.map(member => ({
+          ...member,
+          jerseyType: member?.jerseyType || existingCartItemData.jerseyType || member?.jersey_type || null
+        })));
+      } else {
+        setTeamMembers([]);
+      }
       setTeamName(existingCartItemData.teamMembers?.[0]?.teamName || '');
-      setSingleOrderDetails(existingCartItemData.singleOrderDetails || { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M' });
+      setSingleOrderDetails(
+        existingCartItemData.singleOrderDetails
+          ? {
+              ...existingCartItemData.singleOrderDetails,
+              jerseyType: existingCartItemData.jerseyType || existingCartItemData.singleOrderDetails?.jerseyType || 'full'
+            }
+          : { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M', jerseyType: existingCartItemData.jerseyType || 'full' }
+      );
       setJerseyType(existingCartItemData.jerseyType || 'full');
     } else if (isOpen && !existingCartItemData) {
       // Reset to defaults when opening modal for a new product
       setSelectedSize('M');
       setQuantity(1);
       setIsTeamOrder(false);
-      setTeamMembers([{ id: Date.now(), teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M' }]);
+      setTeamMembers([{
+        id: Date.now(),
+        teamName: '',
+        surname: '',
+        number: '',
+        jerseySize: 'M',
+        shortsSize: 'M',
+        jerseyType: 'full'
+      }]);
       setTeamName('');
-      setSingleOrderDetails({ teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M' });
+      setSingleOrderDetails({ teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M', jerseyType: 'full' });
       setJerseyType('full');
     }
   }, [isOpen, existingCartItemData]);
@@ -468,6 +543,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
             next.shortsSize = member.shortsSize || defaultShortSize;
             next.size = next.jerseySize || null;
           }
+          next.jerseyType = jerseyType;
 
           if (
             next.jerseySize !== member.jerseySize ||
@@ -500,6 +576,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           next.shortsSize = prevDetails?.shortsSize || defaultShortSize;
           next.size = next.jerseySize || null;
         }
+        next.jerseyType = jerseyType;
 
         const changed =
           next.jerseySize !== prevDetails?.jerseySize ||
@@ -607,16 +684,26 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       // For trophies, use trophyDetails.size; for other products, use selectedSize
       const sizeValue = isTrophy ? trophyDetails.size : selectedSize;
+      const variantKey = isJerseyCategory ? jerseyType : null;
+      const effectiveTeamMembers = isTeamOrder
+        ? (isApparel ? sanitizeTeamMembers(teamMembers, variantKey) : teamMembers)
+        : null;
+      const effectiveSingleDetails = !isTeamOrder && isApparel
+        ? sanitizeSingleOrderDetails(singleOrderDetails, variantKey)
+        : (!isTeamOrder ? singleOrderDetails : null);
+      const quantityValue = isTeamOrder
+        ? (effectiveTeamMembers ? effectiveTeamMembers.length : 0)
+        : quantity;
       
       const cartOptions = {
         size: sizeValue,
-        quantity: isTeamOrder ? teamMembers.length : quantity,
+        quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: isTeamOrder ? teamMembers : null,
+        teamMembers: effectiveTeamMembers,
         teamName: isTeamOrder ? teamName : null, // Add teamName for team orders
-        singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
+        singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
-        jerseyType: isJerseyCategory ? jerseyType : null, // Add jersey type for jersey products
+        jerseyType: variantKey, // Add jersey type for jersey products
         price: finalPrice, // Use calculated price based on jersey type and size type
         isReplacement: isFromCart, // Mark as replacement when coming from cart
         category: product.category, // Include category
@@ -755,15 +842,25 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       // Use the current price (already calculated with jersey type and size type)
       const finalPrice = currentPrice;
+      const variantKey = isJerseyCategory ? jerseyType : null;
+      const effectiveTeamMembers = isTeamOrder
+        ? (isApparel ? sanitizeTeamMembers(teamMembers, variantKey) : teamMembers)
+        : null;
+      const effectiveSingleDetails = !isTeamOrder && isApparel
+        ? sanitizeSingleOrderDetails(singleOrderDetails, variantKey)
+        : (!isTeamOrder ? singleOrderDetails : null);
+      const quantityValue = isTeamOrder
+        ? (effectiveTeamMembers ? effectiveTeamMembers.length : 0)
+        : quantity;
       
       const buyNowOptions = {
         size: selectedSize,
-        quantity: isTeamOrder ? teamMembers.length : quantity,
+        quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: isTeamOrder ? teamMembers : null,
-        singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
+        teamMembers: effectiveTeamMembers,
+        singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
-        jerseyType: isJerseyCategory ? jerseyType : null, // Add jersey type for jersey products
+        jerseyType: variantKey, // Add jersey type for jersey products
         price: finalPrice, // Use calculated price based on jersey type and size type
         category: product.category, // Include category
         ballDetails: isBall ? ballDetails : null,
@@ -784,12 +881,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         price: finalPrice, // Use calculated price based on jersey type and size type
         image: product.main_image,
         size: selectedSize,
-        quantity: isTeamOrder ? teamMembers.length : quantity,
+        quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: isTeamOrder ? teamMembers : null,
-        singleOrderDetails: !isTeamOrder && isApparel ? singleOrderDetails : null,
+        teamMembers: effectiveTeamMembers,
+        singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
-        jerseyType: isJerseyCategory ? jerseyType : null, // Add jersey type for jersey products
+        jerseyType: variantKey, // Add jersey type for jersey products
         isBuyNow: true, // Mark as Buy Now item
         uniqueId: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
         category: product.category, // Include category

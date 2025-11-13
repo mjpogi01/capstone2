@@ -36,6 +36,10 @@ const CartModal = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+  const toggleItemExpansion = (index) => {
+    setExpandedOrderIndex((prev) => (prev === index ? null : index));
+  };
+
   const handleQuantityChange = (itemId, newQuantity, isTeamOrder) => {
     if (isTeamOrder) {
       // For team orders, redirect to product modal for customization
@@ -176,7 +180,17 @@ const CartModal = () => {
               <>
                 <div className="mycart-items-list-clean">
                   {cartItems.map((item, index) => (
-                    <div key={item.uniqueId || item.id} className="mycart-item-box">
+                    <div
+                      key={item.uniqueId || item.id}
+                      className={`mycart-item-box ${expandedOrderIndex === index ? 'expanded' : ''}`}
+                      onClick={(e) => {
+                        // Ignore clicks originating from interactive child controls
+                        if (e.target.closest('.mycart-checkbox-wrapper') || e.target.closest('.mycart-remove-btn-clean') || e.target.closest('.mycart-quantity-controls')) {
+                          return;
+                        }
+                        toggleItemExpansion(index);
+                      }}
+                    >
                       <div className="mycart-checkbox-wrapper">
                         <input 
                           type="checkbox" 
@@ -195,7 +209,9 @@ const CartModal = () => {
                         />
                       </div>
                       
-                      <div className="mycart-product-info-section">
+                      <div
+                        className="mycart-product-info-section"
+                      >
                         <div className="mycart-product-header-line">
                           <h3 className="mycart-product-name">{item.name}</h3>
                           <button 
@@ -219,7 +235,10 @@ const CartModal = () => {
                                   <>
                                     <div 
                                       className={`mycart-order-type-header ${expandedOrderIndex === index ? 'expanded' : ''}`}
-                                      onClick={() => setExpandedOrderIndex(expandedOrderIndex === index ? null : index)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleItemExpansion(index);
+                                      }}
                                     >
                                       <span className="mycart-order-type-label">
                                         {isTrophy ? 'Trophy Details' : (item.isTeamOrder ? 'Team Order' : 'Single Order')}
@@ -311,10 +330,14 @@ const CartModal = () => {
                           })()}
                         </div>
                         
-                        <div className="mycart-quantity-controls">
+                        {expandedOrderIndex === index && (
+                        <div className="mycart-quantity-controls" onClick={(e) => e.stopPropagation()}>
                           <button 
                             className="mycart-quantity-btn"
-                            onClick={() => handleQuantityChange(item.uniqueId || item.id, item.quantity - 1, item.isTeamOrder)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuantityChange(item.uniqueId || item.id, item.quantity - 1, item.isTeamOrder);
+                            }}
                             disabled={item.quantity <= 1}
                             title={item.quantity <= 1 ? "Minimum quantity reached" : "Decrease quantity"}
                             aria-label={`Decrease quantity of ${item.name}`}
@@ -324,13 +347,17 @@ const CartModal = () => {
                           <span className="mycart-quantity-display" aria-live="polite">{item.quantity}</span>
                           <button 
                             className="mycart-quantity-btn"
-                            onClick={() => handleQuantityChange(item.uniqueId || item.id, item.quantity + 1, item.isTeamOrder)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuantityChange(item.uniqueId || item.id, item.quantity + 1, item.isTeamOrder);
+                            }}
                             title="Increase quantity"
                             aria-label={`Increase quantity of ${item.name}`}
                           >
                             <FontAwesomeIcon icon={faPlus} />
                           </button>
                         </div>
+                        )}
                         
                         <div className="mycart-price-display">
                           <span className="mycart-item-price">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
