@@ -10,7 +10,8 @@ import {
   faExclamationTriangle,
   faInfoCircle,
   faTasks,
-  faComments
+  faComments,
+  faLock
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import artistDashboardService from '../../services/artistDashboardService';
@@ -119,18 +120,28 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
 
   const handleStatusUpdate = async (taskId, newStatus) => {
     try {
+      console.log('🔄 Updating task status:', taskId, 'to', newStatus);
       await artistDashboardService.updateTaskStatus(taskId, newStatus);
       
-      setTasks(tasks.map(task => 
-        task.id === taskId 
-          ? { ...task, status: newStatus }
-          : task
-      ));
+      // Refetch tasks to get updated started_at timestamp and status
+      await fetchArtistTasks();
       
-      setShowTaskModal(false);
+      // Update the selected task in the modal with the new data
+      const updatedTasks = await artistDashboardService.getArtistTasks();
+      const updatedTask = updatedTasks.find(t => t.id === taskId);
+      if (updatedTask) {
+        setSelectedTask(updatedTask);
+      }
+      
+      // Only close modal if explicitly requested (not for starting tasks)
+      // For starting tasks, keep modal open to show the unlocked details
+      if (newStatus !== 'in_progress') {
+        setShowTaskModal(false);
+      }
     } catch (error) {
       console.error('Error updating task status:', error);
-      alert('Failed to update task status. Please try again.');
+      alert(error.message || 'Failed to update task status. Please try again.');
+      throw error; // Re-throw so the modal can handle it
     }
   };
 
@@ -233,7 +244,15 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
                 </div>
                 
                 <div className="task-details">
-                  <div className="task-description">{task.task_description}</div>
+                  <div className="task-description">
+                    {!task.started_at && task.status === 'pending' ? (
+                      <span className="blind-task-indicator">
+                        <FontAwesomeIcon icon={faLock} /> Order details hidden - Start task to view
+                      </span>
+                    ) : (
+                      task.task_description
+                    )}
+                  </div>
                   <div className="task-meta">
                     <span className="task-type">{getOrderTypeLabel(task)}</span>
                     <span className="task-deadline">
