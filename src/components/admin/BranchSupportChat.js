@@ -219,49 +219,51 @@ const BranchSupportChat = () => {
 
       <div className="admin-branch-support-body">
         <div className="admin-branch-support-list">
-          {loadingRooms ? (
-            <div className="admin-branch-support-empty">
-              <FontAwesomeIcon icon={faSpinner} spin />
-              <p>Loading chats…</p>
-            </div>
-          ) : rooms.length === 0 ? (
-            <div className="admin-branch-support-empty">
-              <FontAwesomeIcon icon={faComments} />
-              <p>No branch chats found</p>
-              <span>Conversations from customers will appear here.</span>
-            </div>
-          ) : (
-            rooms.map((room) => {
-              const branch = branchLookup.get(room.branch_id) || room.branch || {};
-              const isActive = room.id === selectedRoomId;
-              return (
-                <button
-                  key={room.id}
-                  className={`admin-branch-support-room ${isActive ? 'active' : ''}`}
-                  onClick={() => handleRoomSelect(room.id)}
-                >
-                  <div className="admin-branch-support-room-icon">
-                    <FontAwesomeIcon icon={faBuilding} />
-                  </div>
-                  <div className="admin-branch-support-room-info">
-                    <h3>{branch.name || 'Branch'}</h3>
-                    <p>
-                      <FontAwesomeIcon icon={faUserCircle} />
-                      Customer ID: {room.customer_id?.slice(0, 8)}…
-                    </p>
-                    <div className="admin-branch-support-room-meta">
-                      <span className={`admin-branch-support-status-pill admin-branch-support-status-${room.status}`}>
-                        {room.status}
-                      </span>
-                      {room.last_message_at && (
-                        <span>{new Date(room.last_message_at).toLocaleString()}</span>
-                      )}
+          <div className="admin-branch-support-list-content">
+            {loadingRooms ? (
+              <div className="admin-branch-support-empty">
+                <FontAwesomeIcon icon={faSpinner} spin />
+                <p>Loading chats…</p>
+              </div>
+            ) : rooms.length === 0 ? (
+              <div className="admin-branch-support-empty">
+                <FontAwesomeIcon icon={faComments} />
+                <p>No branch chats found</p>
+                <span>Conversations from customers will appear here.</span>
+              </div>
+            ) : (
+              rooms.map((room) => {
+                const branch = branchLookup.get(room.branch_id) || room.branch || {};
+                const isActive = room.id === selectedRoomId;
+                return (
+                  <button
+                    key={room.id}
+                    className={`admin-branch-support-room ${isActive ? 'active' : ''}`}
+                    onClick={() => handleRoomSelect(room.id)}
+                  >
+                    <div className="admin-branch-support-room-icon">
+                      <FontAwesomeIcon icon={faBuilding} />
                     </div>
-                  </div>
-                </button>
-              );
-            })
-          )}
+                    <div className="admin-branch-support-room-info">
+                      <h3>{branch.name || 'Branch'}</h3>
+                      <p>
+                        <FontAwesomeIcon icon={faUserCircle} />
+                        Customer ID: {room.customer_id?.slice(0, 8)}…
+                      </p>
+                      <div className="admin-branch-support-room-meta">
+                        <span className={`admin-branch-support-status-pill admin-branch-support-status-${room.status}`}>
+                          {room.status}
+                        </span>
+                        {room.last_message_at && (
+                          <span>{new Date(room.last_message_at).toLocaleString()}</span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
 
         <div className="admin-branch-support-chat">

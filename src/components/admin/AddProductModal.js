@@ -360,6 +360,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     'adults': false,
     'kids': false
   });
+  const [activeJerseyTab, setActiveJerseyTab] = useState('adults');
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
 
   const predefinedCategories = [
@@ -601,17 +602,23 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       const normalizedSizeSurcharges = normalizeSizeSurcharges(
         editingProduct.size_surcharges
       );
+      // Clear surcharges for trophy category (trophy sizes use 'general' group)
+      if (isTrophyCategory(editingProduct.category)) {
+        normalizedSizeSurcharges.general = {};
+      }
       setSizeSurcharges(normalizedSizeSurcharges);
 
       let normalizedFabricSurcharges = normalizeFabricSurcharges(
         editingProduct.fabric_surcharges
       );
 
-      if (
+      // Clear fabric surcharges for trophy category
+      if (isTrophyCategory(editingProduct.category)) {
+        normalizedFabricSurcharges = {};
+      } else if (
         Object.keys(normalizedFabricSurcharges).length === 0 &&
         (isJerseyCategory(editingProduct.category) ||
-          isApparelCategory(editingProduct.category) ||
-          isTrophyCategory(editingProduct.category))
+          isApparelCategory(editingProduct.category))
       ) {
         normalizedFabricSurcharges = { ...DEFAULT_FABRIC_SURCHARGES };
       }
@@ -721,7 +728,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
   const renderFabricSurchargeSection = () => {
     const supportsFabric =
-      jerseyCategorySelected || apparelCategorySelected || trophyCategorySelected;
+      jerseyCategorySelected || apparelCategorySelected;
     if (!supportsFabric) return null;
 
     const fabricEntries = Object.entries(fabricSurcharges);
@@ -1125,7 +1132,12 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
       if (name === 'category') {
         setSizeSurcharges(createEmptySizeSurcharges());
-        setFabricSurcharges({ ...DEFAULT_FABRIC_SURCHARGES });
+        // Clear fabric surcharges for trophy category, otherwise use defaults
+        if (isTrophyCategory(value)) {
+          setFabricSurcharges({});
+        } else {
+          setFabricSurcharges({ ...DEFAULT_FABRIC_SURCHARGES });
+        }
         setFabricError('');
 
         if (isTrophyCategory(value)) {
@@ -1378,6 +1390,14 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
   const handleRemoveAvailableSize = (sizeToRemove) => {
     setAvailableSizes(prev => prev.filter(size => size !== sizeToRemove));
+    // Remove trophy price when size is removed (for trophy category)
+    if (isTrophyCategory(formData.category)) {
+      setTrophyPrices(prev => {
+        const updated = { ...prev };
+        delete updated[sizeToRemove];
+        return updated;
+      });
+    }
     setSizeInputError('');
   };
 
@@ -1816,8 +1836,19 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         priceValue = parseFloat(formData.price);
       }
 
-      const sizeSurchargePayload = buildSizeSurchargesPayload(sizeSurcharges);
-      const fabricSurchargePayload = buildFabricSurchargesPayload(fabricSurcharges);
+      // For trophy products, exclude 'general' group surcharges (trophy sizes use 'general' group)
+      let surchargesToSave = sizeSurcharges;
+      if (isTrophyProduct) {
+        surchargesToSave = {
+          ...sizeSurcharges,
+          general: {} // Clear general group surcharges for trophy products
+        };
+      }
+      const sizeSurchargePayload = buildSizeSurchargesPayload(surchargesToSave);
+      // For trophy products, exclude fabric surcharges
+      const fabricSurchargePayload = isTrophyProduct 
+        ? null 
+        : buildFabricSurchargesPayload(fabricSurcharges);
       const cutTypeSurchargePayload = buildCutTypeSurchargesPayload(cutTypeSurcharges);
 
       console.log('🧪 [AddProductModal] Built surcharge payloads:', {
@@ -1922,80 +1953,34 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
           <div className="apm-form-row">
             <div className="apm-image-section">
               <h3 className="apm-image-section-title">Product Images</h3>
-              <div className="apm-main-image-upload">
-                {mainImage ? (
-                  <div className="apm-uploaded-image">
-                    <img src={mainImage} alt="Main product" />
-                        <button
-                          type="button"
-                          className="apm-remove-image"
-                          onClick={() => setMainImage(null)}
-                        >
-                          {'×'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="apm-image-placeholder">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleMainImageUpload}
-                      disabled={uploadingImages && uploadingSlot === 'main'}
-                      style={{ display: 'none' }}
-                      id="main-image-upload"
-                    />
-                    <label htmlFor="main-image-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
-                      {uploadingImages && uploadingSlot === 'main' ? (
-                        <div className="apm-uploading-overlay">
-                          <div className="apm-uploading-spinner"></div>
-                          <p>Uploading...</p>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="apm-image-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                              <circle cx="12" cy="13" r="3"/>
-                            </svg>
-                          </div>
-                          <p>Click to upload main image</p>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                )}
-              </div>
-              <div className="apm-additional-images">
-                {Array.from({ length: 3 }).map((_, index) => {
-                  const image = additionalImages[index];
-
-                  if (image) {
-                    return (
-                      <div key={`image-${index}`} className="apm-uploaded-image apm-uploaded-image--small">
-                        <img src={image} alt={`Additional ${index + 1}`} />
-                        <button
-                          type="button"
-                          className="apm-remove-image"
-                          onClick={() => setAdditionalImages(prev => prev.filter((_, i) => i !== index))}
-                        >
-                          {'×'}
-                        </button>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div key={`placeholder-${index}`} className="apm-image-placeholder apm-image-placeholder--small">
+              
+              {/* Main Image Section */}
+              <div className="apm-image-subsection">
+                <div className="apm-main-image-upload">
+                  {mainImage ? (
+                    <div className="apm-uploaded-image">
+                      <img src={mainImage} alt="Main product" />
+                      <button
+                        type="button"
+                        className="apm-remove-image"
+                        onClick={() => setMainImage(null)}
+                        aria-label="Remove main image"
+                      >
+                        {'×'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="apm-image-placeholder">
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(event) => handleAdditionalImageUpload(event, index)}
-                        disabled={uploadingImages && uploadingSlot === 'additional' && uploadingAdditionalIndex === index}
+                        onChange={handleMainImageUpload}
+                        disabled={uploadingImages && uploadingSlot === 'main'}
                         style={{ display: 'none' }}
-                        id={`additional-image-${index}`}
+                        id="main-image-upload"
                       />
-                      <label htmlFor={`additional-image-${index}`} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
-                        {uploadingImages && uploadingSlot === 'additional' && uploadingAdditionalIndex === index ? (
+                      <label htmlFor="main-image-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
+                        {uploadingImages && uploadingSlot === 'main' ? (
                           <div className="apm-uploading-overlay">
                             <div className="apm-uploading-spinner"></div>
                             <p>Uploading...</p>
@@ -2003,18 +1988,74 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                         ) : (
                           <>
                             <div className="apm-image-icon">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
                                 <circle cx="12" cy="13" r="3"/>
                               </svg>
                             </div>
-                            <p>+</p>
+                            <p>Click to upload main image</p>
                           </>
                         )}
                       </label>
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Images Section */}
+              <div className="apm-image-subsection">
+                <div className="apm-additional-images">
+                  {Array.from({ length: 3 }).map((_, index) => {
+                    const image = additionalImages[index];
+
+                    if (image) {
+                      return (
+                        <div key={`image-${index}`} className="apm-uploaded-image apm-uploaded-image--small">
+                          <img src={image} alt={`Additional ${index + 1}`} />
+                          <button
+                            type="button"
+                            className="apm-remove-image"
+                            onClick={() => setAdditionalImages(prev => prev.filter((_, i) => i !== index))}
+                            aria-label={`Remove additional image ${index + 1}`}
+                          >
+                            {'×'}
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={`placeholder-${index}`} className="apm-image-placeholder apm-image-placeholder--small">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => handleAdditionalImageUpload(event, index)}
+                          disabled={uploadingImages && uploadingSlot === 'additional' && uploadingAdditionalIndex === index}
+                          style={{ display: 'none' }}
+                          id={`additional-image-${index}`}
+                        />
+                        <label htmlFor={`additional-image-${index}`} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
+                          {uploadingImages && uploadingSlot === 'additional' && uploadingAdditionalIndex === index ? (
+                            <div className="apm-uploading-overlay">
+                              <div className="apm-uploading-spinner"></div>
+                              <p>Uploading...</p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="apm-image-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                                  <circle cx="12" cy="13" r="3"/>
+                                </svg>
+                              </div>
+                              <p>+</p>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -2189,7 +2230,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                 </div>
               </div>
 
-            {isApparelCategory(formData.category) && (
+            {isApparelCategory(formData.category) && !jerseyCategorySelected && (
               shouldShowShorts(formData.category)
                 ? renderJerseyPriceSection()
                 : renderSimplePriceSection('Base Price')
@@ -2256,39 +2297,6 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                                 }}
                               />
                             </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
-                            <label style={{ fontSize: '0.75rem', color: '#6b7280', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                              Surcharge:
-                            </label>
-                            <div className="apm-size-surcharge-input" style={{ flex: '0 0 140px' }}>
-                              <span className="apm-currency-prefix">₱</span>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={sizeSurcharges.general?.[size] ?? ''}
-                                onChange={(e) => handleSizeSurchargeChange('general', size, e.target.value)}
-                                placeholder="0.00"
-                              />
-                            </div>
-                            {(sizeSurcharges.general?.[size] ?? '') !== '' && (
-                              <button
-                                type="button"
-                                className="apm-size-surcharge-clear"
-                                onClick={() => handleSizeSurchargeChange('general', size, '')}
-                                aria-label={`Clear surcharge for ${size}`}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#6b7280',
-                                  cursor: 'pointer',
-                                  fontSize: '1rem',
-                                  padding: '0.25rem 0.5rem'
-                                }}
-                              >
-                                ×
-                              </button>
-                            )}
-                            </div>
                             <button
                               type="button"
                               aria-label={`Remove size ${size}`}
@@ -2329,22 +2337,92 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                 <div className="apm-form-group apm-jersey-sizes-section">
                   <label>Available Sizes for Jerseys</label>
                   
-                  {/* Adults - Shirt and Short Sizes */}
-                  <div className="apm-jersey-size-group">
+                  {/* Tabs for Adults and Kids */}
+                  <div className="apm-jersey-tabs">
                     <button
                       type="button"
-                      className="apm-jersey-size-group-header"
-                      onClick={() => toggleGroupCollapse('adults')}
-                      aria-label={collapsedGroups['adults'] ? 'Expand' : 'Collapse'}
+                      className={`apm-jersey-tab ${activeJerseyTab === 'adults' ? 'apm-jersey-tab--active' : ''}`}
+                      onClick={() => setActiveJerseyTab('adults')}
                     >
-                      <h4 className="apm-jersey-size-group-title">Adults Sizes</h4>
-                      <FontAwesomeIcon 
-                        icon={collapsedGroups['adults'] ? faChevronDown : faChevronUp} 
-                        className="apm-jersey-group-chevron"
-                      />
+                      Adults
                     </button>
-                    {!collapsedGroups['adults'] && (
-                      <div className="apm-jersey-size-group-content">
+                    <button
+                      type="button"
+                      className={`apm-jersey-tab ${activeJerseyTab === 'kids' ? 'apm-jersey-tab--active' : ''}`}
+                      onClick={() => setActiveJerseyTab('kids')}
+                    >
+                      Kids
+                    </button>
+                  </div>
+
+                  {/* Adults Tab Content */}
+                  {activeJerseyTab === 'adults' && (
+                    <div className="apm-jersey-tab-content">
+                        {/* Adults Prices */}
+                        {shouldShowShorts(formData.category) && (
+                          <div className="apm-section-block">
+                            <div className="apm-form-group">
+                              <label>Adults Jersey Prices</label>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div>
+                                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                                    Full Set Price <span style={{ color: '#ef4444' }}>*</span>
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={jerseyPrices.fullSet}
+                                    onChange={(e) =>
+                                      setJerseyPrices((prev) => ({ ...prev, fullSet: e.target.value }))
+                                    }
+                                    required
+                                    placeholder="0.00"
+                                    step="0.01"
+                                    min="0"
+                                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                                    Shirt Only Price <span style={{ color: '#ef4444' }}>*</span>
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={jerseyPrices.shirtOnly}
+                                    onChange={(e) =>
+                                      setJerseyPrices((prev) => ({ ...prev, shirtOnly: e.target.value }))
+                                    }
+                                    required
+                                    placeholder="0.00"
+                                    step="0.01"
+                                    min="0"
+                                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                                    Shorts Only Price <span style={{ color: '#ef4444' }}>*</span>
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={jerseyPrices.shortsOnly}
+                                    onChange={(e) =>
+                                      setJerseyPrices((prev) => ({ ...prev, shortsOnly: e.target.value }))
+                                    }
+                                    required
+                                    placeholder="0.00"
+                                    step="0.01"
+                                    min="0"
+                                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                                  />
+                                </div>
+                              </div>
+                              <small className="apm-form-help">
+                                Set default pricing for full set, shirt only, and shorts only options for adults.
+                              </small>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Shirt Sizes - Adults */}
                         <div className="apm-jersey-size-subgroup">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -2486,26 +2564,86 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                           'Add adult jersey sizes to enable surcharges.',
                           'Set optional surcharges for adult jersey sizes. Leave blank to keep the base price.'
                         )}
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
-                  {/* Kids - Shirt and Short Sizes */}
-                  <div className="apm-jersey-size-group">
-                    <button
-                      type="button"
-                      className="apm-jersey-size-group-header"
-                      onClick={() => toggleGroupCollapse('kids')}
-                      aria-label={collapsedGroups['kids'] ? 'Expand' : 'Collapse'}
-                    >
-                      <h4 className="apm-jersey-size-group-title">Kids Sizes</h4>
-                      <FontAwesomeIcon 
-                        icon={collapsedGroups['kids'] ? faChevronDown : faChevronUp} 
-                        className="apm-jersey-group-chevron"
-                      />
-                    </button>
-                    {!collapsedGroups['kids'] && (
-                      <div className="apm-jersey-size-group-content">
+                  {/* Kids Tab Content */}
+                  {activeJerseyTab === 'kids' && (
+                    <div className="apm-jersey-tab-content">
+                        {/* Kids Prices */}
+                        {shouldShowShorts(formData.category) && (() => {
+                          const kidsShirtSizes = jerseySizes.shirts?.kids ?? [];
+                          const kidsShortSizes = jerseySizes.shorts?.kids ?? [];
+                          const hasKidsSizes = kidsShirtSizes.length > 0 || kidsShortSizes.length > 0;
+                          
+                          return (
+                            <div className="apm-section-block">
+                              <div className="apm-form-group">
+                                <label>Kids Jersey Prices</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                  <div>
+                                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                                      Full Set Price (Kids)
+                                      {hasKidsSizes && <span style={{ color: '#ef4444', marginLeft: '0.25rem' }}>*</span>}
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={jerseyPrices.fullSetKids}
+                                      onChange={(e) =>
+                                        setJerseyPrices((prev) => ({ ...prev, fullSetKids: e.target.value }))
+                                      }
+                                      required={hasKidsSizes}
+                                      placeholder="0.00"
+                                      step="0.01"
+                                      min="0"
+                                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                                      Shirt Only Price (Kids)
+                                      {hasKidsSizes && <span style={{ color: '#ef4444', marginLeft: '0.25rem' }}>*</span>}
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={jerseyPrices.shirtOnlyKids}
+                                      onChange={(e) =>
+                                        setJerseyPrices((prev) => ({ ...prev, shirtOnlyKids: e.target.value }))
+                                      }
+                                      required={hasKidsSizes}
+                                      placeholder="0.00"
+                                      step="0.01"
+                                      min="0"
+                                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>
+                                      Shorts Only Price (Kids)
+                                      {hasKidsSizes && <span style={{ color: '#ef4444', marginLeft: '0.25rem' }}>*</span>}
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={jerseyPrices.shortsOnlyKids}
+                                      onChange={(e) =>
+                                        setJerseyPrices((prev) => ({ ...prev, shortsOnlyKids: e.target.value }))
+                                      }
+                                      required={hasKidsSizes}
+                                      placeholder="0.00"
+                                      step="0.01"
+                                      min="0"
+                                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }}
+                                    />
+                                  </div>
+                                </div>
+                                <small className="apm-form-help">
+                                  Set default pricing for full set, shirt only, and shorts only options for kids. Prices become required when you add kids sizes.
+                                </small>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         {/* Shirt Sizes - Kids */}
                         <div className="apm-jersey-size-subgroup">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -2647,9 +2785,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                           'Add kids jersey sizes to enable surcharges.',
                           'Set optional surcharges for kids jersey sizes. Leave blank to keep the base price.'
                         )}
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {sizeInputError && (
                   <div className="apm-form-inline-error">{sizeInputError}</div>
