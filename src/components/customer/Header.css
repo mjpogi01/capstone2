@@ -33,6 +33,7 @@
   object-fit: contain;
   filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.5));
   max-width: 120px;
+  cursor: default;
 }
 
 /* Header sections - prevent movement */
@@ -75,7 +76,7 @@
   font-size: 0.95rem;
   transition: all 0.3s ease;
   position: relative;
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Poppins', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
   border: none !important;
@@ -614,7 +615,7 @@
   letter-spacing: 1px;
   text-align: center;
   white-space: nowrap;
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .filter-options {
@@ -669,7 +670,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   min-width: 120px;
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .apply-filters {
@@ -907,7 +908,7 @@
   background: rgba(0, 191, 255, 0.05);
   color: #ffffff;
   font-size: 0.95rem;
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-weight: 400;
   min-width: 0;
   outline: none;
@@ -917,7 +918,7 @@
 
 .yohanns-search-input::placeholder {
   color: #999;
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .yohanns-search-input:focus {
@@ -1254,15 +1255,10 @@
     align-items: center;
   }
   
-  .logo a {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
   .logo-image {
     height: 40px;
     display: block;
+    cursor: default;
   }
   
   /* Search Icon - RIGHT COLUMN */
@@ -1495,7 +1491,7 @@
     font-size: 0.9rem;
     font-weight: 600;
     transition: all 0.3s ease;
-    font-family: 'Oswald', sans-serif;
+    font-family: 'Poppins', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     cursor: pointer;
@@ -1670,15 +1666,10 @@
     align-items: center;
   }
   
-  .logo a {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
   .logo-image {
     height: 40px;
     display: block;
+    cursor: default;
   }
   
   /* Search Icon - RIGHT COLUMN */
@@ -1907,7 +1898,7 @@
     font-size: 0.92rem;
     font-weight: 600;
     transition: all 0.3s ease;
-    font-family: 'Oswald', sans-serif;
+    font-family: 'Poppins', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     cursor: pointer;
@@ -2067,7 +2058,7 @@
     font-size: 0.95rem;
     transition: all 0.3s ease;
     position: relative;
-    font-family: 'Oswald', sans-serif;
+    font-family: 'Poppins', sans-serif;
     text-transform: uppercase;
     letter-spacing: 1px;
     border: none !important;

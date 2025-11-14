@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FAQs.css';
 
 const FAQs = () => {
-  const [openFAQ, setOpenFAQ] = useState(null);
   const navigate = useNavigate();
 
   const faqs = [
@@ -40,10 +39,6 @@ const FAQs = () => {
       answer: "Absolutely! We encourage customers to visit our branches to see our products in person and get personalized assistance from our staff."
     }
   ];
-
-  const toggleFAQ = (index) => {
-    setOpenFAQ(openFAQ === index ? null : index);
-  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -88,26 +83,20 @@ const FAQs = () => {
           </p>
         </div>
 
-        {/* FAQs Section */}
+        {/* FAQs Section - Two Columns */}
         <div className="faqs-section">
-          {faqs.map((faq, index) => (
-            <div key={index} className={`faq-item reveal reveal-delay-${(index % 5) + 1}`}>
-              <button
-                onClick={() => toggleFAQ(index)}
-                className="faq-question-button"
-              >
-                <span className="faq-question-text">{faq.question}</span>
-                <span className={`faq-toggle-icon ${openFAQ === index ? 'open' : ''}`}>
-                  +
-                </span>
-              </button>
-              {openFAQ === index && (
+          <div className="faqs-grid">
+            {faqs.map((faq, index) => (
+              <div key={index} className={`faq-item reveal reveal-delay-${(index % 5) + 1}`}>
+                <div className="faq-question">
+                  <span className="faq-question-text">{faq.question}</span>
+                </div>
                 <div className="faq-answer">
                   {faq.answer}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Contact Section */}

@@ -225,13 +225,11 @@ const Header = () => {
       <div className="header-top">
         <div className="header-left">
           <div className="logo">
-            <Link to="/">
-              <img 
-                src={logo} 
-                alt="YOHANNS Sportswear House" 
-                className="logo-image"
-              />
-            </Link>
+            <img 
+              src={logo} 
+              alt="YOHANNS Sportswear House" 
+              className="logo-image"
+            />
           </div>
         </div>
         

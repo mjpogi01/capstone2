@@ -3,8 +3,8 @@
    Standardized margins, padding, and typography
    ============================================ */
 
-/* Import consistent font family */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Import consistent font families */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700&display=swap');
 
 /* Global page wrapper - consistent for all pages */
 .page-wrapper {
@@ -39,7 +39,7 @@
   text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
   margin-bottom: 1rem;
   letter-spacing: -0.02em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* Page subtitle/description - standardized */
@@ -50,7 +50,7 @@
   margin: 0 auto;
   line-height: 1.6;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 /* Content sections - consistent spacing */
@@ -65,7 +65,7 @@
   color: #ffffff;
   margin-bottom: 2rem;
   text-align: center;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* Card styling - consistent across pages */
@@ -98,7 +98,7 @@
   color: #a9d8ff;
   line-height: 1.6;
   font-weight: 400;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 /* Buttons - standardized */
@@ -110,7 +110,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   border: none;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
   letter-spacing: 0.01em;
 }
 
