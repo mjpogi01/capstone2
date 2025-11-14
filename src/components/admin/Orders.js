@@ -58,6 +58,7 @@ const Orders = () => {
   const updatingOrdersRef = React.useRef(new Set());
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [orderApprovalStatus, setOrderApprovalStatus] = useState({}); // Track approval status per order
+  const [assignedArtists, setAssignedArtists] = useState({}); // Track assigned artists per order
   
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -148,6 +149,31 @@ const Orders = () => {
 
     fetchOrders();
   }, [filters.pickupBranch, filters.status, pagination.page, pagination.limit]);
+
+  // Fetch assigned artist when order is expanded
+  useEffect(() => {
+    const fetchArtist = async () => {
+      if (expandedOrder) {
+        try {
+          const orderWithArtist = await orderService.getOrderWithArtist(expandedOrder);
+          if (orderWithArtist.assignedArtist) {
+            setAssignedArtists(prev => ({
+              ...prev,
+              [expandedOrder]: orderWithArtist.assignedArtist
+            }));
+          }
+        } catch (error) {
+          console.log('No artist assigned to order:', expandedOrder);
+          setAssignedArtists(prev => ({
+            ...prev,
+            [expandedOrder]: null
+          }));
+        }
+      }
+    };
+
+    fetchArtist();
+  }, [expandedOrder]);
 
   // Apply filters and sorting
   useEffect(() => {
@@ -1030,6 +1056,17 @@ const Orders = () => {
                           {order.deliveryAddress?.address || 'N/A'}
                         </span>
                       </div>
+                      {assignedArtists[expandedOrder] && (
+                        <div className="yh-customer-info-row">
+                          <span className="yh-customer-label">
+                            <FaPalette className="yh-customer-icon" />
+                            Assigned Artist:
+                          </span>
+                          <span className="yh-customer-value">
+                            {assignedArtists[expandedOrder].artist_name || 'N/A'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -1182,21 +1219,39 @@ const Orders = () => {
                                          <tr>
                                            <th>Surname</th>
                                            <th>Jersey #</th>
-                                           {showTeamJerseySize && <th>Jersey Size</th>}
-                                           {showTeamShortsSize && <th>Shorts Size</th>}
-                                           <th>Type</th>
+                                           <th>Jersey Type</th>
+                                           <th>Fabric</th>
+                                           <th>Cut Type</th>
+                                           <th>Size Type</th>
+                                           {(showTeamJerseySize || item.teamMembers.some(m => Boolean(m?.jerseySize || m?.size))) && <th>Jersey Size</th>}
+                                           {(showTeamShortsSize || item.teamMembers.some(m => Boolean(m?.shortsSize))) && <th>Shorts Size</th>}
                                          </tr>
                                        </thead>
                                        <tbody>
-                                         {item.teamMembers.map((member, memberIndex) => (
-                                           <tr key={memberIndex}>
-                                             <td>{member.surname || 'N/A'}</td>
-                                             <td>{member.number || 'N/A'}</td>
-                                             {showTeamJerseySize && <td>{member.jerseySize || member.size || 'N/A'}</td>}
-                                             {showTeamShortsSize && <td>{member.shortsSize || 'N/A'}</td>}
-                                             <td>{member.sizingType || item.sizeType || 'Adult'}</td>
-                                           </tr>
-                                         ))}
+                                         {item.teamMembers.map((member, memberIndex) => {
+                                           const memberJerseyType = member.jerseyType || member.jersey_type || 'full';
+                                           const memberFabricOption = member.fabricOption || member.fabric_option || '';
+                                           const memberCutType = member.cutType || member.cut_type || '';
+                                           const memberSizingType = member.sizingType || member.sizing_type || item.sizeType || 'adult';
+                                           const jerseyTypeLabel = memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                           
+                                           return (
+                                             <tr key={memberIndex}>
+                                               <td>{(member.surname || member.lastName || 'N/A').toUpperCase()}</td>
+                                               <td>{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</td>
+                                               <td>{jerseyTypeLabel}</td>
+                                               <td>{memberFabricOption || 'N/A'}</td>
+                                               <td>{memberCutType || 'N/A'}</td>
+                                               <td>{memberSizingType === 'kids' ? 'Kids' : 'Adult'}</td>
+                                               {(showTeamJerseySize || item.teamMembers.some(m => Boolean(m?.jerseySize || m?.size))) && (
+                                                 <td>{(memberJerseyType === 'full' || memberJerseyType === 'shirt') ? (member.jerseySize || member.size || 'N/A') : '-'}</td>
+                                               )}
+                                               {(showTeamShortsSize || item.teamMembers.some(m => Boolean(m?.shortsSize))) && (
+                                                 <td>{(memberJerseyType === 'full' || memberJerseyType === 'shorts') ? (member.shortsSize || 'N/A') : '-'}</td>
+                                               )}
+                                             </tr>
+                                           );
+                                         })}
                                        </tbody>
                                      </table>
                                     );
@@ -1221,23 +1276,32 @@ const Orders = () => {
                                             <th>Team</th>
                                             <th>Surname</th>
                                             <th>Jersey #</th>
-                                            {showSingleJerseySize && <th>Jersey Size</th>}
-                                            {showSingleShortsSize && <th>Shorts Size</th>}
-                                            <th>Type</th>
+                                            <th>Jersey Type</th>
+                                            <th>Fabric</th>
+                                            <th>Cut Type</th>
+                                            <th>Size Type</th>
+                                            {(showSingleJerseySize || Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size)) && <th>Jersey Size</th>}
+                                            {(showSingleShortsSize || Boolean(item.singleOrderDetails?.shortsSize)) && <th>Shorts Size</th>}
                                           </tr>
                                         </thead>
                                         <tbody>
                                           <tr>
-                                            <td>{item.singleOrderDetails.teamName || 'N/A'}</td>
-                                            <td>{item.singleOrderDetails.surname || 'N/A'}</td>
-                                            <td>{item.singleOrderDetails.number || 'N/A'}</td>
-                                            {showSingleJerseySize && (
+                                            <td>{item.singleOrderDetails.teamName || item.singleOrderDetails?.team_name || 'N/A'}</td>
+                                            <td>{(item.singleOrderDetails.surname || item.singleOrderDetails?.lastName || 'N/A').toUpperCase()}</td>
+                                            <td>{item.singleOrderDetails.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</td>
+                                            <td>{(() => {
+                                              const jerseyType = item.jerseyType || item.singleOrderDetails?.jerseyType || 'full';
+                                              return jerseyType === 'shirt' ? 'Shirt Only' : jerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                            })()}</td>
+                                            <td>{item.fabricOption || item.singleOrderDetails?.fabricOption || 'N/A'}</td>
+                                            <td>{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</td>
+                                            <td>{(item.singleOrderDetails.sizingType || item.sizeType || 'adult') === 'kids' ? 'Kids' : 'Adult'}</td>
+                                            {(showSingleJerseySize || Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size)) && (
                                             <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
                                             )}
-                                            {showSingleShortsSize && (
+                                            {(showSingleShortsSize || Boolean(item.singleOrderDetails?.shortsSize)) && (
                                               <td>{item.singleOrderDetails.shortsSize || 'N/A'}</td>
                                             )}
-                                            <td>{item.singleOrderDetails.sizingType || item.sizeType || 'Adult'}</td>
                                           </tr>
                                         </tbody>
                                       </table>
@@ -1307,9 +1371,198 @@ const Orders = () => {
                         </div>
                       </div>
                       
+                      {/* Order Status Flow Guide */}
+                      <div className="status-flow-guide">
+                        <h5><FaArrowRight className="flow-icon" /> Order Status Flow:</h5>
+                        <div className="flow-steps">
+                          {['pending', 'confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing', 'picked_up_delivered'].map((stage, index, arr) => {
+                            const stageIndex = arr.indexOf(order.status);
+                            const currentStageIndex = arr.indexOf(stage);
+                            const isActive = order.status === stage;
+                            const isCompleted = stageIndex > currentStageIndex && stageIndex >= 0;
+                            
+                            return (
+                              <React.Fragment key={stage}>
+                                <span className={`flow-step ${isActive ? 'active' : isCompleted ? 'completed' : ''}`}>
+                                  {getStatusDisplayName(stage)}
+                                </span>
+                                {index < arr.length - 1 && <span className="flow-arrow"><FaArrowRight /></span>}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
                       <p className="status-description">
                         Update the order status as it progresses through fulfillment.
                       </p>
+                      
+                      {/* Assigned Artist */}
+                      {assignedArtists[expandedOrder] && (
+                        <div className="status-info-card" style={{ marginTop: '0.75rem', marginBottom: '1.5rem' }}>
+                          <span className="status-label">
+                            <FaPalette style={{ marginRight: '0.5rem' }} />
+                            Assigned Artist:
+                          </span>
+                          <span className="status-value" style={{ color: 'var(--text-primary)' }}>
+                            {assignedArtists[expandedOrder].artist_name || 'N/A'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Pending Orders - Confirm/Cancel Buttons */}
+                      {order.status === 'pending' && (
+                        <div className="orders-pending-action-buttons">
+                          <button 
+                            className="orders-status-update-btn orders-confirm-btn"
+                            onClick={() => handleStatusUpdate(order.id, 'confirmed')}
+                          >
+                            <FaCheck className="orders-status-icon" /> Confirm Order
+                          </button>
+                          <button 
+                            className="orders-status-update-btn orders-cancel-btn"
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to cancel this order?')) {
+                                handleStatusUpdate(order.id, 'cancelled');
+                              }
+                            }}
+                          >
+                            <FaTimes className="orders-status-icon" /> Cancel Order
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Status Update Buttons - For all statuses except pending */}
+                      {order.status !== 'pending' && (
+                        <div className="status-buttons">
+                          {/* Confirmed - Start Layout */}
+                          {order.status === 'confirmed' && (
+                            <button 
+                              className="status-update-btn process-btn"
+                              onClick={() => handleStatusUpdate(order.id, 'layout')}
+                            >
+                              <FaPalette className="status-icon" /> Start Layout
+                            </button>
+                          )}
+                          
+                          {/* Layout - Move to Sizing */}
+                          {order.status === 'layout' && (
+                            <button 
+                              className={`status-update-btn process-btn ${user?.user_metadata?.role !== 'artist' ? 'disabled-btn' : ''}`}
+                              onClick={() => handleStatusUpdate(order.id, 'sizing')}
+                              disabled={user?.user_metadata?.role !== 'artist'}
+                              title={user?.user_metadata?.role !== 'artist' ? 'Only artists can move orders to sizing status' : 'Move to Sizing'}
+                            >
+                              <FaRuler className="status-icon" /> 
+                              {user?.user_metadata?.role !== 'artist' ? 'Artist Only - Move to Sizing' : 'Move to Sizing'}
+                            </button>
+                          )}
+                          
+                          {/* Sizing - Move to Printing */}
+                          {order.status === 'sizing' && (
+                            <button 
+                              className="status-update-btn process-btn"
+                              onClick={() => handleStatusUpdate(order.id, 'printing')}
+                            >
+                              <FaPrint className="status-icon" /> Move to Printing
+                            </button>
+                          )}
+                          
+                          {/* Printing - Move to Press */}
+                          {order.status === 'printing' && (
+                            <button 
+                              className="status-update-btn process-btn"
+                              onClick={() => handleStatusUpdate(order.id, 'press')}
+                            >
+                              <FaCog className="status-icon" /> Move to Press
+                            </button>
+                          )}
+                          
+                          {/* Press - Move to Prod */}
+                          {order.status === 'press' && (
+                            <button 
+                              className="status-update-btn process-btn"
+                              onClick={() => handleStatusUpdate(order.id, 'prod')}
+                            >
+                              <FaIndustry className="status-icon" /> Move to Prod
+                            </button>
+                          )}
+                          
+                          {/* Prod - Move to Packing */}
+                          {order.status === 'prod' && (
+                            <button 
+                              className="status-update-btn process-btn"
+                              onClick={() => handleStatusUpdate(order.id, 'packing_completing')}
+                            >
+                              <FaBox className="status-icon" /> Move to Packing/Completing
+                            </button>
+                          )}
+                          
+                          {/* Packing - Mark as Picked Up/Delivered */}
+                          {order.status === 'packing_completing' && (
+                            <button 
+                              className="status-update-btn complete-btn"
+                              onClick={() => handleStatusUpdate(order.id, 'picked_up_delivered')}
+                            >
+                              <FaCheck className="status-icon" /> Mark as Picked Up/Delivered
+                            </button>
+                          )}
+                          
+                          {/* Picked Up/Delivered - Final Status */}
+                          {order.status === 'picked_up_delivered' && (
+                            <div className="status-complete-message">
+                              <span className="complete-icon"><FaCheck /></span>
+                              <p>This order has been completed and delivered.</p>
+                            </div>
+                          )}
+                          
+                          {/* Cancelled Orders */}
+                          {order.status === 'cancelled' && (
+                            <div className="status-cancelled-message">
+                              <span className="cancelled-icon"><FaTimes /></span>
+                              <p>This order has been cancelled.</p>
+                              <button 
+                                className="status-update-btn reactivate-btn"
+                                onClick={() => {
+                                  if (window.confirm('Reactivate this cancelled order?')) {
+                                    handleStatusUpdate(order.id, 'pending');
+                                  }
+                                }}
+                              >
+                                <FaRedo className="status-icon" /> Reactivate Order
+                              </button>
+                            </div>
+                          )}
+                          
+                          {/* Go Back Option (for any production stage) */}
+                          {['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(order.status) && (
+                            <button 
+                              className="status-update-btn reopen-btn"
+                              onClick={() => {
+                                const stages = ['confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'];
+                                const currentIndex = stages.indexOf(order.status);
+                                if (currentIndex > 0) {
+                                  const prevStage = stages[currentIndex - 1];
+                                  setConfirmDialog({
+                                    show: true,
+                                    title: 'Go Back One Stage',
+                                    message: `Are you sure you want to go back to ${getStatusDisplayName(prevStage)}?`,
+                                    currentStatus: getStatusDisplayName(order.status),
+                                    newStatus: getStatusDisplayName(prevStage),
+                                    onConfirm: () => {
+                                      handleStatusUpdate(order.id, prevStage);
+                                      setConfirmDialog(null);
+                                    },
+                                    onCancel: () => setConfirmDialog(null)
+                                  });
+                                }
+                              }}
+                            >
+                              <FaArrowLeft className="status-icon" /> Go Back One Stage
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {canViewDesignFiles && (
                         <div className="design-files-section inside-status">
@@ -1358,179 +1611,6 @@ const Orders = () => {
                           )}
                         </div>
                       )}
-                      
-                      <div className="status-buttons">
-                        {/* Pending Orders */}
-                        {order.status === 'pending' && (
-                          <>
-                            <button 
-                              className="status-update-btn confirm-btn"
-                              onClick={() => handleStatusUpdate(order.id, 'confirmed')}
-                            >
-                              <FaCheck className="status-icon" /> Confirm Order
-                            </button>
-                            <button 
-                              className="status-update-btn cancel-btn"
-                              onClick={() => {
-                                if (window.confirm('Are you sure you want to cancel this order?')) {
-                                  handleStatusUpdate(order.id, 'cancelled');
-                                }
-                              }}
-                            >
-                              <FaTimes className="status-icon" /> Cancel Order
-                            </button>
-                          </>
-                        )}
-                        
-                        {/* Confirmed - Start Layout */}
-                        {order.status === 'confirmed' && (
-                          <button 
-                            className="status-update-btn process-btn"
-                            onClick={() => handleStatusUpdate(order.id, 'layout')}
-                          >
-                            <FaPalette className="status-icon" /> Start Layout
-                          </button>
-                        )}
-                        
-                        {/* Layout - Move to Sizing */}
-                        {order.status === 'layout' && (
-                          <button 
-                            className={`status-update-btn process-btn ${user?.user_metadata?.role !== 'artist' ? 'disabled-btn' : ''}`}
-                            onClick={() => handleStatusUpdate(order.id, 'sizing')}
-                            disabled={user?.user_metadata?.role !== 'artist'}
-                            title={user?.user_metadata?.role !== 'artist' ? 'Only artists can move orders to sizing status' : 'Move to Sizing'}
-                          >
-                            <FaRuler className="status-icon" /> 
-                            {user?.user_metadata?.role !== 'artist' ? 'Artist Only - Move to Sizing' : 'Move to Sizing'}
-                          </button>
-                        )}
-                        
-                        {/* Sizing - Move to Printing */}
-                        {order.status === 'sizing' && (
-                          <button 
-                            className="status-update-btn process-btn"
-                            onClick={() => handleStatusUpdate(order.id, 'printing')}
-                          >
-                            <FaPrint className="status-icon" /> Move to Printing
-                          </button>
-                        )}
-                        
-                        {/* Printing - Move to Press */}
-                        {order.status === 'printing' && (
-                          <button 
-                            className="status-update-btn process-btn"
-                            onClick={() => handleStatusUpdate(order.id, 'press')}
-                          >
-                            <FaCog className="status-icon" /> Move to Press
-                          </button>
-                        )}
-                        
-                        {/* Press - Move to Prod */}
-                        {order.status === 'press' && (
-                          <button 
-                            className="status-update-btn process-btn"
-                            onClick={() => handleStatusUpdate(order.id, 'prod')}
-                          >
-                            <FaIndustry className="status-icon" /> Move to Prod
-                          </button>
-                        )}
-                        
-                        {/* Prod - Move to Packing */}
-                        {order.status === 'prod' && (
-                          <button 
-                            className="status-update-btn process-btn"
-                            onClick={() => handleStatusUpdate(order.id, 'packing_completing')}
-                          >
-                            <FaBox className="status-icon" /> Move to Packing/Completing
-                          </button>
-                        )}
-                        
-                        {/* Packing - Mark as Picked Up/Delivered */}
-                        {order.status === 'packing_completing' && (
-                          <button 
-                            className="status-update-btn complete-btn"
-                            onClick={() => handleStatusUpdate(order.id, 'picked_up_delivered')}
-                          >
-                            <FaCheck className="status-icon" /> Mark as Picked Up/Delivered
-                          </button>
-                        )}
-                        
-                        {/* Picked Up/Delivered - Final Status */}
-                        {order.status === 'picked_up_delivered' && (
-                          <div className="status-complete-message">
-                            <span className="complete-icon"><FaCheck /></span>
-                            <p>This order has been completed and delivered.</p>
-                          </div>
-                        )}
-                        
-                        {/* Cancelled Orders */}
-                        {order.status === 'cancelled' && (
-                          <div className="status-cancelled-message">
-                            <span className="cancelled-icon"><FaTimes /></span>
-                            <p>This order has been cancelled.</p>
-                            <button 
-                              className="status-update-btn reactivate-btn"
-                              onClick={() => {
-                                if (window.confirm('Reactivate this cancelled order?')) {
-                                  handleStatusUpdate(order.id, 'pending');
-                                }
-                              }}
-                            >
-                              <FaRedo className="status-icon" /> Reactivate Order
-                            </button>
-                          </div>
-                        )}
-                        
-                        {/* Go Back Option (for any production stage) */}
-                        {['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(order.status) && (
-                          <button 
-                            className="status-update-btn reopen-btn"
-                            onClick={() => {
-                              const stages = ['confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'];
-                              const currentIndex = stages.indexOf(order.status);
-                              if (currentIndex > 0) {
-                                const prevStage = stages[currentIndex - 1];
-                                setConfirmDialog({
-                                  show: true,
-                                  title: 'Go Back One Stage',
-                                  message: `Are you sure you want to go back to ${getStatusDisplayName(prevStage)}?`,
-                                  currentStatus: getStatusDisplayName(order.status),
-                                  newStatus: getStatusDisplayName(prevStage),
-                                  onConfirm: () => {
-                                    handleStatusUpdate(order.id, prevStage);
-                                    setConfirmDialog(null);
-                                  },
-                                  onCancel: () => setConfirmDialog(null)
-                                });
-                              }
-                            }}
-                          >
-                            <FaArrowLeft className="status-icon" /> Go Back One Stage
-                          </button>
-                        )}
-                      </div>
-                      
-                      {/* Order Status Flow Guide */}
-                      <div className="status-flow-guide">
-                        <h5><FaArrowRight className="flow-icon" /> Order Status Flow:</h5>
-                        <div className="flow-steps">
-                          {['pending', 'confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing', 'picked_up_delivered'].map((stage, index, arr) => {
-                            const stageIndex = arr.indexOf(order.status);
-                            const currentStageIndex = arr.indexOf(stage);
-                            const isActive = order.status === stage;
-                            const isCompleted = stageIndex > currentStageIndex && stageIndex >= 0;
-                            
-                            return (
-                              <React.Fragment key={stage}>
-                                <span className={`flow-step ${isActive ? 'active' : isCompleted ? 'completed' : ''}`}>
-                                  {getStatusDisplayName(stage)}
-                                </span>
-                                {index < arr.length - 1 && <span className="flow-arrow"><FaArrowRight /></span>}
-                              </React.Fragment>
-                            );
-                          })}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>

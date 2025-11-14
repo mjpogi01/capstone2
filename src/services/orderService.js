@@ -140,29 +140,48 @@ class OrderService {
         throw new Error('Order not found');
       }
 
-      // Get assigned artist
+      // Get assigned artist - first check if task exists
       const { data: artistTask, error: taskError } = await supabase
         .from('artist_tasks')
         .select(`
           artist_id,
-          artist_profiles!inner(
+          artist_profiles(
             id,
             artist_name,
             is_active
           )
         `)
         .eq('order_id', orderId)
-        .eq('artist_profiles.is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (taskError && taskError.code !== 'PGRST116') {
+      console.log('🎨 Raw artist task query result for order', orderId, ':', { artistTask, taskError });
+
+      if (taskError) {
         console.error('❌ Error getting artist task:', taskError);
         // Don't throw error, just return order without artist info
       }
 
+      // Check if artist profile exists and is active
+      let assignedArtist = null;
+      if (artistTask && artistTask.artist_profiles) {
+        const profile = Array.isArray(artistTask.artist_profiles) 
+          ? artistTask.artist_profiles[0] 
+          : artistTask.artist_profiles;
+        
+        if (profile && profile.is_active) {
+          assignedArtist = profile;
+        } else {
+          console.log('⚠️ Artist profile not active or not found for order', orderId);
+        }
+      } else {
+        console.log('⚠️ No artist task found for order', orderId);
+      }
+
+      console.log('🎨 Final assigned artist for order', orderId, ':', assignedArtist);
+
       return {
         ...order,
-        assignedArtist: artistTask?.artist_profiles || null
+        assignedArtist: assignedArtist
       };
     } catch (error) {
       console.error('❌ Error getting order with artist:', error);
@@ -442,4 +461,5 @@ class OrderService {
 }
 
 const orderService = new OrderService();
+
 export default orderService;

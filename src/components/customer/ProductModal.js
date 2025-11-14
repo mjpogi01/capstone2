@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
-import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
+import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import SizeChartModal from './SizeChartModal';
 import { useCart } from '../../contexts/CartContext';
@@ -8,6 +8,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
+import { loadProductModalPreferences, saveProductModalPreferences, updateProductModalPreferences } from '../../utils/userPreferences';
 import './ProductModal.css';
 
 const DEFAULT_TROPHY_SIZES = ['6" (Small)', '10" (Medium)', '14" (Large)', '18" (Extra Large)', '24" (Premium)'];
@@ -107,13 +108,15 @@ const sanitizeTeamMembers = (members, variant) => {
     return [];
   }
 
+  // Now each member has their own jerseyType, but we still support legacy variant parameter
   return members.map(member => {
-    const sanitized = { ...member, jerseyType: variant || null };
+    const memberJerseyType = member.jerseyType || variant || 'full';
+    const sanitized = { ...member, jerseyType: memberJerseyType };
 
-    if (variant === 'shirt') {
+    if (memberJerseyType === 'shirt') {
       sanitized.shortsSize = null;
       sanitized.size = sanitized.jerseySize ?? sanitized.size ?? null;
-    } else if (variant === 'shorts') {
+    } else if (memberJerseyType === 'shorts') {
       sanitized.jerseySize = null;
       sanitized.size = null;
     } else {
@@ -141,7 +144,13 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [isTeamOrder, setIsTeamOrder] = useState(existingCartItemData?.isTeamOrder || false);
   const [teamMembers, setTeamMembers] = useState(
     existingCartItemData?.teamMembers && existingCartItemData.teamMembers.length > 0
-      ? existingCartItemData.teamMembers
+      ? existingCartItemData.teamMembers.map(member => ({
+          ...member,
+          jerseyType: member.jerseyType || member.jersey_type || existingCartItemData?.jerseyType || 'full',
+          fabricOption: member.fabricOption || member.fabric_option || existingCartItemData?.fabricOption || '',
+          cutType: member.cutType || member.cut_type || existingCartItemData?.cutType || '',
+          sizingType: member.sizingType || member.sizing_type || 'adult'
+        }))
       : [{
           id: Date.now(),
           teamName: '',
@@ -149,7 +158,10 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           number: '',
           jerseySize: 'M',
           shortsSize: 'M',
-          jerseyType: existingCartItemData?.jerseyType || 'full'
+          jerseyType: existingCartItemData?.jerseyType || 'full',
+          fabricOption: existingCartItemData?.fabricOption || '',
+          cutType: existingCartItemData?.cutType || '',
+          sizingType: 'adult'
         }]
   );
   const [teamName, setTeamName] = useState(existingCartItemData?.teamMembers?.[0]?.teamName || '');
@@ -158,11 +170,26 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       ? { ...existingCartItemData.singleOrderDetails, jerseyType: existingCartItemData?.jerseyType || existingCartItemData.singleOrderDetails?.jerseyType || 'full' }
       : { teamName: '', surname: '', number: '', jerseySize: 'M', shortsSize: 'M', size: 'M', jerseyType: 'full' }
   );
-  const [sizeType, setSizeType] = useState(existingCartItemData?.sizeType || 'adult'); // 'adult' or 'kids'
-  const [jerseyType, setJerseyType] = useState(existingCartItemData?.jerseyType || 'full'); // 'full', 'shirt', 'shorts'
+  const [sizeType, setSizeType] = useState(() => {
+    if (existingCartItemData?.sizeType) return existingCartItemData.sizeType;
+    if (user && !existingCartItemData && !isFromCart) {
+      const preferences = loadProductModalPreferences(user.id);
+      if (preferences?.sizeType) return preferences.sizeType;
+    }
+    return 'adult';
+  }); // 'adult' or 'kids'
+  const [jerseyType, setJerseyType] = useState(() => {
+    if (existingCartItemData?.jerseyType) return existingCartItemData.jerseyType;
+    if (user && !existingCartItemData && !isFromCart) {
+      const preferences = loadProductModalPreferences(user.id);
+      if (preferences?.jerseyType) return preferences.jerseyType;
+    }
+    return 'full';
+  }); // 'full', 'shirt', 'shorts'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
+  const [expandedMembers, setExpandedMembers] = useState(new Set());
   const [showCheckout, setShowCheckout] = useState(false);
   const [buyNowItem, setBuyNowItem] = useState(null);
   const [showSizeChart, setShowSizeChart] = useState(false);
@@ -186,6 +213,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   });
   const [selectedFabricOption, setSelectedFabricOption] = useState(existingCartItemData?.fabricOption || '');
   const [fabricData, setFabricData] = useState(product?.fabric_surcharges || null);
+  const [selectedCutType, setSelectedCutType] = useState(existingCartItemData?.cutType || '');
+  const [cutTypeData, setCutTypeData] = useState(product?.cut_type_surcharges || null);
 
   // Debug: Monitor Buy Now item changes
   useEffect(() => {
@@ -460,26 +489,49 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       return false;
     })();
 
-    if (hasFabricData) return;
+    const hasCutTypeData = (() => {
+      if (!cutTypeData) return false;
+      if (typeof cutTypeData === 'string') {
+        const trimmed = cutTypeData.trim();
+        if (!trimmed || trimmed === '{}' || trimmed.toLowerCase() === 'null') {
+          return false;
+        }
+        try {
+          const parsed = JSON.parse(trimmed);
+          return parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0;
+        } catch (error) {
+          return false;
+        }
+      }
+      if (typeof cutTypeData === 'object') {
+        return Object.keys(cutTypeData).length > 0;
+      }
+      return false;
+    })();
+
+    if (hasFabricData && hasCutTypeData) return;
 
     let isMounted = true;
-    const loadFabricSurcharges = async () => {
+    const loadSurcharges = async () => {
       try {
         const latestProduct = await productService.getProductById(product.id);
-        if (isMounted && latestProduct?.fabric_surcharges) {
+        if (isMounted && latestProduct?.fabric_surcharges && !hasFabricData) {
           setFabricData(latestProduct.fabric_surcharges);
         }
+        if (isMounted && latestProduct?.cut_type_surcharges && !hasCutTypeData) {
+          setCutTypeData(latestProduct.cut_type_surcharges);
+        }
       } catch (error) {
-        console.error('❌ [ProductModal] Failed to load fabric surcharges:', error);
+        console.error('❌ [ProductModal] Failed to load surcharges:', error);
       }
     };
 
-    loadFabricSurcharges();
+    loadSurcharges();
 
     return () => {
       isMounted = false;
     };
-  }, [isOpen, product?.id, fabricData]);
+  }, [isOpen, product?.id, fabricData, cutTypeData]);
 
   const fabricOptions = useMemo(() => {
     if (!fabricData) return [];
@@ -507,9 +559,39 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return lookup;
   }, [fabricOptions]);
 
+  const cutTypeOptions = useMemo(() => {
+    if (!cutTypeData) return [];
+    try {
+      const raw =
+        typeof cutTypeData === 'string'
+          ? JSON.parse(cutTypeData)
+          : cutTypeData;
+      if (!raw || typeof raw !== 'object') return [];
+      return Object.entries(raw).map(([name, amount]) => ({
+        name,
+        amount: Number.parseFloat(amount) || 0
+      }));
+    } catch (error) {
+      console.error('❌ [ProductModal] Error parsing cut_type_surcharges:', error);
+      return [];
+    }
+  }, [cutTypeData]);
+
+  const cutTypeSurchargeLookup = useMemo(() => {
+    const lookup = {};
+    cutTypeOptions.forEach(({ name, amount }) => {
+      lookup[name] = amount;
+    });
+    return lookup;
+  }, [cutTypeOptions]);
+
   useEffect(() => {
     if (fabricOptions.length === 0) {
       setSelectedFabricOption('');
+      // Clear fabric options for team members if no options available
+      if (isTeamOrder) {
+        setTeamMembers(prev => prev.map(member => ({ ...member, fabricOption: '' })));
+      }
       return;
     }
 
@@ -526,9 +608,72 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         return existingCartItemData.fabricOption;
       }
 
+      // Load from user preferences if available and not from cart
+      if (!isFromCart && !existingCartItemData && user) {
+        const preferences = loadProductModalPreferences(user.id);
+        if (preferences?.fabricOption && fabricOptions.some((option) => option.name === preferences.fabricOption)) {
+          return preferences.fabricOption;
+        }
+      }
+
       return fabricOptions[0].name;
     });
-  }, [fabricOptions, isFromCart, existingCartItemData]);
+
+    // Set default fabric option for team members that don't have one
+    if (isTeamOrder && fabricOptions.length > 0) {
+      setTeamMembers(prev => prev.map(member => ({
+        ...member,
+        fabricOption: member.fabricOption && fabricOptions.some(opt => opt.name === member.fabricOption)
+          ? member.fabricOption
+          : fabricOptions[0].name
+      })));
+    }
+  }, [fabricOptions, isFromCart, existingCartItemData, isTeamOrder, user]);
+
+  useEffect(() => {
+    if (cutTypeOptions.length === 0) {
+      setSelectedCutType('');
+      // Clear cut type options for team members if no options available
+      if (isTeamOrder) {
+        setTeamMembers(prev => prev.map(member => ({ ...member, cutType: '' })));
+      }
+      return;
+    }
+
+    setSelectedCutType((prev) => {
+      if (prev && cutTypeOptions.some((option) => option.name === prev)) {
+        return prev;
+      }
+
+      if (
+        isFromCart &&
+        existingCartItemData?.cutType &&
+        cutTypeOptions.some((option) => option.name === existingCartItemData.cutType)
+      ) {
+        return existingCartItemData.cutType;
+      }
+
+      // Load from user preferences if available and not from cart
+      if (!isFromCart && !existingCartItemData && user) {
+        const preferences = loadProductModalPreferences(user.id);
+        if (preferences?.cutType && cutTypeOptions.some((option) => option.name === preferences.cutType)) {
+          return preferences.cutType;
+        }
+      }
+
+      return cutTypeOptions[0].name;
+    });
+
+    // Set default cut type option for team members that don't have one
+    if (isTeamOrder && cutTypeOptions.length > 0) {
+      setTeamMembers(prev => prev.map(member => ({
+        ...member,
+        cutType: member.cutType && cutTypeOptions.some(opt => opt.name === member.cutType)
+          ? member.cutType
+          : cutTypeOptions[0].name
+      })));
+    }
+  }, [cutTypeOptions, isFromCart, existingCartItemData, isTeamOrder, user]);
 
   const resolveSizeSurcharge = useCallback(
     (sizeKey, groupHint) => {
@@ -667,6 +812,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return Number.isFinite(amount) ? amount : 0;
   }, [selectedFabricOption, fabricSurchargeLookup]);
 
+  const cutTypeSurchargeAmount = useMemo(() => {
+    if (!selectedCutType) return 0;
+    const amount = cutTypeSurchargeLookup[selectedCutType];
+    return Number.isFinite(amount) ? amount : 0;
+  }, [selectedCutType, cutTypeSurchargeLookup]);
+
   const sizeSurchargeAmount = useMemo(() => {
     if (isTeamOrder) return 0;
     return resolveSizeSurcharge(singleOrderSizeKey, sizeGroupHint);
@@ -685,11 +836,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           ? 'adults'
           : 'general';
 
+      const memberJerseyType = member?.jerseyType || 'full';
       let sizeKey = null;
       if (isJerseyCategory) {
-        if (jerseyType === 'shorts') {
+        if (memberJerseyType === 'shorts') {
           sizeKey = member?.shortsSize || member?.size || member?.jerseySize || null;
-        } else if (jerseyType === 'shirt') {
+        } else if (memberJerseyType === 'shirt') {
           sizeKey = member?.jerseySize || member?.size || null;
         } else {
           sizeKey = member?.jerseySize || member?.size || null;
@@ -719,7 +871,6 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     sizeSurchargeConfig,
     teamMembers,
     isJerseyCategory,
-    jerseyType,
     resolveSizeSurcharge
   ]);
 
@@ -799,17 +950,115 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return basePrice;
   }, [product, isTrophy, isJerseyCategory, jerseyPrices, trophyPrices, jerseyType, sizeType, trophyDetails]);
 
+  // Calculate per-member pricing for team orders
+  const teamPricingInfo = useMemo(() => {
+    if (!isTeamOrder || !isApparel) {
+      return { total: 0, perUnit: 0, members: [] };
+    }
+
+    const memberPricing = (teamMembers || []).map((member) => {
+      const memberJerseyType = member?.jerseyType || 'full';
+      const memberSizingType = member?.sizingType || 'adult';
+      const memberFabricOption = member?.fabricOption || '';
+      
+      // Calculate base price based on member's jersey type
+      let memberBasePrice = baseUnitPrice;
+      if (isJerseyCategory && jerseyPrices) {
+        const useKidsPrices = memberSizingType === 'kids' && 
+          (jerseyPrices.fullSetKids !== null && jerseyPrices.fullSetKids !== undefined);
+        
+        switch (memberJerseyType) {
+          case 'shirt':
+            memberBasePrice = useKidsPrices ? jerseyPrices.shirtOnlyKids : jerseyPrices.shirtOnly;
+            break;
+          case 'shorts':
+            memberBasePrice = useKidsPrices ? jerseyPrices.shortsOnlyKids : jerseyPrices.shortsOnly;
+            break;
+          default:
+            memberBasePrice = useKidsPrices ? jerseyPrices.fullSetKids : jerseyPrices.fullSet;
+        }
+        
+        // Apply kids discount if kids prices are not available but sizingType is kids
+        if (memberSizingType === 'kids' && !useKidsPrices) {
+          memberBasePrice = Math.max(0, memberBasePrice - 200);
+        }
+      }
+
+      // Calculate fabric surcharge
+      const memberFabricSurcharge = memberFabricOption && fabricSurchargeLookup[memberFabricOption]
+        ? fabricSurchargeLookup[memberFabricOption]
+        : 0;
+
+      const memberCutType = member.cutType || '';
+      const memberCutTypeSurcharge = memberCutType && cutTypeSurchargeLookup[memberCutType]
+        ? cutTypeSurchargeLookup[memberCutType]
+        : 0;
+
+      // Get size surcharge from teamSizeSurchargeInfo
+      const sizeSurchargeMember = teamSizeSurchargeInfo.members?.find(m => m.id === member.id);
+      const memberSizeSurcharge = sizeSurchargeMember?.sizeSurcharge || 0;
+
+      // Total price for this member
+      const memberTotalPrice = memberBasePrice + memberFabricSurcharge + memberCutTypeSurcharge + memberSizeSurcharge;
+
+      return {
+        ...member,
+        basePrice: memberBasePrice,
+        fabricSurcharge: memberFabricSurcharge,
+        cutTypeSurcharge: memberCutTypeSurcharge,
+        sizeSurcharge: memberSizeSurcharge,
+        totalPrice: memberTotalPrice
+      };
+    });
+
+    const total = memberPricing.reduce((sum, member) => sum + (member.totalPrice || 0), 0);
+    const perUnit = total / Math.max(1, memberPricing.length || 1);
+
+    return { total, perUnit, members: memberPricing };
+  }, [
+    isTeamOrder,
+    isApparel,
+    teamMembers,
+    baseUnitPrice,
+    isJerseyCategory,
+    jerseyPrices,
+    fabricSurchargeLookup,
+    teamSizeSurchargeInfo
+  ]);
+
   const currentPrice = useMemo(() => {
+    if (isTeamOrder && isApparel) {
+      // For team orders, use the average per-unit price from teamPricingInfo
+      const price = teamPricingInfo.perUnit;
+      console.log('💰 [ProductModal] Team order average unit price:', price);
+      return price;
+    }
+    
+    // For single orders, calculate normally
     let price = baseUnitPrice;
     price += fabricSurchargeAmount;
-    if (isTeamOrder) {
-      price += teamSizeSurchargeInfo.perUnit;
-    } else {
+    price += cutTypeSurchargeAmount;
       price += sizeSurchargeAmount;
-    }
     console.log('💰 [ProductModal] Final unit price (with surcharges):', price);
     return price;
-  }, [baseUnitPrice, fabricSurchargeAmount, sizeSurchargeAmount, isTeamOrder, teamSizeSurchargeInfo.perUnit]);
+  }, [baseUnitPrice, fabricSurchargeAmount, cutTypeSurchargeAmount, sizeSurchargeAmount, isTeamOrder, isApparel, teamPricingInfo.perUnit]);
+
+  // Display price - shows total for team orders, unit price for single orders
+  const displayPrice = useMemo(() => {
+    if (isTeamOrder && isApparel) {
+      // For team orders, show the total price
+      return teamPricingInfo.total;
+    }
+    return currentPrice;
+  }, [isTeamOrder, isApparel, teamPricingInfo.total, currentPrice]);
+
+  // Display price label
+  const displayPriceLabel = useMemo(() => {
+    if (isTeamOrder && isApparel && teamMembers.length > 0) {
+      return `Total (${teamMembers.length} ${teamMembers.length === 1 ? 'member' : 'members'})`;
+    }
+    return 'Price';
+  }, [isTeamOrder, isApparel, teamMembers.length]);
 
   // Get available sizes for shirts and shorts based on size type
   const getShirtSizes = () => {
@@ -832,6 +1081,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return sizeType === 'adult' ? ['XS', 'S', 'M', 'L', 'XL', 'XXL'] : ['2XS', 'XS', 'S', 'M', 'L', 'XL'];
   };
 
+  // Helper function to get surcharge for a size
+  const getSizeSurcharge = useCallback((size, groupHint) => {
+    if (!size || !sizeSurchargeConfig) return 0;
+    return resolveSizeSurcharge(size, groupHint);
+  }, [sizeSurchargeConfig, resolveSizeSurcharge]);
+
   const shirtSizes = getShirtSizes();
   const shortSizes = getShortSizes();
   const sizes = sizeType === 'adult' ? ['XS', 'S', 'M', 'L', 'XL', 'XXL'] : ['2XS', 'XS', 'S', 'M', 'L', 'XL']; // Keep for backwards compatibility
@@ -846,43 +1101,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     const defaultShirtSize = shirtSizeList[Math.floor(shirtSizeList.length / 2)] || (sizeType === 'kids' ? 'S10' : 'M');
     const defaultShortSize = shortSizeList[Math.floor(shortSizeList.length / 2)] || (sizeType === 'kids' ? 'S10' : 'M');
 
-    if (isTeamOrder) {
-      setTeamMembers(prevMembers => {
-        let hasChanges = false;
-
-        const updatedMembers = prevMembers.map(member => {
-          const next = { ...member };
-
-          if (jerseyType === 'shirt') {
-            next.jerseySize = member.jerseySize || defaultShirtSize;
-            next.shortsSize = null;
-            next.size = next.jerseySize;
-          } else if (jerseyType === 'shorts') {
-            next.jerseySize = null;
-            next.shortsSize = member.shortsSize || defaultShortSize;
-            next.size = null;
-          } else {
-            next.jerseySize = member.jerseySize || defaultShirtSize;
-            next.shortsSize = member.shortsSize || defaultShortSize;
-            next.size = next.jerseySize || null;
-          }
-          next.jerseyType = jerseyType;
-
-          if (
-            next.jerseySize !== member.jerseySize ||
-            next.shortsSize !== member.shortsSize ||
-            next.size !== member.size
-          ) {
-            hasChanges = true;
-            return next;
-          }
-
-          return member;
-        });
-
-        return hasChanges ? updatedMembers : prevMembers;
-      });
-    } else if (isApparel) {
+    // Note: Team members now have per-member jerseyType, so we don't sync them to global jerseyType
+    // Only update single order details when not in team order mode
+    if (!isTeamOrder && isApparel) {
       setSingleOrderDetails(prevDetails => {
         const next = { ...prevDetails };
 
@@ -1006,68 +1227,102 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       const basePriceForCart = baseUnitPrice;
       const fabricOptionValue = selectedFabricOption || null;
       const fabricSurchargeValue = fabricSurchargeAmount;
+      const cutTypeValue = selectedCutType || null;
+      const cutTypeSurchargeValue = cutTypeSurchargeAmount;
       const sizeValue = isTrophy ? trophyDetails.size : selectedSize;
       const variantKey = isJerseyCategory ? jerseyType : null;
-      const effectiveTeamMembers = isTeamOrder
-        ? (isApparel ? sanitizeTeamMembers(teamMembers, variantKey) : teamMembers)
-        : null;
-      const effectiveSingleDetails = !isTeamOrder && isApparel
-        ? sanitizeSingleOrderDetails(singleOrderDetails, variantKey)
-        : (!isTeamOrder ? singleOrderDetails : null);
-      const quantityValue = isTeamOrder
-        ? (effectiveTeamMembers ? effectiveTeamMembers.length : 0)
-        : quantity;
       
-      let adjustedTeamMembers = effectiveTeamMembers;
+      let effectiveTeamMembers = null;
+      let effectiveSingleDetails = null;
+      let quantityValue = quantity;
       let sizeSurchargeTotal = sizeSurchargeAmount;
       let sizeSurchargePerUnit = sizeSurchargeAmount;
+      let fabricSurchargeTotal = fabricSurchargeValue;
+      let cutTypeSurchargeTotal = cutTypeSurchargeValue;
+      let finalPrice = currentPrice;
 
-      if (!isTeamOrder && effectiveSingleDetails && typeof effectiveSingleDetails === 'object') {
+      if (isTeamOrder) {
+        // For team orders, use teamPricingInfo which has per-member pricing
+        if (isApparel && teamPricingInfo.members.length > 0) {
+          // Map team members with their per-member pricing and customization
+          effectiveTeamMembers = teamPricingInfo.members.map((pricingMember) => {
+            const baseMember = teamMembers.find(m => m.id === pricingMember.id) || pricingMember;
+            const memberData = {
+              ...baseMember,
+              jerseyType: baseMember.jerseyType || 'full',
+              fabricOption: baseMember.fabricOption || '',
+              cutType: baseMember.cutType || '',
+              sizingType: baseMember.sizingType || 'adult',
+              basePrice: pricingMember.basePrice || 0,
+              fabricSurcharge: pricingMember.fabricSurcharge || 0,
+              cutTypeSurcharge: pricingMember.cutTypeSurcharge || 0,
+              sizeSurcharge: pricingMember.sizeSurcharge || 0,
+              totalPrice: pricingMember.totalPrice || 0,
+              sizeSurchargeSize: pricingMember.sizeSurchargeSize || null
+            };
+            // Ensure all size fields are preserved
+            if (baseMember.jerseySize) memberData.jerseySize = baseMember.jerseySize;
+            if (baseMember.shortsSize) memberData.shortsSize = baseMember.shortsSize;
+            if (baseMember.size) memberData.size = baseMember.size;
+            console.log('📦 [ProductModal] Team member data for cart:', {
+              id: memberData.id,
+              surname: memberData.surname,
+              jerseyType: memberData.jerseyType,
+              fabricOption: memberData.fabricOption,
+              cutType: memberData.cutType,
+              sizingType: memberData.sizingType,
+              jerseySize: memberData.jerseySize,
+              shortsSize: memberData.shortsSize,
+              size: memberData.size
+            });
+            return memberData;
+          });
+          
+          sizeSurchargeTotal = teamSizeSurchargeInfo.total;
+          sizeSurchargePerUnit = teamSizeSurchargeInfo.perUnit;
+          fabricSurchargeTotal = teamPricingInfo.members.reduce((sum, m) => sum + (m.fabricSurcharge || 0), 0);
+          cutTypeSurchargeTotal = teamPricingInfo.members.reduce((sum, m) => sum + (m.cutTypeSurcharge || 0), 0);
+          finalPrice = teamPricingInfo.total; // Total price for all members
+        } else {
+          effectiveTeamMembers = teamMembers;
+          quantityValue = teamMembers.length;
+        }
+      } else {
+        effectiveSingleDetails = isApparel
+          ? sanitizeSingleOrderDetails(singleOrderDetails, variantKey)
+          : singleOrderDetails;
+        
+        if (effectiveSingleDetails && typeof effectiveSingleDetails === 'object') {
         effectiveSingleDetails.sizeSurcharge = sizeSurchargeAmount;
         effectiveSingleDetails.sizeKey = singleOrderSizeKey;
         effectiveSingleDetails.fabricOption = fabricOptionValue;
         effectiveSingleDetails.fabricSurcharge = fabricSurchargeValue;
-      }
-
-      if (isTeamOrder) {
-        sizeSurchargeTotal = teamSizeSurchargeInfo.total;
-        sizeSurchargePerUnit = teamSizeSurchargeInfo.perUnit;
-        if (
-          Array.isArray(adjustedTeamMembers) &&
-          Array.isArray(teamSizeSurchargeInfo.members)
-        ) {
-          adjustedTeamMembers = adjustedTeamMembers.map((member, index) => {
-            const surchargeMember = teamSizeSurchargeInfo.members[index] || {};
-            return {
-              ...member,
-              sizeSurcharge: surchargeMember.sizeSurcharge || 0,
-              sizeSurchargeSize: surchargeMember.sizeSurchargeSize || member.size || null
-            };
-          });
+          effectiveSingleDetails.cutType = cutTypeValue;
+          effectiveSingleDetails.cutTypeSurcharge = cutTypeSurchargeValue;
         }
       }
-
-      const finalPrice = isTeamOrder
-        ? basePriceForCart + fabricSurchargeValue + sizeSurchargePerUnit
-        : currentPrice;
       
       const cartOptions = {
         size: sizeValue,
         quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: adjustedTeamMembers,
+        teamMembers: effectiveTeamMembers,
         teamName: isTeamOrder ? teamName : null, // Add teamName for team orders
         singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
-        jerseyType: variantKey, // Add jersey type for jersey products
+        jerseyType: variantKey, // Add jersey type for jersey products (legacy, per-member now stored in teamMembers)
         price: finalPrice,
         isReplacement: isFromCart, // Mark as replacement when coming from cart
         category: product.category, // Include category
         ballDetails: isBall ? ballDetails : null,
         trophyDetails: isTrophy ? trophyDetails : null,
-        basePrice: basePriceForCart,
-        fabricOption: fabricOptionValue,
-        fabricSurcharge: fabricSurchargeValue,
+        basePrice: isTeamOrder && isApparel 
+          ? teamPricingInfo.members.reduce((sum, m) => sum + (m.basePrice || 0), 0)
+          : basePriceForCart,
+        fabricOption: fabricOptionValue, // Legacy - per-member fabric stored in teamMembers
+        fabricSurcharge: isTeamOrder && isApparel ? fabricSurchargeTotal : fabricSurchargeValue,
+        cutType: cutTypeValue, // Legacy - per-member cut type stored in teamMembers
+        cutTypeSurcharge: isTeamOrder && isApparel ? cutTypeSurchargeTotal : cutTypeSurchargeValue,
         sizeSurcharge: sizeSurchargePerUnit,
         sizeSurchargeTotal,
         surchargeDetails: {
@@ -1076,7 +1331,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 total: sizeSurchargeTotal,
                 perUnit: sizeSurchargePerUnit,
                 members:
-                  adjustedTeamMembers?.map((member) => ({
+                  effectiveTeamMembers?.map((member) => ({
                     size: member.sizeSurchargeSize || member.size || null,
                     amount: member.sizeSurcharge || 0,
                     sizingType: member.sizingType || null,
@@ -1088,12 +1343,40 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 group: sizeGroupHint,
                 amount: sizeSurchargeAmount
               },
-          fabric: fabricOptionValue
+          fabric: isTeamOrder && isApparel
+            ? {
+                total: fabricSurchargeTotal,
+                perUnit: fabricSurchargeTotal / Math.max(1, effectiveTeamMembers?.length || 1),
+                members:
+                  effectiveTeamMembers?.map((member) => ({
+                    option: member.fabricOption || null,
+                    amount: member.fabricSurcharge || 0,
+                    surname: member.surname || null
+                  })) || []
+              }
+            : (fabricOptionValue
             ? {
                 option: fabricOptionValue,
                 perUnit: fabricSurchargeValue
               }
-            : null
+                : null),
+          cutType: isTeamOrder && isApparel
+            ? {
+                total: cutTypeSurchargeTotal,
+                perUnit: cutTypeSurchargeTotal / Math.max(1, effectiveTeamMembers?.length || 1),
+                members:
+                  effectiveTeamMembers?.map((member) => ({
+                    option: member.cutType || null,
+                    amount: member.cutTypeSurcharge || 0,
+                    surname: member.surname || null
+                  })) || []
+              }
+            : (cutTypeValue
+                ? {
+                    option: cutTypeValue,
+                    perUnit: cutTypeSurchargeValue
+                  }
+                : null)
         }
       };
 
@@ -1201,7 +1484,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         });
         
         if (Object.keys(errors).length > 0) {
+          console.log('❌ [Buy Now] Validation errors for team order:', errors);
           setValidationErrors(errors);
+          showError('Validation Error', 'Please fill in all required fields for all team members before proceeding.');
           return;
         }
       }
@@ -1218,77 +1503,104 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         }
         
         if (Object.keys(errors).length > 0) {
+          console.log('❌ [Buy Now] Validation errors for trophy:', errors);
           setValidationErrors(errors);
+          showError('Validation Error', 'Please fill in all required trophy details before proceeding.');
           return;
         }
       }
       
       // Clear validation errors if all passed
       setValidationErrors({});
+      console.log('✅ [Buy Now] All validations passed, proceeding to checkout');
       
       // Use the current price (already calculated with jersey type and size type)
       const basePriceForCart = baseUnitPrice;
       const fabricOptionValue = selectedFabricOption || null;
       const fabricSurchargeValue = fabricSurchargeAmount;
+      const cutTypeValue = selectedCutType || null;
+      const cutTypeSurchargeValue = cutTypeSurchargeAmount;
       const variantKey = isJerseyCategory ? jerseyType : null;
-      const effectiveTeamMembers = isTeamOrder
-        ? (isApparel ? sanitizeTeamMembers(teamMembers, variantKey) : teamMembers)
-        : null;
-      const effectiveSingleDetails = !isTeamOrder && isApparel
-        ? sanitizeSingleOrderDetails(singleOrderDetails, variantKey)
-        : (!isTeamOrder ? singleOrderDetails : null);
-      const quantityValue = isTeamOrder
-        ? (effectiveTeamMembers ? effectiveTeamMembers.length : 0)
-        : quantity;
-
-      let adjustedTeamMembers = effectiveTeamMembers;
+      
+      let effectiveTeamMembers = null;
+      let effectiveSingleDetails = null;
+      let quantityValue = quantity;
       let sizeSurchargeTotal = sizeSurchargeAmount;
       let sizeSurchargePerUnit = sizeSurchargeAmount;
+      let fabricSurchargeTotal = fabricSurchargeValue;
+      let cutTypeSurchargeTotal = cutTypeSurchargeValue;
+      let finalPrice = currentPrice;
 
-      if (!isTeamOrder && effectiveSingleDetails && typeof effectiveSingleDetails === 'object') {
+      if (isTeamOrder) {
+        // For team orders, use teamPricingInfo which has per-member pricing
+        if (isApparel && teamPricingInfo.members.length > 0) {
+          // Map team members with their per-member pricing and customization
+          effectiveTeamMembers = teamPricingInfo.members.map((pricingMember) => {
+            const baseMember = teamMembers.find(m => m.id === pricingMember.id) || pricingMember;
+            const memberData = {
+              ...baseMember,
+              jerseyType: baseMember.jerseyType || 'full',
+              fabricOption: baseMember.fabricOption || '',
+              cutType: baseMember.cutType || '',
+              sizingType: baseMember.sizingType || 'adult',
+              basePrice: pricingMember.basePrice || 0,
+              fabricSurcharge: pricingMember.fabricSurcharge || 0,
+              cutTypeSurcharge: pricingMember.cutTypeSurcharge || 0,
+              sizeSurcharge: pricingMember.sizeSurcharge || 0,
+              totalPrice: pricingMember.totalPrice || 0,
+              sizeSurchargeSize: pricingMember.sizeSurchargeSize || null
+            };
+            // Ensure all size fields are preserved
+            if (baseMember.jerseySize) memberData.jerseySize = baseMember.jerseySize;
+            if (baseMember.shortsSize) memberData.shortsSize = baseMember.shortsSize;
+            if (baseMember.size) memberData.size = baseMember.size;
+            return memberData;
+          });
+          
+          sizeSurchargeTotal = teamSizeSurchargeInfo.total;
+          sizeSurchargePerUnit = teamSizeSurchargeInfo.perUnit;
+          fabricSurchargeTotal = teamPricingInfo.members.reduce((sum, m) => sum + (m.fabricSurcharge || 0), 0);
+          cutTypeSurchargeTotal = teamPricingInfo.members.reduce((sum, m) => sum + (m.cutTypeSurcharge || 0), 0);
+          finalPrice = teamPricingInfo.total; // Total price for all members
+        } else {
+          effectiveTeamMembers = teamMembers;
+          quantityValue = teamMembers.length;
+        }
+      } else {
+        effectiveSingleDetails = isApparel
+          ? sanitizeSingleOrderDetails(singleOrderDetails, variantKey)
+          : singleOrderDetails;
+        
+        if (effectiveSingleDetails && typeof effectiveSingleDetails === 'object') {
         effectiveSingleDetails.sizeSurcharge = sizeSurchargeAmount;
         effectiveSingleDetails.sizeKey = singleOrderSizeKey;
         effectiveSingleDetails.fabricOption = fabricOptionValue;
         effectiveSingleDetails.fabricSurcharge = fabricSurchargeValue;
-      }
-
-      if (isTeamOrder) {
-        sizeSurchargeTotal = teamSizeSurchargeInfo.total;
-        sizeSurchargePerUnit = teamSizeSurchargeInfo.perUnit;
-        if (
-          Array.isArray(adjustedTeamMembers) &&
-          Array.isArray(teamSizeSurchargeInfo.members)
-        ) {
-          adjustedTeamMembers = adjustedTeamMembers.map((member, index) => {
-            const surchargeMember = teamSizeSurchargeInfo.members[index] || {};
-            return {
-              ...member,
-              sizeSurcharge: surchargeMember.sizeSurcharge || 0,
-              sizeSurchargeSize: surchargeMember.sizeSurchargeSize || member.size || null
-            };
-          });
+          effectiveSingleDetails.cutType = cutTypeValue;
+          effectiveSingleDetails.cutTypeSurcharge = cutTypeSurchargeValue;
         }
       }
-
-      const finalPrice = isTeamOrder
-        ? basePriceForCart + fabricSurchargeValue + sizeSurchargePerUnit
-        : currentPrice;
       
       const buyNowOptions = {
         size: selectedSize,
         quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: adjustedTeamMembers,
+        teamMembers: effectiveTeamMembers,
+        teamName: isTeamOrder ? teamName : null,
         singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
-        jerseyType: variantKey, // Add jersey type for jersey products
-        price: finalPrice, // Use calculated price based on jersey type and size type
-        category: product.category, // Include category
+        jerseyType: variantKey, // Legacy - per-member jersey type stored in teamMembers
+        price: finalPrice,
+        category: product.category,
         ballDetails: isBall ? ballDetails : null,
         trophyDetails: isTrophy ? trophyDetails : null,
-        basePrice: basePriceForCart,
-        fabricOption: fabricOptionValue,
-        fabricSurcharge: fabricSurchargeValue,
+        basePrice: isTeamOrder && isApparel 
+          ? teamPricingInfo.members.reduce((sum, m) => sum + (m.basePrice || 0), 0)
+          : basePriceForCart,
+        fabricOption: fabricOptionValue, // Legacy - per-member fabric stored in teamMembers
+        fabricSurcharge: isTeamOrder && isApparel ? fabricSurchargeTotal : fabricSurchargeValue,
+        cutType: cutTypeValue, // Legacy - per-member cut type stored in teamMembers
+        cutTypeSurcharge: isTeamOrder && isApparel ? cutTypeSurchargeTotal : cutTypeSurchargeValue,
         sizeSurcharge: sizeSurchargePerUnit,
         sizeSurchargeTotal,
         surchargeDetails: {
@@ -1297,7 +1609,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 total: sizeSurchargeTotal,
                 perUnit: sizeSurchargePerUnit,
                 members:
-                  adjustedTeamMembers?.map((member) => ({
+                  effectiveTeamMembers?.map((member) => ({
                     size: member.sizeSurchargeSize || member.size || null,
                     amount: member.sizeSurcharge || 0,
                     sizingType: member.sizingType || null,
@@ -1309,12 +1621,40 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 group: sizeGroupHint,
                 amount: sizeSurchargeAmount
               },
-          fabric: fabricOptionValue
+          fabric: isTeamOrder && isApparel
+            ? {
+                total: fabricSurchargeTotal,
+                perUnit: fabricSurchargeTotal / Math.max(1, effectiveTeamMembers?.length || 1),
+                members:
+                  effectiveTeamMembers?.map((member) => ({
+                    option: member.fabricOption || null,
+                    amount: member.fabricSurcharge || 0,
+                    surname: member.surname || null
+                  })) || []
+              }
+            : (fabricOptionValue
             ? {
                 option: fabricOptionValue,
                 perUnit: fabricSurchargeValue
               }
-            : null
+                : null),
+          cutType: isTeamOrder && isApparel
+            ? {
+                total: cutTypeSurchargeTotal,
+                perUnit: cutTypeSurchargeTotal / Math.max(1, effectiveTeamMembers?.length || 1),
+                members:
+                  effectiveTeamMembers?.map((member) => ({
+                    option: member.cutType || null,
+                    amount: member.cutTypeSurcharge || 0,
+                    surname: member.surname || null
+                  })) || []
+              }
+            : (cutTypeValue
+                ? {
+                    option: cutTypeValue,
+                    perUnit: cutTypeSurchargeValue
+                  }
+                : null)
         }
       };
 
@@ -1329,34 +1669,40 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       const buyNowItem = {
         id: product.id,
         name: product.name,
-        price: finalPrice, // Use calculated price based on jersey type and size type
+        price: finalPrice,
         image: product.main_image,
         size: selectedSize,
         quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: adjustedTeamMembers,
+        teamMembers: effectiveTeamMembers,
+        teamName: isTeamOrder ? teamName : null,
         singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
-        jerseyType: variantKey, // Add jersey type for jersey products
+        jerseyType: variantKey, // Legacy - per-member jersey type stored in teamMembers
         isBuyNow: true, // Mark as Buy Now item
         uniqueId: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
-        category: product.category, // Include category
+        category: product.category,
         ballDetails: isBall ? ballDetails : null,
         trophyDetails: isTrophy ? trophyDetails : null,
-        basePrice: basePriceForCart,
-        fabricOption: fabricOptionValue,
-        fabricSurcharge: fabricSurchargeValue,
+        basePrice: isTeamOrder && isApparel 
+          ? teamPricingInfo.members.reduce((sum, m) => sum + (m.basePrice || 0), 0)
+          : basePriceForCart,
+        fabricOption: fabricOptionValue, // Legacy - per-member fabric stored in teamMembers
+        fabricSurcharge: isTeamOrder && isApparel ? fabricSurchargeTotal : fabricSurchargeValue,
+        cutType: cutTypeValue, // Legacy - per-member cut type stored in teamMembers
+        cutTypeSurcharge: isTeamOrder && isApparel ? cutTypeSurchargeTotal : cutTypeSurchargeValue,
         sizeSurcharge: sizeSurchargePerUnit,
         sizeSurchargeTotal,
         surchargeDetails: buyNowOptions.surchargeDetails
       };
       
-      console.log('≡ƒ¢Æ Buy Now item created:', buyNowItem);
-      console.log('≡ƒ¢Æ Opening checkout with Buy Now item only');
+      console.log('✅ [Buy Now] Buy Now item created:', buyNowItem);
+      console.log('✅ [Buy Now] Opening checkout with Buy Now item only');
       
       // Store the Buy Now item in component state and open checkout
       setBuyNowItem(buyNowItem);
       setShowCheckout(true);
+      console.log('✅ [Buy Now] Checkout modal should now be visible. showCheckout:', true);
       
     } catch (error) {
       console.error('Error creating Buy Now item:', error);
@@ -1419,23 +1765,38 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   };
 
   const addTeamMember = () => {
-    const shirtSizeList = getShirtSizes();
-    const shortSizeList = getShortSizes();
-    const defaultShirtSize = shirtSizeList[Math.floor(shirtSizeList.length / 2)] || (sizeType === 'kids' ? 'S10' : 'M');
-    const defaultShortSize = shortSizeList[Math.floor(shortSizeList.length / 2)] || (sizeType === 'kids' ? 'S10' : 'M');
+    // Get default sizes based on the last member's sizing type, or use global sizeType
+    const lastMember = teamMembers[teamMembers.length - 1];
+    const memberSizeType = lastMember?.sizingType || sizeType;
+    const memberJerseyType = lastMember?.jerseyType || jerseyType;
+    const memberFabricOption = lastMember?.fabricOption || (fabricOptions.length > 0 ? fabricOptions[0].name : '');
+    const memberCutType = lastMember?.cutType || (cutTypeOptions.length > 0 ? cutTypeOptions[0].name : '');
+    
+    const shirtSizeList = memberSizeType === 'kids' 
+      ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+      : (jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+    const shortSizeList = memberSizeType === 'kids'
+      ? (jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+      : (jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+    
+    const defaultShirtSize = shirtSizeList[Math.floor(shirtSizeList.length / 2)] || (memberSizeType === 'kids' ? 'S10' : 'M');
+    const defaultShortSize = shortSizeList[Math.floor(shortSizeList.length / 2)] || (memberSizeType === 'kids' ? 'S10' : 'M');
 
     const newMember = {
       id: Date.now(),
       teamName: teamName,
       surname: '',
       number: '',
-      jerseySize: jerseyType === 'shorts' ? null : defaultShirtSize,
-      shortsSize: jerseyType === 'shirt' ? null : defaultShortSize,
-      sizingType: sizeType,
-      size: jerseyType === 'shorts' ? null : defaultShirtSize
+      jerseySize: memberJerseyType === 'shorts' ? null : defaultShirtSize,
+      shortsSize: memberJerseyType === 'shirt' ? null : defaultShortSize,
+      sizingType: memberSizeType,
+      jerseyType: memberJerseyType,
+      fabricOption: memberFabricOption,
+      cutType: memberCutType,
+      size: memberJerseyType === 'shorts' ? null : defaultShirtSize
     };
     setTeamMembers(prev => [...prev, newMember]);
-    console.log('Γ£à New team member row added');
+    console.log('✅ New team member row added with per-member customization');
   };
 
   const updateTeamMember = (index, field, value) => {
@@ -1445,13 +1806,61 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       }
 
       const updated = { ...member, [field]: value };
+      const memberJerseyType = field === 'jerseyType' ? value : (updated.jerseyType || 'full');
 
-      if (field === 'jerseySize' && jerseyType !== 'shorts') {
+      // Handle jersey type changes
+      if (field === 'jerseyType') {
+        if (value === 'shirt') {
+          updated.shortsSize = null;
+          updated.size = updated.jerseySize || null;
+        } else if (value === 'shorts') {
+          updated.jerseySize = null;
+          updated.size = null;
+        } else {
+          // full set - ensure both sizes exist
+          if (!updated.jerseySize) {
+            const shirtSizes = updated.sizingType === 'kids'
+              ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+              : (jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+            updated.jerseySize = shirtSizes[Math.floor(shirtSizes.length / 2)] || 'M';
+          }
+          if (!updated.shortsSize) {
+            const shortSizes = updated.sizingType === 'kids'
+              ? (jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+              : (jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+            updated.shortsSize = shortSizes[Math.floor(shortSizes.length / 2)] || 'M';
+          }
+          updated.size = updated.jerseySize || null;
+        }
+      }
+
+      // Handle sizing type changes - update sizes to match new sizing type
+      if (field === 'sizingType') {
+        const shirtSizes = value === 'kids'
+          ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+          : (jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+        const shortSizes = value === 'kids'
+          ? (jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+          : (jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+        
+        if (memberJerseyType !== 'shorts' && updated.jerseySize) {
+          // Try to find matching size in new list, or use default
+          const defaultShirtSize = shirtSizes[Math.floor(shirtSizes.length / 2)] || (value === 'kids' ? 'S10' : 'M');
+          updated.jerseySize = shirtSizes.includes(updated.jerseySize) ? updated.jerseySize : defaultShirtSize;
+          updated.size = updated.jerseySize;
+        }
+        if (memberJerseyType !== 'shirt' && updated.shortsSize) {
+          const defaultShortSize = shortSizes[Math.floor(shortSizes.length / 2)] || (value === 'kids' ? 'S10' : 'M');
+          updated.shortsSize = shortSizes.includes(updated.shortsSize) ? updated.shortsSize : defaultShortSize;
+        }
+      }
+
+      if (field === 'jerseySize' && memberJerseyType !== 'shorts') {
         updated.size = value;
       }
 
       if (field === 'shortsSize') {
-        if (jerseyType === 'shorts') {
+        if (memberJerseyType === 'shorts') {
           updated.size = null;
         } else if (!updated.size) {
           updated.size = updated.jerseySize || null;
@@ -1475,6 +1884,18 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     setIsReviewsExpanded(!isReviewsExpanded);
   };
 
+  const toggleMemberExpanded = (memberId) => {
+    setExpandedMembers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId);
+      } else {
+        newSet.add(memberId);
+      }
+      return newSet;
+    });
+  };
+
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, index) => (
       <span key={index}>
@@ -1489,6 +1910,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
   const renderFabricOptions = () => {
     if (fabricOptions.length === 0) return null;
+    // Hide fabric options for team orders - they're per-member now
+    if (isTeamOrder) return null;
 
     const label = isTrophy ? 'Material Options' : 'Fabric Options';
     return (
@@ -1502,11 +1925,58 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 key={name}
                 type="button"
                 className={`modal-fabric-button ${isActive ? 'active' : ''}`}
-                onClick={() => setSelectedFabricOption(name)}
+                onClick={() => {
+                  setSelectedFabricOption(name);
+                  if (user && !isFromCart && !existingCartItemData) {
+                    updateProductModalPreferences(user.id, { fabricOption: name });
+                  }
+                }}
               >
                 <span className="modal-fabric-name">{name}</span>
                 <span className="modal-fabric-fee">
-                  {amount > 0 ? `+₱${amount.toFixed(2)}` : 'Included'}
+                  {amount > 0 ? `+₱${amount.toFixed(2)}` : 'Free'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCutTypeOptions = () => {
+    // Only show for jersey/apparel categories
+    if (!isJerseyCategory && !isApparel) return null;
+    // Hide cut type options for team orders - they're per-member now
+    if (isTeamOrder) return null;
+    if (cutTypeOptions.length === 0) {
+      console.log('🔍 [ProductModal] No cut type options available. cutTypeData:', cutTypeData, 'cutTypeOptions:', cutTypeOptions);
+      return null;
+    }
+
+    console.log('✅ [ProductModal] Rendering cut type options:', cutTypeOptions);
+
+    return (
+      <div className="modal-fabric-section">
+        <h4 className="modal-fabric-title">Cut Type Options</h4>
+        <div className="modal-fabric-options">
+          {cutTypeOptions.map(({ name, amount }) => {
+            const isActive = selectedCutType === name;
+            return (
+              <button
+                key={name}
+                type="button"
+                className={`modal-fabric-button ${isActive ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedCutType(name);
+                  if (user && !isFromCart && !existingCartItemData) {
+                    updateProductModalPreferences(user.id, { cutType: name });
+                  }
+                }}
+              >
+                <span className="modal-fabric-name">{name}</span>
+                <span className="modal-fabric-fee">
+                  {amount > 0 ? `+₱${amount.toFixed(2)}` : 'Free'}
                 </span>
               </button>
             );
@@ -1557,15 +2027,20 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 <div className="modal-product-title">{product.name}</div>
 
                 {/* Price */}
-                <div className="modal-product-price" key={`price-${jerseyType}-${sizeType}-${trophyDetails?.size || ''}`}>
-                  {sizeType === 'kids' ? (
-                    <>
-                      <span className="discounted-price">₱ {currentPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                      <span className="original-price">₱ {(currentPrice + 200).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                <div className="modal-product-price-wrapper">
+                  {isTeamOrder && isApparel && teamMembers.length > 0 && (
+                    <div className="modal-price-label">{displayPriceLabel}</div>
+                  )}
+                  <div className="modal-product-price" key={`price-${jerseyType}-${sizeType}-${trophyDetails?.size || ''}-${teamMembers.length}`}>
+                    {sizeType === 'kids' && !isTeamOrder ? (
+                      <>
+                        <span className="discounted-price">₱ {displayPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                        <span className="original-price">₱ {(displayPrice + 200).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     </>
                   ) : (
-                    `₱ ${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                      `₱ ${displayPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                   )}
+                  </div>
                 </div>
               </div>
 
@@ -1599,8 +2074,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
             )}
 
-            {/* Jersey Type Selection - Only for Jersey Category */}
-            {isJerseyCategory && (
+            {/* Jersey Type Selection - Only for Jersey Category, Hide for Team Orders */}
+            {isJerseyCategory && !isTeamOrder && (
               <div className="modal-jersey-type-section">
                 <div className="modal-jersey-type-label">JERSEY TYPE</div>
                 <div className="modal-jersey-type-buttons">
@@ -1610,6 +2085,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     onClick={() => {
                       console.log('🔄 [ProductModal] Setting jerseyType to: full');
                       setJerseyType('full');
+                      if (user && !isFromCart && !existingCartItemData) {
+                        updateProductModalPreferences(user.id, { jerseyType: 'full' });
+                      }
                     }}
                   >
                     Full Set
@@ -1620,6 +2098,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     onClick={() => {
                       console.log('🔄 [ProductModal] Setting jerseyType to: shirt');
                       setJerseyType('shirt');
+                      if (user && !isFromCart && !existingCartItemData) {
+                        updateProductModalPreferences(user.id, { jerseyType: 'shirt' });
+                      }
                     }}
                   >
                     Shirt Only
@@ -1630,64 +2111,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     onClick={() => {
                       console.log('🔄 [ProductModal] Setting jerseyType to: shorts');
                       setJerseyType('shorts');
+                      if (user && !isFromCart && !existingCartItemData) {
+                        updateProductModalPreferences(user.id, { jerseyType: 'shorts' });
+                      }
                     }}
                   >
                     Shorts Only
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Size Type Toggle for Team Orders - Only for Apparel */}
-            {isApparel && isTeamOrder && (
-              <div className="modal-size-type-section">
-                <div className="modal-size-type-label">SIZE TYPE <a href="#" onClick={(e) => { e.preventDefault(); setShowSizeChart(true); }} className="modal-size-chart-link">Size chart</a></div>
-                <div className="modal-size-type-buttons">
-                  <button
-                    className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
-                    onClick={() => {
-                      setSizeType('adult');
-                      const newShirtSizes = jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL'];
-                      const newShortSizes = jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL'];
-                      const defaultShirtSize = newShirtSizes[Math.floor(newShirtSizes.length / 2)] || 'M';
-                      const defaultShortSize = newShortSizes[Math.floor(newShortSizes.length / 2)] || 'M';
-                      // Update all team members
-                      setTeamMembers(prev => prev.map(member => {
-                        const updated = {
-                          ...member,
-                          jerseySize: defaultShirtSize,
-                          shortsSize: defaultShortSize,
-                          sizingType: 'adult'
-                        };
-                        updated.size = jerseyType === 'shorts' ? null : defaultShirtSize;
-                        return updated;
-                      }));
-                    }}
-                  >
-                    Adult
-                  </button>
-                  <button
-                    className={`modal-size-type-button ${sizeType === 'kids' ? 'active' : ''}`}
-                    onClick={() => {
-                      setSizeType('kids');
-                      const newShirtSizes = jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'];
-                      const newShortSizes = jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'];
-                      const defaultShirtSize = newShirtSizes[Math.floor(newShirtSizes.length / 2)] || 'M';
-                      const defaultShortSize = newShortSizes[Math.floor(newShortSizes.length / 2)] || 'M';
-                      // Update all team members
-                      setTeamMembers(prev => prev.map(member => {
-                        const updated = {
-                          ...member,
-                          jerseySize: defaultShirtSize,
-                          shortsSize: defaultShortSize,
-                          sizingType: 'kids'
-                        };
-                        updated.size = jerseyType === 'shorts' ? null : defaultShirtSize;
-                        return updated;
-                      }));
-                    }}
-                  >
-                    Kids
                   </button>
                 </div>
               </div>
@@ -1738,10 +2167,34 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
                 {/* Team Members Roster - Multiple Input Rows */}
                 <div className="modal-members-roster">
-                  {teamMembers.map((member, index) => (
+                  {teamMembers.map((member, index) => {
+                    const isExpanded = expandedMembers.has(member.id);
+                    return (
                     <div key={member.id} className="modal-member-card">
+                      <div className="modal-member-header">
+                        <div className="modal-member-tag-wrapper">
                       <div className="modal-member-tag">
                         Member {index + 1}
+                          </div>
+                          {isTeamOrder && isApparel && teamPricingInfo.members.length > 0 && (() => {
+                            const memberPricing = teamPricingInfo.members.find(m => m.id === member.id);
+                            const memberTotalPrice = memberPricing?.totalPrice || 0;
+                            return (
+                              <div className="modal-member-price">
+                                ₱ {memberTotalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <button
+                          type="button"
+                          className="modal-member-toggle-btn"
+                          onClick={() => toggleMemberExpanded(member.id)}
+                          title={isExpanded ? "Collapse details" : "Expand details"}
+                        >
+                          <span className="modal-member-toggle-label">Customize</span>
+                          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
                       </div>
                       <div className="modal-member-row-row-1">
                         <div className="modal-input-wrapper modal-member-wrapper">
@@ -1796,40 +2249,187 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                           </button>
                         )}
                       </div>
-                      <div className="modal-member-row-row-2">
-                        {/* Always show shirt size for apparel, but only for jerseys when jerseyType is 'full' or 'shirt' */}
-                        {(!isJerseyCategory || jerseyType === 'full' || jerseyType === 'shirt') && (
+                      {/* Per-Member Customization Section */}
+                      {isExpanded && (
+                      <div className="modal-member-customization-section">
+                        {/* Jersey Type Selector - Only for Jerseys */}
+                        {isJerseyCategory && (
+                          <div className="modal-member-customization-group">
+                            <label className="modal-member-customization-label">Jersey Type</label>
+                            <div className="modal-member-jersey-type-buttons">
+                              <button
+                                type="button"
+                                className={`modal-member-jersey-type-btn ${(member.jerseyType || 'full') === 'full' ? 'active' : ''}`}
+                                onClick={() => updateTeamMember(index, 'jerseyType', 'full')}
+                              >
+                                Full Set
+                              </button>
+                              <button
+                                type="button"
+                                className={`modal-member-jersey-type-btn ${(member.jerseyType || 'full') === 'shirt' ? 'active' : ''}`}
+                                onClick={() => updateTeamMember(index, 'jerseyType', 'shirt')}
+                              >
+                                Shirt Only
+                              </button>
+                              <button
+                                type="button"
+                                className={`modal-member-jersey-type-btn ${(member.jerseyType || 'full') === 'shorts' ? 'active' : ''}`}
+                                onClick={() => updateTeamMember(index, 'jerseyType', 'shorts')}
+                              >
+                                Shorts Only
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Size Type Selector */}
+                        <div className="modal-member-customization-group">
+                          <label className="modal-member-customization-label">Size Type</label>
+                          <div className="modal-member-size-type-buttons">
+                            <button
+                              type="button"
+                              className={`modal-member-size-type-btn ${(member.sizingType || 'adult') === 'adult' ? 'active' : ''}`}
+                              onClick={() => updateTeamMember(index, 'sizingType', 'adult')}
+                            >
+                              Adult
+                            </button>
+                            <button
+                              type="button"
+                              className={`modal-member-size-type-btn ${(member.sizingType || 'adult') === 'kids' ? 'active' : ''}`}
+                              onClick={() => updateTeamMember(index, 'sizingType', 'kids')}
+                            >
+                              Kids
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Fabric Option Selector */}
+                        {fabricOptions.length > 0 && (
+                          <div className="modal-member-customization-group">
+                            <label className="modal-member-customization-label">Fabric</label>
+                            <select
+                              value={member.fabricOption || ''}
+                              onChange={(e) => updateTeamMember(index, 'fabricOption', e.target.value)}
+                              className="modal-member-select"
+                            >
+                              {fabricOptions.map(option => (
+                                <option key={option.name} value={option.name}>
+                                  {option.name} {option.amount > 0 ? `(+₱${option.amount.toFixed(2)})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Cut Type Selector */}
+                        {cutTypeOptions.length > 0 && (
+                          <div className="modal-member-customization-group">
+                            <label className="modal-member-customization-label">Cut Type</label>
+                            <select
+                              value={member.cutType || ''}
+                              onChange={(e) => updateTeamMember(index, 'cutType', e.target.value)}
+                              className="modal-member-select"
+                            >
+                              {cutTypeOptions.map(option => (
+                                <option key={option.name} value={option.name}>
+                                  {option.name} {option.amount > 0 ? `(+₱${option.amount.toFixed(2)})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Size Selectors - Based on member's jersey type and sizing type */}
+                        <div className="modal-member-size-selectors">
+                          {(() => {
+                            const memberJerseyType = member.jerseyType || 'full';
+                            const memberSizingType = member.sizingType || 'adult';
+                            const memberShirtSizes = memberSizingType === 'kids'
+                              ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+                              : (jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+                            const memberShortSizes = memberSizingType === 'kids'
+                              ? (jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+                              : (jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+
+                            return (
+                              <>
+                                {/* Shirt Size - Show for full set or shirt only */}
+                                {(!isJerseyCategory || memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
                           <div className="modal-member-size-wrapper">
                             <label className="modal-member-size-label">Shirt Size</label>
                             <select
-                              value={member.jerseySize || (shirtSizes.length > 0 ? shirtSizes[Math.floor(shirtSizes.length / 2)] : 'M')}
+                                      value={member.jerseySize || (memberShirtSizes.length > 0 ? memberShirtSizes[Math.floor(memberShirtSizes.length / 2)] : 'M')}
                               onChange={(e) => updateTeamMember(index, 'jerseySize', e.target.value)}
                               className="modal-member-select"
                             >
-                              {shirtSizes.map(size => (
-                                <option key={size} value={size}>{size}</option>
-                              ))}
+                                      {memberShirtSizes.map(size => {
+                                        const memberGroup = memberSizingType === 'kids' ? 'kids' : (isJerseyCategory ? 'adults' : 'general');
+                                        const surcharge = getSizeSurcharge(size, memberGroup);
+                                        return (
+                                          <option key={size} value={size}>
+                                            {size}{surcharge > 0 ? ` (+₱${surcharge.toFixed(2)})` : ''}
+                                          </option>
+                                        );
+                                      })}
                             </select>
                           </div>
                         )}
-                        {/* Only show shorts for jerseys when jerseyType is 'full' or 'shorts' */}
-                        {shouldShowShorts && (
+                                {/* Short Size - Show for full set or shorts only (jerseys only) */}
+                                {isJerseyCategory && shouldShowShorts && (memberJerseyType === 'full' || memberJerseyType === 'shorts') && (
                           <div className="modal-member-size-wrapper">
                             <label className="modal-member-size-label">Short Size</label>
                             <select
-                              value={member.shortsSize || (shortSizes.length > 0 ? shortSizes[Math.floor(shortSizes.length / 2)] : 'M')}
+                                      value={member.shortsSize || (memberShortSizes.length > 0 ? memberShortSizes[Math.floor(memberShortSizes.length / 2)] : 'M')}
                               onChange={(e) => updateTeamMember(index, 'shortsSize', e.target.value)}
                               className="modal-member-select"
                             >
-                              {shortSizes.map(size => (
-                                <option key={size} value={size}>{size}</option>
-                              ))}
+                                      {memberShortSizes.map(size => {
+                                        const memberGroup = memberSizingType === 'kids' ? 'kids' : (isJerseyCategory ? 'adults' : 'general');
+                                        const surcharge = getSizeSurcharge(size, memberGroup);
+                                        return (
+                                          <option key={size} value={size}>
+                                            {size}{surcharge > 0 ? ` (+₱${surcharge.toFixed(2)})` : ''}
+                                          </option>
+                                        );
+                                      })}
                             </select>
                           </div>
                         )}
+                                {/* General Size - For non-jersey apparel */}
+                                {!isJerseyCategory && (
+                                  <div className="modal-member-size-wrapper">
+                                    <label className="modal-member-size-label">Size</label>
+                                    <select
+                                      value={member.size || member.jerseySize || 'M'}
+                                      onChange={(e) => updateTeamMember(index, 'size', e.target.value)}
+                                      className="modal-member-select"
+                                    >
+                                      {(() => {
+                                        const sizes = memberSizingType === 'kids'
+                                          ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
+                                          : (jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
+                                        const memberGroup = memberSizingType === 'kids' ? 'kids' : (isJerseyCategory ? 'adults' : 'general');
+                                        return sizes.map(size => {
+                                          const surcharge = getSizeSurcharge(size, memberGroup);
+                                          return (
+                                            <option key={size} value={size}>
+                                              {size}{surcharge > 0 ? ` (+₱${surcharge.toFixed(2)})` : ''}
+                                            </option>
+                                          );
+                                        });
+                                      })()}
+                                    </select>
                       </div>
+                                )}
+                              </>
+                            );
+                          })()}
                     </div>
-                  ))}
+                      </div>
+                      )}
+                    </div>
+                  );
+                  })}
                 </div>
               </div>
             )}
@@ -1843,6 +2443,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     className={`modal-size-type-button ${sizeType === 'adult' ? 'active' : ''}`}
                     onClick={() => {
                       setSizeType('adult');
+                      if (user && !isFromCart && !existingCartItemData) {
+                        updateProductModalPreferences(user.id, { sizeType: 'adult' });
+                      }
                       const newShirtSizes = jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL'];
                       const newShortSizes = jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL'];
                       setSingleOrderDetails(prev => {
@@ -1864,6 +2467,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                     className={`modal-size-type-button ${sizeType === 'kids' ? 'active' : ''}`}
                     onClick={() => {
                       setSizeType('kids');
+                      if (user && !isFromCart && !existingCartItemData) {
+                        updateProductModalPreferences(user.id, { sizeType: 'kids' });
+                      }
                       const newShirtSizes = jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'];
                       const newShortSizes = jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'];
                       setSingleOrderDetails(prev => {
@@ -1974,9 +2580,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                         }}
                         className="modal-single-order-select"
                       >
-                        {shirtSizes.map(size => (
-                          <option key={size} value={size}>{size}</option>
-                        ))}
+                        {shirtSizes.map(size => {
+                          const surcharge = getSizeSurcharge(size, sizeGroupHint);
+                          return (
+                            <option key={size} value={size}>
+                              {size}{surcharge > 0 ? ` (+₱${surcharge.toFixed(2)})` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}
@@ -1996,9 +2607,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                         }}
                         className="modal-single-order-select"
                       >
-                        {shortSizes.map(size => (
-                          <option key={size} value={size}>{size}</option>
-                        ))}
+                        {shortSizes.map(size => {
+                          const surcharge = getSizeSurcharge(size, sizeGroupHint);
+                          return (
+                            <option key={size} value={size}>
+                              {size}{surcharge > 0 ? ` (+₱${surcharge.toFixed(2)})` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}
@@ -2007,6 +2623,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
             )}
 
             {renderFabricOptions()}
+
+            {renderCutTypeOptions()}
 
             {/* Ball Details Form - Hidden (balls can be added without size selection) */}
 
@@ -2027,9 +2645,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       className={`modal-trophy-details-input ${validationErrors.trophySize ? 'error' : ''}`}
                     >
                       <option value="">Select Size</option>
-                      {trophySizeOptions.map(option => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
+                      {trophySizeOptions.map(option => {
+                        const surcharge = getSizeSurcharge(option, 'general');
+                        return (
+                          <option key={option} value={option}>
+                            {option}{surcharge > 0 ? ` (+₱${surcharge.toFixed(2)})` : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                     {validationErrors.trophySize && (
                       <span className="modal-error-message">{validationErrors.trophySize}</span>

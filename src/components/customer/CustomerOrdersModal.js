@@ -6,6 +6,7 @@ import orderService from '../../services/orderService';
 import orderTrackingService from '../../services/orderTrackingService';
 import SimpleOrderReview from './SimpleOrderReview';
 import DesignChat from './DesignChat';
+import { supabase } from '../../lib/supabase';
 import './CustomerOrdersModal.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
@@ -76,12 +77,44 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
         const review = await orderTrackingService.getOrderReview(order.id);
         reviewsData[order.id] = review;
 
-        // Load assigned artist data
+        // Load assigned artist data directly from Supabase
         try {
-          const orderWithArtist = await orderService.getOrderWithArtist(order.id);
-          artistData[order.id] = orderWithArtist.assignedArtist;
+          const { data: artistTask, error: taskError } = await supabase
+            .from('artist_tasks')
+            .select(`
+              artist_id,
+              artist_profiles(
+                id,
+                artist_name,
+                is_active
+              )
+            `)
+            .eq('order_id', order.id)
+            .maybeSingle();
+
+          console.log(`🎨 Raw artist task query result for order ${order.id}:`, { artistTask, taskError });
+
+          if (taskError) {
+            console.error(`❌ Error getting artist task for order ${order.id}:`, taskError);
+            artistData[order.id] = null;
+          } else if (artistTask && artistTask.artist_profiles) {
+            const profile = Array.isArray(artistTask.artist_profiles) 
+              ? artistTask.artist_profiles[0] 
+              : artistTask.artist_profiles;
+            
+            if (profile && profile.is_active) {
+              artistData[order.id] = profile;
+              console.log(`✅ Found active artist for order ${order.id}:`, profile.artist_name);
+            } else {
+              console.log(`⚠️ Artist profile not active or not found for order ${order.id}`);
+              artistData[order.id] = null;
+            }
+          } else {
+            console.log(`⚠️ No artist task found for order ${order.id}`);
+            artistData[order.id] = null;
+          }
         } catch (artistError) {
-          console.log(`No artist assigned to order ${order.id}`);
+          console.log(`⚠️ Error loading artist for order ${order.id}:`, artistError);
           artistData[order.id] = null;
         }
       } catch (error) {
@@ -93,12 +126,18 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     setOrderReviews(reviewsData);
     
     // Update orders with artist information
-    setOrders(prevOrders => 
-      prevOrders.map(order => ({
-        ...order,
-        assignedArtist: artistData[order.id] || null
-      }))
-    );
+    setOrders(prevOrders => {
+      const updatedOrders = prevOrders.map(order => {
+        const artist = artistData[order.id];
+        console.log(`🎨 Updating order ${order.id} with artist:`, artist);
+        return {
+          ...order,
+          assignedArtist: artist || null
+        };
+      });
+      console.log('🎨 Updated orders with artist data:', updatedOrders.map(o => ({ id: o.id, orderNumber: o.orderNumber, hasArtist: !!o.assignedArtist, artistName: o.assignedArtist?.artist_name })));
+      return updatedOrders;
+    });
   };
 
   const formatDate = (dateString) => {
@@ -511,32 +550,62 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                               </div>
                                               <div className="team-order-members-list">
                                                 {item.teamMembers && item.teamMembers.length > 0 ? (
-                                                  item.teamMembers.map((member, memberIndex) => (
-                                                    <div key={memberIndex} className="team-member-detail-item">
-                                                      <div className="member-detail-row">
-                                                        <span className="member-detail-label">Surname:</span>
-                                                        <span className="member-detail-value">{member.surname || 'N/A'}</span>
-                                                      </div>
-                                                      <div className="member-detail-row">
-                                                        <span className="member-detail-label">Jersey #:</span>
-                                                        <span className="member-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
-                                                      </div>
-                                                      <div className="member-detail-row">
-                                                        <span className="member-detail-label">Jersey Size:</span>
-                                                        <span className="member-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
-                                                      </div>
-                                                      <div className="member-detail-row">
-                                                        <span className="member-detail-label">Shorts Size:</span>
-                                                        <span className="member-detail-value">{member.shortsSize || member.size || 'N/A'}</span>
-                                                      </div>
-                                                      {member.sizingType || item.sizeType ? (
+                                                  item.teamMembers.map((member, memberIndex) => {
+                                                    // Calculate member price - prioritize stored totalPrice, then calculate from components
+                                                    let memberPrice = 0;
+                                                    if (member.totalPrice && member.totalPrice > 0) {
+                                                      memberPrice = member.totalPrice;
+                                                    } else if (member.basePrice !== undefined || member.fabricSurcharge !== undefined || member.cutTypeSurcharge !== undefined || member.sizeSurcharge !== undefined) {
+                                                      memberPrice = (member.basePrice || 0) + (member.fabricSurcharge || 0) + (member.cutTypeSurcharge || 0) + (member.sizeSurcharge || 0);
+                                                    } else {
+                                                      // Fallback: divide total by number of members
+                                                      const perUnitTotal = Number(item.price || 0);
+                                                      memberPrice = perUnitTotal / Math.max(1, item.teamMembers?.length || 1);
+                                                    }
+                                                    
+                                                    return (
+                                                      <div key={memberIndex} className="team-member-detail-item">
                                                         <div className="member-detail-row">
-                                                          <span className="member-detail-label">Type:</span>
-                                                          <span className="member-detail-value">{member.sizingType || item.sizeType || 'Adult'}</span>
+                                                          <span className="member-detail-label">Surname:</span>
+                                                          <span className="member-detail-value">{member.surname || 'N/A'}</span>
                                                         </div>
-                                                      ) : null}
-                                                    </div>
-                                                  ))
+                                                        <div className="member-detail-row">
+                                                          <span className="member-detail-label">Jersey #:</span>
+                                                          <span className="member-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="member-detail-row">
+                                                          <span className="member-detail-label">Jersey Size:</span>
+                                                          <span className="member-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="member-detail-row">
+                                                          <span className="member-detail-label">Shorts Size:</span>
+                                                          <span className="member-detail-value">{member.shortsSize || member.size || 'N/A'}</span>
+                                                        </div>
+                                                        {member.fabricOption || member.fabric_option ? (
+                                                          <div className="member-detail-row">
+                                                            <span className="member-detail-label">Fabric:</span>
+                                                            <span className="member-detail-value">{member.fabricOption || member.fabric_option || 'N/A'}</span>
+                                                          </div>
+                                                        ) : null}
+                                                        {member.cutType || member.cut_type ? (
+                                                          <div className="member-detail-row">
+                                                            <span className="member-detail-label">Cut Type:</span>
+                                                            <span className="member-detail-value">{member.cutType || member.cut_type || 'N/A'}</span>
+                                                          </div>
+                                                        ) : null}
+                                                        {member.sizingType || item.sizeType ? (
+                                                          <div className="member-detail-row">
+                                                            <span className="member-detail-label">Type:</span>
+                                                            <span className="member-detail-value">{member.sizingType || item.sizeType || 'Adult'}</span>
+                                                          </div>
+                                                        ) : null}
+                                                        <div className="member-detail-row member-price-row">
+                                                          <span className="member-detail-label">Price:</span>
+                                                          <span className="member-detail-value member-price-value">₱{memberPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  })
                                                 ) : (
                                                   <div className="team-order-no-members">No team members found</div>
                                                 )}
@@ -579,6 +648,18 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                                   <span className="order-detail-label">Shorts Size:</span>
                                                   <span className="order-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || item.size || 'N/A'}</span>
                                                 </div>
+                                                {(item.fabricOption || item.singleOrderDetails?.fabricOption) && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Fabric:</span>
+                                                    <span className="order-detail-value">{item.fabricOption || item.singleOrderDetails?.fabricOption || 'N/A'}</span>
+                                                  </div>
+                                                )}
+                                                {(item.cutType || item.singleOrderDetails?.cutType) && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Cut Type:</span>
+                                                    <span className="order-detail-value">{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</span>
+                                                  </div>
+                                                )}
                                                 {(item.singleOrderDetails?.sizingType || item.sizeType) && (
                                                   <div className="order-detail-row">
                                                     <span className="order-detail-label">Type:</span>
@@ -682,6 +763,22 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         </div>
                       </div>
 
+                      {/* Assigned Artist Section */}
+                      {order.assignedArtist && order.assignedArtist.artist_name && (
+                        <div className="customer-order-artist-section">
+                          <h4>Assigned Artist</h4>
+                          <div className="artist-info-card">
+                            <div className="artist-icon">
+                              <FaUsers />
+                            </div>
+                            <div className="artist-details">
+                              <div className="artist-name-label">Artist Name:</div>
+                              <div className="artist-name-value">{order.assignedArtist.artist_name}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Order Tracking Section - Only for COD orders */}
                       {order.shippingMethod === 'cod' && (
                         <div className="customer-order-tracking">
@@ -746,12 +843,6 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
 
                       <div className="customer-order-summary">
                         <h4>Order Summary</h4>
-                        {order.assignedArtist && (
-                          <div className="summary-row artist-info">
-                            <span><FaUsers /> Assigned Artist:</span>
-                            <span className="artist-name">{order.assignedArtist.artist_name}</span>
-                          </div>
-                        )}
                         <div className="summary-row">
                           <span>Subtotal:</span>
                           <span>₱{parseFloat(order.subtotalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>

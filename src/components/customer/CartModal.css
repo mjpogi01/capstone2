@@ -419,6 +419,29 @@
   border-radius: 3px;
   border-left: 2px solid var(--shopee-primary);
   font-size: 0.7rem;
+  position: relative;
+}
+
+.mycart-member-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 0;
+}
+
+.mycart-member-price-label {
+  color: #666;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.mycart-member-price-value {
+  color: var(--shopee-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 /* Quantity Selector - Shopee Style */

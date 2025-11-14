@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaChevronUp, FaTshirt, FaImage } from 'react-icons/fa';
+import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaChevronUp, FaTshirt, FaImage, FaArrowLeft } from 'react-icons/fa';
 import userService from '../../services/userService';
 import branchService from '../../services/branchService';
 import './CheckoutModal.css';
 import { getApparelSizeVisibility } from '../../utils/orderSizing';
+import { getProvinces, getCitiesByProvince, getBarangaysByCity } from '../../utils/locationData';
+import SearchableSelect from '../common/SearchableSelect';
 
 const FALLBACK_BRANCHES = [
   { id: 1, name: 'SAN PASCUAL (MAIN BRANCH)' },
@@ -17,7 +19,7 @@ const FALLBACK_BRANCHES = [
   { id: 9, name: 'ROSARIO BRANCH' }
 ];
 
-const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartItems }) => {
+const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartItems, onBack }) => {
   // Use the filtered cart items passed as props, not all cart items from context
   const cartItems = selectedCartItems || [];
   
@@ -35,7 +37,12 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   const [deliveryAddress, setDeliveryAddress] = useState({
     address: '',
     receiver: '',
-    phone: ''
+    phone: '',
+    province: '',
+    city: '',
+    barangay: '',
+    postalCode: '',
+    streetAddress: ''
   });
   
   const [hasAddress, setHasAddress] = useState(false); // Check if user has address in database
@@ -54,6 +61,11 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   });
   const [addressErrors, setAddressErrors] = useState({});
   const [orderErrors, setOrderErrors] = useState({}); // For order validation
+  
+  // Location data state
+  const [provinces, setProvinces] = useState([]);
+  const [availableCities, setAvailableCities] = useState([]);
+  const [availableBarangays, setAvailableBarangays] = useState([]);
   
   const [shippingMethod, setShippingMethod] = useState('pickup');
   const [selectedLocation, setSelectedLocation] = useState('');
@@ -142,6 +154,47 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     setSelectedLocation(prev => (prev && prev.trim() !== '' ? prev : branchOptions[0].name));
   }, [isOpen, branchOptions]);
 
+  // Load provinces on mount
+  useEffect(() => {
+    const provincesList = getProvinces();
+    setProvinces(provincesList);
+  }, []);
+
+  // Update cities when province changes
+  useEffect(() => {
+    if (newAddress.province) {
+      const cities = getCitiesByProvince(newAddress.province);
+      setAvailableCities(cities);
+      // Reset city and barangay when province changes (only if city was previously set)
+      setNewAddress(prev => {
+        if (prev.city || prev.barangay) {
+          return { ...prev, city: '', barangay: '' };
+        }
+        return prev;
+      });
+    } else {
+      setAvailableCities([]);
+      setAvailableBarangays([]);
+    }
+  }, [newAddress.province]);
+
+  // Update barangays when city changes
+  useEffect(() => {
+    if (newAddress.province && newAddress.city) {
+      const barangays = getBarangaysByCity(newAddress.province, newAddress.city);
+      setAvailableBarangays(barangays);
+      // Reset barangay when city changes (only if barangay was previously set)
+      setNewAddress(prev => {
+        if (prev.barangay) {
+          return { ...prev, barangay: '' };
+        }
+        return prev;
+      });
+    } else {
+      setAvailableBarangays([]);
+    }
+  }, [newAddress.province, newAddress.city]);
+
   if (!isOpen) return null;
 
   const subtotalAmount = cartItems.reduce((total, item) => {
@@ -229,8 +282,38 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   };
 
   const handleConfirmOrder = () => {
+    // Get full address details if an address is selected
+    let fullDeliveryAddress = deliveryAddress;
+    if (shippingMethod === 'cod' && selectedAddressId) {
+      const selectedAddress = allAddresses.find(addr => addr.id === selectedAddressId);
+      if (selectedAddress) {
+        fullDeliveryAddress = {
+          address: selectedAddress.address,
+          receiver: selectedAddress.full_name,
+          phone: selectedAddress.phone,
+          province: selectedAddress.province,
+          city: selectedAddress.city,
+          barangay: selectedAddress.barangay,
+          postalCode: selectedAddress.postal_code,
+          streetAddress: selectedAddress.street_address
+        };
+      }
+    } else if (shippingMethod === 'cod' && newAddress.province && newAddress.city) {
+      // If using a new address from the form
+      fullDeliveryAddress = {
+        address: `${newAddress.streetAddress}, ${newAddress.barangay}, ${newAddress.city}, ${newAddress.province} ${newAddress.postalCode}`,
+        receiver: newAddress.fullName,
+        phone: newAddress.phone,
+        province: newAddress.province,
+        city: newAddress.city,
+        barangay: newAddress.barangay,
+        postalCode: newAddress.postalCode,
+        streetAddress: newAddress.streetAddress
+      };
+    }
+    
     const orderData = {
-      deliveryAddress,
+      deliveryAddress: fullDeliveryAddress,
       shippingMethod,
       selectedLocation,
       selectedBranchId,
@@ -297,7 +380,12 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           setDeliveryAddress({
             address: defaultAddress.address,
             receiver: defaultAddress.full_name,
-            phone: defaultAddress.phone
+            phone: defaultAddress.phone,
+            province: defaultAddress.province,
+            city: defaultAddress.city,
+            barangay: defaultAddress.barangay,
+            postalCode: defaultAddress.postal_code,
+            streetAddress: defaultAddress.street_address
           });
         }
       } else {
@@ -433,7 +521,12 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
         setDeliveryAddress({
           address: '',
           receiver: '',
-          phone: ''
+          phone: '',
+          province: '',
+          city: '',
+          barangay: '',
+          postalCode: '',
+          streetAddress: ''
         });
       }
       
@@ -458,45 +551,50 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     
     // Use the provided address or the current delivery address
     const addressToEdit = address || { address: deliveryAddress.address, full_name: deliveryAddress.receiver, phone: deliveryAddress.phone };
-    const addressString = addressToEdit.address || '';
-    console.log('Address string:', addressString); // Debug log
-    const addressParts = addressString.split(', ').map(part => part.trim());
-    console.log('Address parts:', addressParts); // Debug log
     
-    let streetAddress = '';
-    let barangay = '';
-    let city = '';
-    let province = '';
-    let postalCode = '';
+    // Prefer database fields if available, otherwise parse from address string
+    let streetAddress = addressToEdit.street_address || '';
+    let barangay = addressToEdit.barangay || '';
+    let city = addressToEdit.city || '';
+    let province = addressToEdit.province || '';
+    let postalCode = addressToEdit.postal_code || '';
     
-    // Parse address parts more carefully
-    if (addressParts.length >= 5) {
-      streetAddress = addressParts[0] || '';
-      barangay = addressParts[1] || '';
-      city = addressParts[2] || '';
-      // Province might contain postal code, so separate them
-      const provincePart = addressParts[3] || '';
-      const postalCodeMatch = provincePart.match(/(\d+)/);
-      if (postalCodeMatch) {
-        province = provincePart.replace(/\d+/g, '').trim();
-        postalCode = postalCodeMatch[1];
-      } else {
-        province = provincePart;
-        postalCode = addressParts[4] || '';
-      }
-    } else if (addressParts.length >= 4) {
-      streetAddress = addressParts[0] || '';
-      barangay = addressParts[1] || '';
-      city = addressParts[2] || '';
-      // Province might contain postal code, so separate them
-      const provincePart = addressParts[3] || '';
-      const postalCodeMatch = provincePart.match(/(\d+)/);
-      if (postalCodeMatch) {
-        province = provincePart.replace(/\d+/g, '').trim();
-        postalCode = postalCodeMatch[1];
-      } else {
-        province = provincePart;
-        postalCode = '';
+    // If database fields are not available, parse from address string
+    if (!streetAddress && !barangay && !city && !province) {
+      const addressString = addressToEdit.address || '';
+      console.log('Address string:', addressString); // Debug log
+      const addressParts = addressString.split(', ').map(part => part.trim());
+      console.log('Address parts:', addressParts); // Debug log
+      
+      // Parse address parts more carefully
+      if (addressParts.length >= 5) {
+        streetAddress = addressParts[0] || '';
+        barangay = addressParts[1] || '';
+        city = addressParts[2] || '';
+        // Province might contain postal code, so separate them
+        const provincePart = addressParts[3] || '';
+        const postalCodeMatch = provincePart.match(/(\d+)/);
+        if (postalCodeMatch) {
+          province = provincePart.replace(/\d+/g, '').trim();
+          postalCode = postalCodeMatch[1];
+        } else {
+          province = provincePart;
+          postalCode = addressParts[4] || '';
+        }
+      } else if (addressParts.length >= 4) {
+        streetAddress = addressParts[0] || '';
+        barangay = addressParts[1] || '';
+        city = addressParts[2] || '';
+        // Province might contain postal code, so separate them
+        const provincePart = addressParts[3] || '';
+        const postalCodeMatch = provincePart.match(/(\d+)/);
+        if (postalCodeMatch) {
+          province = provincePart.replace(/\d+/g, '').trim();
+          postalCode = postalCodeMatch[1];
+        } else {
+          province = provincePart;
+          postalCode = '';
+        }
       }
     }
     
@@ -564,8 +662,19 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     <div className="checkout-modal-overlay" onClick={onClose}>
       <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
         {/* Close Button */}
-        <button className="checkout-close-button" onClick={onClose}>
-          <FaTimes />
+        <button 
+          className="checkout-back-button" 
+          onClick={() => {
+            if (onBack) {
+              onBack();
+            } else {
+              onClose();
+            }
+          }}
+          aria-label="Go back to product"
+        >
+          <FaArrowLeft />
+          <span>Back</span>
         </button>
 
         {/* Header */}
@@ -595,8 +704,33 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
               /* Address Input Form */
               <div className="address-form">
                 <div className="form-header">
-                  <h3>Add Delivery Address</h3>
-                  <p>Please provide your delivery information</p>
+                  <div className="form-header-top">
+                    <div className="form-header-title">
+                      <h3>{editingAddressId ? 'Edit Delivery Address' : 'Add Delivery Address'}</h3>
+                      <p>Please provide your delivery information</p>
+                    </div>
+                    <button 
+                      className="back-address-btn"
+                      onClick={() => {
+                        setShowAddressForm(false);
+                        setEditingAddressId(null);
+                        setNewAddress({
+                          fullName: '',
+                          phone: '',
+                          province: '',
+                          city: '',
+                          barangay: '',
+                          postalCode: '',
+                          streetAddress: ''
+                        });
+                        setAddressErrors({});
+                      }}
+                      aria-label="Go back"
+                    >
+                      <FaArrowLeft />
+                      <span>Back</span>
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="address-form-fields">
@@ -635,38 +769,49 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                   </div>
                   
                   <div className="form-group">
-                    <input
-                      type="text" 
-                      name="province" 
-                      value={newAddress.province} 
-                      onChange={handleAddressInputChange} 
-                      className={addressErrors.province ? 'error' : ''} 
-                      placeholder="Province (e.g., Batangas, Cavite)" 
-                      maxLength={100}
+                    <SearchableSelect
+                      name="province"
+                      value={newAddress.province}
+                      onChange={handleAddressInputChange}
+                      options={provinces.map(province => ({
+                        value: province.name,
+                        label: province.name
+                      }))}
+                      placeholder="Select Province"
+                      error={!!addressErrors.province}
+                      className={addressErrors.province ? 'error' : ''}
                     />
                     {addressErrors.province && (<span className="error-message">{addressErrors.province}</span>)}
                   </div>
                   <div className="form-group">
-                    <input
-                      type="text"
-                      name="city" 
-                      value={newAddress.city} 
-                      onChange={handleAddressInputChange} 
-                      className={addressErrors.city ? 'error' : ''} 
-                      placeholder="City/Municipality (e.g., Batangas City, Lipa City)" 
-                      maxLength={100}
+                    <SearchableSelect
+                      name="city"
+                      value={newAddress.city}
+                      onChange={handleAddressInputChange}
+                      options={availableCities.map(city => ({
+                        value: city.name,
+                        label: `${city.name} ${city.isCity ? '(City)' : '(Municipality)'}`
+                      }))}
+                      placeholder={newAddress.province ? 'Select City/Municipality' : 'Select Province First'}
+                      disabled={!newAddress.province}
+                      error={!!addressErrors.city}
+                      className={addressErrors.city ? 'error' : ''}
                     />
                     {addressErrors.city && (<span className="error-message">{addressErrors.city}</span>)}
                   </div>
                   <div className="form-group">
-                    <input
-                      type="text"
-                      name="barangay" 
-                      value={newAddress.barangay} 
-                      onChange={handleAddressInputChange} 
-                      className={addressErrors.barangay ? 'error' : ''} 
-                      placeholder="Barangay (e.g., Poblacion, Balagtas)" 
-                      maxLength={100}
+                    <SearchableSelect
+                      name="barangay"
+                      value={newAddress.barangay}
+                      onChange={handleAddressInputChange}
+                      options={availableBarangays.map(barangay => ({
+                        value: barangay.name,
+                        label: barangay.name
+                      }))}
+                      placeholder={newAddress.city ? 'Select Barangay' : 'Select City/Municipality First'}
+                      disabled={!newAddress.city}
+                      error={!!addressErrors.barangay}
+                      className={addressErrors.barangay ? 'error' : ''}
                     />
                     {addressErrors.barangay && (<span className="error-message">{addressErrors.barangay}</span>)}
                   </div>
@@ -832,6 +977,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                 const baseUnitPrice = Number(item.basePrice ?? item.price ?? 0);
                 const fabricOption = item.fabricOption || null;
                 const fabricSurcharge = Number(item.fabricSurcharge ?? 0);
+                const cutType = item.cutType || null;
+                const cutTypeSurcharge = Number(item.cutTypeSurcharge ?? 0);
                 const sizeSurchargePerUnit = Number(item.sizeSurcharge ?? 0);
                 const sizeSurchargeTotal = Number(
                   item.sizeSurchargeTotal ??
@@ -845,9 +992,11 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                 const perUnitTotal = Number(item.price ?? 0);
                 const hasFabricSurcharge =
                   Boolean(fabricOption) || fabricSurcharge > 0;
+                const hasCutTypeSurcharge =
+                  Boolean(cutType) || cutTypeSurcharge > 0;
                 const hasSizeSurcharge =
                   sizeSurchargePerUnit > 0 || sizeSurchargeTotal > 0;
-                const hasSurcharges = hasFabricSurcharge || hasSizeSurcharge;
+                const hasSurcharges = hasFabricSurcharge || hasCutTypeSurcharge || hasSizeSurcharge;
                 const lineTotal = perUnitTotal * Number(item.quantity || 1);
                 
                 console.log('🛒 CheckoutModal Cart item:', item); // Debug log
@@ -942,30 +1091,73 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                       shorts: item.teamMembers.some(member => Boolean(member?.shortsSize))
                                     };
                                     const { showJersey: showTeamJerseySize, showShorts: showTeamShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
-                                    return item.teamMembers.map((member, memberIndex) => (
-                                    <div key={memberIndex} className="checkout-modal-perfect-member-details">
-                                      <div className="checkout-modal-perfect-detail-row">
-                                        <span className="checkout-modal-perfect-detail-label">Surname:</span>
-                                        <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-surname-detail">{member.surname || member.lastName || 'N/A'}</span>
-                                      </div>
-                                      <div className="checkout-modal-perfect-detail-row">
-                                        <span className="checkout-modal-perfect-detail-label">Jersey No:</span>
-                                        <span className="checkout-modal-perfect-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
-                                      </div>
-                                      {showTeamJerseySize && (
+                                    return item.teamMembers.map((member, memberIndex) => {
+                                      const memberJerseyType = member.jerseyType || member.jersey_type || 'full';
+                                      const memberFabricOption = member.fabricOption || member.fabric_option || '';
+                                      const memberCutType = member.cutType || member.cut_type || '';
+                                      const memberSizingType = member.sizingType || member.sizing_type || item.sizeType || 'adult';
+                                      const jerseyTypeLabel = memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                      
+                                      // Calculate member price - prioritize stored totalPrice, then calculate from components
+                                      let memberPrice = 0;
+                                      if (member.totalPrice && member.totalPrice > 0) {
+                                        memberPrice = member.totalPrice;
+                                      } else if (member.basePrice !== undefined || member.fabricSurcharge !== undefined || member.cutTypeSurcharge !== undefined || member.sizeSurcharge !== undefined) {
+                                        memberPrice = (member.basePrice || 0) + (member.fabricSurcharge || 0) + (member.cutTypeSurcharge || 0) + (member.sizeSurcharge || 0);
+                                      } else {
+                                        // Fallback: divide total by number of members
+                                        memberPrice = perUnitTotal / Math.max(1, item.teamMembers?.length || 1);
+                                      }
+                                      
+                                      return (
+                                      <div key={memberIndex} className="checkout-modal-perfect-member-details">
                                         <div className="checkout-modal-perfect-detail-row">
-                                          <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
-                                          <span className="checkout-modal-perfect-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                          <span className="checkout-modal-perfect-detail-label">Surname:</span>
+                                          <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-surname-detail">{(member.surname || member.lastName || 'N/A').toUpperCase()}</span>
                                         </div>
-                                      )}
-                                      {showTeamShortsSize && (
                                         <div className="checkout-modal-perfect-detail-row">
-                                          <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
-                                          <span className="checkout-modal-perfect-detail-value">{member.shortsSize || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                          <span className="checkout-modal-perfect-detail-label">Jersey No:</span>
+                                          <span className="checkout-modal-perfect-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
                                         </div>
-                                      )}
-                                    </div>
-                                    ));
+                                        <div className="checkout-modal-perfect-detail-row">
+                                          <span className="checkout-modal-perfect-detail-label">Jersey Type:</span>
+                                          <span className="checkout-modal-perfect-detail-value">{jerseyTypeLabel}</span>
+                                        </div>
+                                        {memberFabricOption && (
+                                          <div className="checkout-modal-perfect-detail-row">
+                                            <span className="checkout-modal-perfect-detail-label">Fabric:</span>
+                                            <span className="checkout-modal-perfect-detail-value">{memberFabricOption}</span>
+                                          </div>
+                                        )}
+                                        {memberCutType && (
+                                          <div className="checkout-modal-perfect-detail-row">
+                                            <span className="checkout-modal-perfect-detail-label">Cut Type:</span>
+                                            <span className="checkout-modal-perfect-detail-value">{memberCutType}</span>
+                                          </div>
+                                        )}
+                                        <div className="checkout-modal-perfect-detail-row">
+                                          <span className="checkout-modal-perfect-detail-label">Size Type:</span>
+                                          <span className="checkout-modal-perfect-detail-value">{memberSizingType === 'kids' ? 'Kids' : 'Adult'}</span>
+                                        </div>
+                                        {(memberJerseyType === 'full' || memberJerseyType === 'shirt') && showTeamJerseySize && (
+                                          <div className="checkout-modal-perfect-detail-row">
+                                            <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
+                                            <span className="checkout-modal-perfect-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
+                                          </div>
+                                        )}
+                                        {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && showTeamShortsSize && (
+                                          <div className="checkout-modal-perfect-detail-row">
+                                            <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
+                                            <span className="checkout-modal-perfect-detail-value">{member.shortsSize || 'N/A'}</span>
+                                          </div>
+                                        )}
+                                        <div className="checkout-modal-perfect-member-price">
+                                          <span className="checkout-modal-perfect-member-price-label">Price:</span>
+                                          <span className="checkout-modal-perfect-member-price-value">₱{memberPrice.toFixed(2)}</span>
+                                        </div>
+                                      </div>
+                                      );
+                                    });
                                   })()}
                                 </div>
                               </div>
@@ -979,12 +1171,24 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                   </div>
                                   <div className="checkout-modal-perfect-detail-row">
                                     <span className="checkout-modal-perfect-detail-label">Surname:</span>
-                                    <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-surname-detail">{item.singleOrderDetails?.surname || item.singleOrderDetails?.lastName || 'N/A'}</span>
+                                    <span className="checkout-modal-perfect-detail-value checkout-modal-perfect-surname-detail">{(item.singleOrderDetails?.surname || item.singleOrderDetails?.lastName || 'N/A').toUpperCase()}</span>
                                   </div>
                                   <div className="checkout-modal-perfect-detail-row">
                                     <span className="checkout-modal-perfect-detail-label">Jersey No:</span>
                                     <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                   </div>
+                                  {(item.fabricOption || item.singleOrderDetails?.fabricOption) && (
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Fabric:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.fabricOption || item.singleOrderDetails?.fabricOption}</span>
+                                    </div>
+                                  )}
+                                  {(item.cutType || item.singleOrderDetails?.cutType) && (
+                                    <div className="checkout-modal-perfect-detail-row">
+                                      <span className="checkout-modal-perfect-detail-label">Cut Type:</span>
+                                      <span className="checkout-modal-perfect-detail-value">{item.cutType || item.singleOrderDetails?.cutType}</span>
+                                    </div>
+                                  )}
                                   {(() => {
                                     const fallbackVisibility = {
                                       jersey: Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size),
@@ -1085,55 +1289,46 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                   <span>Base Unit Price</span>
                                   <span>₱{baseUnitPrice.toFixed(2)}</span>
                                 </div>
-                                {fabricOption && (
-                                  <div className="checkout-modal-surcharge-line">
-                                    <span>Fabric · {fabricOption}</span>
-                                    <span>{fabricSurcharge > 0 ? `+₱${fabricSurcharge.toFixed(2)}` : 'Included'}</span>
-                                  </div>
-                                )}
-                                {!fabricOption && fabricSurcharge > 0 && (
-                                  <div className="checkout-modal-surcharge-line">
-                                    <span>Fabric Surcharge</span>
-                                    <span>+₱{fabricSurcharge.toFixed(2)}</span>
-                                  </div>
-                                )}
                                 {item.isTeamOrder ? (
                                   <>
                                     <div className="checkout-modal-surcharge-line">
-                                      <span>Size Surcharge (Per Member)</span>
-                                      <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toFixed(2)}` : 'Included'}</span>
+                                      <span>Fabric Surcharge (Total)</span>
+                                      <span>{fabricSurcharge > 0 ? `+₱${fabricSurcharge.toFixed(2)}` : '₱0.00'}</span>
+                                    </div>
+                                    <div className="checkout-modal-surcharge-line">
+                                      <span>Cut Type Surcharge (Total)</span>
+                                      <span>{cutTypeSurcharge > 0 ? `+₱${cutTypeSurcharge.toFixed(2)}` : '₱0.00'}</span>
                                     </div>
                                     <div className="checkout-modal-surcharge-line">
                                       <span>Size Surcharge (Total)</span>
-                                      <span>{sizeSurchargeTotal > 0 ? `+₱${sizeSurchargeTotal.toFixed(2)}` : 'Included'}</span>
+                                      <span>{sizeSurchargeTotal > 0 ? `+₱${sizeSurchargeTotal.toFixed(2)}` : '₱0.00'}</span>
                                     </div>
-                                    {Array.isArray(item.teamMembers) && item.teamMembers.some(member => Number(member.sizeSurcharge || 0) > 0) && (
-                                      <div className="checkout-modal-surcharge-team-list">
-                                        {item.teamMembers.map((member, memberIndex) => {
-                                          const memberSurcharge = Number(member.sizeSurcharge || 0);
-                                          if (memberSurcharge <= 0) {
-                                            return (
-                                              <div key={memberIndex} className="checkout-modal-surcharge-team-item">
-                                                <span>{member.surname || `Member ${memberIndex + 1}`}</span>
-                                                <span>Included</span>
-                                              </div>
-                                            );
-                                          }
-                                          return (
-                                            <div key={memberIndex} className="checkout-modal-surcharge-team-item">
-                                              <span>{member.surname || `Member ${memberIndex + 1}`}</span>
-                                              <span>+₱{memberSurcharge.toFixed(2)}</span>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
                                   </>
                                 ) : (
-                                  <div className="checkout-modal-surcharge-line">
-                                    <span>Size Surcharge</span>
-                                    <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toFixed(2)}` : 'Included'}</span>
-                                  </div>
+                                  <>
+                                    {fabricOption && (
+                                      <div className="checkout-modal-surcharge-line">
+                                        <span>Fabric · {fabricOption}</span>
+                                        <span>{fabricSurcharge > 0 ? `+₱${fabricSurcharge.toFixed(2)}` : '₱0.00'}</span>
+                                      </div>
+                                    )}
+                                    {cutType && (
+                                      <div className="checkout-modal-surcharge-line">
+                                        <span>Cut Type · {cutType}</span>
+                                        <span>{cutTypeSurcharge > 0 ? `+₱${cutTypeSurcharge.toFixed(2)}` : '₱0.00'}</span>
+                                      </div>
+                                    )}
+                                    {!fabricOption && (
+                                      <div className="checkout-modal-surcharge-line">
+                                        <span>Fabric Surcharge</span>
+                                        <span>{fabricSurcharge > 0 ? `+₱${fabricSurcharge.toFixed(2)}` : '₱0.00'}</span>
+                                      </div>
+                                    )}
+                                    <div className="checkout-modal-surcharge-line">
+                                      <span>Size Surcharge</span>
+                                      <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toFixed(2)}` : '₱0.00'}</span>
+                                    </div>
+                                  </>
                                 )}
                                 <div className="checkout-modal-surcharge-divider" />
                                 <div className="checkout-modal-surcharge-line checkout-modal-surcharge-total">

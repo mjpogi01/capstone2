@@ -73,8 +73,31 @@ function normalizeBarangayName(value) {
 }
 
 function determineProductGroup(item = {}) {
+  // Check apparel_type first for custom design orders
+  const rawApparelType = (item.apparel_type || '').toString().toLowerCase();
+  if (rawApparelType) {
+    if (rawApparelType === 'basketball_jersey') return 'Basketball Jerseys';
+    if (rawApparelType === 'volleyball_jersey') return 'Volleyball Jerseys';
+    if (rawApparelType === 'hoodie') return 'Hoodies';
+    if (rawApparelType === 'tshirt') return 'T-shirts';
+    if (rawApparelType === 'longsleeves') return 'Long Sleeves';
+    if (rawApparelType === 'uniforms') return 'Uniforms';
+  }
+  
   const rawCategory = (item.category || item.product_type || '').toString().toLowerCase();
   const rawName = (item.name || '').toString().toLowerCase();
+
+  // For jersey category products, check the product name to differentiate basketball vs volleyball
+  if (rawCategory === 'jerseys' || rawCategory === 'jersey') {
+    if (rawName.includes('basketball')) {
+      return 'Basketball Jerseys';
+    }
+    if (rawName.includes('volleyball')) {
+      return 'Volleyball Jerseys';
+    }
+    // If it's a jersey but name doesn't specify, default to generic
+    return 'Custom Jerseys';
+  }
 
   const text = `${rawCategory} ${rawName}`;
 

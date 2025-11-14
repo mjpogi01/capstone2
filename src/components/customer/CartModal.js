@@ -222,6 +222,8 @@ const CartModal = () => {
                     const baseUnitPrice = Number(item.basePrice ?? item.price ?? 0);
                     const fabricOption = item.fabricOption || null;
                     const fabricSurcharge = Number(item.fabricSurcharge ?? 0);
+                    const cutType = item.cutType || null;
+                    const cutTypeSurcharge = Number(item.cutTypeSurcharge ?? 0);
                     const sizeSurchargePerUnit = Number(item.sizeSurcharge ?? 0);
                     const sizeSurchargeTotal = Number(
                       item.sizeSurchargeTotal ??
@@ -235,9 +237,11 @@ const CartModal = () => {
                     const perUnitTotal = Number(item.price ?? 0);
                     const hasFabricSurcharge =
                       fabricOption || fabricSurcharge > 0;
+                    const hasCutTypeSurcharge =
+                      cutType || cutTypeSurcharge > 0;
                     const hasSizeSurcharge =
                       sizeSurchargePerUnit > 0 || sizeSurchargeTotal > 0;
-                    const hasSurcharges = hasFabricSurcharge || hasSizeSurcharge;
+                    const hasSurcharges = hasFabricSurcharge || hasCutTypeSurcharge || hasSizeSurcharge;
                     const lineTotal = perUnitTotal * Number(item.quantity || 1);
 
                     return (
@@ -322,26 +326,73 @@ const CartModal = () => {
                                           <span className="mycart-detail-value">{item.teamMembers[0]?.teamName || 'N/A'}</span>
                                         </div>
                                         <div className="mycart-team-members-list">
-                                          {item.teamMembers.map((member, memberIndex) => (
+                                          {item.teamMembers.map((member, memberIndex) => {
+                                            const memberJerseyType = member.jerseyType || member.jersey_type || 'full';
+                                            const memberFabricOption = member.fabricOption || member.fabric_option || '';
+                                            const memberCutType = member.cutType || member.cut_type || '';
+                                            const memberSizingType = member.sizingType || member.sizing_type || item.sizeType || 'adult';
+                                            const jerseyTypeLabel = memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                            
+                                            // Calculate member price - prioritize stored totalPrice, then calculate from components
+                                            let memberPrice = 0;
+                                            if (member.totalPrice && member.totalPrice > 0) {
+                                              memberPrice = member.totalPrice;
+                                            } else if (member.basePrice !== undefined || member.fabricSurcharge !== undefined || member.cutTypeSurcharge !== undefined || member.sizeSurcharge !== undefined) {
+                                              memberPrice = (member.basePrice || 0) + (member.fabricSurcharge || 0) + (member.cutTypeSurcharge || 0) + (member.sizeSurcharge || 0);
+                                            } else {
+                                              // Fallback: divide total by number of members
+                                              memberPrice = perUnitTotal / Math.max(1, item.teamMembers?.length || 1);
+                                            }
+                                            
+                                            return (
                                             <div key={memberIndex} className="mycart-team-member-item">
                                               <div className="mycart-detail-line">
                                                 <span className="mycart-detail-label">Surname:</span>
-                                                <span className="mycart-detail-value">{member.surname || 'N/A'}</span>
+                                                <span className="mycart-detail-value">{(member.surname || 'N/A').toUpperCase()}</span>
                                               </div>
                                               <div className="mycart-detail-line">
                                                 <span className="mycart-detail-label">Jersey:</span>
                                                 <span className="mycart-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
                                               </div>
                                               <div className="mycart-detail-line">
-                                                <span className="mycart-detail-label">Jersey Size:</span>
-                                                <span className="mycart-detail-value">{member.jerseySize || member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                                <span className="mycart-detail-label">Jersey Type:</span>
+                                                <span className="mycart-detail-value">{jerseyTypeLabel}</span>
                                               </div>
+                                              {memberFabricOption && (
+                                                <div className="mycart-detail-line">
+                                                  <span className="mycart-detail-label">Fabric:</span>
+                                                  <span className="mycart-detail-value">{memberFabricOption}</span>
+                                                </div>
+                                              )}
+                                              {memberCutType && (
+                                                <div className="mycart-detail-line">
+                                                  <span className="mycart-detail-label">Cut Type:</span>
+                                                  <span className="mycart-detail-value">{memberCutType}</span>
+                                                </div>
+                                              )}
                                               <div className="mycart-detail-line">
-                                                <span className="mycart-detail-label">Shorts Size:</span>
-                                                <span className="mycart-detail-value">{member.shortsSize || member.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                                <span className="mycart-detail-label">Size Type:</span>
+                                                <span className="mycart-detail-value">{memberSizingType === 'kids' ? 'Kids' : 'Adult'}</span>
+                                              </div>
+                                              {(memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                                <div className="mycart-detail-line">
+                                                  <span className="mycart-detail-label">Jersey Size:</span>
+                                                  <span className="mycart-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
+                                                </div>
+                                              )}
+                                              {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && (
+                                                <div className="mycart-detail-line">
+                                                  <span className="mycart-detail-label">Shorts Size:</span>
+                                                  <span className="mycart-detail-value">{member.shortsSize || 'N/A'}</span>
+                                                </div>
+                                              )}
+                                              <div className="mycart-member-price">
+                                                <span className="mycart-member-price-label">Price:</span>
+                                                <span className="mycart-member-price-value">₱{memberPrice.toFixed(2)}</span>
                                               </div>
                                             </div>
-                                          ))}
+                                            );
+                                          })}
                                         </div>
                                       </div>
                                     ) : isApparel ? (
@@ -353,12 +404,24 @@ const CartModal = () => {
                                         </div>
                                         <div className="mycart-detail-line">
                                           <span className="mycart-detail-label">Surname:</span>
-                                          <span className="mycart-detail-value">{item.singleOrderDetails?.surname || 'N/A'}</span>
+                                          <span className="mycart-detail-value">{(item.singleOrderDetails?.surname || 'N/A').toUpperCase()}</span>
                                         </div>
                                         <div className="mycart-detail-line">
                                           <span className="mycart-detail-label">Jersey:</span>
                                           <span className="mycart-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                         </div>
+                                        {(item.fabricOption || item.singleOrderDetails?.fabricOption) && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Fabric:</span>
+                                            <span className="mycart-detail-value">{item.fabricOption || item.singleOrderDetails?.fabricOption}</span>
+                                          </div>
+                                        )}
+                                        {(item.cutType || item.singleOrderDetails?.cutType) && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Cut Type:</span>
+                                            <span className="mycart-detail-value">{item.cutType || item.singleOrderDetails?.cutType}</span>
+                                          </div>
+                                        )}
                                         <div className="mycart-detail-line">
                                           <span className="mycart-detail-label">Jersey Size:</span>
                                           <span className="mycart-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
@@ -385,63 +448,6 @@ const CartModal = () => {
                                         </div>
                                       </div>
                                     ) : null}
-
-                                    {hasSurcharges && (
-                                      <div className="mycart-surcharge-summary">
-                                        <div className="mycart-surcharge-title">Pricing Breakdown</div>
-                                        <div className="mycart-surcharge-line">
-                                          <span>Base Unit Price</span>
-                                          <span>₱{baseUnitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                        </div>
-                                        {fabricOption && (
-                                          <div className="mycart-surcharge-line">
-                                            <span>Fabric · {fabricOption}</span>
-                                            <span>{fabricSurcharge > 0 ? `+₱${fabricSurcharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
-                                          </div>
-                                        )}
-                                        {!fabricOption && fabricSurcharge > 0 && (
-                                          <div className="mycart-surcharge-line">
-                                            <span>Fabric Surcharge</span>
-                                            <span>+₱{fabricSurcharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                          </div>
-                                        )}
-                                        {item.isTeamOrder ? (
-                                          <>
-                                            <div className="mycart-surcharge-line">
-                                              <span>Size Surcharge (Per Member)</span>
-                                              <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
-                                            </div>
-                                            <div className="mycart-surcharge-line">
-                                              <span>Size Surcharge (Total)</span>
-                                              <span>{sizeSurchargeTotal > 0 ? `+₱${sizeSurchargeTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
-                                            </div>
-                                            {Array.isArray(item.teamMembers) && item.teamMembers.some(member => Number(member.sizeSurcharge || 0) > 0) && (
-                                              <div className="mycart-surcharge-team-list">
-                                                {item.teamMembers.map((member, memberIndex) => {
-                                                  const memberSurcharge = Number(member.sizeSurcharge || 0);
-                                                  return (
-                                                    <div key={memberIndex} className="mycart-surcharge-team-item">
-                                                      <span>{member.surname || `Member ${memberIndex + 1}`}</span>
-                                                      <span>{memberSurcharge > 0 ? `+₱${memberSurcharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
-                                                    </div>
-                                                  );
-                                                })}
-                                              </div>
-                                            )}
-                                          </>
-                                        ) : (
-                                          <div className="mycart-surcharge-line">
-                                            <span>Size Surcharge</span>
-                                            <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
-                                          </div>
-                                        )}
-                                        <div className="mycart-surcharge-divider" />
-                                        <div className="mycart-surcharge-line mycart-surcharge-total">
-                                          <span>Per Unit Total</span>
-                                          <span>₱{perUnitTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                        </div>
-                                      </div>
-                                    )}
                                   </div>
                                     )}
                                   </>
@@ -483,9 +489,6 @@ const CartModal = () => {
                         <div className="mycart-price-display">
                           <span className="mycart-item-price">
                             ₱{perUnitTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                          <span className="mycart-item-subtotal">
-                            Line Total: ₱{lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>
@@ -531,6 +534,60 @@ const CartModal = () => {
           onClose={() => setShowCheckout(false)}
           cartItems={cartItems.filter(item => selectedItems.has(item.uniqueId || item.id))}
           onPlaceOrder={handlePlaceOrder}
+          onBack={async () => {
+            const selectedCartItems = cartItems.filter(item => selectedItems.has(item.uniqueId || item.id));
+            if (selectedCartItems.length > 0) {
+              // Close checkout modal
+              setShowCheckout(false);
+              // Open product modal for the first selected item
+              const firstItem = selectedCartItems[0];
+              
+              // Fetch latest product details
+              try {
+                const product = await productService.getProductById(firstItem.id || firstItem.product_id);
+                const cartItemData = {
+                  size: firstItem.size || firstItem.selectedSize,
+                  quantity: firstItem.quantity,
+                  isTeamOrder: firstItem.isTeamOrder,
+                  teamMembers: firstItem.teamMembers,
+                  singleOrderDetails: firstItem.singleOrderDetails,
+                  sizeType: firstItem.sizeType,
+                  jerseyType: firstItem.jerseyType,
+                  fabricOption: firstItem.fabricOption,
+                  ballDetails: firstItem.ballDetails,
+                  trophyDetails: firstItem.trophyDetails
+                };
+                setSelectedProduct({
+                  ...product,
+                  uniqueId: firstItem.uniqueId,
+                  cartItemData: cartItemData
+                });
+                setShowProductModal(true);
+              } catch (error) {
+                console.error('Failed to load product details:', error);
+                // Fallback: use cart item data directly
+                const cartItemData = {
+                  size: firstItem.size || firstItem.selectedSize,
+                  quantity: firstItem.quantity,
+                  isTeamOrder: firstItem.isTeamOrder,
+                  teamMembers: firstItem.teamMembers,
+                  singleOrderDetails: firstItem.singleOrderDetails,
+                  sizeType: firstItem.sizeType,
+                  jerseyType: firstItem.jerseyType,
+                  fabricOption: firstItem.fabricOption,
+                  ballDetails: firstItem.ballDetails,
+                  trophyDetails: firstItem.trophyDetails
+                };
+                setSelectedProduct({
+                  ...firstItem,
+                  cartItemData: cartItemData
+                });
+                setShowProductModal(true);
+              }
+            } else {
+              setShowCheckout(false);
+            }
+          }}
         />
       )}
 

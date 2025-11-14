@@ -11,6 +11,42 @@ import './ProductListModal.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
 
+// Helper function to get display price for product cards
+const getDisplayPrice = (product) => {
+  // For jersey products, show the minimum price from jersey_prices
+  if (product.category && product.category.toLowerCase().includes('jersey')) {
+    if (product.jersey_prices) {
+      try {
+        const prices = typeof product.jersey_prices === 'string' 
+          ? JSON.parse(product.jersey_prices) 
+          : product.jersey_prices;
+        
+        const priceValues = [
+          prices.fullSet || prices.full_set,
+          prices.shirtOnly || prices.shirt_only,
+          prices.shortsOnly || prices.shorts_only,
+          prices.fullSetKids || prices.full_set_kids,
+          prices.shirtOnlyKids || prices.shirt_only_kids,
+          prices.shortsOnlyKids || prices.shorts_only_kids
+        ].filter(val => val !== null && val !== undefined).map(val => parseFloat(val));
+        
+        if (priceValues.length > 0) {
+          const minPrice = Math.min(...priceValues);
+          const maxPrice = Math.max(...priceValues);
+          if (minPrice === maxPrice) {
+            return minPrice;
+          }
+          return { min: minPrice, max: maxPrice };
+        }
+      } catch (error) {
+        console.error('Error parsing jersey_prices:', error);
+      }
+    }
+  }
+  // For other products, use the base price
+  return parseFloat(product.price) || 0;
+};
+
 const ProductListModal = ({ isOpen, onClose }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -522,10 +558,13 @@ const ProductListModal = ({ isOpen, onClose }) => {
                           
                           {/* Price Section */}
                           <div className="product-card-price">
-                            ₱{parseFloat(product.price).toLocaleString('en-US', {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0
-                            })}
+                            {(() => {
+                              const displayPrice = getDisplayPrice(product);
+                              if (typeof displayPrice === 'object' && displayPrice.min !== undefined) {
+                                return `₱${displayPrice.min.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} - ₱${displayPrice.max.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                              }
+                              return `₱${displayPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                            })()}
                           </div>
                           
                           {/* Review Count and Sold Quantity - Same as Homepage */}

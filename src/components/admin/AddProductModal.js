@@ -44,6 +44,13 @@ const DEFAULT_FABRIC_SURCHARGES = {
 
 const DEFAULT_FABRIC_PRESETS = Object.keys(DEFAULT_FABRIC_SURCHARGES);
 
+const DEFAULT_CUT_TYPE_SURCHARGES = {
+  'Normal Cut': '0',
+  'NBA Cut': '100'
+};
+
+const DEFAULT_CUT_TYPE_PRESETS = Object.keys(DEFAULT_CUT_TYPE_SURCHARGES);
+
 const createEmptySizeSurcharges = () => ({
   adults: {},
   kids: {},
@@ -170,6 +177,51 @@ const buildFabricSurchargesPayload = (surcharges) => {
   return Object.keys(payload).length > 0 ? payload : null;
 };
 
+const normalizeCutTypeSurcharges = (value) => {
+  if (!value) {
+    return {};
+  }
+
+  let source = value;
+  if (typeof source === 'string') {
+    try {
+      source = JSON.parse(source);
+    } catch (error) {
+      console.warn('Failed to parse cut_type_surcharges JSON:', error?.message);
+      return {};
+    }
+  }
+
+  if (!source || typeof source !== 'object') {
+    return {};
+  }
+
+  const normalized = {};
+  Object.entries(source).forEach(([name, amount]) => {
+    if (!name) return;
+    normalized[name] =
+      amount === null || amount === undefined || amount === ''
+        ? ''
+        : String(amount);
+  });
+  return normalized;
+};
+
+const buildCutTypeSurchargesPayload = (surcharges) => {
+  if (!surcharges) return null;
+  const payload = Object.entries(surcharges).reduce((acc, [name, fee]) => {
+    const trimmedName = name?.trim();
+    if (!trimmedName) return acc;
+    if (fee === '' || fee === null || fee === undefined) return acc;
+    const amount = parseFloat(fee);
+    if (Number.isNaN(amount)) return acc;
+    acc[trimmedName] = amount;
+    return acc;
+  }, {});
+
+  return Object.keys(payload).length > 0 ? payload : null;
+};
+
 const parseAvailableSizes = (sizeValue) => {
   if (!sizeValue) {
     return [];
@@ -254,8 +306,8 @@ const DEFAULT_FORM_DATA = {
 };
 
 const DEFAULT_JERSEY_PRICES = {
-  fullSet: '1050',
-  shirtOnly: '550',
+  fullSet: '950',
+  shirtOnly: '500',
   shortsOnly: '450',
   fullSetKids: '850',
   shirtOnlyKids: '450',
@@ -328,6 +380,9 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   const [fabricSurcharges, setFabricSurcharges] = useState({ ...DEFAULT_FABRIC_SURCHARGES });
   const [newFabricOption, setNewFabricOption] = useState({ name: '', fee: '' });
   const [fabricError, setFabricError] = useState('');
+  const [cutTypeSurcharges, setCutTypeSurcharges] = useState({ ...DEFAULT_CUT_TYPE_SURCHARGES });
+  const [newCutTypeOption, setNewCutTypeOption] = useState({ name: '', fee: '' });
+  const [cutTypeError, setCutTypeError] = useState('');
 
   useEffect(() => {
     // Load custom categories from localStorage
@@ -563,11 +618,28 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
       setFabricSurcharges(normalizedFabricSurcharges);
       setFabricError('');
+
+      let normalizedCutTypeSurcharges = normalizeCutTypeSurcharges(
+        editingProduct.cut_type_surcharges
+      );
+
+      if (
+        Object.keys(normalizedCutTypeSurcharges).length === 0 &&
+        (isJerseyCategory(editingProduct.category) ||
+          isApparelCategory(editingProduct.category))
+      ) {
+        normalizedCutTypeSurcharges = { ...DEFAULT_CUT_TYPE_SURCHARGES };
+      }
+
+      setCutTypeSurcharges(normalizedCutTypeSurcharges);
+      setCutTypeError('');
     }
     if (!isEditMode) {
       setSizeSurcharges(createEmptySizeSurcharges());
       setFabricSurcharges({ ...DEFAULT_FABRIC_SURCHARGES });
       setFabricError('');
+      setCutTypeSurcharges({ ...DEFAULT_CUT_TYPE_SURCHARGES });
+      setCutTypeError('');
     }
   }, [isEditMode, editingProduct]);
 
@@ -613,35 +685,35 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
           </small>
         )}
         {normalizedList.length > 0 && (
-          <div className="apm-size-surcharge-grid">
+        <div className="apm-size-surcharge-grid">
             {normalizedList.map((size) => (
-              <div className="apm-size-surcharge-row" key={`${groupKey}-${size}`}>
-                <span className="apm-size-chip">{size}</span>
-                <div className="apm-size-surcharge-input">
-                  <span className="apm-currency-prefix">₱</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={sizeSurcharges[groupKey]?.[size] ?? ''}
-                    onChange={(e) =>
-                      handleSizeSurchargeChange(groupKey, size, e.target.value)
-                    }
-                    placeholder="0.00"
-                  />
-                </div>
-                {(sizeSurcharges[groupKey]?.[size] ?? '') !== '' && (
-                  <button
-                    type="button"
-                    className="apm-size-surcharge-clear"
-                    onClick={() => handleSizeSurchargeChange(groupKey, size, '')}
-                    aria-label={`Clear surcharge for ${size}`}
-                  >
-                    ×
-                  </button>
-                )}
+            <div className="apm-size-surcharge-row" key={`${groupKey}-${size}`}>
+              <span className="apm-size-chip">{size}</span>
+              <div className="apm-size-surcharge-input">
+                <span className="apm-currency-prefix">₱</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={sizeSurcharges[groupKey]?.[size] ?? ''}
+                  onChange={(e) =>
+                    handleSizeSurchargeChange(groupKey, size, e.target.value)
+                  }
+                  placeholder="0.00"
+                />
               </div>
-            ))}
-          </div>
+              {(sizeSurcharges[groupKey]?.[size] ?? '') !== '' && (
+                <button
+                  type="button"
+                  className="apm-size-surcharge-clear"
+                  onClick={() => handleSizeSurchargeChange(groupKey, size, '')}
+                  aria-label={`Clear surcharge for ${size}`}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
         )}
       </div>
     );
@@ -751,6 +823,119 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
               type="button"
               className="apm-size-add-btn"
               onClick={handleAddFabricOption}
+            >
+              Add Option
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCutTypeSurchargeSection = () => {
+    const supportsCutType =
+      jerseyCategorySelected || apparelCategorySelected;
+    if (!supportsCutType) return null;
+
+    const cutTypeEntries = Object.entries(cutTypeSurcharges);
+
+    const quickAddOptions =
+      jerseyCategorySelected || apparelCategorySelected
+        ? DEFAULT_CUT_TYPE_PRESETS
+        : [];
+
+    return (
+      <div className="apm-section-block">
+        <div className="apm-form-group">
+          <label>Cut Type Options</label>
+          <small className="apm-form-help">
+            Define optional cut type choices and their surcharges. A value of 0 keeps the option available without an extra charge.
+          </small>
+
+          {quickAddOptions.length > 0 && (
+            <div className="apm-fabric-quick-add">
+              {quickAddOptions.map((option) => {
+                const exists = Object.keys(cutTypeSurcharges).some(
+                  (name) => name.toLowerCase() === option.toLowerCase()
+                );
+                return (
+                  <button
+                    type="button"
+                    key={option}
+                    className={`apm-quick-pill ${
+                      exists ? 'apm-quick-pill--disabled' : ''
+                    }`}
+                    onClick={() => handleQuickAddCutTypeOption(option)}
+                    disabled={exists}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {cutTypeError && (
+            <div className="apm-form-inline-error">{cutTypeError}</div>
+          )}
+
+          <div className="apm-fabric-list">
+            {cutTypeEntries.length === 0 ? (
+              <span className="apm-muted">
+                No cut type options yet. Use the form below to add one.
+              </span>
+            ) : (
+              cutTypeEntries.map(([name, fee]) => (
+                <div className="apm-fabric-row" key={name}>
+                  <span className="apm-fabric-name">{name}</span>
+                  <div className="apm-size-surcharge-input">
+                    <span className="apm-currency-prefix">₱</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={fee ?? ''}
+                      onChange={(e) => handleCutTypeSurchargeChange(name, e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="apm-fabric-remove"
+                    onClick={() => handleRemoveCutTypeOption(name)}
+                    aria-label={`Remove ${name}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="apm-fabric-add">
+            <input
+              type="text"
+              placeholder="New option name"
+              value={newCutTypeOption.name}
+              onChange={(e) =>
+                setNewCutTypeOption((prev) => ({ ...prev, name: e.target.value }))
+              }
+            />
+            <div className="apm-size-surcharge-input">
+              <span className="apm-currency-prefix">₱</span>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={newCutTypeOption.fee}
+                onChange={(e) =>
+                  setNewCutTypeOption((prev) => ({ ...prev, fee: e.target.value }))
+                }
+              />
+            </div>
+            <button
+              type="button"
+              className="apm-size-add-btn"
+              onClick={handleAddCutTypeOption}
             >
               Add Option
             </button>
@@ -1105,6 +1290,61 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       [optionName]: '0'
     }));
     setFabricError('');
+  };
+
+  const handleCutTypeSurchargeChange = (name, value) => {
+    setCutTypeSurcharges(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setCutTypeError('');
+  };
+
+  const handleRemoveCutTypeOption = (name) => {
+    setCutTypeSurcharges(prev => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+    setCutTypeError('');
+  };
+
+  const handleAddCutTypeOption = () => {
+    const optionName = newCutTypeOption.name.trim();
+    if (!optionName) {
+      setCutTypeError('Please enter a cut type option name before adding.');
+      return;
+    }
+
+    const exists = Object.keys(cutTypeSurcharges).some(
+      existing => existing.toLowerCase() === optionName.toLowerCase()
+    );
+    if (exists) {
+      setCutTypeError('This cut type option already exists.');
+      return;
+    }
+
+    const amount = newCutTypeOption.fee === '' ? '0' : newCutTypeOption.fee;
+    setCutTypeSurcharges(prev => ({
+      ...prev,
+      [optionName]: amount
+    }));
+    setNewCutTypeOption({ name: '', fee: '' });
+    setCutTypeError('');
+  };
+
+  const handleQuickAddCutTypeOption = (optionName) => {
+    const exists = Object.keys(cutTypeSurcharges).some(
+      existing => existing.toLowerCase() === optionName.toLowerCase()
+    );
+    if (exists) {
+      return;
+    }
+    setCutTypeSurcharges(prev => ({
+      ...prev,
+      [optionName]: DEFAULT_CUT_TYPE_SURCHARGES[optionName] || '0'
+    }));
+    setCutTypeError('');
   };
 
   const handleAddAvailableSize = () => {
@@ -1578,12 +1818,15 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
       const sizeSurchargePayload = buildSizeSurchargesPayload(sizeSurcharges);
       const fabricSurchargePayload = buildFabricSurchargesPayload(fabricSurcharges);
+      const cutTypeSurchargePayload = buildCutTypeSurchargesPayload(cutTypeSurcharges);
 
       console.log('🧪 [AddProductModal] Built surcharge payloads:', {
         rawSizeState: sizeSurcharges,
         sizeSurchargePayload,
         rawFabricState: fabricSurcharges,
-        fabricSurchargePayload
+        fabricSurchargePayload,
+        rawCutTypeState: cutTypeSurcharges,
+        cutTypeSurchargePayload
       });
 
       const productData = {
@@ -1606,6 +1849,11 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       if (fabricSurchargePayload) {
         productData.fabric_surcharges = JSON.stringify(fabricSurchargePayload);
         console.log('🧪 [AddProductModal] fabric_surcharges JSON stringified payload:', productData.fabric_surcharges);
+      }
+
+      if (cutTypeSurchargePayload) {
+        productData.cut_type_surcharges = JSON.stringify(cutTypeSurchargePayload);
+        console.log('🧪 [AddProductModal] cut_type_surcharges JSON stringified payload:', productData.cut_type_surcharges);
       }
 
       console.log('📦 [AddProductModal] Sending product data:', {
@@ -2040,7 +2288,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                                 ×
                               </button>
                             )}
-                          </div>
+                            </div>
                             <button
                               type="button"
                               aria-label={`Remove size ${size}`}
@@ -2450,6 +2698,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                 </div>
               )}
               {renderFabricSurchargeSection()}
+
+              {renderCutTypeSurchargeSection()}
 
               {!apparelCategorySelected && !trophyCategorySelected && renderSimplePriceSection()}
 

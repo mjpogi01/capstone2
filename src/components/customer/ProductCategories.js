@@ -12,6 +12,42 @@ import { useAuth } from '../../contexts/AuthContext';
 import productService from '../../services/productService';
 import orderService from '../../services/orderService';
 
+// Helper function to get display price for product cards
+const getDisplayPrice = (product) => {
+  // For jersey products, show the minimum price from jersey_prices
+  if (product.category && product.category.toLowerCase().includes('jersey')) {
+    if (product.jersey_prices) {
+      try {
+        const prices = typeof product.jersey_prices === 'string' 
+          ? JSON.parse(product.jersey_prices) 
+          : product.jersey_prices;
+        
+        const priceValues = [
+          prices.fullSet || prices.full_set,
+          prices.shirtOnly || prices.shirt_only,
+          prices.shortsOnly || prices.shorts_only,
+          prices.fullSetKids || prices.full_set_kids,
+          prices.shirtOnlyKids || prices.shirt_only_kids,
+          prices.shortsOnlyKids || prices.shorts_only_kids
+        ].filter(val => val !== null && val !== undefined).map(val => parseFloat(val));
+        
+        if (priceValues.length > 0) {
+          const minPrice = Math.min(...priceValues);
+          const maxPrice = Math.max(...priceValues);
+          if (minPrice === maxPrice) {
+            return minPrice;
+          }
+          return { min: minPrice, max: maxPrice };
+        }
+      } catch (error) {
+        console.error('Error parsing jersey_prices:', error);
+      }
+    }
+  }
+  // For other products, use the base price
+  return parseFloat(product.price) || 0;
+};
+
 const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, setSearchQuery }) => {
   const [showAll, setShowAll] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null); // Add this state
@@ -350,7 +386,15 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                   </div>
                   <div className="sportswear-product-info">
                     <p className="sportswear-product-name">{product.name}</p>
-                    <div className="sportswear-product-price">₱ {parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                    <div className="sportswear-product-price">
+                      {(() => {
+                        const displayPrice = getDisplayPrice(product);
+                        if (typeof displayPrice === 'object' && displayPrice.min !== undefined) {
+                          return `₱${displayPrice.min.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} - ₱${displayPrice.max.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                        }
+                        return `₱${displayPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                      })()}
+                    </div>
                     <div className="sportswear-product-stats">
                       {productRatings[product.id] && (
                         <span className="sportswear-stat-item">
