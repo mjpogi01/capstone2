@@ -55,6 +55,7 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       email,
       phone,
       teamName,
+      apparelType,
       members,
       shippingMethod,
       pickupBranchId,
@@ -63,11 +64,39 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!clientName || !email || !teamName || !members) {
+    if (!clientName || !email || !teamName || !apparelType || !members) {
       return res.status(400).json({ 
         error: 'Missing required fields',
-        required: ['clientName', 'email', 'teamName', 'members']
+        required: ['clientName', 'email', 'teamName', 'apparelType', 'members']
       });
+    }
+
+    // Map apparel type to display name and category
+    const apparelTypeMap = {
+      'basketball_jersey': { name: 'Custom Basketball Jersey', category: 'Basketball Jerseys' },
+      'volleyball_jersey': { name: 'Custom Volleyball Jersey', category: 'Volleyball Jerseys' },
+      'hoodie': { name: 'Custom Hoodie', category: 'Hoodies' },
+      'tshirt': { name: 'Custom T-shirt', category: 'T-shirts' },
+      'longsleeves': { name: 'Custom Long Sleeves', category: 'Long Sleeves' },
+      'uniforms': { name: 'Custom Uniforms', category: 'Uniforms' }
+    };
+    
+    const apparelInfo = apparelTypeMap[apparelType] || { name: 'Custom Design', category: 'Other' };
+    const orderName = apparelInfo.name;
+    const orderCategory = apparelInfo.category;
+
+    // Parse delivery address if it's a string
+    let parsedDeliveryAddress = null;
+    if (deliveryAddress) {
+      if (typeof deliveryAddress === 'string') {
+        try {
+          parsedDeliveryAddress = JSON.parse(deliveryAddress);
+        } catch (e) {
+          parsedDeliveryAddress = { address: deliveryAddress };
+        }
+      } else {
+        parsedDeliveryAddress = deliveryAddress;
+      }
     }
 
     // Parse members JSON if it's a string
@@ -155,8 +184,17 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       status: 'pending',
       order_type: 'custom_design', // Set order type for proper artist assignment
       shipping_method: shippingMethod === 'delivery' ? 'cod' : shippingMethod, // Convert 'delivery' to 'cod'
-      pickup_location: shippingMethod === 'pickup' ? branches.find(b => b.id === pickupBranchId)?.name : null,
-      delivery_address: shippingMethod === 'delivery' ? { address: deliveryAddress } : null,
+      pickup_location: pickupBranchId ? branches.find(b => b.id === pickupBranchId)?.name : null, // Store pickup location for both pickup and COD (nearest branch for fulfillment)
+      delivery_address: shippingMethod === 'delivery' && parsedDeliveryAddress ? {
+        address: parsedDeliveryAddress.address || '',
+        receiver: parsedDeliveryAddress.receiver || '',
+        phone: parsedDeliveryAddress.phone || '',
+        province: parsedDeliveryAddress.province || '',
+        city: parsedDeliveryAddress.city || '',
+        barangay: parsedDeliveryAddress.barangay || '',
+        postalCode: parsedDeliveryAddress.postalCode || parsedDeliveryAddress.postal_code || '',
+        streetAddress: parsedDeliveryAddress.streetAddress || parsedDeliveryAddress.street_address || ''
+      } : null,
       order_notes: orderNotes,
       subtotal_amount: subtotalAmount,
       shipping_cost: shippingCost,
@@ -164,13 +202,17 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       total_items: membersArray.length,
       order_items: [{
         product_type: 'custom_design',
-        name: teamName || 'Custom Design', // Add name field for artist task assignment
+        name: orderName, // Use apparel type-based name (e.g., "Custom Basketball Jersey")
+        category: orderCategory, // Set category for analytics (e.g., "Basketball Jerseys")
+        apparel_type: apparelType, // Store the apparel type
         team_name: teamName,
         team_members: membersArray,
         design_images: designImages,
         client_name: clientName,
         client_email: email,
-        client_phone: phone
+        client_phone: phone,
+        quantity: membersArray.length,
+        price: (basePricePerJersey + customDesignFee)
         // Note: pickup_branch_id column doesn't exist in the database, so we only use pickup_location
       }],
       created_at: new Date().toISOString(),
@@ -194,80 +236,9 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
     }
 
     console.log(`✅ Custom design order created: ${orderNumber}`);
-
-    // Assign artist task immediately when custom design order is created
-    try {
-      console.log(`🎨 Assigning artist task for new custom design order ${orderNumber}`);
-      console.log(`🎨 Order ID: ${insertedOrder.id}`);
-      
-      const { data: customTaskData, error: customError } = await supabase.rpc('assign_custom_design_task', {
-        p_order_id: insertedOrder.id,
-        p_product_name: insertedOrder.order_items?.[0]?.name || teamName || 'Custom Design',
-        p_quantity: insertedOrder.total_items || membersArray.length || 1,
-        p_customer_requirements: orderNotes || `Team: ${teamName}, Members: ${membersArray.length}`,
-        p_priority: 'medium',
-        p_deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
-        p_product_id: insertedOrder.order_items?.[0]?.id || null
-      });
-      
-      if (customError) {
-        console.error('❌ Error assigning custom design task:', customError);
-        console.error('❌ Custom task error details:', JSON.stringify(customError, null, 2));
-      } else {
-        console.log(`✅ Custom design task assigned: ${customTaskData}`);
-        
-        // Create chat room automatically when task is assigned
-        try {
-          // Get the assigned artist ID from the task
-          const { data: assignedTask, error: taskFetchError } = await supabase
-            .from('artist_tasks')
-            .select('artist_id')
-            .eq('id', customTaskData)
-            .single();
-          
-          if (!taskFetchError && assignedTask?.artist_id) {
-            // Check if chat room already exists
-            const { data: existingRoom, error: existingRoomError } = await supabase
-              .from('design_chat_rooms')
-              .select('id')
-              .eq('order_id', insertedOrder.id)
-              .limit(1)
-              .maybeSingle();
-          
-            if (existingRoomError && existingRoomError.code === 'PGRST116') {
-              console.warn(`⚠️ Multiple chat rooms already exist for custom order ${insertedOrder.id}. Skipping creation.`);
-            } else if (!existingRoom) {
-              // Create chat room
-              const { data: chatRoom, error: roomError } = await supabase
-                .from('design_chat_rooms')
-                .insert({
-                  order_id: insertedOrder.id,
-                  customer_id: insertedOrder.user_id,
-                  artist_id: assignedTask.artist_id,
-                  task_id: customTaskData,
-                  room_name: `Order ${orderNumber} Chat`
-                })
-                .select()
-                .single();
-              
-              if (roomError) {
-                console.error('❌ Error creating chat room:', roomError);
-              } else {
-                console.log(`✅ Chat room created automatically: ${chatRoom.id}`);
-              }
-            } else {
-              console.log(`✅ Chat room already exists: ${existingRoom.id}`);
-            }
-          }
-        } catch (chatError) {
-          console.error('❌ Error in chat room creation during custom design order creation:', chatError);
-          // Don't fail the entire request if chat room creation fails
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error in artist task assignment during custom design order creation:', error);
-      // Don't fail the entire request if artist assignment fails
-    }
+    
+    // Note: Artist task assignment will happen when admin/owner presses "Start Layout" button
+    // This ensures tasks are only assigned when layout work is ready to begin
 
     // Send confirmation email
     let emailResult = null;
@@ -344,6 +315,10 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('❌ Error fetching custom design order:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+module.exports = router;
   }
 });
 

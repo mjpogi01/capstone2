@@ -54,7 +54,7 @@
   width: 100%;
   max-width: 1100px;
   height: auto;
-  max-height: 90vh;
+  max-height: 95vh;
   background: #1a202c;
   border-radius: 16px;
   overflow-y: auto;
@@ -90,30 +90,40 @@
    CLOSE BUTTON
    ============================================ */
 
-.checkout-close-button {
+.checkout-back-button {
   position: absolute;
   top: 20px;
   right: 20px;
   background: #2d3748;
   color: #e2e8f0;
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  font-size: 18px;
+  border: 1.5px solid #4a5568;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
   z-index: 6001;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-family: 'Inter', sans-serif;
 }
 
-.checkout-close-button:hover {
+.checkout-back-button:hover {
   background: #4a5568;
-  color: #ffffff;
-  transform: scale(1.05);
+  border-color: #63b3ed;
+  color: #63b3ed;
+  transform: translateX(-2px);
+}
+
+.checkout-back-button:active {
+  transform: translateX(-4px);
+}
+
+.checkout-back-button svg {
+  font-size: 0.875rem;
 }
 
 /* ============================================
@@ -143,6 +153,9 @@
   padding: 24px 32px;
   background: #1a202c;
   flex-shrink: 0;
+  width: 100%;
+  min-height: auto;
+  overflow: visible;
 }
 
 .section-header {
@@ -403,26 +416,59 @@
   border-radius: 12px;
   padding: 24px;
   animation: chkout-slideUp 0.3s ease-out;
-  max-height: 500px;
-  overflow-y: auto;
+  width: 100%;
+  min-height: auto;
+  overflow: visible;
 }
 
-.address-form::-webkit-scrollbar {
-  width: 6px;
-}
-
-.address-form::-webkit-scrollbar-track {
-  background: #1a202c;
-  border-radius: 3px;
-}
-
-.address-form::-webkit-scrollbar-thumb {
-  background: #4a5568;
-  border-radius: 3px;
-}
+/* Scrollbar removed - form now expands to show all content */
 
 .form-header {
   margin-bottom: 20px;
+}
+
+.form-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.back-address-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1.5px solid #4a5568;
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+  align-self: flex-start;
+  margin-top: 0;
+}
+
+.back-address-btn:hover {
+  background: #2d3748;
+  border-color: #63b3ed;
+  color: #63b3ed;
+}
+
+.back-address-btn:active {
+  transform: translateX(-2px);
+}
+
+.back-address-btn svg {
+  font-size: 0.875rem;
+}
+
+.form-header-title {
+  flex: 1;
 }
 
 .form-header h3 {
@@ -440,14 +486,23 @@
 
 .address-form-fields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 16px;
+  width: 100%;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Ensure SearchableSelect components expand properly */
+.address-form-fields .searchable-select-wrapper {
+  width: 100%;
+  min-width: 0;
 }
 
 .form-group:has(input[name="streetAddress"]) {
@@ -464,6 +519,8 @@
   font-family: 'Inter', sans-serif;
   transition: all 0.2s ease;
   outline: none;
+  height: 44px;
+  box-sizing: border-box;
 }
 
 .form-group input:focus {
@@ -477,6 +534,46 @@
 
 .form-group input.error {
   border-color: #fc8181;
+}
+
+.form-group select {
+  background: #1a202c;
+  border: 1.5px solid #4a5568;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.9375rem;
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23e2e8f0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px;
+  padding-right: 36px;
+}
+
+.form-group select:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+}
+
+.form-group select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #0f1419;
+}
+
+.form-group select.error {
+  border-color: #fc8181;
+}
+
+.form-group select option {
+  background: #1a202c;
+  color: #e2e8f0;
+  padding: 10px;
 }
 
 .error-message {
@@ -523,6 +620,27 @@
 .checkout-modal .address-form .form-group input:focus {
   border-color: #63b3ed;
   box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+}
+
+.checkout-modal .address-form .form-group select {
+  background: #0f1419;
+  color: #ffffff;
+  border-color: #4a5568;
+}
+
+.checkout-modal .address-form .form-group select:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+}
+
+.checkout-modal .address-form .form-group select:disabled {
+  background-color: #0a0e12;
+  opacity: 0.5;
+}
+
+.checkout-modal .address-form .form-group select option {
+  background: #0f1419;
+  color: #ffffff;
 }
 
 /* Autofill fixes for dark theme */
@@ -1284,6 +1402,9 @@ div.checkout-modal div.table-row div.item-details div.item-name {
   border-radius: 6px;
   padding: 8px 10px;
   backdrop-filter: blur(5px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .checkout-modal-perfect-detail-row {
@@ -1315,6 +1436,28 @@ div.checkout-modal div.table-row div.item-details div.item-name {
 .checkout-modal-perfect-surname-detail {
   color: #63b3ed;
   font-weight: 700;
+}
+
+.checkout-modal-perfect-member-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(99, 179, 237, 0.2);
+  margin-bottom: 0;
+}
+
+.checkout-modal-perfect-member-price-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.checkout-modal-perfect-member-price-value {
+  color: #63b3ed;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .checkout-modal-perfect-team-name-detail {
@@ -2058,6 +2201,24 @@ div.checkout-modal div.member-details .detail-label {
 
   .address-form-fields {
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  
+  .address-form {
+    padding: 20px;
+  }
+  
+  .form-header-top {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .back-address-btn {
+    align-self: flex-start;
+  }
+  
+  .form-group {
+    width: 100%;
   }
 
   .shipping-notes-container {
@@ -2280,8 +2441,28 @@ div.checkout-modal div.member-details .detail-label {
     width: 100%;
   }
 
+  .form-header-top {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .back-address-btn {
+    align-self: flex-start;
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+  }
+
   .address-form-fields {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .address-form {
+    padding: 18px;
+  }
+  
+  .form-group {
+    width: 100%;
   }
 
   .shipping-notes-container {
@@ -2485,6 +2666,20 @@ div.checkout-modal div.member-details .detail-label {
   
   .checkout-section {
     padding: 16px;
+  }
+
+  .form-header-top {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .back-address-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+  
+  .form-header h3 {
+    font-size: 1rem;
   }
 
   .section-header h2 {
@@ -2835,6 +3030,198 @@ div.checkout-modal div.member-details .detail-label {
 
   .confirmation-modal p {
     font-size: 1rem;
+  }
+
+  .confirmation-buttons {
+    flex-direction: column;
+  }
+
+  .confirm-btn {
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+  }
+
+  .success-icon {
+    width: 70px;
+    height: 70px;
+    font-size: 2.5rem;
+  }
+
+  .cancel-reason-modal {
+    max-width: 95%;
+    padding: 1.5rem 1rem;
+  }
+
+  .cancel-reason-modal h3 {
+    font-size: 1.3rem;
+  }
+
+  .reason-option {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .reason-option span {
+    font-size: 0.95rem;
+  }
+
+  .reason-option:hover {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 280px) {
+  .checkout-modal-overlay {
+    padding: 8px;
+  }
+
+  .checkout-modal {
+    border-radius: 6px;
+  }
+
+  .checkout-header {
+    padding: 16px 12px 12px;
+  }
+  
+  .checkout-header h1 {
+    font-size: 1.1rem;
+  }
+  
+  .checkout-section {
+    padding: 12px;
+  }
+
+  .section-header h2 {
+    font-size: 0.95rem;
+  }
+
+  .address-card {
+    padding: 14px;
+  }
+
+  .address-details {
+    padding-left: 24px;
+  }
+
+  .address-actions {
+    padding-left: 0;
+    width: 100%;
+  }
+
+  .edit-address-btn,
+  .delete-address-btn {
+    flex: 1;
+  }
+
+  .item-image {
+    width: 44px;
+    height: 44px;
+  }
+
+  .item-name {
+    font-size: 0.8rem;
+  }
+
+  .place-order-btn {
+    padding: 12px 20px;
+    font-size: 0.875rem;
+  }
+
+  /* Logo upload smallest mobile styles */
+  .logo-upload-btn-add {
+    padding: 7px 10px;
+    font-size: 0.6875rem;
+  }
+
+  .logo-preview-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 6px;
+  }
+
+  .logo-preview-container {
+    padding: 6px;
+    min-height: 70px;
+  }
+
+  .logo-preview {
+    max-height: 60px;
+  }
+
+  .logo-remove-btn-item {
+    width: 18px;
+    height: 18px;
+    font-size: 0.5625rem;
+  }
+  
+  /* Ultra small screens - keep shipping horizontal but compact */
+  .shipping-method {
+    flex-direction: row;
+    gap: 4px;
+  }
+  
+  .shipping-option {
+    min-width: 90px;
+    padding: 8px 4px;
+    gap: 5px;
+  }
+  
+  .checkmark {
+    width: 14px;
+    height: 14px;
+    border-width: 1.5px;
+  }
+  
+  .option-title {
+    font-size: 0.6875rem;
+    line-height: 1.2;
+  }
+  
+  .option-subtitle {
+    font-size: 0.625rem;
+    line-height: 1.2;
+  }
+
+  .confirmation-modal {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .confirmation-modal h3 {
+    font-size: 1.4rem;
+  }
+
+  .confirmation-modal p {
+    font-size: 0.95rem;
+  }
+
+  .confirmation-buttons {
+    flex-direction: column;
+  }
+
+  .confirm-btn {
+    width: 100%;
+    padding: 0.8rem 1.25rem;
+  }
+
+  .success-icon {
+    width: 65px;
+    height: 65px;
+    font-size: 2.3rem;
+  }
+
+  .cancel-reason-modal {
+    max-width: 96%;
+    padding: 1.25rem 0.875rem;
+  }
+
+  .cancel-reason-modal h3 {
+    font-size: 1.2rem;
+  }
+
+  .reason-option {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .reason-option span {
+    font-size: 0.85rem;
   }
 
   .confirmation-buttons {

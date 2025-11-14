@@ -838,19 +838,68 @@ router.post('/', async (req, res) => {
     const shippingMethod = body.shippingMethod || body.shipping_method;
     const pickupLocation = body.pickupLocation || body.pickup_location;
     const pickupBranchId = body.pickupBranchId || body.pickup_branch_id || null;
-    const deliveryAddress = body.deliveryAddress || body.delivery_address;
+    let deliveryAddress = body.deliveryAddress || body.delivery_address;
+    // Parse delivery address if it's a string
+    if (deliveryAddress && typeof deliveryAddress === 'string') {
+      try {
+        deliveryAddress = JSON.parse(deliveryAddress);
+      } catch (e) {
+        // If parsing fails, keep as is
+      }
+    }
+    // Ensure delivery address has proper structure for analytics
+    if (deliveryAddress && typeof deliveryAddress === 'object' && shippingMethod === 'cod') {
+      deliveryAddress = {
+        address: deliveryAddress.address || '',
+        receiver: deliveryAddress.receiver || deliveryAddress.full_name || '',
+        phone: deliveryAddress.phone || '',
+        province: deliveryAddress.province || '',
+        city: deliveryAddress.city || '',
+        barangay: deliveryAddress.barangay || '',
+        postalCode: deliveryAddress.postalCode || deliveryAddress.postal_code || '',
+        streetAddress: deliveryAddress.streetAddress || deliveryAddress.street_address || ''
+      };
+    }
+    
     const orderNotes = body.orderNotes || body.order_notes || null;
     const subtotalAmount = body.subtotalAmount || body.subtotal_amount || 0;
     const shippingCost = body.shippingCost || body.shipping_cost || 0;
     const totalAmount = body.totalAmount || body.total_amount || 0;
     const totalItems = body.totalItems || body.total_items || 0;
-    const orderItems = body.orderItems || body.order_items || [];
+    let orderItems = body.orderItems || body.order_items || [];
+    
+    // Ensure order items have category field for analytics
+    if (Array.isArray(orderItems) && orderItems.length > 0) {
+      orderItems = await Promise.all(orderItems.map(async (item) => {
+        // If category is missing, try to fetch it from product
+        if (!item.category && item.id) {
+          try {
+            const { data: product } = await supabase
+              .from('products')
+              .select('category')
+              .eq('id', item.id)
+              .single();
+            
+            if (product?.category) {
+              item.category = product.category;
+            }
+          } catch (err) {
+            // If product not found or error, keep item as is
+            console.warn('Could not fetch category for product:', item.id);
+          }
+        }
+        return item;
+      }));
+    }
 
     // Generate order number if not provided
     const finalOrderNumber = orderNumber || `ORD-${Date.now()}`;
 
     let resolvedPickupLocation = pickupLocation;
 
+    // Resolve pickup location from branch ID if not provided
+    // This is needed for both pickup and COD orders (nearest branch for fulfillment)
+    // For COD orders, pickup_location represents the branch where products will be prepared before shipping
     if (pickupBranchId && !resolvedPickupLocation) {
       try {
         const { data: branchData } = await supabase
@@ -863,7 +912,7 @@ router.post('/', async (req, res) => {
           resolvedPickupLocation = branchData.name;
         }
       } catch (branchLookupError) {
-        console.warn('⚠️ Could not resolve branch name for pickup:', branchLookupError.message);
+        console.warn('⚠️ Could not resolve branch name:', branchLookupError.message);
       }
     }
 

@@ -412,14 +412,16 @@
 .customer-order-items,
 .customer-order-tracking,
 .customer-order-shipping,
-.customer-order-summary {
+.customer-order-summary,
+.customer-order-artist-section {
   margin-bottom: 1.5rem;
 }
 
 .customer-order-items h4,
 .customer-order-tracking h4,
 .customer-order-shipping h4,
-.customer-order-summary h4 {
+.customer-order-summary h4,
+.customer-order-artist-section h4 {
   margin: 0 0 1rem 0;
   color: #f1f1f1;
     font-size: 1rem;
@@ -543,6 +545,19 @@
   align-items: center;
   padding: 6px 0;
   font-size: 0.875rem;
+}
+
+.member-detail-row.member-price-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(99, 179, 237, 0.2);
+  font-weight: 600;
+}
+
+.member-price-value {
+  color: #63b3ed;
+  font-weight: 700;
+  font-size: 1.05em;
 }
 
 .member-detail-label {
@@ -798,6 +813,50 @@
   background: rgba(99, 179, 237, 0.05);
   border: 1px solid rgba(99, 179, 237, 0.15);
   border-radius: 8px;
+}
+
+/* Artist Info Card */
+.artist-info-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(99, 179, 237, 0.05);
+  border: 1px solid rgba(99, 179, 237, 0.15);
+  border-radius: 8px;
+}
+
+.artist-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(99, 179, 237, 0.15);
+  border-radius: 50%;
+  color: #63b3ed;
+  font-size: 1.25rem;
+}
+
+.artist-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.artist-name-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #63b3ed;
+  font-weight: 600;
+}
+
+.artist-name-value {
+  font-size: 1rem;
+  color: #f1f1f1;
+  font-weight: 600;
 }
 
 .tracking-status {
@@ -2292,4 +2351,48 @@
   .customer-orders-modal .custom-design-image {
     height: 120px;
   }
-}
+    font-size: 1rem;
+  }
+  
+  .customer-orders-modal .custom-design-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .custom-design-section-title {
+    font-size: 1rem;
+    padding: 10px 14px;
+    margin: 20px 0 14px 0;
+  }
+  
+  .customer-orders-modal .custom-design-section-title {
+    font-size: 1.1rem;
+    padding: 12px 16px;
+    margin: 24px 0 16px 0;
+  }
+  
+  .custom-design-members-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .customer-orders-modal .custom-design-members-list {
+    gap: 10px;
+  }
+  
+  .custom-design-images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .customer-orders-modal .custom-design-images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  
+  .custom-design-image {
+    height: 100px;
+  }
+  
+  .customer-orders-modal .custom-design-image {
+    height: 120px;
+  }
