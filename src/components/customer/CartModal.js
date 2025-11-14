@@ -7,6 +7,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import CheckoutModal from './CheckoutModal';
 import ProductModal from './ProductModal';
+import productService from '../../services/productService';
 import './CartModal.css';
 
 const CartModal = () => {
@@ -40,30 +41,67 @@ const CartModal = () => {
     setExpandedOrderIndex((prev) => (prev === index ? null : index));
   };
 
-  const handleQuantityChange = (itemId, newQuantity, isTeamOrder) => {
+  const handleQuantityChange = async (itemId, newQuantity, isTeamOrder) => {
     if (isTeamOrder) {
       // For team orders, redirect to product modal for customization
       const cartItem = cartItems.find(item => (item.uniqueId || item.id) === itemId);
       if (cartItem) {
         // Create a product object from the cart item
-        
-        const product = {
+
+        const baseCartData = {
+          size: cartItem.size,
+          quantity: cartItem.quantity,
+          isTeamOrder: cartItem.isTeamOrder,
+          teamMembers: cartItem.teamMembers,
+          singleOrderDetails: cartItem.singleOrderDetails,
+          sizeType: cartItem.sizeType,
+          fabricOption: cartItem.fabricOption,
+          fabricSurcharge: cartItem.fabricSurcharge,
+          sizeSurcharge: cartItem.sizeSurcharge,
+          sizeSurchargeTotal: cartItem.sizeSurchargeTotal,
+          basePrice: cartItem.basePrice,
+          price: cartItem.price,
+          surchargeDetails: cartItem.surchargeDetails
+        };
+
+        let product = {
           id: cartItem.id,
           name: cartItem.name,
           price: cartItem.price,
+          base_price: cartItem.basePrice ?? cartItem.price,
           main_image: cartItem.image,
-          category: cartItem.isTeamOrder ? 'team' : 'single',
+          category: cartItem.category || (cartItem.isTeamOrder ? 'team' : 'single'),
           uniqueId: cartItem.uniqueId,
-          cartItemData: {
-            size: cartItem.size,
-            quantity: cartItem.quantity,
-            isTeamOrder: cartItem.isTeamOrder,
-            teamMembers: cartItem.teamMembers,
-            singleOrderDetails: cartItem.singleOrderDetails,
-            sizeType: cartItem.sizeType
-          }
+          fabric_surcharges: null,
+          size_surcharges: null,
+          jersey_prices: cartItem.jersey_prices || null,
+          size: cartItem.size || null,
+          cartItemData: baseCartData
         };
-        
+
+        if (cartItem.id) {
+          try {
+            const fullProduct = await productService.getProductById(cartItem.id);
+            if (fullProduct) {
+              product = {
+                ...fullProduct,
+                ...product,
+                price: fullProduct.price ?? product.price,
+                base_price: fullProduct.base_price ?? product.base_price,
+                main_image: fullProduct.main_image || product.main_image,
+                category: fullProduct.category || product.category,
+                fabric_surcharges: fullProduct.fabric_surcharges ?? product.fabric_surcharges,
+                size_surcharges: fullProduct.size_surcharges ?? product.size_surcharges,
+                jersey_prices: fullProduct.jersey_prices ?? product.jersey_prices,
+                size: fullProduct.size ?? product.size
+              };
+              product.cartItemData = baseCartData;
+            }
+          } catch (error) {
+            console.error('Failed to load latest product details for cart item:', error);
+          }
+        }
+
         setSelectedProduct(product);
         setShowProductModal(true);
       }
@@ -179,13 +217,39 @@ const CartModal = () => {
             ) : (
               <>
                 <div className="mycart-items-list-clean">
-                  {cartItems.map((item, index) => (
+                  {cartItems.map((item, index) => {
+                    const uniqueKey = item.uniqueId || item.id;
+                    const baseUnitPrice = Number(item.basePrice ?? item.price ?? 0);
+                    const fabricOption = item.fabricOption || null;
+                    const fabricSurcharge = Number(item.fabricSurcharge ?? 0);
+                    const sizeSurchargePerUnit = Number(item.sizeSurcharge ?? 0);
+                    const sizeSurchargeTotal = Number(
+                      item.sizeSurchargeTotal ??
+                        (item.isTeamOrder
+                          ? sizeSurchargePerUnit *
+                            (Array.isArray(item.teamMembers) && item.teamMembers.length > 0
+                              ? item.teamMembers.length
+                              : Number(item.quantity || 1))
+                          : sizeSurchargePerUnit * Number(item.quantity || 1))
+                    );
+                    const perUnitTotal = Number(item.price ?? 0);
+                    const hasFabricSurcharge =
+                      fabricOption || fabricSurcharge > 0;
+                    const hasSizeSurcharge =
+                      sizeSurchargePerUnit > 0 || sizeSurchargeTotal > 0;
+                    const hasSurcharges = hasFabricSurcharge || hasSizeSurcharge;
+                    const lineTotal = perUnitTotal * Number(item.quantity || 1);
+
+                    return (
                     <div
-                      key={item.uniqueId || item.id}
+                      key={uniqueKey}
                       className={`mycart-item-box ${expandedOrderIndex === index ? 'expanded' : ''}`}
                       onClick={(e) => {
-                        // Ignore clicks originating from interactive child controls
-                        if (e.target.closest('.mycart-checkbox-wrapper') || e.target.closest('.mycart-remove-btn-clean') || e.target.closest('.mycart-quantity-controls')) {
+                        if (
+                          e.target.closest('.mycart-checkbox-wrapper') ||
+                          e.target.closest('.mycart-remove-btn-clean') ||
+                          e.target.closest('.mycart-quantity-controls')
+                        ) {
                           return;
                         }
                         toggleItemExpansion(index);
@@ -321,6 +385,63 @@ const CartModal = () => {
                                         </div>
                                       </div>
                                     ) : null}
+
+                                    {hasSurcharges && (
+                                      <div className="mycart-surcharge-summary">
+                                        <div className="mycart-surcharge-title">Pricing Breakdown</div>
+                                        <div className="mycart-surcharge-line">
+                                          <span>Base Unit Price</span>
+                                          <span>₱{baseUnitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                        {fabricOption && (
+                                          <div className="mycart-surcharge-line">
+                                            <span>Fabric · {fabricOption}</span>
+                                            <span>{fabricSurcharge > 0 ? `+₱${fabricSurcharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
+                                          </div>
+                                        )}
+                                        {!fabricOption && fabricSurcharge > 0 && (
+                                          <div className="mycart-surcharge-line">
+                                            <span>Fabric Surcharge</span>
+                                            <span>+₱{fabricSurcharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                          </div>
+                                        )}
+                                        {item.isTeamOrder ? (
+                                          <>
+                                            <div className="mycart-surcharge-line">
+                                              <span>Size Surcharge (Per Member)</span>
+                                              <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
+                                            </div>
+                                            <div className="mycart-surcharge-line">
+                                              <span>Size Surcharge (Total)</span>
+                                              <span>{sizeSurchargeTotal > 0 ? `+₱${sizeSurchargeTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
+                                            </div>
+                                            {Array.isArray(item.teamMembers) && item.teamMembers.some(member => Number(member.sizeSurcharge || 0) > 0) && (
+                                              <div className="mycart-surcharge-team-list">
+                                                {item.teamMembers.map((member, memberIndex) => {
+                                                  const memberSurcharge = Number(member.sizeSurcharge || 0);
+                                                  return (
+                                                    <div key={memberIndex} className="mycart-surcharge-team-item">
+                                                      <span>{member.surname || `Member ${memberIndex + 1}`}</span>
+                                                      <span>{memberSurcharge > 0 ? `+₱${memberSurcharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            )}
+                                          </>
+                                        ) : (
+                                          <div className="mycart-surcharge-line">
+                                            <span>Size Surcharge</span>
+                                            <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Included'}</span>
+                                          </div>
+                                        )}
+                                        <div className="mycart-surcharge-divider" />
+                                        <div className="mycart-surcharge-line mycart-surcharge-total">
+                                          <span>Per Unit Total</span>
+                                          <span>₱{perUnitTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                     )}
                                   </>
@@ -360,11 +481,17 @@ const CartModal = () => {
                         )}
                         
                         <div className="mycart-price-display">
-                          <span className="mycart-item-price">₱{parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                          <span className="mycart-item-price">
+                            ₱{perUnitTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                          <span className="mycart-item-subtotal">
+                            Line Total: ₱{lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
 
                 <div className="mycart-footer-section">

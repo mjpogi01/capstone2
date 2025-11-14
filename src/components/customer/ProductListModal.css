@@ -1721,6 +1721,19 @@ input.category-checkbox[type="checkbox"]:checked {
 
 /* Mobile (below 768px) - 2 columns */
 @media only screen and (max-width: 768px) {
+  .product-card {
+    height: auto;
+  }
+
+  .product-card-clickable {
+    flex: initial;
+  }
+
+  .product-card-info,
+  .product-card-footer {
+    flex: initial;
+  }
+
   /* Show mobile filter row */
   .mobile-filter-row {
     display: flex;
@@ -2112,6 +2125,10 @@ input.category-checkbox[type="checkbox"]:checked {
 
 /* Extra Small Mobile (below 480px) */
 @media (max-width: 479px) {
+  .product-card {
+    height: auto;
+  }
+
   .shop-header {
     padding: 10px 14px;
   }
@@ -2270,6 +2287,10 @@ input.category-checkbox[type="checkbox"]:checked {
 
 /* Extra ultra small mobile - 280px */
 @media (max-width: 280px) {
+  .product-card {
+    height: auto;
+  }
+
   .shop-header {
     padding: 9px 12px;
   }

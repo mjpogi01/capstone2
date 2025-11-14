@@ -50,11 +50,14 @@ class CartService {
           ? (item.team_members[0]?.teamName || item.team_members[0]?.team_name || null)
           : null;
 
+        const basePrice = parseFloat(item.base_price ?? item.products.price) || 0;
+        const unitPrice = parseFloat(item.unit_price ?? item.products.price) || 0;
+
         return {
           id: item.products.id,
           name: item.products.name,
           category: item.products.category,
-          price: parseFloat(item.products.price),
+          price: unitPrice,
           image: item.products.main_image,
           additional_images: item.products.additional_images,
           quantity: item.quantity,
@@ -73,6 +76,12 @@ class CartService {
               : null),
           ballDetails: item.ball_details, // Include ball details
           trophyDetails: item.trophy_details, // Include trophy details
+          basePrice,
+          fabricOption: item.fabric_option || null,
+          fabricSurcharge: parseFloat(item.fabric_surcharge ?? 0) || 0,
+          sizeSurcharge: parseFloat(item.size_surcharge ?? 0) || 0,
+          sizeSurchargeTotal: parseFloat(item.size_surcharge_total ?? item.size_surcharge ?? 0) || 0,
+          surchargeDetails: item.surcharge_details || null,
           uniqueId: item.id, // Use database ID as unique identifier
           createdAt: item.created_at,
           updatedAt: item.updated_at
@@ -144,9 +153,26 @@ class CartService {
           const isSameSingleDetails = JSON.stringify(existingItem.single_order_details) === JSON.stringify(cartItem.singleOrderDetails);
           const isSameBallDetails = JSON.stringify(existingItem.ball_details) === JSON.stringify(cartItem.ballDetails);
           const isSameTrophyDetails = JSON.stringify(existingItem.trophy_details) === JSON.stringify(cartItem.trophyDetails);
+          const isSameFabricOption = (existingItem.fabric_option || null) === (cartItem.fabricOption || null);
+          const isSameFabricSurcharge = parseFloat(existingItem.fabric_surcharge ?? 0) === parseFloat(cartItem.fabricSurcharge ?? 0);
+          const isSameSizeSurcharge = parseFloat(existingItem.size_surcharge ?? 0) === parseFloat(cartItem.sizeSurcharge ?? 0);
+          const isSameSizeSurchargeTotal = parseFloat(existingItem.size_surcharge_total ?? 0) === parseFloat(cartItem.sizeSurchargeTotal ?? cartItem.sizeSurcharge ?? 0);
+          const isSameBasePrice = parseFloat(existingItem.base_price ?? 0) === parseFloat(cartItem.basePrice ?? cartItem.price ?? 0);
+          const isSameSurchargeDetails = JSON.stringify(existingItem.surcharge_details) === JSON.stringify(cartItem.surchargeDetails);
           
           // If EVERYTHING matches (including customization), it's a true duplicate
-          if (isSameTeamDetails && isSameSingleDetails && isSameBallDetails && isSameTrophyDetails) {
+          if (
+            isSameTeamDetails &&
+            isSameSingleDetails &&
+            isSameBallDetails &&
+            isSameTrophyDetails &&
+            isSameFabricOption &&
+            isSameFabricSurcharge &&
+            isSameSizeSurcharge &&
+            isSameSizeSurchargeTotal &&
+            isSameBasePrice &&
+            isSameSurchargeDetails
+          ) {
             foundExactMatch = existingItem;
             break;
           }
@@ -201,7 +227,14 @@ class CartService {
         size: cartItem.size,
         is_team_order: cartItem.isTeamOrder,
         team_members: cartItem.teamMembers,
-        single_order_details: cartItem.singleOrderDetails
+        single_order_details: cartItem.singleOrderDetails,
+        base_price: cartItem.basePrice ?? cartItem.price ?? null,
+        unit_price: cartItem.price ?? null,
+        fabric_option: cartItem.fabricOption || null,
+        fabric_surcharge: cartItem.fabricSurcharge ?? 0,
+        size_surcharge: cartItem.sizeSurcharge ?? 0,
+        size_surcharge_total: cartItem.sizeSurchargeTotal ?? cartItem.sizeSurcharge ?? 0,
+        surcharge_details: cartItem.surchargeDetails || null
       };
       
       if (cartItem.jerseyType) {

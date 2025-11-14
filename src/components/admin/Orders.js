@@ -1232,7 +1232,7 @@ const Orders = () => {
                                             <td>{item.singleOrderDetails.surname || 'N/A'}</td>
                                             <td>{item.singleOrderDetails.number || 'N/A'}</td>
                                             {showSingleJerseySize && (
-                                              <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
+                                            <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
                                             )}
                                             {showSingleShortsSize && (
                                               <td>{item.singleOrderDetails.shortsSize || 'N/A'}</td>

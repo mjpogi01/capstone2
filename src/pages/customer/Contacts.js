@@ -16,56 +16,56 @@ const Contacts = () => {
     {
       name: 'SAN PASCUAL (MAIN BRANCH)',
       address: 'Villa Maria Subdivision Sambat, San Pascual, 4204 Batangas',
-      phone: '(043) 123-4567',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      phone: '(043) 738-9635 or 0917 139 5661',
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     },
     {
       name: 'CALAPAN BRANCH',
       address: 'Unit 2, Ground Floor Basa Bldg., Infantado Street, Brgy. San Vicente West Calapan City, 5200 Oriental Mindoro',
-      phone: '(043) 234-5678',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      phone: '(043) 738-9635',
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     },
     {
       name: 'MUZON BRANCH',
       address: 'Barangay Muzon, San Luis, 4226 Batangas',
-      phone: '(043) 345-6789',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      phone: '(043) 300 1633 or 0935 332 4852',
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     },
     {
       name: 'LEMERY BRANCH',
       address: 'Miranda Bldg, Illustre Ave., Brgy. District III 4209 Lemery Batangas',
-      phone: '(043) 456-7890',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      phone: '(043) 741 7682',
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     },
     {
       name: 'BATANGAS CITY BRANCH',
       address: 'Unit 1 Casa Buena Building, P.Burgos ST. EXT Calicanto, 4200 Batangas',
-      phone: '(043) 567-8901',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      phone: '(043) 300-1633 or 0935 332 4852',
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     },
     {
       name: 'BAUAN BRANCH',
       address: 'J.P Rizal St. Poblacion, Bauan Batangas',
-      phone: '(043) 678-9012',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      phone: '(043) 300-2297',
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     },
     {
       name: 'CALACA BRANCH',
       address: 'Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines',
-      phone: '(043) 789-0123',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      phone: '(043) 784-2891 or 0917 139 5661',
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     },
     {
       name: 'PINAMALAYAN BRANCH',
       address: 'Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines',
       phone: '0917 139 5661',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     },
     {
       name: 'ROSARIO BRANCH',
       address: 'Brgy. D, Rosario, Batangas, Rosario, Philippines',
-      phone: '(043) 890-1234',
-      hours: 'Mon-Sat: 8:00 AM - 6:00 PM'
+      phone: '(043) 321 6498',
+      hours: 'Mon-Sat: 8:30 AM - 5:30 PM'
     }
   ];
 

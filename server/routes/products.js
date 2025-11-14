@@ -197,6 +197,36 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
       console.log('🏆 [Products API] trophy_prices content:', JSON.stringify(trophyPricesValue, null, 2));
     }
 
+    // Handle size_surcharges - ensure JSONB
+    let sizeSurchargesValue = null;
+    if (req.body.size_surcharges !== undefined) {
+      if (typeof req.body.size_surcharges === 'string' && req.body.size_surcharges.trim() !== '') {
+        try {
+          sizeSurchargesValue = JSON.parse(req.body.size_surcharges);
+        } catch (e) {
+          console.error('❌ [Products API] Error parsing size_surcharges string:', e);
+          sizeSurchargesValue = req.body.size_surcharges;
+        }
+      } else if (typeof req.body.size_surcharges === 'object' && req.body.size_surcharges !== null) {
+        sizeSurchargesValue = req.body.size_surcharges;
+      }
+    }
+
+    // Handle fabric_surcharges - ensure JSONB
+    let fabricSurchargesValue = null;
+    if (req.body.fabric_surcharges !== undefined) {
+      if (typeof req.body.fabric_surcharges === 'string' && req.body.fabric_surcharges.trim() !== '') {
+        try {
+          fabricSurchargesValue = JSON.parse(req.body.fabric_surcharges);
+        } catch (e) {
+          console.error('❌ [Products API] Error parsing fabric_surcharges string:', e);
+          fabricSurchargesValue = req.body.fabric_surcharges;
+        }
+      } else if (typeof req.body.fabric_surcharges === 'object' && req.body.fabric_surcharges !== null) {
+        fabricSurchargesValue = req.body.fabric_surcharges;
+      }
+    }
+
     // Build insert data object
     const insertData = {
       name,
@@ -219,6 +249,14 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
     // Only add trophy_prices if it's not null
     if (trophyPricesValue !== null && trophyPricesValue !== undefined) {
       insertData.trophy_prices = trophyPricesValue;
+    }
+
+    if (sizeSurchargesValue !== null && sizeSurchargesValue !== undefined) {
+      insertData.size_surcharges = sizeSurchargesValue;
+    }
+
+    if (fabricSurchargesValue !== null && fabricSurchargesValue !== undefined) {
+      insertData.fabric_surcharges = fabricSurchargesValue;
     }
 
     console.log('📦 [Products API] Final insert data:', insertData);
@@ -248,6 +286,8 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
     
     console.log('✅ [Products API] Product inserted successfully');
     console.log('✅ [Products API] Inserted product jersey_prices:', data?.jersey_prices);
+    console.log('✅ [Products API] Inserted product size_surcharges:', data?.size_surcharges);
+    console.log('✅ [Products API] Inserted product fabric_surcharges:', data?.fabric_surcharges);
 
     // Transform the data to match the expected format
     const transformedData = {
@@ -327,6 +367,40 @@ router.put('/:id', async (req, res) => {
       console.log('🏆 [Products API] trophy_prices content:', JSON.stringify(trophyPricesValue, null, 2));
     }
 
+    // Handle size_surcharges - ensure JSONB
+    let sizeSurchargesValue = null;
+    if (req.body.size_surcharges !== undefined) {
+      if (typeof req.body.size_surcharges === 'string' && req.body.size_surcharges.trim() !== '') {
+        try {
+          sizeSurchargesValue = JSON.parse(req.body.size_surcharges);
+        } catch (e) {
+          console.error('❌ [Products API] Error parsing size_surcharges string:', e);
+          sizeSurchargesValue = req.body.size_surcharges;
+        }
+      } else if (typeof req.body.size_surcharges === 'object' && req.body.size_surcharges !== null) {
+        sizeSurchargesValue = req.body.size_surcharges;
+      } else if (req.body.size_surcharges === null) {
+        sizeSurchargesValue = null;
+      }
+    }
+
+    // Handle fabric_surcharges - ensure JSONB
+    let fabricSurchargesValue = null;
+    if (req.body.fabric_surcharges !== undefined) {
+      if (typeof req.body.fabric_surcharges === 'string' && req.body.fabric_surcharges.trim() !== '') {
+        try {
+          fabricSurchargesValue = JSON.parse(req.body.fabric_surcharges);
+        } catch (e) {
+          console.error('❌ [Products API] Error parsing fabric_surcharges string:', e);
+          fabricSurchargesValue = req.body.fabric_surcharges;
+        }
+      } else if (typeof req.body.fabric_surcharges === 'object' && req.body.fabric_surcharges !== null) {
+        fabricSurchargesValue = req.body.fabric_surcharges;
+      } else if (req.body.fabric_surcharges === null) {
+        fabricSurchargesValue = null;
+      }
+    }
+
     // Build update data object
     const updateData = {
       name,
@@ -359,6 +433,18 @@ router.put('/:id', async (req, res) => {
       updateData.trophy_prices = null;
     }
 
+    if (sizeSurchargesValue !== null && sizeSurchargesValue !== undefined) {
+      updateData.size_surcharges = sizeSurchargesValue;
+    } else if (req.body.hasOwnProperty('size_surcharges') && req.body.size_surcharges === null) {
+      updateData.size_surcharges = null;
+    }
+
+    if (fabricSurchargesValue !== null && fabricSurchargesValue !== undefined) {
+      updateData.fabric_surcharges = fabricSurchargesValue;
+    } else if (req.body.hasOwnProperty('fabric_surcharges') && req.body.fabric_surcharges === null) {
+      updateData.fabric_surcharges = null;
+    }
+
     console.log('📦 [Products API] Final update data:', updateData);
     console.log('📦 [Products API] jersey_prices in updateData:', updateData.jersey_prices);
     
@@ -389,6 +475,10 @@ router.put('/:id', async (req, res) => {
     if (!data) {
       return res.status(404).json({ error: 'Product not found' });
     }
+
+    console.log('✅ [Products API] Product updated successfully');
+    console.log('✅ [Products API] Updated product size_surcharges:', data?.size_surcharges);
+    console.log('✅ [Products API] Updated product fabric_surcharges:', data?.fabric_surcharges);
 
     // Transform the data to match the expected format
     const transformedData = {

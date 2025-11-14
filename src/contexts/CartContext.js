@@ -87,7 +87,7 @@ export const CartProvider = ({ children }) => {
     const cartItem = {
       id: product.id,
       name: product.name,
-      price: parseFloat(options.price || product.price), // Use custom price if provided
+      price: parseFloat(options.price ?? product.price), // Use custom price if provided
       image: product.main_image || product.image || '/images/placeholder-jersey.png',
       size,
       quantity,
@@ -99,6 +99,12 @@ export const CartProvider = ({ children }) => {
       jerseyType,
       ballDetails: ballDetails,
       trophyDetails: trophyDetails,
+      basePrice: parseFloat(options.basePrice ?? product.price) || parseFloat(product.price) || 0,
+      fabricOption: options.fabricOption || null,
+      fabricSurcharge: parseFloat(options.fabricSurcharge ?? 0) || 0,
+      sizeSurcharge: parseFloat(options.sizeSurcharge ?? 0) || 0,
+      sizeSurchargeTotal: parseFloat(options.sizeSurchargeTotal ?? options.sizeSurcharge ?? 0) || 0,
+      surchargeDetails: options.surchargeDetails || null,
       addedAt: new Date().toISOString(),
       uniqueId: Date.now() + Math.random() // Generate a simple unique ID
     };

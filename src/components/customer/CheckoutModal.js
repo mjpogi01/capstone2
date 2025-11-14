@@ -829,6 +829,26 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                 const isBall = item.category?.toLowerCase() === 'balls';
                 const isTrophy = item.category?.toLowerCase() === 'trophies';
                 const isApparel = !isBall && !isTrophy;
+                const baseUnitPrice = Number(item.basePrice ?? item.price ?? 0);
+                const fabricOption = item.fabricOption || null;
+                const fabricSurcharge = Number(item.fabricSurcharge ?? 0);
+                const sizeSurchargePerUnit = Number(item.sizeSurcharge ?? 0);
+                const sizeSurchargeTotal = Number(
+                  item.sizeSurchargeTotal ??
+                    (item.isTeamOrder
+                      ? sizeSurchargePerUnit *
+                        (Array.isArray(item.teamMembers) && item.teamMembers.length > 0
+                          ? item.teamMembers.length
+                          : Number(item.quantity || 1))
+                      : sizeSurchargePerUnit * Number(item.quantity || 1))
+                );
+                const perUnitTotal = Number(item.price ?? 0);
+                const hasFabricSurcharge =
+                  Boolean(fabricOption) || fabricSurcharge > 0;
+                const hasSizeSurcharge =
+                  sizeSurchargePerUnit > 0 || sizeSurchargeTotal > 0;
+                const hasSurcharges = hasFabricSurcharge || hasSizeSurcharge;
+                const lineTotal = perUnitTotal * Number(item.quantity || 1);
                 
                 console.log('🛒 CheckoutModal Cart item:', item); // Debug log
                 console.log('🛒 Team Members:', item.teamMembers);
@@ -894,13 +914,13 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       </div>
                     </div>
                     <div className="checkout-modal-perfect-content-price">
-                      ₱{parseFloat(item.price).toFixed(2)}
+                      ₱{perUnitTotal.toFixed(2)}
                     </div>
                     <div className="checkout-modal-perfect-content-qty">
                       {item.quantity}
                     </div>
                     <div className="checkout-modal-perfect-content-total">
-                      ₱{(parseFloat(item.price) * item.quantity).toFixed(2)}
+                      ₱{lineTotal.toFixed(2)}
                     </div>
                     {expandedOrderIndex === index && (
                       <div className="checkout-modal-perfect-dropdown-wrapper">
@@ -1057,6 +1077,71 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                 </div>
                               </div>
                             ) : null}
+
+                            {hasSurcharges && (
+                              <div className="checkout-modal-surcharge-summary">
+                                <div className="checkout-modal-surcharge-title">Pricing Breakdown</div>
+                                <div className="checkout-modal-surcharge-line">
+                                  <span>Base Unit Price</span>
+                                  <span>₱{baseUnitPrice.toFixed(2)}</span>
+                                </div>
+                                {fabricOption && (
+                                  <div className="checkout-modal-surcharge-line">
+                                    <span>Fabric · {fabricOption}</span>
+                                    <span>{fabricSurcharge > 0 ? `+₱${fabricSurcharge.toFixed(2)}` : 'Included'}</span>
+                                  </div>
+                                )}
+                                {!fabricOption && fabricSurcharge > 0 && (
+                                  <div className="checkout-modal-surcharge-line">
+                                    <span>Fabric Surcharge</span>
+                                    <span>+₱{fabricSurcharge.toFixed(2)}</span>
+                                  </div>
+                                )}
+                                {item.isTeamOrder ? (
+                                  <>
+                                    <div className="checkout-modal-surcharge-line">
+                                      <span>Size Surcharge (Per Member)</span>
+                                      <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toFixed(2)}` : 'Included'}</span>
+                                    </div>
+                                    <div className="checkout-modal-surcharge-line">
+                                      <span>Size Surcharge (Total)</span>
+                                      <span>{sizeSurchargeTotal > 0 ? `+₱${sizeSurchargeTotal.toFixed(2)}` : 'Included'}</span>
+                                    </div>
+                                    {Array.isArray(item.teamMembers) && item.teamMembers.some(member => Number(member.sizeSurcharge || 0) > 0) && (
+                                      <div className="checkout-modal-surcharge-team-list">
+                                        {item.teamMembers.map((member, memberIndex) => {
+                                          const memberSurcharge = Number(member.sizeSurcharge || 0);
+                                          if (memberSurcharge <= 0) {
+                                            return (
+                                              <div key={memberIndex} className="checkout-modal-surcharge-team-item">
+                                                <span>{member.surname || `Member ${memberIndex + 1}`}</span>
+                                                <span>Included</span>
+                                              </div>
+                                            );
+                                          }
+                                          return (
+                                            <div key={memberIndex} className="checkout-modal-surcharge-team-item">
+                                              <span>{member.surname || `Member ${memberIndex + 1}`}</span>
+                                              <span>+₱{memberSurcharge.toFixed(2)}</span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="checkout-modal-surcharge-line">
+                                    <span>Size Surcharge</span>
+                                    <span>{sizeSurchargePerUnit > 0 ? `+₱${sizeSurchargePerUnit.toFixed(2)}` : 'Included'}</span>
+                                  </div>
+                                )}
+                                <div className="checkout-modal-surcharge-divider" />
+                                <div className="checkout-modal-surcharge-line checkout-modal-surcharge-total">
+                                  <span>Per Unit Total</span>
+                                  <span>₱{perUnitTotal.toFixed(2)}</span>
+                                </div>
+                              </div>
+                            )}
                         </div>
                       </div>
                     )}

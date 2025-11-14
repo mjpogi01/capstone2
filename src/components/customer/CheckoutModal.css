@@ -1356,6 +1356,66 @@ div.checkout-modal div.table-row div.item-details div.item-name {
   border-left: 3px solid #fbd38d;
 }
 
+.checkout-modal-surcharge-summary {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: rgba(26, 32, 44, 0.65);
+  border: 1px solid rgba(99, 179, 237, 0.25);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkout-modal-surcharge-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #edf2f7;
+  text-transform: uppercase;
+}
+
+.checkout-modal-surcharge-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #cbd5f5;
+}
+
+.checkout-modal-surcharge-line span:last-child {
+  font-weight: 600;
+  color: #fbd38d;
+}
+
+.checkout-modal-surcharge-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(99, 179, 237, 0.3) 50%, transparent 100%);
+}
+
+.checkout-modal-surcharge-total span:last-child {
+  color: #f6ad55;
+  font-size: 0.9rem;
+  text-shadow: 0 0 10px rgba(246, 173, 85, 0.35);
+}
+
+.checkout-modal-surcharge-team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(99, 179, 237, 0.25);
+}
+
+.checkout-modal-surcharge-team-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
 /* Mobile responsive adjustments */
 @media only screen and (max-width: 768px) {
   .checkout-modal-perfect-dropdown {

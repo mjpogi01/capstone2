@@ -14,7 +14,7 @@ const Highlights = () => {
     if (width >= 1200) return { visible: 8, columns: 4 };
     if (width >= 900) return { visible: 6, columns: 3 };
     if (width >= 640) return { visible: 4, columns: 2 };
-    return { visible: 2, columns: 1 };
+    return { visible: 4, columns: 2 };
   }, []);
 
   useEffect(() => {

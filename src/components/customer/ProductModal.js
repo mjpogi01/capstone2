@@ -7,6 +7,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import { useAuth } from '../../contexts/AuthContext';
+import productService from '../../services/productService';
 import './ProductModal.css';
 
 const DEFAULT_TROPHY_SIZES = ['6" (Small)', '10" (Medium)', '14" (Large)', '18" (Extra Large)', '24" (Premium)'];
@@ -183,6 +184,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     engravingText: '',
     occasion: ''
   });
+  const [selectedFabricOption, setSelectedFabricOption] = useState(existingCartItemData?.fabricOption || '');
+  const [fabricData, setFabricData] = useState(product?.fabric_surcharges || null);
 
   // Debug: Monitor Buy Now item changes
   useEffect(() => {
@@ -412,8 +415,316 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return null; // Return null so we can detect and use product.price
   }, [product, isTrophy]);
 
+  const sizeSurchargeConfig = useMemo(() => {
+    if (!product?.size_surcharges) return null;
+    try {
+      const raw =
+        typeof product.size_surcharges === 'string'
+          ? JSON.parse(product.size_surcharges)
+          : product.size_surcharges;
+      return raw && typeof raw === 'object' ? raw : null;
+    } catch (error) {
+      console.error('❌ [ProductModal] Error parsing size_surcharges:', error);
+      return null;
+    }
+  }, [product]);
+
+  useEffect(() => {
+    if (product?.fabric_surcharges) {
+      setFabricData(product.fabric_surcharges);
+    } else {
+      setFabricData(null);
+    }
+  }, [product?.fabric_surcharges, product?.id]);
+
+  useEffect(() => {
+    if (!isOpen || !product?.id) return;
+
+    const hasFabricData = (() => {
+      if (!fabricData) return false;
+      if (typeof fabricData === 'string') {
+        const trimmed = fabricData.trim();
+        if (!trimmed || trimmed === '{}' || trimmed.toLowerCase() === 'null') {
+          return false;
+        }
+        try {
+          const parsed = JSON.parse(trimmed);
+          return parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0;
+        } catch (error) {
+          return false;
+        }
+      }
+      if (typeof fabricData === 'object') {
+        return Object.keys(fabricData).length > 0;
+      }
+      return false;
+    })();
+
+    if (hasFabricData) return;
+
+    let isMounted = true;
+    const loadFabricSurcharges = async () => {
+      try {
+        const latestProduct = await productService.getProductById(product.id);
+        if (isMounted && latestProduct?.fabric_surcharges) {
+          setFabricData(latestProduct.fabric_surcharges);
+        }
+      } catch (error) {
+        console.error('❌ [ProductModal] Failed to load fabric surcharges:', error);
+      }
+    };
+
+    loadFabricSurcharges();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, product?.id, fabricData]);
+
+  const fabricOptions = useMemo(() => {
+    if (!fabricData) return [];
+    try {
+      const raw =
+        typeof fabricData === 'string'
+          ? JSON.parse(fabricData)
+          : fabricData;
+      if (!raw || typeof raw !== 'object') return [];
+      return Object.entries(raw).map(([name, amount]) => ({
+        name,
+        amount: Number.parseFloat(amount) || 0
+      }));
+    } catch (error) {
+      console.error('❌ [ProductModal] Error parsing fabric_surcharges:', error);
+      return [];
+    }
+  }, [fabricData]);
+
+  const fabricSurchargeLookup = useMemo(() => {
+    const lookup = {};
+    fabricOptions.forEach(({ name, amount }) => {
+      lookup[name] = amount;
+    });
+    return lookup;
+  }, [fabricOptions]);
+
+  useEffect(() => {
+    if (fabricOptions.length === 0) {
+      setSelectedFabricOption('');
+      return;
+    }
+
+    setSelectedFabricOption((prev) => {
+      if (prev && fabricOptions.some((option) => option.name === prev)) {
+        return prev;
+      }
+
+      if (
+        isFromCart &&
+        existingCartItemData?.fabricOption &&
+        fabricOptions.some((option) => option.name === existingCartItemData.fabricOption)
+      ) {
+        return existingCartItemData.fabricOption;
+      }
+
+      return fabricOptions[0].name;
+    });
+  }, [fabricOptions, isFromCart, existingCartItemData]);
+
+  const resolveSizeSurcharge = useCallback(
+    (sizeKey, groupHint) => {
+      if (!sizeSurchargeConfig || !sizeKey) return 0;
+
+      const key = String(sizeKey).trim();
+      if (!key) return 0;
+
+      const parseAmount = (value) => {
+        const numeric = Number.parseFloat(value);
+        return Number.isNaN(numeric) ? 0 : numeric;
+      };
+
+      const normalizedKey = key.replace(/\s+/g, '').toLowerCase();
+      const findMatch = (obj) => {
+        if (!obj || typeof obj !== 'object') return undefined;
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          return obj[key];
+        }
+        const entry = Object.entries(obj).find(([candidate]) =>
+          typeof candidate === 'string' && candidate.replace(/\s+/g, '').toLowerCase() === normalizedKey
+        );
+        return entry ? entry[1] : undefined;
+      };
+
+      if (
+        typeof sizeSurchargeConfig === 'object' &&
+        (sizeSurchargeConfig.adults ||
+          sizeSurchargeConfig.kids ||
+          sizeSurchargeConfig.general)
+      ) {
+        if (
+          groupHint === 'kids' &&
+          sizeSurchargeConfig.kids
+        ) {
+          const match = findMatch(sizeSurchargeConfig.kids);
+          if (match !== undefined) {
+            return parseAmount(match);
+          }
+        }
+        if (
+          groupHint === 'adults' &&
+          sizeSurchargeConfig.adults
+        ) {
+          const match = findMatch(sizeSurchargeConfig.adults);
+          if (match !== undefined) {
+            return parseAmount(match);
+          }
+        }
+        if (
+          sizeSurchargeConfig.general &&
+          findMatch(sizeSurchargeConfig.general) !== undefined
+        ) {
+          const match = findMatch(sizeSurchargeConfig.general);
+          if (match !== undefined) {
+            return parseAmount(match);
+          }
+        }
+        if (
+          sizeSurchargeConfig.adults
+        ) {
+          const match = findMatch(sizeSurchargeConfig.adults);
+          if (match !== undefined) {
+            return parseAmount(match);
+          }
+        }
+        if (
+          sizeSurchargeConfig.kids
+        ) {
+          const match = findMatch(sizeSurchargeConfig.kids);
+          if (match !== undefined) {
+            return parseAmount(match);
+          }
+        }
+        return 0;
+      }
+
+      if (
+        typeof sizeSurchargeConfig === 'object' &&
+        findMatch(sizeSurchargeConfig) !== undefined
+      ) {
+        const match = findMatch(sizeSurchargeConfig);
+        if (match !== undefined) {
+          return parseAmount(match);
+        }
+      }
+
+      return 0;
+    },
+    [sizeSurchargeConfig]
+  );
+
+  const sizeGroupHint = useMemo(() => {
+    if (isTrophy) return 'general';
+    if (isJerseyCategory) return sizeType === 'kids' ? 'kids' : 'adults';
+    if (isApparel) return 'general';
+    return null;
+  }, [isTrophy, isJerseyCategory, sizeType, isApparel]);
+
+  const singleOrderSizeKey = useMemo(() => {
+    if (isTeamOrder) return null;
+    if (isTrophy) return trophyDetails.size || null;
+    if (isJerseyCategory) {
+      if (jerseyType === 'shorts') {
+        return (
+          singleOrderDetails?.shortsSize ||
+          singleOrderDetails?.size ||
+          null
+        );
+      }
+      return (
+        singleOrderDetails?.jerseySize ||
+        singleOrderDetails?.size ||
+        selectedSize ||
+        null
+      );
+    }
+    if (isApparel) {
+      return singleOrderDetails?.size || selectedSize || null;
+    }
+    return null;
+  }, [
+    isTeamOrder,
+    isTrophy,
+    trophyDetails,
+    isJerseyCategory,
+    jerseyType,
+    singleOrderDetails,
+    selectedSize,
+    isApparel
+  ]);
+
+  const fabricSurchargeAmount = useMemo(() => {
+    if (!selectedFabricOption) return 0;
+    const amount = fabricSurchargeLookup[selectedFabricOption];
+    return Number.isFinite(amount) ? amount : 0;
+  }, [selectedFabricOption, fabricSurchargeLookup]);
+
+  const sizeSurchargeAmount = useMemo(() => {
+    if (isTeamOrder) return 0;
+    return resolveSizeSurcharge(singleOrderSizeKey, sizeGroupHint);
+  }, [isTeamOrder, singleOrderSizeKey, sizeGroupHint, resolveSizeSurcharge]);
+
+  const teamSizeSurchargeInfo = useMemo(() => {
+    if (!isTeamOrder || !sizeSurchargeConfig) {
+      return { total: 0, perUnit: 0, members: null };
+    }
+
+    const updatedMembers = (teamMembers || []).map((member) => {
+      const memberGroup =
+        member?.sizingType === 'kids'
+          ? 'kids'
+          : isJerseyCategory
+          ? 'adults'
+          : 'general';
+
+      let sizeKey = null;
+      if (isJerseyCategory) {
+        if (jerseyType === 'shorts') {
+          sizeKey = member?.shortsSize || member?.size || member?.jerseySize || null;
+        } else if (jerseyType === 'shirt') {
+          sizeKey = member?.jerseySize || member?.size || null;
+        } else {
+          sizeKey = member?.jerseySize || member?.size || null;
+        }
+      } else {
+        sizeKey = member?.size || member?.jerseySize || member?.shortsSize || null;
+      }
+
+      const surcharge = resolveSizeSurcharge(sizeKey, memberGroup);
+      return {
+        ...member,
+        sizeSurcharge: surcharge,
+        sizeSurchargeSize: sizeKey
+      };
+    });
+
+    const total = updatedMembers.reduce(
+      (sum, member) => sum + (member.sizeSurcharge || 0),
+      0
+    );
+    const perUnit =
+      total / Math.max(1, updatedMembers.length || 1);
+
+    return { total, perUnit, members: updatedMembers };
+  }, [
+    isTeamOrder,
+    sizeSurchargeConfig,
+    teamMembers,
+    isJerseyCategory,
+    jerseyType,
+    resolveSizeSurcharge
+  ]);
+
   // Get current price based on jersey type, trophy size, and size type
-  const currentPrice = useMemo(() => {
+  const baseUnitPrice = useMemo(() => {
     let basePrice = parseFloat(product?.price) || 0;
     
     console.log('💰 [ProductModal] Calculating price - isTrophy:', isTrophy, 'isJerseyCategory:', isJerseyCategory, 'trophyDetails.size:', trophyDetails?.size);
@@ -484,9 +795,21 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       console.log('💰 [ProductModal] Using product.price:', basePrice);
     }
     
-    console.log('💰 [ProductModal] Final price:', basePrice);
+    console.log('💰 [ProductModal] Base unit price (before surcharges):', basePrice);
     return basePrice;
   }, [product, isTrophy, isJerseyCategory, jerseyPrices, trophyPrices, jerseyType, sizeType, trophyDetails]);
+
+  const currentPrice = useMemo(() => {
+    let price = baseUnitPrice;
+    price += fabricSurchargeAmount;
+    if (isTeamOrder) {
+      price += teamSizeSurchargeInfo.perUnit;
+    } else {
+      price += sizeSurchargeAmount;
+    }
+    console.log('💰 [ProductModal] Final unit price (with surcharges):', price);
+    return price;
+  }, [baseUnitPrice, fabricSurchargeAmount, sizeSurchargeAmount, isTeamOrder, teamSizeSurchargeInfo.perUnit]);
 
   // Get available sizes for shirts and shorts based on size type
   const getShirtSizes = () => {
@@ -680,9 +1003,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setValidationErrors({});
 
       // Use the current price (already calculated with jersey type and size type)
-      const finalPrice = currentPrice;
-      
-      // For trophies, use trophyDetails.size; for other products, use selectedSize
+      const basePriceForCart = baseUnitPrice;
+      const fabricOptionValue = selectedFabricOption || null;
+      const fabricSurchargeValue = fabricSurchargeAmount;
       const sizeValue = isTrophy ? trophyDetails.size : selectedSize;
       const variantKey = isJerseyCategory ? jerseyType : null;
       const effectiveTeamMembers = isTeamOrder
@@ -695,20 +1018,83 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         ? (effectiveTeamMembers ? effectiveTeamMembers.length : 0)
         : quantity;
       
+      let adjustedTeamMembers = effectiveTeamMembers;
+      let sizeSurchargeTotal = sizeSurchargeAmount;
+      let sizeSurchargePerUnit = sizeSurchargeAmount;
+
+      if (!isTeamOrder && effectiveSingleDetails && typeof effectiveSingleDetails === 'object') {
+        effectiveSingleDetails.sizeSurcharge = sizeSurchargeAmount;
+        effectiveSingleDetails.sizeKey = singleOrderSizeKey;
+        effectiveSingleDetails.fabricOption = fabricOptionValue;
+        effectiveSingleDetails.fabricSurcharge = fabricSurchargeValue;
+      }
+
+      if (isTeamOrder) {
+        sizeSurchargeTotal = teamSizeSurchargeInfo.total;
+        sizeSurchargePerUnit = teamSizeSurchargeInfo.perUnit;
+        if (
+          Array.isArray(adjustedTeamMembers) &&
+          Array.isArray(teamSizeSurchargeInfo.members)
+        ) {
+          adjustedTeamMembers = adjustedTeamMembers.map((member, index) => {
+            const surchargeMember = teamSizeSurchargeInfo.members[index] || {};
+            return {
+              ...member,
+              sizeSurcharge: surchargeMember.sizeSurcharge || 0,
+              sizeSurchargeSize: surchargeMember.sizeSurchargeSize || member.size || null
+            };
+          });
+        }
+      }
+
+      const finalPrice = isTeamOrder
+        ? basePriceForCart + fabricSurchargeValue + sizeSurchargePerUnit
+        : currentPrice;
+      
       const cartOptions = {
         size: sizeValue,
         quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: effectiveTeamMembers,
+        teamMembers: adjustedTeamMembers,
         teamName: isTeamOrder ? teamName : null, // Add teamName for team orders
         singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
         jerseyType: variantKey, // Add jersey type for jersey products
-        price: finalPrice, // Use calculated price based on jersey type and size type
+        price: finalPrice,
         isReplacement: isFromCart, // Mark as replacement when coming from cart
         category: product.category, // Include category
         ballDetails: isBall ? ballDetails : null,
-        trophyDetails: isTrophy ? trophyDetails : null
+        trophyDetails: isTrophy ? trophyDetails : null,
+        basePrice: basePriceForCart,
+        fabricOption: fabricOptionValue,
+        fabricSurcharge: fabricSurchargeValue,
+        sizeSurcharge: sizeSurchargePerUnit,
+        sizeSurchargeTotal,
+        surchargeDetails: {
+          size: isTeamOrder
+            ? {
+                total: sizeSurchargeTotal,
+                perUnit: sizeSurchargePerUnit,
+                members:
+                  adjustedTeamMembers?.map((member) => ({
+                    size: member.sizeSurchargeSize || member.size || null,
+                    amount: member.sizeSurcharge || 0,
+                    sizingType: member.sizingType || null,
+                    surname: member.surname || null
+                  })) || []
+              }
+            : {
+                size: singleOrderSizeKey,
+                group: sizeGroupHint,
+                amount: sizeSurchargeAmount
+              },
+          fabric: fabricOptionValue
+            ? {
+                option: fabricOptionValue,
+                perUnit: fabricSurchargeValue
+              }
+            : null
+        }
       };
 
       console.log('🛒 [ProductModal] Cart options being sent:', cartOptions);
@@ -841,7 +1227,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setValidationErrors({});
       
       // Use the current price (already calculated with jersey type and size type)
-      const finalPrice = currentPrice;
+      const basePriceForCart = baseUnitPrice;
+      const fabricOptionValue = selectedFabricOption || null;
+      const fabricSurchargeValue = fabricSurchargeAmount;
       const variantKey = isJerseyCategory ? jerseyType : null;
       const effectiveTeamMembers = isTeamOrder
         ? (isApparel ? sanitizeTeamMembers(teamMembers, variantKey) : teamMembers)
@@ -852,19 +1240,82 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       const quantityValue = isTeamOrder
         ? (effectiveTeamMembers ? effectiveTeamMembers.length : 0)
         : quantity;
+
+      let adjustedTeamMembers = effectiveTeamMembers;
+      let sizeSurchargeTotal = sizeSurchargeAmount;
+      let sizeSurchargePerUnit = sizeSurchargeAmount;
+
+      if (!isTeamOrder && effectiveSingleDetails && typeof effectiveSingleDetails === 'object') {
+        effectiveSingleDetails.sizeSurcharge = sizeSurchargeAmount;
+        effectiveSingleDetails.sizeKey = singleOrderSizeKey;
+        effectiveSingleDetails.fabricOption = fabricOptionValue;
+        effectiveSingleDetails.fabricSurcharge = fabricSurchargeValue;
+      }
+
+      if (isTeamOrder) {
+        sizeSurchargeTotal = teamSizeSurchargeInfo.total;
+        sizeSurchargePerUnit = teamSizeSurchargeInfo.perUnit;
+        if (
+          Array.isArray(adjustedTeamMembers) &&
+          Array.isArray(teamSizeSurchargeInfo.members)
+        ) {
+          adjustedTeamMembers = adjustedTeamMembers.map((member, index) => {
+            const surchargeMember = teamSizeSurchargeInfo.members[index] || {};
+            return {
+              ...member,
+              sizeSurcharge: surchargeMember.sizeSurcharge || 0,
+              sizeSurchargeSize: surchargeMember.sizeSurchargeSize || member.size || null
+            };
+          });
+        }
+      }
+
+      const finalPrice = isTeamOrder
+        ? basePriceForCart + fabricSurchargeValue + sizeSurchargePerUnit
+        : currentPrice;
       
       const buyNowOptions = {
         size: selectedSize,
         quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: effectiveTeamMembers,
+        teamMembers: adjustedTeamMembers,
         singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
         jerseyType: variantKey, // Add jersey type for jersey products
         price: finalPrice, // Use calculated price based on jersey type and size type
         category: product.category, // Include category
         ballDetails: isBall ? ballDetails : null,
-        trophyDetails: isTrophy ? trophyDetails : null
+        trophyDetails: isTrophy ? trophyDetails : null,
+        basePrice: basePriceForCart,
+        fabricOption: fabricOptionValue,
+        fabricSurcharge: fabricSurchargeValue,
+        sizeSurcharge: sizeSurchargePerUnit,
+        sizeSurchargeTotal,
+        surchargeDetails: {
+          size: isTeamOrder
+            ? {
+                total: sizeSurchargeTotal,
+                perUnit: sizeSurchargePerUnit,
+                members:
+                  adjustedTeamMembers?.map((member) => ({
+                    size: member.sizeSurchargeSize || member.size || null,
+                    amount: member.sizeSurcharge || 0,
+                    sizingType: member.sizingType || null,
+                    surname: member.surname || null
+                  })) || []
+              }
+            : {
+                size: singleOrderSizeKey,
+                group: sizeGroupHint,
+                amount: sizeSurchargeAmount
+              },
+          fabric: fabricOptionValue
+            ? {
+                option: fabricOptionValue,
+                perUnit: fabricSurchargeValue
+              }
+            : null
+        }
       };
 
       // Use callback if provided (for walk-in ordering), otherwise use default flow
@@ -883,7 +1334,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         size: selectedSize,
         quantity: quantityValue,
         isTeamOrder: isTeamOrder,
-        teamMembers: effectiveTeamMembers,
+        teamMembers: adjustedTeamMembers,
         singleOrderDetails: !isTeamOrder && isApparel ? effectiveSingleDetails : null,
         sizeType: sizeType,
         jerseyType: variantKey, // Add jersey type for jersey products
@@ -891,7 +1342,13 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         uniqueId: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
         category: product.category, // Include category
         ballDetails: isBall ? ballDetails : null,
-        trophyDetails: isTrophy ? trophyDetails : null
+        trophyDetails: isTrophy ? trophyDetails : null,
+        basePrice: basePriceForCart,
+        fabricOption: fabricOptionValue,
+        fabricSurcharge: fabricSurchargeValue,
+        sizeSurcharge: sizeSurchargePerUnit,
+        sizeSurchargeTotal,
+        surchargeDetails: buyNowOptions.surchargeDetails
       };
       
       console.log('≡ƒ¢Æ Buy Now item created:', buyNowItem);
@@ -1028,6 +1485,35 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         )}
       </span>
     ));
+  };
+
+  const renderFabricOptions = () => {
+    if (fabricOptions.length === 0) return null;
+
+    const label = isTrophy ? 'Material Options' : 'Fabric Options';
+    return (
+      <div className="modal-fabric-section">
+        <h4 className="modal-fabric-title">{label}</h4>
+        <div className="modal-fabric-options">
+          {fabricOptions.map(({ name, amount }) => {
+            const isActive = selectedFabricOption === name;
+            return (
+              <button
+                key={name}
+                type="button"
+                className={`modal-fabric-button ${isActive ? 'active' : ''}`}
+                onClick={() => setSelectedFabricOption(name)}
+              >
+                <span className="modal-fabric-name">{name}</span>
+                <span className="modal-fabric-fee">
+                  {amount > 0 ? `+₱${amount.toFixed(2)}` : 'Included'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1519,6 +2005,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                 </div>
               </div>
             )}
+
+            {renderFabricOptions()}
 
             {/* Ball Details Form - Hidden (balls can be added without size selection) */}
 

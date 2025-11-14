@@ -165,11 +165,33 @@ class ProductService {
           ? 0
           : Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / count) * 10) / 10;
 
+        let sizeSurcharges = product.size_surcharges;
+        if (typeof sizeSurcharges === 'string') {
+          try {
+            sizeSurcharges = JSON.parse(sizeSurcharges);
+          } catch (error) {
+            console.warn('Failed to parse size_surcharges from productService:', error?.message);
+            sizeSurcharges = null;
+          }
+        }
+
+        let fabricSurcharges = product.fabric_surcharges;
+        if (typeof fabricSurcharges === 'string') {
+          try {
+            fabricSurcharges = JSON.parse(fabricSurcharges);
+          } catch (error) {
+            console.warn('Failed to parse fabric_surcharges from productService:', error?.message);
+            fabricSurcharges = null;
+          }
+        }
+
         return {
           ...product,
           average_rating: average,
           review_count: count,
-          available_sizes: this.parseAvailableSizes(product.size)
+          available_sizes: this.parseAvailableSizes(product.size),
+          size_surcharges: sizeSurcharges,
+          fabric_surcharges: fabricSurcharges
         };
       });
     } catch (error) {
@@ -189,8 +211,32 @@ class ProductService {
       if (error) {
         throw new Error(`Failed to fetch product: ${error.message}`);
       }
-      
-      return data;
+
+      let sizeSurcharges = data?.size_surcharges;
+      if (typeof sizeSurcharges === 'string') {
+        try {
+          sizeSurcharges = JSON.parse(sizeSurcharges);
+        } catch (parseError) {
+          console.warn('Failed to parse size_surcharges in getProductById:', parseError?.message);
+          sizeSurcharges = null;
+        }
+      }
+
+      let fabricSurcharges = data?.fabric_surcharges;
+      if (typeof fabricSurcharges === 'string') {
+        try {
+          fabricSurcharges = JSON.parse(fabricSurcharges);
+        } catch (parseError) {
+          console.warn('Failed to parse fabric_surcharges in getProductById:', parseError?.message);
+          fabricSurcharges = null;
+        }
+      }
+
+      return {
+        ...data,
+        size_surcharges: sizeSurcharges,
+        fabric_surcharges: fabricSurcharges
+      };
     } catch (error) {
       console.error('Error fetching product:', error);
       throw error;

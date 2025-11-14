@@ -388,24 +388,24 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                         };
                                         const { showJersey: showTeamJerseySize, showShorts: showTeamShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
                                         return item.teamMembers.map((member, memberIndex) => (
-                                          <div key={memberIndex} className="artist-order-member-item">
-                                            <div className="artist-order-detail-row">
-                                              <span className="artist-order-detail-label">Surname:</span>
-                                              <span className="artist-order-detail-value">{member.surname || member.lastName || 'N/A'}</span>
-                                            </div>
-                                            <div className="artist-order-detail-row">
-                                              <span className="artist-order-detail-label">Jersey No:</span>
-                                              <span className="artist-order-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
-                                            </div>
+                                        <div key={memberIndex} className="artist-order-member-item">
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">Surname:</span>
+                                            <span className="artist-order-detail-value">{member.surname || member.lastName || 'N/A'}</span>
+                                          </div>
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">Jersey No:</span>
+                                            <span className="artist-order-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                          </div>
                                             {showTeamJerseySize && (
-                                              <div className="artist-order-detail-row">
-                                                <span className="artist-order-detail-label">Jersey Size:</span>
-                                                <span className="artist-order-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
-                                              </div>
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">Jersey Size:</span>
+                                            <span className="artist-order-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                          </div>
                                             )}
                                             {showTeamShortsSize && (
-                                              <div className="artist-order-detail-row">
-                                                <span className="artist-order-detail-label">Shorts Size:</span>
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">Shorts Size:</span>
                                                 <span className="artist-order-detail-value">{member.shortsSize || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
                                               </div>
                                             )}
@@ -438,16 +438,16 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                       return (
                                         <>
                                           {showSingleJerseySize && (
-                                            <div className="artist-order-detail-row">
-                                              <span className="artist-order-detail-label">Jersey Size:</span>
-                                              <span className="artist-order-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
-                                            </div>
+                                    <div className="artist-order-detail-row">
+                                      <span className="artist-order-detail-label">Jersey Size:</span>
+                                      <span className="artist-order-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
+                                    </div>
                                           )}
                                           {showSingleShortsSize && (
-                                            <div className="artist-order-detail-row">
-                                              <span className="artist-order-detail-label">Shorts Size:</span>
+                                    <div className="artist-order-detail-row">
+                                      <span className="artist-order-detail-label">Shorts Size:</span>
                                               <span className="artist-order-detail-value">{item.singleOrderDetails?.shortsSize || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
-                                            </div>
+                                    </div>
                                           )}
                                         </>
                                       );

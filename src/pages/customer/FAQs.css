@@ -207,7 +207,7 @@
 .faqs-contact-button.secondary {
   background: transparent;
   color: #00bfff;
-  border: 2px solid #00bfff;
+  border: 2px solid #00bfff !important;
 }
 
 .faqs-contact-button.secondary:hover {
