@@ -163,14 +163,39 @@ router.get('/metrics', authenticateArtist, async (req, res) => {
       console.error('Error fetching completed tasks:', completedError);
     }
 
-    // Calculate completion rate
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    // Calculate average completion time (in hours)
+    const { data: completedTasksData, error: avgTimeError } = await supabase
+      .from('artist_tasks')
+      .select('started_at, completed_at, assigned_at')
+      .eq('artist_id', profile.id)
+      .eq('status', 'completed')
+      .not('completed_at', 'is', null);
+
+    let averageCompletionTime = 0;
+    if (!avgTimeError && completedTasksData && completedTasksData.length > 0) {
+      const validTimes = completedTasksData
+        .map(task => {
+          const startTime = task.started_at || task.assigned_at;
+          const endTime = task.completed_at;
+          if (startTime && endTime) {
+            const diffMs = new Date(endTime) - new Date(startTime);
+            return diffMs / (1000 * 60 * 60); // Convert to hours
+          }
+          return null;
+        })
+        .filter(time => time !== null && time > 0);
+
+      if (validTimes.length > 0) {
+        const sum = validTimes.reduce((acc, time) => acc + time, 0);
+        averageCompletionTime = Math.round((sum / validTimes.length) * 10) / 10; // Round to 1 decimal
+      }
+    }
 
     const metrics = {
       totalTasks: totalTasks || 0,
       pendingTasks: pendingTasks || 0,
       completedTasks: completedTasks || 0,
-      completionRate
+      averageCompletionTime
     };
 
     res.json(metrics);
@@ -270,6 +295,7 @@ router.get('/tasks', authenticateArtist, async (req, res) => {
       .from('artist_tasks')
       .select(`
         *,
+        started_at,
         orders (
           order_number,
           total_amount,
@@ -362,21 +388,40 @@ router.patch('/tasks/:taskId/status', authenticateArtist, async (req, res) => {
         });
       }
 
-      if (orderData.status !== 'confirmed') {
+      // Allow starting task when order is in 'layout' status (when tasks are assigned)
+      // or 'confirmed' status (for backward compatibility)
+      if (orderData.status !== 'layout' && orderData.status !== 'confirmed') {
         return res.status(400).json({
-          error: 'Order must be in confirmed status before starting this task.',
+          error: 'Order must be in layout or confirmed status before starting this task.',
           currentStatus: orderData.status
         });
+      }
+    }
+
+    // Prepare update data
+    const updateData = {
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    // Set started_at when status changes to 'in_progress' and it's not already set
+    if (status === 'in_progress') {
+      // Check if started_at is already set
+      const { data: currentTask } = await supabase
+        .from('artist_tasks')
+        .select('started_at')
+        .eq('id', taskId)
+        .single();
+
+      if (!currentTask?.started_at) {
+        updateData.started_at = new Date().toISOString();
       }
     }
 
     // Update task status
     const { data, error } = await supabase
       .from('artist_tasks')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', taskId)
       .select()
       .single();

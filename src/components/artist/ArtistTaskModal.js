@@ -25,13 +25,18 @@ import designUploadService from '../../services/designUploadService';
 import { useNotification } from '../../contexts/NotificationContext';
 import chatService from '../../services/chatService';
 import { getApparelSizeVisibility } from '../../utils/orderSizing';
+import ArtistChatModal from './ArtistChatModal';
 
 const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) => {
+  const [currentTask, setCurrentTask] = useState(task);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [checkingApproval, setCheckingApproval] = useState(false);
+  const [chatRoom, setChatRoom] = useState(null);
+  const [loadingChatRoom, setLoadingChatRoom] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState(null);
   const fileInputRef = useRef(null);
   const { showSuccess, showError } = useNotification();
 
@@ -103,23 +108,90 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
     }
   }, []);
 
+  // Update currentTask when task prop changes
+  useEffect(() => {
+    if (task) {
+      console.log('📝 Task prop updated:', task.id, 'Status:', task.status, 'Started at:', task.started_at);
+      setCurrentTask(task);
+    }
+  }, [task]);
+
+  // Fetch chat room when task is in_progress
+  useEffect(() => {
+    const taskToCheck = currentTask || task;
+    const fetchChatRoom = async () => {
+      if (isOpen && taskToCheck && taskToCheck.order_id && taskToCheck.status === 'in_progress') {
+        setLoadingChatRoom(true);
+        try {
+          const room = await chatService.getChatRoomByOrder(taskToCheck.order_id);
+          setChatRoom(room);
+        } catch (error) {
+          console.error('Error fetching chat room:', error);
+          setChatRoom(null);
+        } finally {
+          setLoadingChatRoom(false);
+        }
+      } else {
+        setChatRoom(null);
+      }
+    };
+    fetchChatRoom();
+  }, [isOpen, task, currentTask]);
+
   // Check approval status when modal opens or task changes
   useEffect(() => {
-    if (isOpen && task && task.order_id && task.status === 'in_progress') {
-      checkDesignApprovalStatus(task.order_id);
+    const taskToCheck = currentTask || task;
+    if (isOpen && taskToCheck && taskToCheck.order_id && taskToCheck.status === 'in_progress') {
+      checkDesignApprovalStatus(taskToCheck.order_id);
       
       // Set up interval to check every minute (for 60-minute timeout detection)
       const interval = setInterval(() => {
-        checkDesignApprovalStatus(task.order_id);
+        checkDesignApprovalStatus(taskToCheck.order_id);
       }, 60 * 1000); // Check every minute
 
       return () => clearInterval(interval);
     } else {
       setIsApproved(false);
     }
-  }, [isOpen, task?.order_id, task?.status, checkDesignApprovalStatus]);
+  }, [isOpen, task, currentTask, checkDesignApprovalStatus]);
 
   if (!isOpen || !task) return null;
+  
+  // Use task prop directly if currentTask is not set yet
+  const displayTask = currentTask || task;
+
+  // Check if task is "blind" (not started yet)
+  // Only show blind if status is pending AND started_at is null/undefined/empty
+  // If status is NOT pending, always show details (task has been started or completed)
+  const hasStarted = displayTask.started_at && displayTask.started_at !== null && displayTask.started_at !== '';
+  const isBlindTask = displayTask.status === 'pending' && !hasStarted;
+  const isInProgress = displayTask.status === 'in_progress';
+  
+  // Debug logging
+  console.log('🔍 [ArtistTaskModal] Task visibility check:', {
+    taskId: displayTask.id,
+    status: displayTask.status,
+    started_at: displayTask.started_at,
+    hasStarted: hasStarted,
+    isBlindTask: isBlindTask
+  });
+
+  const handleStartTask = async () => {
+    try {
+      console.log('🚀 Starting task:', displayTask.id);
+      if (onStatusUpdate) {
+        await onStatusUpdate(displayTask.id, 'in_progress');
+        // Task will be refreshed by parent component
+        showSuccess('Task started successfully!');
+      } else {
+        console.error('❌ onStatusUpdate is not defined');
+        showError('Unable to start task. Please refresh the page.');
+      }
+    } catch (error) {
+      console.error('❌ Error starting task:', error);
+      showError(error.message || 'Failed to start task. Please try again.');
+    }
+  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -196,11 +268,11 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
   };
 
   const getOrderItems = () => {
-    if (task.orders?.order_items) {
+    if (displayTask.orders?.order_items) {
       try {
-        return Array.isArray(task.orders.order_items) 
-          ? task.orders.order_items 
-          : JSON.parse(task.orders.order_items);
+        return Array.isArray(displayTask.orders.order_items) 
+          ? displayTask.orders.order_items 
+          : JSON.parse(displayTask.orders.order_items);
       } catch (e) {
         return [];
       }
@@ -228,25 +300,25 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
       return;
     }
 
-    if (!task.order_id) {
+    if (!displayTask.order_id) {
       showError('Order ID not found. Cannot upload design files.');
       return;
     }
 
     setUploading(true);
     try {
-      console.log('🎨 Uploading design files for order:', task.order_id);
+      console.log('🎨 Uploading design files for order:', displayTask.order_id);
       console.log('🎨 Files selected:', files.length);
 
       // Upload files using designUploadService
-      const result = await designUploadService.uploadDesignFiles(task.order_id, files);
+      const result = await designUploadService.uploadDesignFiles(displayTask.order_id, files);
       
       console.log('✅ Design files uploaded successfully:', result);
       showSuccess(result.message || 'Design files uploaded successfully and order moved to sizing status');
 
       // Update task status to submitted after successful upload
       if (onStatusUpdate) {
-        await onStatusUpdate(task.id, 'submitted');
+        await onStatusUpdate(displayTask.id, 'submitted');
       }
 
       // Reset file input
@@ -272,15 +344,15 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
         {/* Integrated Header */}
         <div className="artist-task-modal-header-integrated">
           <div className="artist-task-header-content">
-            <h3>{task.task_title}</h3>
+            <h3>{displayTask.task_title}</h3>
             <div className="artist-task-header-badges">
-              <span className={`artist-task-priority-badge ${task.priority}`}>
-                <FontAwesomeIcon icon={getPriorityIcon(task.priority)} />
-                {task.priority.toUpperCase()}
+              <span className={`artist-task-priority-badge ${displayTask.priority}`}>
+                <FontAwesomeIcon icon={getPriorityIcon(displayTask.priority)} />
+                {displayTask.priority.toUpperCase()}
               </span>
-              <span className={`artist-task-status-badge ${task.status}`}>
-                <FontAwesomeIcon icon={getStatusIcon(task.status)} />
-                {task.status.replace('_', ' ')}
+              <span className={`artist-task-status-badge ${displayTask.status}`}>
+                <FontAwesomeIcon icon={getStatusIcon(displayTask.status)} />
+                {displayTask.status.replace('_', ' ')}
               </span>
             </div>
           </div>
@@ -292,30 +364,39 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
         {/* Content */}
         <div className="artist-task-modal-content">
           <div className="content-body">
-            <div className="content-two-column">
+            <div className={`content-two-column ${isBlindTask ? 'content-single-column' : ''} ${isInProgress ? 'content-in-progress-layout' : ''}`}>
               {/* Left Column - Order Details */}
               <div className="content-left-column">
                 <div className="task-details-container">
-                  <h4 className="section-title">Order Details</h4>
+                  <h4 className="section-title">{isBlindTask ? 'Task Information' : 'Order Details'}</h4>
                   
                   {/* Order Type and Deadline */}
                   <div className="artist-order-meta-info">
                     <div className="artist-order-meta-row">
                       <span className="artist-order-meta-label">Order Type:</span>
-                      <span className={`artist-order-type-badge ${getOrderTypeClass(task)}`}>
-                        {getOrderTypeLabel(task)}
+                      <span className={`artist-order-type-badge ${getOrderTypeClass(displayTask)}`}>
+                        {getOrderTypeLabel(displayTask)}
                       </span>
                     </div>
                     <div className="artist-order-meta-row">
                       <span className="artist-order-meta-label">Deadline:</span>
                       <span className="artist-order-meta-value">
                         <FontAwesomeIcon icon={faCalendarAlt} />
-                        {formatDate(task.deadline)}
+                        {formatDate(displayTask.deadline)}
                       </span>
                     </div>
                   </div>
 
-                  <div className="order-details-list">
+                  {isBlindTask ? (
+                    <div className="artist-blind-task-notice">
+                      <div className="blind-task-icon">
+                        <FontAwesomeIcon icon={faLock} />
+                      </div>
+                      <h4>Task Details Locked</h4>
+                      <p>Order details will be revealed once you start this task. Click "Start Task" to begin and view the full order information.</p>
+                    </div>
+                  ) : (
+                    <div className="order-details-list">
                     {orderItems.length > 0 ? (
                       orderItems.map((item, index) => {
                         // Determine product category
@@ -332,6 +413,11 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                 <img 
                                   src={item.main_image || item.image || item.imageUrl || item.photo || item.image_url || item.product_image || item.thumbnail || '/image_highlights/image.png'} 
                                   alt={item.name}
+                                  className="artist-product-img-clickable"
+                                  onClick={() => setZoomedImage({
+                                    url: item.main_image || item.image || item.imageUrl || item.photo || item.image_url || item.product_image || item.thumbnail || '/image_highlights/image.png',
+                                    name: item.name
+                                  })}
                                   onError={(e) => {
                                     e.target.src = '/image_highlights/image.png';
                                   }}
@@ -387,30 +473,50 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                           shorts: item.teamMembers.some(member => Boolean(member?.shortsSize))
                                         };
                                         const { showJersey: showTeamJerseySize, showShorts: showTeamShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
-                                        return item.teamMembers.map((member, memberIndex) => (
-                                        <div key={memberIndex} className="artist-order-member-item">
-                                          <div className="artist-order-detail-row">
-                                            <span className="artist-order-detail-label">Surname:</span>
-                                            <span className="artist-order-detail-value">{member.surname || member.lastName || 'N/A'}</span>
-                                          </div>
-                                          <div className="artist-order-detail-row">
-                                            <span className="artist-order-detail-label">Jersey No:</span>
-                                            <span className="artist-order-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
-                                          </div>
-                                            {showTeamJerseySize && (
-                                          <div className="artist-order-detail-row">
-                                            <span className="artist-order-detail-label">Jersey Size:</span>
-                                            <span className="artist-order-detail-value">{member.jerseySize || member.size || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
-                                          </div>
-                                            )}
-                                            {showTeamShortsSize && (
-                                          <div className="artist-order-detail-row">
-                                            <span className="artist-order-detail-label">Shorts Size:</span>
-                                                <span className="artist-order-detail-value">{member.shortsSize || 'N/A'} ({member.sizingType || item.sizeType || 'Adult'})</span>
+                                        return item.teamMembers.map((member, memberIndex) => {
+                                          const memberJerseyType = member.jerseyType || member.jersey_type || 'full';
+                                          const jerseyTypeLabel = memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                          return (
+                                          <div key={memberIndex} className="artist-order-member-item">
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Surname:</span>
+                                              <span className="artist-order-detail-value">{(member.surname || member.lastName || 'N/A').toUpperCase()}</span>
+                                            </div>
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Jersey No:</span>
+                                              <span className="artist-order-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                            </div>
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Jersey Type:</span>
+                                              <span className="artist-order-detail-value">{jerseyTypeLabel}</span>
+                                            </div>
+                                            {(member.fabricOption || member.fabric_option) && (
+                                              <div className="artist-order-detail-row">
+                                                <span className="artist-order-detail-label">Fabric:</span>
+                                                <span className="artist-order-detail-value">{member.fabricOption || member.fabric_option || 'N/A'}</span>
                                               </div>
                                             )}
-                                          </div>
-                                        ));
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Cut Type:</span>
+                                              <span className="artist-order-detail-value">{member.cutType || member.cut_type || 'N/A'}</span>
+                                            </div>
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Type:</span>
+                                              <span className="artist-order-detail-value">{member.sizingType || item.sizeType || 'Adult'}</span>
+                                            </div>
+                                              {showTeamJerseySize && (memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Jersey Size:</span>
+                                              <span className="artist-order-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
+                                            </div>
+                                              )}
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Shorts Size:</span>
+                                              <span className="artist-order-detail-value">{(memberJerseyType === 'full' || memberJerseyType === 'shorts') ? (member.shortsSize || 'N/A') : '-'}</span>
+                                            </div>
+                                            </div>
+                                          );
+                                        });
                                       })()}
                                     </div>
                                   </div>
@@ -423,13 +529,15 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                     </div>
                                     <div className="artist-order-detail-row">
                                       <span className="artist-order-detail-label">Surname:</span>
-                                      <span className="artist-order-detail-value">{item.singleOrderDetails?.surname || item.singleOrderDetails?.lastName || 'N/A'}</span>
+                                      <span className="artist-order-detail-value">{((item.singleOrderDetails?.surname || item.singleOrderDetails?.lastName || 'N/A')).toUpperCase()}</span>
                                     </div>
                                     <div className="artist-order-detail-row">
                                       <span className="artist-order-detail-label">Jersey No:</span>
                                       <span className="artist-order-detail-value">{item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</span>
                                     </div>
                                     {(() => {
+                                      const jerseyType = item.jerseyType || item.singleOrderDetails?.jerseyType || 'full';
+                                      const jerseyTypeLabel = jerseyType === 'shirt' ? 'Shirt Only' : jerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
                                       const fallbackVisibility = {
                                         jersey: Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size),
                                         shorts: Boolean(item.singleOrderDetails?.shortsSize)
@@ -437,18 +545,34 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                       const { showJersey: showSingleJerseySize, showShorts: showSingleShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
                                       return (
                                         <>
-                                          {showSingleJerseySize && (
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">Jersey Type:</span>
+                                            <span className="artist-order-detail-value">{jerseyTypeLabel}</span>
+                                          </div>
+                                          {(item.fabricOption || item.singleOrderDetails?.fabricOption) && (
+                                            <div className="artist-order-detail-row">
+                                              <span className="artist-order-detail-label">Fabric:</span>
+                                              <span className="artist-order-detail-value">{item.fabricOption || item.singleOrderDetails?.fabricOption || 'N/A'}</span>
+                                            </div>
+                                          )}
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">Cut Type:</span>
+                                            <span className="artist-order-detail-value">{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</span>
+                                          </div>
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">Type:</span>
+                                            <span className="artist-order-detail-value">{item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'}</span>
+                                          </div>
+                                          {showSingleJerseySize && (jerseyType === 'full' || jerseyType === 'shirt') && (
                                     <div className="artist-order-detail-row">
                                       <span className="artist-order-detail-label">Jersey Size:</span>
-                                      <span className="artist-order-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
+                                      <span className="artist-order-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'}</span>
                                     </div>
                                           )}
-                                          {showSingleShortsSize && (
-                                    <div className="artist-order-detail-row">
-                                      <span className="artist-order-detail-label">Shorts Size:</span>
-                                              <span className="artist-order-detail-value">{item.singleOrderDetails?.shortsSize || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
-                                    </div>
-                                          )}
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">Shorts Size:</span>
+                                            <span className="artist-order-detail-value">{(jerseyType === 'full' || jerseyType === 'shorts') ? (item.singleOrderDetails?.shortsSize || 'N/A') : '-'}</span>
+                                          </div>
                                         </>
                                       );
                                     })()}
@@ -520,7 +644,7 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                   <div className="artist-order-custom-details">
                                     <div className="artist-order-detail-row">
                                       <span className="artist-order-detail-label">Order Type:</span>
-                                      <span className="artist-order-detail-value">{getOrderTypeLabel(task)}</span>
+                                      <span className="artist-order-detail-value">{getOrderTypeLabel(displayTask)}</span>
                                     </div>
                                     {item.name && (
                                       <div className="artist-order-detail-row">
@@ -547,32 +671,76 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
               </div>
 
-              {/* Right Column - Customer Communication */}
-              <div className="content-right-column">
-                <div className="chat-section-container">
-                  <h4 className="section-title">
-                    <FontAwesomeIcon icon={faComments} className="chat-icon" />
-                    Customer Communication
-                  </h4>
-                  <p className="chat-description">
-                    Use the chat feature to communicate with the customer about this order.
-                  </p>
-                  <button 
-                    className="artist-task-chat-btn"
-                    onClick={() => onOpenChat && onOpenChat(task)}
-                  >
-                    <FontAwesomeIcon icon={faComments} />
-                    Open Chat
-                    <FontAwesomeIcon icon={faExternalLinkAlt} />
-                  </button>
+              {/* Right Column - Chat Room (70%) */}
+              {!isBlindTask && (
+                <div className="content-right-column">
+                  {isInProgress ? (
+                    <div className="artist-chat-embedded-container">
+                      {loadingChatRoom ? (
+                        <div className="artist-chat-loading">
+                          <FontAwesomeIcon icon={faSpinner} spin />
+                          <p>Loading chat...</p>
+                        </div>
+                      ) : chatRoom ? (
+                        <div className="artist-chat-embedded-wrapper">
+                          <ArtistChatModal 
+                            room={chatRoom} 
+                            isOpen={true}
+                            onClose={() => {}} // Don't allow closing embedded chat
+                          />
+                        </div>
+                      ) : (
+                        <div className="artist-chat-no-room">
+                          <FontAwesomeIcon icon={faComments} />
+                          <p>Chat room not available</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="chat-section-container">
+                      <h4 className="section-title">
+                        <FontAwesomeIcon icon={faComments} className="chat-icon" />
+                        Customer Communication
+                      </h4>
+                      <p className="chat-description">
+                        Use the chat feature to communicate with the customer about this order.
+                      </p>
+                      <button 
+                        className="artist-task-chat-btn"
+                        onClick={() => onOpenChat && onOpenChat(displayTask)}
+                      >
+                        <FontAwesomeIcon icon={faComments} />
+                        Open Chat
+                        <FontAwesomeIcon icon={faExternalLinkAlt} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Image Zoom Modal */}
+        {zoomedImage && (
+          <div className="artist-image-zoom-overlay" onClick={() => setZoomedImage(null)}>
+            <div className="artist-image-zoom-container" onClick={(e) => e.stopPropagation()}>
+              <button className="artist-image-zoom-close" onClick={() => setZoomedImage(null)} aria-label="Close">
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+              <img 
+                src={zoomedImage.url} 
+                alt={zoomedImage.name}
+                className="artist-image-zoom-img"
+              />
+              <div className="artist-image-zoom-caption">{zoomedImage.name}</div>
+            </div>
+          </div>
+        )}
 
         {/* Hidden File Input */}
         <input
@@ -589,17 +757,17 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
           <button className="artist-task-action-btn artist-task-secondary-btn" onClick={onClose} disabled={uploading}>
             Close
           </button>
-          {task.status === 'pending' && (
+          {displayTask.status === 'pending' && (
             <button 
               className="artist-task-action-btn artist-task-primary-btn"
-              onClick={() => onStatusUpdate(task.id, 'in_progress')}
+              onClick={handleStartTask}
               disabled={uploading}
             >
               <FontAwesomeIcon icon={faCheck} />
               Start Task
             </button>
           )}
-          {task.status === 'in_progress' && (
+          {displayTask.status === 'in_progress' && (
             <button 
               className={`artist-task-action-btn artist-task-success-btn ${!isApproved ? 'artist-task-btn-disabled' : ''}`}
               onClick={handleSubmitDesign}

@@ -202,10 +202,22 @@
   gap: 2rem;
 }
 
+.content-two-column.content-single-column {
+  grid-template-columns: 1fr;
+}
+
+.content-two-column.content-in-progress-layout {
+  grid-template-columns: 50% 50%;
+  gap: 1.5rem;
+  align-items: start;
+}
+
 /* Left Column - Task Details */
 .content-left-column {
   display: flex;
   flex-direction: column;
+  align-self: flex-start;
+  min-height: 0;
 }
 
 .task-details-container {
@@ -213,6 +225,10 @@
   border-radius: 10px;
   padding: 1.5rem;
   border: 1px solid #3a3a3a;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .section-title {
@@ -604,6 +620,230 @@
 .content-right-column {
   display: flex;
   flex-direction: column;
+  align-self: flex-start;
+  height: fit-content;
+  position: sticky;
+  top: 0;
+}
+
+/* Product Image Container */
+.artist-product-image-container {
+  margin-bottom: 1.5rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #3a3a3a;
+  background: #242424;
+}
+
+.artist-main-product-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  max-height: 300px;
+}
+
+/* Embedded Chat Container */
+.artist-chat-embedded-container {
+  background: #242424;
+  border-radius: 10px;
+  border: 1px solid #3a3a3a;
+  height: 550px;
+  max-height: 550px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+}
+
+.artist-chat-embedded-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.artist-chat-embedded-wrapper .artist-chat-modal-overlay {
+  position: static;
+  background: transparent;
+  backdrop-filter: none;
+  padding: 0;
+  display: block;
+}
+
+.artist-chat-embedded-wrapper .artist-chat-modal {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: 550px;
+  margin: 0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.artist-chat-embedded-wrapper .chat-header {
+  border-radius: 10px 10px 0 0;
+  flex-shrink: 0;
+}
+
+.artist-chat-embedded-wrapper .chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.artist-chat-embedded-wrapper .artist-chat-input-container {
+  flex-shrink: 0;
+}
+
+.artist-chat-embedded-wrapper .artist-chat-close-btn {
+  display: none; /* Hide close button in embedded mode */
+}
+
+.artist-chat-loading,
+.artist-chat-no-room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #a0aec0;
+  height: 100%;
+  gap: 1rem;
+}
+
+.artist-chat-loading svg,
+.artist-chat-no-room svg {
+  font-size: 2rem;
+  color: #63b3ed;
+  opacity: 0.8;
+}
+
+/* Product Image Clickable */
+.artist-product-img-clickable {
+  cursor: zoom-in;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.artist-product-img-clickable:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* Image Zoom Modal */
+.artist-image-zoom-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+  animation: artistZoomFadeIn 0.2s ease-out;
+}
+
+@keyframes artistZoomFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.artist-image-zoom-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: artistZoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes artistZoomIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.artist-image-zoom-close {
+  position: absolute;
+  top: -30px;
+  right: -70px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.2rem;
+  z-index: 10001;
+}
+
+.artist-image-zoom-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+}
+
+.artist-image-zoom-img {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  cursor: zoom-out;
+}
+
+.artist-image-zoom-caption {
+  margin-top: 16px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  max-width: 600px;
+  padding: 0 20px;
+}
+
+/* Mobile Responsive for Zoom */
+@media (max-width: 768px) {
+  .artist-image-zoom-close {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .artist-image-zoom-img {
+    max-width: 95vw;
+    max-height: 75vh;
+  }
+
+  .artist-image-zoom-caption {
+    font-size: 14px;
+    margin-top: 12px;
+  }
 }
 
 .chat-section-container {
@@ -810,4 +1050,105 @@
   .artist-task-modal-actions {
     padding: 1rem;
   }
+}
+
+/* Blind Task Notice Styles */
+.artist-blind-task-notice {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(99, 179, 237, 0.3);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  margin-top: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+
+.blind-task-icon {
+  font-size: 3rem;
+  color: #63b3ed;
+  margin-bottom: 1rem;
+  opacity: 0.8;
+}
+
+.artist-blind-task-notice h4 {
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+}
+
+.artist-blind-task-notice p {
+  color: #a0aec0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+}
+
+.blind-task-info {
+  background: rgba(26, 32, 44, 0.6);
+  border: 1px solid rgba(99, 179, 237, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+.blind-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(99, 179, 237, 0.1);
+}
+
+.blind-info-item:last-child {
+  border-bottom: none;
+}
+
+.blind-info-label {
+  color: #a0aec0;
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.blind-info-value {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.blind-priority-urgent {
+  color: #f59e0b;
+}
+
+.blind-priority-high {
+  color: #ef4444;
+}
+
+.blind-priority-medium {
+  color: #f97316;
+}
+
+.blind-priority-low {
+  color: #10b981;
+}
+
+/* Blind Task Indicator in Task List */
+.blind-task-indicator {
+  color: #a0aec0;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.blind-task-indicator svg {
+  color: #63b3ed;
 }
