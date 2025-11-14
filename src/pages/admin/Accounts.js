@@ -25,6 +25,7 @@ const Accounts = () => {
   });
 
   const isOwner = user?.user_metadata?.role === 'owner';
+  const [activeTab, setActiveTab] = useState(isOwner ? 'admin' : 'artist');
 
   // Fetch all accounts
   const fetchAccounts = useCallback(async () => {
@@ -414,8 +415,35 @@ const Accounts = () => {
         </button>
       </div>
 
+      {/* Accounts Tabs */}
+      <div className="accounts-tabs">
+        {isOwner && (
+          <button
+            className={`accounts-tab ${activeTab === 'admin' ? 'active' : ''}`}
+            onClick={() => setActiveTab('admin')}
+          >
+            <FontAwesomeIcon icon={faUserShield} className="tab-icon" />
+            Admin Accounts
+          </button>
+        )}
+        <button
+          className={`accounts-tab ${activeTab === 'artist' ? 'active' : ''}`}
+          onClick={() => setActiveTab('artist')}
+        >
+          <FontAwesomeIcon icon={faPalette} className="tab-icon" />
+          Artist Accounts
+        </button>
+        <button
+          className={`accounts-tab ${activeTab === 'customer' ? 'active' : ''}`}
+          onClick={() => setActiveTab('customer')}
+        >
+          <FontAwesomeIcon icon={faUsers} className="tab-icon" />
+          Customer Accounts
+        </button>
+      </div>
+
       {/* Admin Accounts Section - Only for Owners */}
-      {isOwner && (
+      {isOwner && activeTab === 'admin' && (
         <div className="accounts-section">
           <div className="section-header">
             <h2>
@@ -483,7 +511,8 @@ const Accounts = () => {
       )}
 
       {/* Artist Accounts Section */}
-      <div className="accounts-section">
+      {activeTab === 'artist' && (
+        <div className="accounts-section">
         <div className="section-header">
           <h2>
             <FontAwesomeIcon icon={faPalette} />
@@ -615,9 +644,11 @@ const Accounts = () => {
             </table>
           </div>
         </div>
+      )}
 
       {/* Customer Accounts Section */}
-      <div className="accounts-section">
+      {activeTab === 'customer' && (
+        <div className="accounts-section">
         <div className="section-header">
           <h2>
             <FontAwesomeIcon icon={faUsers} />
@@ -675,6 +706,7 @@ const Accounts = () => {
             </table>
           </div>
         </div>
+      )}
       </div>
       </div>
     </div>

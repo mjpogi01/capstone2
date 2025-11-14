@@ -160,6 +160,7 @@ const Analytics = () => {
     lastSql: null,
     model: null
   });
+  const [activeTab, setActiveTab] = useState('sales');
   const hasCustomerLocationData = useMemo(() => {
     const pointsCount = Array.isArray(customerLocationsData?.points) ? customerLocationsData.points.length : 0;
     const cityCount = Array.isArray(customerLocationsData?.cityStats) ? customerLocationsData.cityStats.length : 0;
@@ -1580,10 +1581,52 @@ const Analytics = () => {
         </div>
       </div>
 
+      {/* Analytics Tabs */}
+      <div className="analytics-tabs">
+        <button
+          className={`analytics-tab ${activeTab === 'sales' ? 'active' : ''}`}
+          onClick={() => setActiveTab('sales')}
+        >
+          <FaChartLine className="tab-icon" />
+          Sales & Revenue
+        </button>
+        <button
+          className={`analytics-tab ${activeTab === 'orders' ? 'active' : ''}`}
+          onClick={() => setActiveTab('orders')}
+        >
+          <FaClipboardList className="tab-icon" />
+          Orders
+        </button>
+        <button
+          className={`analytics-tab ${activeTab === 'products' ? 'active' : ''}`}
+          onClick={() => setActiveTab('products')}
+        >
+          <FaTshirt className="tab-icon" />
+          Products
+        </button>
+        <button
+          className={`analytics-tab ${activeTab === 'customers' ? 'active' : ''}`}
+          onClick={() => setActiveTab('customers')}
+        >
+          <FaUsers className="tab-icon" />
+          Customers
+        </button>
+        <button
+          className={`analytics-tab ${activeTab === 'forecast' ? 'active' : ''}`}
+          onClick={() => setActiveTab('forecast')}
+        >
+          <FaChartArea className="tab-icon" />
+          Forecast
+        </button>
+      </div>
+
       {/* Analytics Grid */}
       <div className="analytics-grid">
-        {/* Total Sales Over Time */}
-        <div className="analytics-card">
+        {/* Sales & Revenue Tab */}
+        {activeTab === 'sales' && (
+          <>
+            {/* Total Sales Over Time */}
+            <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaChartLine className="card-icon" />
             <h3>Total Sales Over Time</h3>
@@ -1648,7 +1691,7 @@ const Analytics = () => {
         </div>
 
         {/* Daily Sales & Orders */}
-        <div className="analytics-card">
+        <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaChartArea className="card-icon" />
             <h3>Daily Sales & Orders (Trailing 30 Days)</h3>
@@ -1687,7 +1730,7 @@ const Analytics = () => {
         </div>
 
         {/* Sales By Branch */}
-        <div className="analytics-card">
+        <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaStore className="card-icon" />
             <h3>Sales By Branch</h3>
@@ -1717,9 +1760,14 @@ const Analytics = () => {
             </>
           </div>
         </div>
+          </>
+        )}
 
-        {/* Pending vs Completed Orders */}
-        <div className="analytics-card">
+        {/* Orders Tab */}
+        {activeTab === 'orders' && (
+          <>
+            {/* Pending vs Completed Orders */}
+            <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaClipboardList className="card-icon" />
             <h3>Pending vs. Completed Orders</h3>
@@ -1749,9 +1797,14 @@ const Analytics = () => {
             </>
           </div>
         </div>
+          </>
+        )}
 
-        {/* Top Selling Products */}
-        <div className="analytics-card">
+        {/* Products Tab */}
+        {activeTab === 'products' && (
+          <>
+            {/* Top Selling Products */}
+            <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaTshirt className="card-icon" />
             <h3>Top Selling Products</h3>
@@ -1781,9 +1834,14 @@ const Analytics = () => {
             </>
           </div>
         </div>
+          </>
+        )}
 
-        {/* Customer Insights */}
-        <div className="analytics-card">
+        {/* Customers Tab */}
+        {activeTab === 'customers' && (
+          <>
+            {/* Customer Insights */}
+            <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaUsers className="card-icon" />
             <h3>Customer Insights</h3>
@@ -1863,8 +1921,8 @@ const Analytics = () => {
             )}
           </div>
 
-        {/* Customer Locations */}
-        <div className="analytics-card geo-distribution-card">
+            {/* Customer Locations */}
+            <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaMap className="card-icon" />
             <h3>Customer Locations</h3>
@@ -1890,9 +1948,14 @@ const Analytics = () => {
             </div>
           </Suspense>
         </div>
+          </>
+        )}
 
-        {/* Sales Forecast */}
-        <div className="analytics-card geo-distribution-card">
+        {/* Forecast Tab */}
+        {activeTab === 'forecast' && (
+          <>
+            {/* Sales Forecast */}
+            <div className="analytics-card geo-distribution-card">
           <div className="card-header">
             <FaChartArea className="card-icon" />
             <h3>Sales Forecast — {SALES_FORECAST_RANGE_LABELS[salesForecastRange]}</h3>
@@ -1991,6 +2054,8 @@ const Analytics = () => {
             ) : null}
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
         )}

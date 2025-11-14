@@ -45,7 +45,7 @@ body.sidebar-collapsed .accounts-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
   background: white;
   padding: 2rem;
   border-radius: 16px;
@@ -59,6 +59,104 @@ body.sidebar-collapsed .accounts-container {
   color: #1e293b;
   margin: 0;
   letter-spacing: -0.025em;
+}
+
+/* ===========================================
+   ACCOUNTS TABS
+   =========================================== */
+.accounts-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.accounts-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.accounts-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #64748b;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.01em;
+  position: relative;
+  margin-bottom: -2px;
+}
+
+.accounts-tab:hover {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+  border-bottom-color: rgba(59, 130, 246, 0.3);
+}
+
+.accounts-tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.accounts-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 2px 2px 0 0;
+}
+
+.accounts-tab .tab-icon {
+  font-size: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.accounts-tab:hover .tab-icon {
+  transform: scale(1.1);
+}
+
+.accounts-tab.active .tab-icon {
+  color: #3b82f6;
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .accounts-tabs {
+    gap: 0.5rem;
+  }
+
+  .accounts-tab {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .accounts-tab .tab-icon {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .accounts-tab {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+    gap: 0.375rem;
+  }
 }
 
 /* ===========================================
