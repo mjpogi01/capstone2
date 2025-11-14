@@ -15,7 +15,7 @@ const ArtistMetricsCards = () => {
     totalTasks: 0,
     pendingTasks: 0,
     completedTasks: 0,
-    completionRate: 0
+    averageCompletionTime: 0
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -30,7 +30,7 @@ const ArtistMetricsCards = () => {
           totalTasks: 0,
           pendingTasks: 0,
           completedTasks: 0,
-          completionRate: 0
+          averageCompletionTime: 0
         });
         return;
       }
@@ -44,7 +44,7 @@ const ArtistMetricsCards = () => {
         totalTasks: 0,
         pendingTasks: 0,
         completedTasks: 0,
-        completionRate: 0
+        averageCompletionTime: 0
       });
     } finally {
       setLoading(false);
@@ -84,12 +84,12 @@ const ArtistMetricsCards = () => {
       changeType: 'positive'
     },
     {
-      title: 'Completion Rate',
-      value: `${metrics.completionRate}%`,
-      icon: faChartLine,
+      title: 'Avg. Completion Time',
+      value: `${metrics.averageCompletionTime > 0 ? metrics.averageCompletionTime : '0'} hrs`,
+      icon: faClock,
       color: '#8b5cf6',
       bgColor: '#ede9fe',
-      change: '+5%',
+      change: metrics.averageCompletionTime > 0 ? 'On Track' : 'N/A',
       changeType: 'positive'
     }
   ];
