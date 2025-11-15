@@ -138,19 +138,91 @@ class ChatService {
     try {
       console.log('🎨 Fetching chat rooms for artist:', artistId);
       
-      const { data, error } = await supabase
-        .from('design_chat_rooms')
-        .select('*')
-        .eq('artist_id', artistId)
-        .order('last_message_at', { ascending: false });
+      // Try using the database function first (includes order_number via JOIN)
+      try {
+        const { data: functionData, error: functionError } = await supabase
+          .rpc('get_artist_chat_rooms', { p_artist_id: artistId });
+        
+        if (!functionError && functionData && functionData.length > 0) {
+          console.log(`✅ Retrieved ${functionData?.length || 0} rooms via function for artist ${artistId}`);
+          // Map the function result to match expected format
+          return functionData.map(room => ({
+            id: room.id,
+            order_id: room.order_id,
+            customer_id: room.customer_id,
+            task_id: room.task_id,
+            room_name: room.room_name,
+            status: room.status,
+            last_message_at: room.last_message_at,
+            created_at: room.created_at,
+            updated_at: room.updated_at,
+            // Include order_number from the function result
+            order_number: room.order_number,
+            // Include customer_name if available
+            customer_name: room.customer_name
+          }));
+        } else if (functionError) {
+          console.warn('⚠️ Database function error:', functionError);
+        }
+      } catch (functionErr) {
+        console.warn('⚠️ Database function failed, falling back to direct query:', functionErr);
+      }
+      
+      // Fallback: direct query - try with join first
+      let data = null;
+      let error = null;
+      
+      try {
+        const { data: joinData, error: joinError } = await supabase
+          .from('design_chat_rooms')
+          .select(`
+            *,
+            orders(order_number)
+          `)
+          .eq('artist_id', artistId)
+          .order('last_message_at', { ascending: false });
+        
+        if (!joinError && joinData) {
+          data = joinData;
+          error = null;
+        } else {
+          error = joinError;
+        }
+      } catch (joinErr) {
+        console.warn('⚠️ Join query failed, trying simple query:', joinErr);
+      }
+      
+      // If join failed, try simple query without join
+      if (error || !data) {
+        console.log('🔄 Trying simple query without join...');
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('design_chat_rooms')
+          .select('*')
+          .eq('artist_id', artistId)
+          .order('last_message_at', { ascending: false });
+        
+        if (simpleError) {
+          console.error('❌ Error getting artist rooms:', simpleError);
+          throw new Error(`Failed to get artist rooms: ${simpleError.message}`);
+        }
+        
+        data = simpleData;
+        error = null;
+      }
 
       if (error) {
         console.error('❌ Error getting artist rooms:', error);
         throw new Error(`Failed to get artist rooms: ${error.message}`);
       }
 
-      console.log(`✅ Retrieved ${data?.length || 0} rooms for artist ${artistId}`);
-      return data || [];
+      // Map the result to include order_number if available
+      const mappedData = (data || []).map(room => ({
+        ...room,
+        order_number: room.orders?.order_number || room.order_number || null
+      }));
+
+      console.log(`✅ Retrieved ${mappedData?.length || 0} rooms for artist ${artistId}`);
+      return mappedData || [];
     } catch (error) {
       console.error('❌ Error in getArtistChatRooms:', error);
       throw error;

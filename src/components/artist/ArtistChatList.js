@@ -5,7 +5,8 @@ import {
   faComments, 
   faUser, 
   faCircle,
-  faSearch
+  faSearch,
+  faShoppingBag
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import chatService from '../../services/chatService';
@@ -40,44 +41,203 @@ const ArtistChatList = () => {
       }
 
       const rooms = await chatService.getArtistChatRooms(artistProfile.id);
+      console.log('📦 Fetched rooms:', rooms);
+      console.log('📦 Number of rooms:', rooms?.length || 0);
+      
+      if (!rooms || rooms.length === 0) {
+        console.log('⚠️ No rooms found for artist:', artistProfile.id);
+        setChatRooms([]);
+        setLoading(false);
+        return;
+      }
       
       // Enhance rooms with order and customer information
       const enhancedRooms = await Promise.all(
         rooms.map(async (room) => {
           try {
-            // Get order information
-            const { data: order } = await supabase
-              .from('orders')
-              .select('order_number, status, total_amount, created_at')
-              .eq('id', room.order_id)
-              .single();
+            // ALWAYS fetch order_number from the actual orders table, not from room data
+            let order = null;
+            let orderNumber = null;
+            
+            console.log('🔍 Fetching order for room', room.id, 'order_id:', room.order_id);
+            
+            // ALWAYS fetch from orders table via API first (most reliable)
+            if (room.order_id) {
+              try {
+                const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (session) {
+                  const orderResponse = await fetch(`${API_BASE_URL}/api/orders/${room.order_id}`, {
+                    headers: {
+                      'Authorization': `Bearer ${session.access_token}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  
+                  if (orderResponse.ok) {
+                    const orderData = await orderResponse.json();
+                    console.log('📋 Order API response for', room.order_id, ':', {
+                      order_number: orderData.order_number,
+                      orderNumber: orderData.orderNumber,
+                      id: orderData.id
+                    });
+                    
+                    // Extract order_number - this is the ACTUAL order number from orders table
+                    orderNumber = orderData.order_number || orderData.orderNumber || null;
+                    
+                    if (orderNumber) {
+                      console.log('✅ ACTUAL order number from orders table:', orderNumber, 'Length:', orderNumber.length);
+                    } else {
+                      console.warn('⚠️ No order_number field in API response');
+                      console.warn('⚠️ Available fields:', Object.keys(orderData));
+                    }
+                    
+                    order = {
+                      order_number: orderNumber || 'N/A',
+                      status: orderData.status || 'pending',
+                      total_amount: orderData.total_amount || orderData.total || 0,
+                      created_at: orderData.created_at || orderData.createdAt || new Date().toISOString()
+                    };
+                  } else {
+                    const errorText = await orderResponse.text().catch(() => '');
+                    console.warn('❌ Error fetching order from API:', orderResponse.status, orderResponse.statusText);
+                    console.warn('❌ Error details:', errorText.substring(0, 200));
+                  }
+                }
+              } catch (orderError) {
+                console.warn('Error fetching order for room', room.id, ':', orderError);
+              }
+              
+              // Fallback: try direct Supabase query if API fails
+              if (!order || !orderNumber || order.order_number === 'N/A') {
+                try {
+                  console.log('🔄 Trying direct Supabase query for order_id:', room.order_id);
+                  const { data: orderData, error: orderError } = await supabase
+                    .from('orders')
+                    .select('order_number, status, total_amount, created_at')
+                    .eq('id', room.order_id)
+                    .single();
+                  
+                  if (!orderError && orderData && orderData.order_number) {
+                    orderNumber = orderData.order_number;
+                    console.log('✅ ACTUAL order number from Supabase orders table:', orderNumber);
+                    order = {
+                      order_number: orderData.order_number,
+                      status: orderData.status || 'pending',
+                      total_amount: orderData.total_amount || 0,
+                      created_at: orderData.created_at || new Date().toISOString()
+                    };
+                  } else if (orderError) {
+                    console.warn('❌ Supabase query error:', orderError);
+                  } else if (!orderData || !orderData.order_number) {
+                    console.warn('⚠️ Order found but no order_number field');
+                  }
+                } catch (fallbackError) {
+                  console.warn('Fallback Supabase query failed:', fallbackError);
+                }
+              }
+            }
+            
+            // Final fallback - only use this if we absolutely cannot get the order
+            if (!order || !orderNumber || order.order_number === 'N/A') {
+              console.error('❌ Could not fetch order_number from orders table for order_id:', room.order_id);
+              console.error('❌ This means the order might not exist or there are permission issues');
+              order = {
+                order_number: 'N/A',
+                status: 'unknown',
+                total_amount: 0,
+                created_at: room.created_at || new Date().toISOString()
+              };
+            }
+            
+            console.log('📦 Final order data for room', room.id, ':', {
+              order_number: order.order_number,
+              order_id: room.order_id
+            });
 
-            // Get customer information
-            const { data: customer } = await supabase
-              .from('profiles')
-              .select('full_name, email')
-              .eq('id', room.customer_id)
-              .single();
+            // Get customer information using chatService method (bypasses RLS)
+            let customer = null;
+            try {
+              const customerInfo = await chatService.getCustomerInfo(room.id);
+              customer = {
+                full_name: customerInfo.full_name || 
+                  (customerInfo.first_name && customerInfo.last_name 
+                    ? `${customerInfo.first_name} ${customerInfo.last_name}`.trim()
+                    : customerInfo.email || 'Unknown Customer'),
+                email: customerInfo.email || ''
+              };
+            } catch (customerError) {
+              console.warn('Error fetching customer info for room', room.id, ':', customerError);
+              // Fallback: try direct query
+              try {
+                const { data: userProfile } = await supabase
+                  .from('user_profiles')
+                  .select('first_name, last_name, email')
+                  .eq('user_id', room.customer_id)
+                  .single();
+                
+                if (userProfile) {
+                  customer = {
+                    full_name: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email || 'Unknown Customer',
+                    email: userProfile.email || ''
+                  };
+                } else {
+                  customer = {
+                    full_name: 'Unknown Customer',
+                    email: ''
+                  };
+                }
+              } catch (fallbackError) {
+                console.warn('Fallback customer fetch also failed:', fallbackError);
+                customer = {
+                  full_name: 'Unknown Customer',
+                  email: ''
+                };
+              }
+            }
+            
+            console.log('👤 Customer data for room', room.id, ':', customer);
 
-            // Get unread message count
-            const unreadCount = await chatService.getUnreadMessageCount(user.id);
+            // Get unread message count for this specific room (messages from customer that are unread)
+            const { count: unreadCount, error: unreadError } = await supabase
+              .from('design_chat_messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('room_id', room.id)
+              .eq('sender_type', 'customer')
+              .eq('is_read', false);
+
+            if (unreadError) {
+              console.warn('Error fetching unread count:', unreadError);
+            }
 
             return {
               ...room,
               order: order || {},
               customer: customer || {},
-              unreadCount: unreadCount || 0
+              unreadCount: unreadCount || 0,
+              // Ensure order_number is accessible at room level too
+              order_number: order?.order_number || null
             };
           } catch (error) {
             console.error('Error enhancing room data:', error);
-            return room;
+            return {
+              ...room,
+              order: {},
+              customer: {},
+              unreadCount: 0,
+              order_number: null
+            };
           }
         })
       );
 
+      console.log('✅ Enhanced rooms:', enhancedRooms);
+      console.log('✅ Number of enhanced rooms:', enhancedRooms?.length || 0);
       setChatRooms(enhancedRooms);
     } catch (error) {
-      console.error('Error fetching chat rooms:', error);
+      console.error('❌ Error fetching chat rooms:', error);
+      console.error('❌ Error details:', error.message, error.stack);
       setChatRooms([]);
     } finally {
       setLoading(false);
@@ -91,18 +251,24 @@ const ArtistChatList = () => {
   }, [user, fetchArtistChatRooms]);
 
   const filteredRooms = chatRooms.filter(room => {
+    const customerName = room.customer?.full_name || '';
+    // Use order_number (not order_id) for search
+    const orderNumber = room.order?.order_number || room.order_number || '';
+    
     const matchesSearch = 
-      room.customer.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.order.order_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      orderNumber.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesFilter = 
       filterStatus === 'all' || 
-      (filterStatus === 'unread' && room.unreadCount > 0) ||
+      (filterStatus === 'unread' && (room.unreadCount || 0) > 0) ||
       (filterStatus === 'active' && room.status === 'active') ||
       (filterStatus === 'closed' && room.status === 'closed');
 
     return matchesSearch && matchesFilter;
   });
+  
+  console.log('🔍 Filtered rooms:', filteredRooms.length, 'out of', chatRooms.length);
 
   const sortedRooms = filteredRooms.sort((a, b) => {
     switch (sortBy) {
@@ -139,19 +305,14 @@ const ArtistChatList = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return '#10b981';
-      case 'closed': return '#6b7280';
-      default: return '#f59e0b';
-    }
-  };
 
   if (loading) {
     return (
       <div className="artist-chat-list">
         <div className="chat-list-header">
-          <h2>Customer Chats</h2>
+          <div className="chat-stats">
+            <span className="total-chats">Loading...</span>
+          </div>
         </div>
         <div className="chat-loading">
           <FontAwesomeIcon icon={faComments} spin />
@@ -164,7 +325,6 @@ const ArtistChatList = () => {
   return (
     <div className="artist-chat-list">
       <div className="chat-list-header">
-        <h2>Customer Chats</h2>
         <div className="chat-stats">
           <span className="total-chats">{chatRooms.length} Total</span>
           <span className="unread-chats">
@@ -237,29 +397,23 @@ const ArtistChatList = () => {
                   <h4 className="customer-name">
                     {room.customer.full_name || 'Unknown Customer'}
                   </h4>
-                  <span className="room-time">
-                    {formatDate(room.last_message_at)}
-                  </span>
+                  {room.unreadCount > 0 && (
+                    <span className="unread-count">
+                      {room.unreadCount}
+                    </span>
+                  )}
                 </div>
                 
                 <div className="room-details">
-                  <p className="order-info">
-                    Order #{room.order.order_number || 'N/A'} • 
-                    ${room.order.total_amount?.toFixed(2) || '0.00'}
-                  </p>
-                  <div className="room-status">
-                    <span 
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(room.status) }}
-                    >
-                      {room.status || 'active'}
+                  <span className="order-info">
+                    <FontAwesomeIcon icon={faShoppingBag} />
+                    Order #{room.order?.order_number || room.order_number || 'N/A'}
+                  </span>
+                  {room.last_message_at && (
+                    <span className="room-time">
+                      {new Date(room.last_message_at).toLocaleDateString()}
                     </span>
-                    {room.unreadCount > 0 && (
-                      <span className="unread-count">
-                        {room.unreadCount} new
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             </div>

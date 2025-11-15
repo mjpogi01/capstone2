@@ -37,6 +37,7 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
   const [chatRoom, setChatRoom] = useState(null);
   const [loadingChatRoom, setLoadingChatRoom] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const fileInputRef = useRef(null);
   const { showSuccess, showError } = useNotification();
 
@@ -116,11 +117,35 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
     }
   }, [task]);
 
-  // Fetch chat room when task is in_progress
+  // Timer effect - calculate elapsed time from started_at
+  useEffect(() => {
+    const taskToCheck = currentTask || task;
+    if (!taskToCheck || !taskToCheck.started_at || taskToCheck.status !== 'in_progress') {
+      setElapsedTime(0);
+      return;
+    }
+
+    const calculateElapsedTime = () => {
+      const startTime = new Date(taskToCheck.started_at);
+      const now = new Date();
+      const elapsed = Math.floor((now - startTime) / 1000); // elapsed time in seconds
+      setElapsedTime(elapsed);
+    };
+
+    // Calculate immediately
+    calculateElapsedTime();
+
+    // Update every second
+    const interval = setInterval(calculateElapsedTime, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentTask, task]);
+
+  // Fetch chat room for any task status
   useEffect(() => {
     const taskToCheck = currentTask || task;
     const fetchChatRoom = async () => {
-      if (isOpen && taskToCheck && taskToCheck.order_id && taskToCheck.status === 'in_progress') {
+      if (isOpen && taskToCheck && taskToCheck.order_id) {
         setLoadingChatRoom(true);
         try {
           const room = await chatService.getChatRoomByOrder(taskToCheck.order_id);
@@ -201,6 +226,13 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const formatElapsedTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   const getPriorityIcon = (priority) => {
@@ -341,53 +373,75 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
   return (
     <div className="artist-task-modal-overlay" onClick={onClose}>
       <div className="artist-task-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Integrated Header */}
-        <div className="artist-task-modal-header-integrated">
-          <div className="artist-task-header-content">
-            <h3>{displayTask.task_title}</h3>
-            <div className="artist-task-header-badges">
-              <span className={`artist-task-priority-badge ${displayTask.priority}`}>
-                <FontAwesomeIcon icon={getPriorityIcon(displayTask.priority)} />
-                {displayTask.priority.toUpperCase()}
-              </span>
-              <span className={`artist-task-status-badge ${displayTask.status}`}>
-                <FontAwesomeIcon icon={getStatusIcon(displayTask.status)} />
-                {displayTask.status.replace('_', ' ')}
-              </span>
-            </div>
-          </div>
-          <button className="artist-task-close-btn" onClick={onClose}>
-            <FontAwesomeIcon icon={faTimes} />
-          </button>
-        </div>
-
+        {/* Floating Close Button */}
+        <button className="artist-task-close-btn-floating" onClick={onClose} title="Close">
+          <FontAwesomeIcon icon={faTimes} />
+        </button>
+        
         {/* Content */}
         <div className="artist-task-modal-content">
           <div className="content-body">
-            <div className={`content-two-column ${isBlindTask ? 'content-single-column' : ''} ${isInProgress ? 'content-in-progress-layout' : ''}`}>
+            <div className={`content-two-column ${isBlindTask ? 'content-single-column' : 'content-in-progress-layout'}`}>
               {/* Left Column - Order Details */}
               <div className="content-left-column">
                 <div className="task-details-container">
-                  <h4 className="section-title">{isBlindTask ? 'Task Information' : 'Order Details'}</h4>
-                  
-                  {/* Order Type and Deadline */}
-                  <div className="artist-order-meta-info">
-                    <div className="artist-order-meta-row">
-                      <span className="artist-order-meta-label">Order Type:</span>
-                      <span className={`artist-order-type-badge ${getOrderTypeClass(displayTask)}`}>
-                        {getOrderTypeLabel(displayTask)}
-                      </span>
-                    </div>
-                    <div className="artist-order-meta-row">
-                      <span className="artist-order-meta-label">Deadline:</span>
-                      <span className="artist-order-meta-value">
-                        <FontAwesomeIcon icon={faCalendarAlt} />
-                        {formatDate(displayTask.deadline)}
-                      </span>
+                  {/* Fixed Header */}
+                  <div className="task-details-container-header">
+                    {/* Task Header - Moved to Left Column */}
+                    <div className="task-header-left-column">
+                      <div className="task-header-left-content">
+                        <h3 className="task-title-left">{displayTask.task_title}</h3>
+                        <div className="artist-task-header-badges">
+                          <span className={`artist-task-priority-badge ${displayTask.priority}`}>
+                            <FontAwesomeIcon icon={getPriorityIcon(displayTask.priority)} />
+                            {displayTask.priority.toUpperCase()}
+                          </span>
+                          <span className={`artist-task-status-badge ${displayTask.status}`}>
+                            <FontAwesomeIcon icon={getStatusIcon(displayTask.status)} />
+                            {displayTask.status.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {isBlindTask ? (
+                  {/* Scrollable Content */}
+                  <div className="task-details-container-scrollable">
+                    <div className="task-details-header-row">
+                      <h4 className="section-title">{isBlindTask ? 'Task Information' : 'Task Details'}</h4>
+                    </div>
+                    
+                    {/* Order Type and Deadline */}
+                    <div className="artist-order-meta-info">
+                      <div className="artist-order-meta-row">
+                        <span className="artist-order-meta-label">Order Type:</span>
+                        <span className={`artist-order-type-badge ${getOrderTypeClass(displayTask)}`}>
+                          {getOrderTypeLabel(displayTask)}
+                        </span>
+                      </div>
+                      <div className="artist-order-meta-row">
+                        <span className="artist-order-meta-label">Deadline:</span>
+                        <span className="artist-order-meta-value">
+                          <FontAwesomeIcon icon={faCalendarAlt} />
+                          {formatDate(displayTask.deadline)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Task Timer */}
+                    {displayTask.status === 'in_progress' && displayTask.started_at && (
+                      <div className="task-timer-container">
+                        <div className="task-timer-label">
+                          <FontAwesomeIcon icon={faClock} />
+                          <span>Time Elapsed</span>
+                        </div>
+                        <div className="task-timer-display">
+                          {formatElapsedTime(elapsedTime)}
+                        </div>
+                      </div>
+                    )}
+
+                    {isBlindTask ? (
                     <div className="artist-blind-task-notice">
                       <div className="blind-task-icon">
                         <FontAwesomeIcon icon={faLock} />
@@ -672,53 +726,95 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                     )}
                   </div>
                   )}
+                  
+                    {/* Action Buttons in Left Column */}
+                    <div className="task-details-actions">
+                    {displayTask.status === 'pending' && (
+                      <button 
+                        className="artist-task-action-btn-left artist-task-primary-btn"
+                        onClick={handleStartTask}
+                        disabled={uploading}
+                      >
+                        <FontAwesomeIcon icon={faCheck} />
+                        Start Task
+                      </button>
+                    )}
+                    {displayTask.status === 'in_progress' && (
+                      <button 
+                        className={`artist-task-action-btn-left artist-task-success-btn ${!isApproved ? 'artist-task-btn-disabled' : ''}`}
+                        onClick={handleSubmitDesign}
+                        disabled={uploading || !isApproved || checkingApproval}
+                        title={!isApproved ? 'Design must be approved by customer or wait 60 minutes after review request' : 'Submit design files'}
+                      >
+                        {uploading ? (
+                          <>
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                            Uploading...
+                          </>
+                        ) : checkingApproval ? (
+                          <>
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                            Checking...
+                          </>
+                        ) : !isApproved ? (
+                          <>
+                            <FontAwesomeIcon icon={faLock} />
+                            Awaiting Approval
+                          </>
+                        ) : (
+                          <>
+                            <FontAwesomeIcon icon={faUpload} />
+                            Submit Design
+                          </>
+                      )}
+                    </button>
+                    )}
+                  </div>
+                  </div>
+                  
+                  {/* Fixed Footer - Task Completed Badge */}
+                  {displayTask.status === 'submitted' && (
+                    <div className="task-details-container-footer">
+                      <div className="task-completed-badge">
+                        <FontAwesomeIcon icon={faCheck} />
+                        <span>Task Completed</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Right Column - Chat Room (70%) */}
               {!isBlindTask && (
                 <div className="content-right-column">
-                  {isInProgress ? (
-                    <div className="artist-chat-embedded-container">
-                      {loadingChatRoom ? (
-                        <div className="artist-chat-loading">
-                          <FontAwesomeIcon icon={faSpinner} spin />
-                          <p>Loading chat...</p>
-                        </div>
-                      ) : chatRoom ? (
-                        <div className="artist-chat-embedded-wrapper">
-                          <ArtistChatModal 
-                            room={chatRoom} 
-                            isOpen={true}
-                            onClose={() => {}} // Don't allow closing embedded chat
-                          />
-                        </div>
-                      ) : (
-                        <div className="artist-chat-no-room">
-                          <FontAwesomeIcon icon={faComments} />
-                          <p>Chat room not available</p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="chat-section-container">
-                      <h4 className="section-title">
-                        <FontAwesomeIcon icon={faComments} className="chat-icon" />
-                        Customer Communication
-                      </h4>
-                      <p className="chat-description">
-                        Use the chat feature to communicate with the customer about this order.
-                      </p>
-                      <button 
-                        className="artist-task-chat-btn"
-                        onClick={() => onOpenChat && onOpenChat(displayTask)}
-                      >
+                  <div className="artist-chat-embedded-container">
+                    {loadingChatRoom ? (
+                      <div className="artist-chat-loading">
+                        <FontAwesomeIcon icon={faSpinner} spin />
+                        <p>Loading chat...</p>
+                      </div>
+                    ) : chatRoom ? (
+                      <div className="artist-chat-embedded-wrapper">
+                        <ArtistChatModal 
+                          room={chatRoom} 
+                          isOpen={true}
+                          onClose={() => {}} // Don't allow closing embedded chat
+                        />
+                      </div>
+                    ) : (
+                      <div className="artist-chat-no-room">
                         <FontAwesomeIcon icon={faComments} />
-                        Open Chat
-                        <FontAwesomeIcon icon={faExternalLinkAlt} />
-                      </button>
-                    </div>
-                  )}
+                        <p>Chat room not available</p>
+                        <button 
+                          className="artist-task-chat-btn"
+                          onClick={() => onOpenChat && onOpenChat(displayTask)}
+                        >
+                          <FontAwesomeIcon icon={faComments} />
+                          Create Chat Room
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -752,52 +848,6 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
           onChange={handleFileChange}
         />
 
-        {/* Actions */}
-        <div className="artist-task-modal-actions">
-          <button className="artist-task-action-btn artist-task-secondary-btn" onClick={onClose} disabled={uploading}>
-            Close
-          </button>
-          {displayTask.status === 'pending' && (
-            <button 
-              className="artist-task-action-btn artist-task-primary-btn"
-              onClick={handleStartTask}
-              disabled={uploading}
-            >
-              <FontAwesomeIcon icon={faCheck} />
-              Start Task
-            </button>
-          )}
-          {displayTask.status === 'in_progress' && (
-            <button 
-              className={`artist-task-action-btn artist-task-success-btn ${!isApproved ? 'artist-task-btn-disabled' : ''}`}
-              onClick={handleSubmitDesign}
-              disabled={uploading || !isApproved || checkingApproval}
-              title={!isApproved ? 'Design must be approved by customer or wait 60 minutes after review request' : 'Submit design files'}
-            >
-              {uploading ? (
-                <>
-                  <FontAwesomeIcon icon={faSpinner} spin />
-                  Uploading...
-                </>
-              ) : checkingApproval ? (
-                <>
-                  <FontAwesomeIcon icon={faSpinner} spin />
-                  Checking...
-                </>
-              ) : !isApproved ? (
-                <>
-                  <FontAwesomeIcon icon={faLock} />
-                  Awaiting Approval
-                </>
-              ) : (
-                <>
-                  <FontAwesomeIcon icon={faUpload} />
-                  Submit Design
-                </>
-              )}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
