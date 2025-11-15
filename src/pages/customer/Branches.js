@@ -34,7 +34,7 @@ const branches = [
     gmaps: createGMapsLink('Villa Maria Subdivision Sambat, San Pascual, 4204 Batangas'),
     phone: '+63 917 123 4567',
     email: 'sanpascual@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 7:00 PM\nSunday: 9:00 AM - 5:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Design Services', 'Bulk Orders', 'Rush Orders']
   },
   {
@@ -45,7 +45,7 @@ const branches = [
     gmaps: createGMapsLink('Infantado Street, Brgy. San Vicente West Calapan City, 5200 Oriental Mindoro'),
     phone: '+63 917 234 5678',
     email: 'calapan@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 7:00 PM\nSunday: 9:00 AM - 5:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Design Services', 'Bulk Orders']
   },
   {
@@ -56,7 +56,7 @@ const branches = [
     gmaps: createGMapsLink('Barangay Muzon, San Luis, 4226 Batangas'),
     phone: '+63 917 345 6789',
     email: 'muzon@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: Closed',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   },
   {
@@ -67,7 +67,7 @@ const branches = [
     gmaps: createGMapsLink('Miranda Bldg, Illustre Ave., Brgy. District III 4209 Lemery Batangas'),
     phone: '+63 917 456 7890',
     email: 'lemery@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 7:00 PM\nSunday: 9:00 AM - 5:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Design Services', 'Bulk Orders']
   },
   {
@@ -78,7 +78,7 @@ const branches = [
     gmaps: createGMapsLink('Unit 1 Casa Buena Building, P.Burgos ST. EXT Calicanto, 4200 Batangas'),
     phone: '+63 917 567 8901',
     email: 'batangascity@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 7:00 PM\nSunday: 9:00 AM - 5:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Design Services', 'Bulk Orders', 'Rush Orders']
   },
   {
@@ -89,7 +89,7 @@ const branches = [
     gmaps: createGMapsLink('J.P Rizal St. Poblacion, Bauan Batangas'),
     phone: '+63 917 678 9012',
     email: 'bauan@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: Closed',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   },
   {
@@ -100,7 +100,7 @@ const branches = [
     gmaps: createGMapsLink('Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines'),
     phone: '+63 917 789 0123',
     email: 'calaca@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: 9:00 AM - 4:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   },
   {
@@ -111,7 +111,7 @@ const branches = [
     gmaps: createGMapsLink('Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines'),
     phone: '+63 917 890 1234',
     email: 'pinamalayan@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: Closed',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   },
   {
@@ -122,7 +122,7 @@ const branches = [
     gmaps: createGMapsLink('Brgy. D, Rosario, Batangas, Rosario, Philippines'),
     phone: '+63 917 901 2345',
     email: 'rosario@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: 9:00 AM - 4:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   }
 ];
