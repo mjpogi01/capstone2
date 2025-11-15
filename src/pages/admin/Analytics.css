@@ -627,6 +627,7 @@ body.sidebar-collapsed .analytics-page {
   border: 1px solid rgba(226, 232, 240, 0.6);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -682,7 +683,7 @@ body.sidebar-collapsed .analytics-page {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   color: #3b82f6;
   transition: all 0.3s ease;
-  align-self: flex-start;
+  align-self: center;
 }
 
 .summary-card:hover .summary-icon {
@@ -705,6 +706,13 @@ body.sidebar-collapsed .analytics-page {
   color: #ef4444;
 }
 
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
 .summary-content h3 {
   color: #64748b;
   font-size: 0.75rem;
@@ -712,6 +720,7 @@ body.sidebar-collapsed .analytics-page {
   letter-spacing: 0.01em;
   line-height: 1.2;
   margin: 0;
+  text-align: center;
 }
 
 .summary-value {
@@ -722,6 +731,7 @@ body.sidebar-collapsed .analytics-page {
   letter-spacing: -0.02em;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
+  text-align: center;
 }
 
 /* Color variations for summary values */
@@ -746,6 +756,7 @@ body.sidebar-collapsed .analytics-page {
   font-weight: 600;
   color: #94a3b8;
   margin: 0;
+  text-align: center;
 }
 
 /* Analytics Grid */
