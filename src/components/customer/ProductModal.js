@@ -1759,8 +1759,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       onClose();
       
     } catch (error) {
-      console.error('Γ¥î Error creating order:', error);
-      showError('Order Failed', `Failed to place order: ${error.message}. Please try again.`);
+      console.error('❌ Error creating order:', error);
+      
+      // Check if it's a network error (backend not running)
+      if (error.isNetworkError || error.message?.includes('backend server')) {
+        showError('Backend Server Not Running', error.message || 'Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+      } else {
+        showError('Order Failed', `Failed to place order: ${error.message}. Please try again.`);
+      }
     }
   };
 

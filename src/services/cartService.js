@@ -31,8 +31,25 @@ class CartService {
         .abortSignal(AbortSignal.timeout(10000)); // Add timeout to prevent hanging
 
       if (error) {
-        console.error('Supabase error:', error);
-        throw new Error(`Database error: ${error.message}`);
+        console.error('Supabase error fetching cart:', error);
+        
+        // Check for network errors
+        if (error.message?.includes('Failed to fetch') || 
+            error.message?.includes('network') ||
+            error.name === 'AuthRetryableFetchError') {
+          const networkError = new Error('Network error: Unable to connect to database. Please check your internet connection.');
+          networkError.isNetworkError = true;
+          throw networkError;
+        }
+        
+        // Check for auth errors
+        if (error.code === 'PGRST116' || error.message?.includes('JWT') || error.message?.includes('expired')) {
+          const authError = new Error('Session expired. Please refresh your browser and log in again.');
+          authError.isAuthError = true;
+          throw authError;
+        }
+        
+        throw new Error(`Database error: ${error.message || 'Unknown error'}`);
       }
 
       console.log('🔍 CartService: Found', data?.length || 0, 'cart items for user:', userId);
@@ -98,16 +115,35 @@ class CartService {
   // Check if user exists in Supabase Auth
   async ensureUserExists(userId) {
     try {
-      // Get current user from Supabase Auth
+      // Get current user from Supabase Auth with better error handling
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
         console.error('Error getting current user:', error);
+        
+        // Check if it's a network error
+        if (error.message?.includes('Failed to fetch') || 
+            error.message?.includes('network') ||
+            error.name === 'AuthRetryableFetchError') {
+          const networkError = new Error('Network error: Unable to connect to authentication service. Please check your internet connection and try again.');
+          networkError.isNetworkError = true;
+          throw networkError;
+        }
+        
+        // Check if it's an auth error (expired session)
+        if (error.message?.includes('expired') || error.message?.includes('invalid')) {
+          const authError = new Error('Session expired. Please refresh your browser and log in again.');
+          authError.isAuthError = true;
+          throw authError;
+        }
+        
         throw error;
       }
 
       if (!user || user.id !== userId) {
-        throw new Error('User not authenticated or ID mismatch');
+        const authError = new Error('User not authenticated or ID mismatch. Please log in again.');
+        authError.isAuthError = true;
+        throw authError;
       }
 
       return true;

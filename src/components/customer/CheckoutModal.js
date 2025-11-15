@@ -281,7 +281,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     setShowConfirmation(true);
   };
 
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
     // Get full address details if an address is selected
     let fullDeliveryAddress = deliveryAddress;
     if (shippingMethod === 'cod' && selectedAddressId) {
@@ -328,9 +328,17 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
       logoFiles
     };
     
-    onPlaceOrder(orderData);
-    setShowConfirmation(false);
-    setShowOrderComplete(true);
+    try {
+      // Wait for order to be placed before showing success
+      await onPlaceOrder(orderData);
+      setShowConfirmation(false);
+      setShowOrderComplete(true);
+    } catch (error) {
+      // Error is already handled by onPlaceOrder (CartModal), just close confirmation
+      console.error('Order placement failed:', error);
+      setShowConfirmation(false);
+      // Don't show success if order failed
+    }
   };
 
   const handleCancelOrder = () => {

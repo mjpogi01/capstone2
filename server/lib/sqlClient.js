@@ -1,7 +1,23 @@
 const { Pool } = require('pg');
 const path = require('path');
+const fs = require('fs');
 
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Try multiple .env file locations
+const rootEnvPath = path.join(__dirname, '..', '..', '.env'); // Root directory
+const serverEnvPath = path.join(__dirname, '..', '.env'); // Server directory
+
+if (fs.existsSync(serverEnvPath)) {
+  require('dotenv').config({ path: serverEnvPath });
+  console.log('✅ Loaded .env from server directory');
+} else if (fs.existsSync(rootEnvPath)) {
+  require('dotenv').config({ path: rootEnvPath });
+  console.log('✅ Loaded .env from root directory');
+} else {
+  // Try loading from default locations
+  require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+  require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
+  console.log('⚠️  .env file not found, trying default paths');
+}
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -19,13 +35,30 @@ function getPool() {
 
   if (!pool) {
     try {
+      // Check if connection string is for Supabase (requires SSL)
+      const isSupabase = connectionString.includes('supabase') || connectionString.includes('.supabase.co');
+      
       pool = new Pool({
         connectionString,
-        ssl: {
+        // Always use SSL for Supabase connections, with rejectUnauthorized: false for self-signed certs
+        ssl: isSupabase ? {
+          rejectUnauthorized: false,
+          require: true
+        } : {
           rejectUnauthorized: false
         },
         max: 5,
-        idleTimeoutMillis: 30_000
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 10_000
+      });
+      
+      // Test the connection
+      pool.on('connect', () => {
+        console.log('✅ Database pool connected successfully');
+      });
+      
+      pool.on('error', (err) => {
+        console.error('❌ Database pool error:', err.message);
       });
     } catch (poolError) {
       console.error('Failed to create database connection pool:', poolError);
@@ -72,6 +105,18 @@ async function executeSql(sql, params = []) {
         'Database password authentication failed. Please check your DATABASE_URL password in server/.env'
       );
       helpfulError.originalError = error;
+      throw helpfulError;
+    }
+
+    if (errorMsg.includes('self-signed certificate') || errorMsg.includes('certificate') || error.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
+      console.error('❌ SSL Certificate error detected. This might be a Node.js SSL configuration issue.');
+      console.error('❌ Try setting NODE_TLS_REJECT_UNAUTHORIZED=0 in your environment (development only!)');
+      const helpfulError = new Error(
+        'SSL certificate verification failed. This is common with Supabase connections.\n' +
+        'For development: Set NODE_TLS_REJECT_UNAUTHORIZED=0 in your .env file or environment variables.'
+      );
+      helpfulError.originalError = error;
+      helpfulError.isSSLError = true;
       throw helpfulError;
     }
 

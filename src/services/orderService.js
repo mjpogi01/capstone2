@@ -38,7 +38,16 @@ class OrderService {
       return data;
     } catch (error) {
       console.error('Error fetching orders:', error);
-      // Fallback to mock data if API fails
+      
+      // Check for network/connection errors
+      if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
+        const networkError = new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        networkError.isNetworkError = true;
+        throw networkError;
+      }
+      
+      // Fallback to mock data if API fails (only for non-network errors)
+      console.warn('⚠️ Backend unavailable, using fallback data');
       return {
         orders: this.getMockOrders(),
         pagination: {
@@ -68,6 +77,14 @@ class OrderService {
       return data;
     } catch (error) {
       console.error('Error fetching order:', error);
+      
+      // Check for network/connection errors
+      if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
+        const networkError = new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        networkError.isNetworkError = true;
+        throw networkError;
+      }
+      
       throw error;
     }
   }
@@ -214,6 +231,14 @@ class OrderService {
       return data;
     } catch (error) {
       console.error('Error updating order status:', error);
+      
+      // Check for network/connection errors
+      if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
+        const networkError = new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        networkError.isNetworkError = true;
+        throw networkError;
+      }
+      
       throw error;
     }
   }
@@ -229,9 +254,20 @@ class OrderService {
         body: JSON.stringify(orderData)
       });
 
+      // Handle network errors before checking response
+      if (!response) {
+        throw new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+      }
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create order');
+        let errorMessage = 'Failed to create order';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          errorMessage = response.statusText || `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -246,6 +282,14 @@ class OrderService {
       return data;
     } catch (error) {
       console.error('Error creating order:', error);
+      
+      // Check for network/connection errors
+      if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
+        const networkError = new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        networkError.isNetworkError = true;
+        throw networkError;
+      }
+      
       throw error;
     }
   }
