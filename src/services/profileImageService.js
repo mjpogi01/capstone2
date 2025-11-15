@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
+import { API_URL } from '../config/api';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const API_BASE_URL = API_URL;
 
 class ProfileImageService {
   // Upload profile image
@@ -26,9 +27,17 @@ class ProfileImageService {
         body: formData
       });
 
+      // Handle non-OK responses
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload profile image');
+        let errorMessage = 'Failed to upload profile image';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } catch (parseError) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -37,6 +46,13 @@ class ProfileImageService {
       return result;
     } catch (error) {
       console.error('Error uploading profile image:', error);
+      
+      // Improve error messages for common issues
+      if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
+        throw new Error('Network error: Unable to connect to server. Please check your connection and ensure the server is running.');
+      }
+      
+      // Re-throw the error with its message (or improved message)
       throw error;
     }
   }

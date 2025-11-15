@@ -34,7 +34,7 @@ const branches = [
     gmaps: createGMapsLink('Villa Maria Subdivision Sambat, San Pascual, 4204 Batangas'),
     phone: '+63 917 123 4567',
     email: 'sanpascual@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 7:00 PM\nSunday: 9:00 AM - 5:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Design Services', 'Bulk Orders', 'Rush Orders']
   },
   {
@@ -45,7 +45,7 @@ const branches = [
     gmaps: createGMapsLink('Infantado Street, Brgy. San Vicente West Calapan City, 5200 Oriental Mindoro'),
     phone: '+63 917 234 5678',
     email: 'calapan@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 7:00 PM\nSunday: 9:00 AM - 5:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Design Services', 'Bulk Orders']
   },
   {
@@ -56,7 +56,7 @@ const branches = [
     gmaps: createGMapsLink('Barangay Muzon, San Luis, 4226 Batangas'),
     phone: '+63 917 345 6789',
     email: 'muzon@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: Closed',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   },
   {
@@ -67,7 +67,7 @@ const branches = [
     gmaps: createGMapsLink('Miranda Bldg, Illustre Ave., Brgy. District III 4209 Lemery Batangas'),
     phone: '+63 917 456 7890',
     email: 'lemery@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 7:00 PM\nSunday: 9:00 AM - 5:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Design Services', 'Bulk Orders']
   },
   {
@@ -78,7 +78,7 @@ const branches = [
     gmaps: createGMapsLink('Unit 1 Casa Buena Building, P.Burgos ST. EXT Calicanto, 4200 Batangas'),
     phone: '+63 917 567 8901',
     email: 'batangascity@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 7:00 PM\nSunday: 9:00 AM - 5:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Design Services', 'Bulk Orders', 'Rush Orders']
   },
   {
@@ -89,7 +89,7 @@ const branches = [
     gmaps: createGMapsLink('J.P Rizal St. Poblacion, Bauan Batangas'),
     phone: '+63 917 678 9012',
     email: 'bauan@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: Closed',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   },
   {
@@ -100,7 +100,7 @@ const branches = [
     gmaps: createGMapsLink('Block D-8 Calaca Public Market, Poblacion 4, Calaca City, Philippines'),
     phone: '+63 917 789 0123',
     email: 'calaca@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: 9:00 AM - 4:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   },
   {
@@ -111,7 +111,7 @@ const branches = [
     gmaps: createGMapsLink('Mabini St. Brgy. Marfrancisco, Pinamalayan, Oriental Mindoro, Philippines'),
     phone: '+63 917 890 1234',
     email: 'pinamalayan@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: Closed',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   },
   {
@@ -122,7 +122,7 @@ const branches = [
     gmaps: createGMapsLink('Brgy. D, Rosario, Batangas, Rosario, Philippines'),
     phone: '+63 917 901 2345',
     email: 'rosario@yohannsportswear.com',
-    hours: 'Monday - Saturday: 8:00 AM - 6:00 PM\nSunday: 9:00 AM - 4:00 PM',
+    hours: 'Mon-Sat: 8:30 AM - 5:30 PM\nSunday: Closed',
     services: ['Custom Jerseys', 'T-Shirts', 'Long Sleeves', 'Uniforms', 'Bulk Orders']
   }
 ];
@@ -212,6 +212,194 @@ const Branches = () => {
   const [routeCoordinates, setRouteCoordinates] = React.useState([]);
   const [travelInfo, setTravelInfo] = React.useState(null);
   
+  // Helper function to calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return distance; // Distance in km
+  };
+
+  // Calculate travel time based on mode of transport (Google Maps-like estimation)
+  const calculateTravelInfo = (userLoc, branchPos) => {
+    const distance = calculateDistance(
+      userLoc.lat,
+      userLoc.lng,
+      branchPos.lat,
+      branchPos.lng
+    );
+
+    // More realistic average speeds (km/h) accounting for real-world conditions
+    // These match Google Maps estimates more closely
+    const speeds = {
+      walking: 4.5,      // 4.5 km/h (includes stops, crossings)
+      bicycle: 12,       // 12 km/h (realistic city cycling with traffic)
+      motorcycle: 35,    // 35 km/h (city roads with traffic)
+      car: 40            // 40 km/h (includes traffic, stops, turns in Philippines)
+    };
+
+    const formatTime = (hours) => {
+      if (hours < 1) {
+        return `${Math.round(hours * 60)} min`;
+      } else {
+        const hrs = Math.floor(hours);
+        const mins = Math.round((hours - hrs) * 60);
+        return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+      }
+    };
+
+    // Add overhead time for short trips (stops, intersections, etc.)
+    const addOverhead = (baseTime, distance) => {
+      if (distance < 5) {
+        // Short trips: add 15% overhead for traffic lights, turns
+        return baseTime * 1.15;
+      } else if (distance < 15) {
+        // Medium trips: add 10% overhead
+        return baseTime * 1.10;
+      } else {
+        // Long trips: add 8% overhead (highway portions)
+        return baseTime * 1.08;
+      }
+    };
+
+    // Detect water crossing between Batangas and Mindoro
+    // Batangas branches: lat > 13.7
+    // Mindoro branches: lat < 13.5
+    const isBatangas = (lat) => lat > 13.7;
+    const isMindoro = (lat) => lat < 13.5;
+    
+    const crossesWater = (isBatangas(userLoc.lat) && isMindoro(branchPos.lat)) ||
+                         (isMindoro(userLoc.lat) && isBatangas(branchPos.lat));
+
+    // Calculate base travel times and add realistic overhead
+    const baseWalkingTime = distance / speeds.walking;
+    const baseBicycleTime = distance / speeds.bicycle;
+    const baseMotorcycleTime = distance / speeds.motorcycle;
+    const baseCarTime = distance / speeds.car;
+
+    const travelInfo = {
+      distance: distance.toFixed(1),
+      walking: formatTime(addOverhead(baseWalkingTime, distance)),
+      bicycle: formatTime(addOverhead(baseBicycleTime, distance)),
+      motorcycle: formatTime(addOverhead(baseMotorcycleTime, distance)),
+      car: formatTime(addOverhead(baseCarTime, distance)),
+      crossesWater: crossesWater
+    };
+
+    // Add ferry travel time if crossing water
+    if (crossesWater) {
+      // Ferry from Batangas to Calapan: ~2 hours actual crossing
+      // Plus port waiting time (30 min) and land travel to/from ports
+      const ferryTime = 2.0; // 2 hours for ferry crossing
+      const portWaitTime = 0.5; // 30 minutes buffer for boarding/waiting
+      // Estimate 30% of total distance is land travel (to/from ports)
+      const estimatedLandDistance = distance * 0.3;
+      const landTravelTime = addOverhead(estimatedLandDistance / speeds.car, estimatedLandDistance);
+      travelInfo.ferry = formatTime(ferryTime + portWaitTime + landTravelTime);
+    }
+
+    return travelInfo;
+  };
+
+  const calculateRouteToBranch = React.useCallback(async (branch) => {
+    if (!userLocation) {
+      // No user location available - can't calculate route
+      console.log('No user location available for route calculation');
+      return;
+    }
+    
+    try {
+      console.log(`Calculating route from user location to ${branch.name}...`);
+      // Fetch route data from OSRM API
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${branch.position.lng},${branch.position.lat}?overview=full&geometries=geojson`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.routes && data.routes.length > 0 && data.routes[0].geometry) {
+        // Get the route geometry and convert to Leaflet format
+        const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+        
+        // Set route coordinates
+        setRouteCoordinates(routeCoords);
+        console.log(`Route calculated: ${routeCoords.length} points`);
+        
+        // Calculate travel information using actual distance from OSRM API
+        const actualDistance = data.routes[0].distance / 1000; // Convert meters to km
+        
+        // Recalculate with actual road distance (more accurate than straight line)
+        const speeds = {
+          walking: 4.5,
+          bicycle: 12,
+          motorcycle: 35,
+          car: 40
+        };
+        
+        const addOverhead = (baseTime, distance) => {
+          if (distance < 5) return baseTime * 1.15;
+          else if (distance < 15) return baseTime * 1.10;
+          else return baseTime * 1.08;
+        };
+        
+        const formatTime = (hours) => {
+          if (hours < 1) {
+            return `${Math.round(hours * 60)} min`;
+          } else {
+            const hrs = Math.floor(hours);
+            const mins = Math.round((hours - hrs) * 60);
+            return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+          }
+        };
+        
+        const info = {
+          distance: actualDistance.toFixed(1),
+          walking: formatTime(addOverhead(actualDistance / speeds.walking, actualDistance)),
+          bicycle: formatTime(addOverhead(actualDistance / speeds.bicycle, actualDistance)),
+          motorcycle: formatTime(addOverhead(actualDistance / speeds.motorcycle, actualDistance)),
+          car: formatTime(addOverhead(actualDistance / speeds.car, actualDistance)),
+          crossesWater: false // OSRM doesn't provide water routes
+        };
+        
+        setTravelInfo(info);
+      } else {
+        // Fallback to straight line if routing fails
+        console.warn('OSRM API returned no routes, using straight line');
+        const route = [
+          [userLocation.lat, userLocation.lng],
+          [branch.position.lat, branch.position.lng]
+        ];
+        setRouteCoordinates(route);
+        
+        // Calculate travel information using Haversine
+        const info = calculateTravelInfo(userLocation, branch.position);
+        setTravelInfo(info);
+      }
+    } catch (error) {
+      console.error('Error fetching route:', error);
+      // Fallback to straight line - always show a route line
+      console.log('Using straight line fallback');
+      const route = [
+        [userLocation.lat, userLocation.lng],
+        [branch.position.lat, branch.position.lng]
+      ];
+      setRouteCoordinates(route);
+      
+      const info = calculateTravelInfo(userLocation, branch.position);
+      setTravelInfo(info);
+    }
+  }, [userLocation]); // Recreate function when userLocation changes
+  
   // Save activeId to localStorage whenever it changes
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -221,13 +409,30 @@ const Branches = () => {
         const branch = branches.find(b => b.id === activeId);
         if (branch) {
           setSelectedBranch(branch);
+          
+          // Calculate route if user location is available
+          if (userLocation) {
+            // Show straight line immediately
+            const straightLine = [
+              [userLocation.lat, userLocation.lng],
+              [branch.position.lat, branch.position.lng]
+            ];
+            setRouteCoordinates(straightLine);
+            
+            // Then calculate proper route
+            calculateRouteToBranch(branch).catch((error) => {
+              console.error('Error calculating route:', error);
+            });
+          }
         }
       } else {
         localStorage.removeItem('branches_activeId');
         setSelectedBranch(null);
+        setRouteCoordinates([]);
+        setTravelInfo(null);
       }
     }
-  }, [activeId]);
+  }, [activeId, userLocation, calculateRouteToBranch]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -499,107 +704,28 @@ const Branches = () => {
     }
   };
 
-  // Calculate distance between two coordinates using Haversine formula
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radius of the Earth in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c;
-    return distance; // Distance in km
-  };
-
-  // Calculate travel time based on mode of transport (Google Maps-like estimation)
-  const calculateTravelInfo = (userLoc, branchPos) => {
-    const distance = calculateDistance(
-      userLoc.lat,
-      userLoc.lng,
-      branchPos.lat,
-      branchPos.lng
-    );
-
-    // More realistic average speeds (km/h) accounting for real-world conditions
-    // These match Google Maps estimates more closely
-    const speeds = {
-      walking: 4.5,      // 4.5 km/h (includes stops, crossings)
-      bicycle: 12,       // 12 km/h (realistic city cycling with traffic)
-      motorcycle: 35,    // 35 km/h (city roads with traffic)
-      car: 40            // 40 km/h (includes traffic, stops, turns in Philippines)
-    };
-
-    const formatTime = (hours) => {
-      if (hours < 1) {
-        return `${Math.round(hours * 60)} min`;
-      } else {
-        const hrs = Math.floor(hours);
-        const mins = Math.round((hours - hrs) * 60);
-        return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
-      }
-    };
-
-    // Add overhead time for short trips (stops, intersections, etc.)
-    const addOverhead = (baseTime, distance) => {
-      if (distance < 5) {
-        // Short trips: add 15% overhead for traffic lights, turns
-        return baseTime * 1.15;
-      } else if (distance < 15) {
-        // Medium trips: add 10% overhead
-        return baseTime * 1.10;
-      } else {
-        // Long trips: add 8% overhead (highway portions)
-        return baseTime * 1.08;
-      }
-    };
-
-    // Detect water crossing between Batangas and Mindoro
-    // Batangas branches: lat > 13.7
-    // Mindoro branches: lat < 13.5
-    const isBatangas = (lat) => lat > 13.7;
-    const isMindoro = (lat) => lat < 13.5;
-    
-    const crossesWater = (isBatangas(userLoc.lat) && isMindoro(branchPos.lat)) ||
-                         (isMindoro(userLoc.lat) && isBatangas(branchPos.lat));
-
-    // Calculate base travel times and add realistic overhead
-    const baseWalkingTime = distance / speeds.walking;
-    const baseBicycleTime = distance / speeds.bicycle;
-    const baseMotorcycleTime = distance / speeds.motorcycle;
-    const baseCarTime = distance / speeds.car;
-
-    const travelInfo = {
-      distance: distance.toFixed(1),
-      walking: formatTime(addOverhead(baseWalkingTime, distance)),
-      bicycle: formatTime(addOverhead(baseBicycleTime, distance)),
-      motorcycle: formatTime(addOverhead(baseMotorcycleTime, distance)),
-      car: formatTime(addOverhead(baseCarTime, distance)),
-      crossesWater: crossesWater
-    };
-
-    // Add ferry travel time if crossing water
-    if (crossesWater) {
-      // Ferry from Batangas to Calapan: ~2 hours actual crossing
-      // Plus port waiting time (30 min) and land travel to/from ports
-      const ferryTime = 2.0; // 2 hours for ferry crossing
-      const portWaitTime = 0.5; // 30 minutes buffer for boarding/waiting
-      // Estimate 30% of total distance is land travel (to/from ports)
-      const estimatedLandDistance = distance * 0.3;
-      const landTravelTime = addOverhead(estimatedLandDistance / speeds.car, estimatedLandDistance);
-      travelInfo.ferry = formatTime(ferryTime + portWaitTime + landTravelTime);
-    }
-
-    return travelInfo;
-  };
-
   const openBranchModal = (branch) => {
     // Set activeId immediately so marker turns red right away
     setActiveId(branch.id);
     setSelectedBranch(branch);
     setIsModalOpen(true);
     focusBranch(branch);
+    
+    // Always calculate and show route from user location to branch
+    if (userLocation) {
+      // Show straight line immediately for instant feedback
+      const straightLine = [
+        [userLocation.lat, userLocation.lng],
+        [branch.position.lat, branch.position.lng]
+      ];
+      setRouteCoordinates(straightLine);
+      
+      // Then calculate proper route (will replace straight line)
+      calculateRouteToBranch(branch).catch((error) => {
+        console.error('Error calculating route:', error);
+        // Keep the straight line if route calculation fails
+      });
+    }
     // Keep activeId set so marker stays red
   };
 
@@ -633,31 +759,38 @@ const Branches = () => {
     try {
       const map = mapRef.current;
       const currentZoom = map.getZoom();
-      const targetZoom = 16; // Slightly more zoomed in to center on branch
+      const targetZoom = 16; // Final zoom level to center on branch
+      const zoomOutLevel = 10; // Zoom out to this level first
       
-      // Always center on the branch marker, regardless of user location
-      // Two-step animation for smooth transition:
-      // Step 1: Pan to branch location (smooth transition)
-      // Step 2: Zoom in to center the branch
+      // Three-step animation for smooth transition:
+      // Step 1: Zoom out first
+      // Step 2: Pan to branch location while zoomed out
+      // Step 3: Zoom in to center the branch
       
-      // First, smoothly pan to the branch location (keep current zoom or slightly zoom out if needed)
-      const intermediateZoom = Math.min(currentZoom, targetZoom - 1);
-      
-      // Smooth pan to center the branch marker
-      map.setView(branchPos, intermediateZoom, {
+      // Step 1: Zoom out first for better visual transition
+      map.setView(branchPos, zoomOutLevel, {
         animate: true,
-        duration: 1.0,
-        easeLinearity: 0.05
+        duration: 0.8,
+        easeLinearity: 0.1
       });
       
-      // Then, smoothly zoom in to center the branch marker more precisely
+      // Step 2: Pan to branch location while zoomed out (already centered above, but allow time for zoom out)
       setTimeout(() => {
-        map.setView(branchPos, targetZoom, {
+        map.setView(branchPos, zoomOutLevel, {
           animate: true,
-          duration: 1.0,
-          easeLinearity: 0.05
+          duration: 0.8,
+          easeLinearity: 0.1
         });
-      }, 500);
+        
+        // Step 3: Zoom in to center the branch marker more precisely
+        setTimeout(() => {
+          map.setView(branchPos, targetZoom, {
+            animate: true,
+            duration: 1.0,
+            easeLinearity: 0.05
+          });
+        }, 800);
+      }, 800);
       
     } catch (error) {
       console.error('Error zooming to branch:', error);
@@ -692,100 +825,6 @@ const Branches = () => {
       timeouts.forEach(clearTimeout);
     };
   }, [activeId, isModalOpen]); // Run when activeId or modal state changes
-
-  // Reusable function to calculate route from user location to branch
-  const calculateRouteToBranch = React.useCallback(async (branch) => {
-    if (!userLocation) {
-      // No user location available - can't calculate route
-      console.log('No user location available for route calculation');
-      return;
-    }
-    
-    try {
-      console.log(`Calculating route from user location to ${branch.name}...`);
-      // Fetch route data from OSRM API
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${branch.position.lng},${branch.position.lat}?overview=full&geometries=geojson`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.routes && data.routes.length > 0 && data.routes[0].geometry) {
-        // Get the route geometry and convert to Leaflet format
-        const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-        
-        // Set route coordinates
-        setRouteCoordinates(routeCoords);
-        console.log(`Route calculated: ${routeCoords.length} points`);
-        
-        // Calculate travel information using actual distance from OSRM API
-        const actualDistance = data.routes[0].distance / 1000; // Convert meters to km
-        
-        // Recalculate with actual road distance (more accurate than straight line)
-        const speeds = {
-          walking: 4.5,
-          bicycle: 12,
-          motorcycle: 35,
-          car: 40
-        };
-        
-        const addOverhead = (baseTime, distance) => {
-          if (distance < 5) return baseTime * 1.15;
-          else if (distance < 15) return baseTime * 1.10;
-          else return baseTime * 1.08;
-        };
-        
-        const formatTime = (hours) => {
-          if (hours < 1) {
-            return `${Math.round(hours * 60)} min`;
-          } else {
-            const hrs = Math.floor(hours);
-            const mins = Math.round((hours - hrs) * 60);
-            return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
-          }
-        };
-        
-        const info = {
-          distance: actualDistance.toFixed(1),
-          walking: formatTime(addOverhead(actualDistance / speeds.walking, actualDistance)),
-          bicycle: formatTime(addOverhead(actualDistance / speeds.bicycle, actualDistance)),
-          motorcycle: formatTime(addOverhead(actualDistance / speeds.motorcycle, actualDistance)),
-          car: formatTime(addOverhead(actualDistance / speeds.car, actualDistance)),
-          crossesWater: false // OSRM doesn't provide water routes
-        };
-        
-        setTravelInfo(info);
-      } else {
-        // Fallback to straight line if routing fails
-        console.warn('OSRM API returned no routes, using straight line');
-        const route = [
-          [userLocation.lat, userLocation.lng],
-          [branch.position.lat, branch.position.lng]
-        ];
-        setRouteCoordinates(route);
-        
-        // Calculate travel information using Haversine
-        const info = calculateTravelInfo(userLocation, branch.position);
-        setTravelInfo(info);
-      }
-    } catch (error) {
-      console.error('Error fetching route:', error);
-      // Fallback to straight line - always show a route line
-      console.log('Using straight line fallback');
-      const route = [
-        [userLocation.lat, userLocation.lng],
-        [branch.position.lat, branch.position.lng]
-      ];
-      setRouteCoordinates(route);
-      
-      const info = calculateTravelInfo(userLocation, branch.position);
-      setTravelInfo(info);
-    }
-  }, [userLocation]); // Recreate function when userLocation changes
 
   // Auto-calculate route when userLocation becomes available and a branch is selected
   // This ensures route line is always present when both are available, even after refresh
@@ -1132,23 +1171,37 @@ const Branches = () => {
             {/* Only fit bounds to branches if user location is not available */}
             {!userLocation && <FitBounds points={branches.map(b => b.position)} />}
 
-            {/* Route line from user to selected branch - Following actual roads */}
-            {routeCoordinates.length > 0 && userLocation && (
-              <Polyline
-                positions={routeCoordinates}
-                color="#00bfff"
-                weight={5}
-                opacity={0.8}
-                pathOptions={{
-                  color: '#00bfff',
-                  weight: 5,
-                  opacity: 0.8,
-                  dashArray: null,
-                  lineCap: 'round',
-                  lineJoin: 'round',
-                }}
-              />
-            )}
+            {/* Route line from user location to selected branch - ALWAYS SHOW when branch is selected */}
+            {activeId && userLocation && (() => {
+              const selectedBranch = branches.find(b => b.id === activeId);
+              if (!selectedBranch) return null;
+              
+              // Always show route line - use calculated route if available, otherwise straight line
+              const routePositions = routeCoordinates.length > 0 
+                ? routeCoordinates 
+                : [
+                    [userLocation.lat, userLocation.lng],
+                    [selectedBranch.position.lat, selectedBranch.position.lng]
+                  ];
+              
+              return (
+                <Polyline
+                  key={`route-${activeId}-${routeCoordinates.length > 0 ? 'calculated' : 'straight'}`}
+                  positions={routePositions}
+                  color="#00bfff"
+                  weight={6}
+                  opacity={0.85}
+                  pathOptions={{
+                    color: '#00bfff',
+                    weight: 6,
+                    opacity: 0.85,
+                    dashArray: routeCoordinates.length > 0 ? null : '10, 5',
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                  }}
+                />
+              );
+            })()}
 
             {/* User location marker */}
               {userLocation && (

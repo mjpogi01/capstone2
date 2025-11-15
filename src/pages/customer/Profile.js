@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import profileImageService from '../../services/profileImageService';
+import { supabase } from '../../lib/supabase';
 import userProfileService from '../../services/userProfileService';
 import userService from '../../services/userService';
+import orderService from '../../services/orderService';
 import authService from '../../services/authService';
 import ChangePasswordModal from '../../components/customer/ChangePasswordModal';
 import './Profile.css';
@@ -11,12 +12,10 @@ import './Profile.css';
 const Profile = () => {
   const { user, refreshUser } = useAuth();
   const { showNotification } = useNotification();
-  const fileInputRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [profileImage, setProfileImage] = useState(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -33,10 +32,13 @@ const Profile = () => {
       try {
         setIsLoading(true);
         
+        console.log('🔄 Loading user profile...');
+        
         // Get user profile from database
         let profileData = null;
         try {
           profileData = await userProfileService.getUserProfile(user.id);
+          console.log('✅ Loaded profile data from user_profiles:', profileData);
         } catch (profileError) {
           console.log('No profile data found, will use defaults');
         }
@@ -45,15 +47,83 @@ const Profile = () => {
         let savedAddress = null;
         try {
           savedAddress = await userService.getUserAddress();
-          console.log('✅ Successfully loaded checkout address:', savedAddress);
+          console.log('✅ Successfully loaded saved address from user_addresses:', savedAddress);
         } catch (addressError) {
-          console.log('ℹ️ No checkout address found (user hasn\'t placed an order yet)');
+          console.log('ℹ️ No saved address found in user_addresses, trying to fetch from recent orders...');
+        }
+        
+        // If no saved address found, try to get from most recent order
+        let orderAddress = null;
+        if (!savedAddress) {
+          try {
+            const userOrders = await orderService.getUserOrders(user.id, false); // Include cancelled orders too
+            if (userOrders && userOrders.length > 0) {
+              // Find the most recent order with delivery address
+              const recentOrderWithAddress = userOrders.find(order => 
+                order.deliveryAddress && (order.deliveryAddress.address || typeof order.deliveryAddress === 'string')
+              );
+              
+              if (recentOrderWithAddress && recentOrderWithAddress.deliveryAddress) {
+                let deliveryAddr = recentOrderWithAddress.deliveryAddress;
+                
+                // Parse if delivery address is a JSON string
+                if (typeof deliveryAddr === 'string') {
+                  try {
+                    deliveryAddr = JSON.parse(deliveryAddr);
+                  } catch (e) {
+                    // If parsing fails, treat as plain string address
+                    orderAddress = {
+                      full_name: '',
+                      phone: '',
+                      address: deliveryAddr
+                    };
+                    console.log('✅ Successfully loaded address from recent order (string format):', orderAddress);
+                  }
+                }
+                
+                // Format address from order (if not already set as string)
+                if (!orderAddress) {
+                  let formattedAddress = '';
+                  if (typeof deliveryAddr === 'string') {
+                    formattedAddress = deliveryAddr;
+                  } else if (deliveryAddr && typeof deliveryAddr === 'object') {
+                    if (deliveryAddr.address) {
+                      formattedAddress = deliveryAddr.address;
+                    } else {
+                      // Build address from components
+                      const parts = [
+                        deliveryAddr.streetAddress || deliveryAddr.street_address,
+                        deliveryAddr.barangay,
+                        deliveryAddr.city,
+                        deliveryAddr.province,
+                        deliveryAddr.postalCode || deliveryAddr.postal_code
+                      ].filter(Boolean);
+                      formattedAddress = parts.join(', ');
+                    }
+                    
+                    orderAddress = {
+                      full_name: deliveryAddr.receiver || deliveryAddr.fullName || deliveryAddr.full_name || '',
+                      phone: deliveryAddr.phone || '',
+                      address: formattedAddress
+                    };
+                    console.log('✅ Successfully loaded address from recent order:', orderAddress);
+                  }
+                }
+              }
+            }
+          } catch (orderError) {
+            console.log('ℹ️ Could not fetch address from orders:', orderError.message);
+          }
         }
         
         // Determine the best source for each field (note: database uses snake_case)
-        const name = savedAddress?.full_name || profileData?.full_name || user.user_metadata?.full_name || '';
-        const phone = savedAddress?.phone || profileData?.phone || user.user_metadata?.phone || '';
-        const address = savedAddress?.address || profileData?.address || '';
+        // Priority for name/phone: profileData (where profile edits are saved) > savedAddress > orderAddress > user_metadata
+        // Priority for address: savedAddress > orderAddress > profileData > user_metadata
+        const name = profileData?.full_name || savedAddress?.full_name || orderAddress?.full_name || user.user_metadata?.full_name || '';
+        const phone = profileData?.phone || savedAddress?.phone || orderAddress?.phone || user.user_metadata?.phone || '';
+        const address = savedAddress?.address || orderAddress?.address || profileData?.address || '';
+        
+        console.log('📋 Final form data to set:', { name, phone, address });
         
         setFormData({
           name: name,
@@ -62,8 +132,6 @@ const Profile = () => {
           address: address,
           password: '*****************'
         });
-        
-        setProfileImage(profileData?.avatar_url || user.user_metadata?.avatar_url);
         
       } catch (error) {
         console.error('Error loading user profile:', error);
@@ -77,7 +145,6 @@ const Profile = () => {
           address: '',
           password: '*****************'
         });
-        setProfileImage(user.user_metadata?.avatar_url);
       } finally {
         setIsLoading(false);
       }
@@ -88,94 +155,161 @@ const Profile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Special handling for phone number field
+    if (name === 'phone') {
+      // Remove all non-digit characters
+      const digitsOnly = value.replace(/\D/g, '');
+      
+      // Limit to 11 digits maximum
+      if (digitsOnly.length <= 11) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: digitsOnly
+        }));
+        // Clear error if within limit
+        setPhoneError('');
+      } else {
+        // Show error if trying to input more than 11 digits
+        setPhoneError('Phone number must contain exactly 11 digits');
+      }
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handleFileSelect = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      // Validate file
-      profileImageService.validateImageFile(file);
-      
-      setIsUploading(true);
-      
-      // Upload file
-      const result = await profileImageService.uploadProfileImage(file);
-      
-      // Update user profile with new image URL
-      await profileImageService.updateUserProfileImage(result.imageUrl);
-      
-      // Update local state
-      setProfileImage(result.imageUrl);
-      
-      // Refresh user data
-      await refreshUser();
-      
-      showNotification('Profile image updated successfully!', 'success');
-      
-    } catch (error) {
-      console.error('Error uploading profile image:', error);
-      showNotification(error.message || 'Failed to upload profile image', 'error');
-    } finally {
-      setIsUploading(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
   const handleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      showNotification('Please log in to save your profile', 'error');
+      return;
+    }
 
     // Basic validation
-    if (!formData.name.trim()) {
+    if (!formData.name || !formData.name.trim()) {
       showNotification('Name is required', 'error');
       return;
     }
 
-    if (!formData.email.trim()) {
+    if (!formData.email || !formData.email.trim()) {
       showNotification('Email is required', 'error');
       return;
     }
 
-    if (formData.phone && !/^[\+]?[\d][\d\s\-\(\)]{5,20}$/.test(formData.phone.trim())) {
-      showNotification('Please enter a valid phone number (minimum 6 digits)', 'error');
-      return;
+    // Validate phone number: must be exactly 11 digits if provided
+    if (formData.phone && formData.phone.trim()) {
+      const digitsOnly = formData.phone.replace(/\D/g, '');
+      if (digitsOnly.length !== 11) {
+        showNotification('Phone number must contain exactly 11 digits', 'error');
+        setPhoneError('Phone number must contain exactly 11 digits');
+        return;
+      }
     }
 
     try {
       setIsLoading(true);
       
-      // Prepare profile data for database
+      // Prepare profile data for database - handle empty strings properly
       const profileData = {
         full_name: formData.name.trim(),
-        phone: formData.phone.trim(),
-        address: formData.address.trim(),
-        avatar_url: profileImage
+        phone: formData.phone && formData.phone.trim() ? formData.phone.trim() : null,
+        address: formData.address && formData.address.trim() ? formData.address.trim() : null
       };
 
+      console.log('💾 Saving profile data:', profileData);
+      console.log('👤 User ID:', user.id);
+
       // Update user profile in database
-      await userProfileService.upsertUserProfile(user.id, profileData);
+      const savedProfile = await userProfileService.upsertUserProfile(user.id, profileData);
+      console.log('✅ Profile saved to database:', savedProfile);
       
-      // Update user metadata in Supabase Auth
+      // Also update user metadata in Supabase Auth for consistency
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.auth.updateUser({
+            data: {
+              full_name: profileData.full_name,
+              phone: profileData.phone,
+              address: profileData.address
+            }
+          });
+          console.log('✅ User metadata updated in Supabase Auth');
+        }
+      } catch (authError) {
+        console.warn('⚠️ Could not update user metadata in Supabase Auth:', authError);
+        // Don't fail the whole save if auth update fails
+      }
+      
+      // Clear phone error on success
+      setPhoneError('');
+      
+      // Update form data immediately with saved data to reflect changes
+      // This ensures UI updates right away
+      setFormData(prev => ({
+        ...prev,
+        name: profileData.full_name,
+        phone: profileData.phone || '',
+        address: profileData.address || ''
+      }));
+      
+      console.log('💾 Updated formData with saved profile:', profileData);
+      
+      // Refresh user data to get latest from database
       await refreshUser();
+      
+      // Reload profile data from database after a small delay to ensure database has updated
+      try {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        const updatedProfile = await userProfileService.getUserProfile(user.id).catch(() => null);
+        
+        if (updatedProfile) {
+          // Use data from database - this ensures we have the latest saved data
+          console.log('✅ Reloaded profile from database after save:', updatedProfile);
+          setFormData(prev => ({
+            ...prev,
+            name: updatedProfile.full_name || prev.name,
+            phone: updatedProfile.phone !== null && updatedProfile.phone !== undefined ? updatedProfile.phone : prev.phone,
+            address: updatedProfile.address || prev.address
+          }));
+        } else {
+          // If no profile found in database, keep what we just saved
+          console.log('⚠️ Profile not found in database after save, keeping saved data');
+        }
+      } catch (reloadError) {
+        console.warn('⚠️ Could not reload profile data:', reloadError);
+        // Keep the data we just saved - it's already in formData
+      }
       
       setIsEditing(false);
       showNotification('Profile updated successfully!', 'success');
       
     } catch (error) {
-      console.error('Error saving profile:', error);
-      showNotification('Failed to save profile. Please try again.', 'error');
+      console.error('❌ Error saving profile:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to save profile. Please try again.';
+      if (error.message) {
+        if (error.message.includes('permission') || error.message.includes('policy')) {
+          errorMessage = 'Permission denied. Please check if the user_profiles table exists and you have access.';
+        } else if (error.message.includes('404') || error.message.includes('not found')) {
+          errorMessage = 'Profile table not found. Please check your database setup.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      showNotification(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -183,6 +317,7 @@ const Profile = () => {
 
   const handleCancel = async () => {
     setIsEditing(false);
+    setPhoneError(''); // Clear phone error on cancel
     
     // Reload original data from database
     if (user) {
@@ -199,14 +334,81 @@ const Profile = () => {
         let savedAddress = null;
         try {
           savedAddress = await userService.getUserAddress();
+          console.log('✅ Successfully loaded saved address from user_addresses:', savedAddress);
         } catch (addressError) {
-          console.log('ℹ️ No checkout address found');
+          console.log('ℹ️ No saved address found in user_addresses, trying to fetch from recent orders...');
+        }
+        
+        // If no saved address found, try to get from most recent order
+        let orderAddress = null;
+        if (!savedAddress) {
+          try {
+            const userOrders = await orderService.getUserOrders(user.id, false); // Include cancelled orders too
+            if (userOrders && userOrders.length > 0) {
+              // Find the most recent order with delivery address
+              const recentOrderWithAddress = userOrders.find(order => 
+                order.deliveryAddress && (order.deliveryAddress.address || typeof order.deliveryAddress === 'string')
+              );
+              
+              if (recentOrderWithAddress && recentOrderWithAddress.deliveryAddress) {
+                let deliveryAddr = recentOrderWithAddress.deliveryAddress;
+                
+                // Parse if delivery address is a JSON string
+                if (typeof deliveryAddr === 'string') {
+                  try {
+                    deliveryAddr = JSON.parse(deliveryAddr);
+                  } catch (e) {
+                    // If parsing fails, treat as plain string address
+                    orderAddress = {
+                      full_name: '',
+                      phone: '',
+                      address: deliveryAddr
+                    };
+                    console.log('✅ Successfully loaded address from recent order (string format):', orderAddress);
+                  }
+                }
+                
+                // Format address from order (if not already set as string)
+                if (!orderAddress) {
+                  let formattedAddress = '';
+                  if (typeof deliveryAddr === 'string') {
+                    formattedAddress = deliveryAddr;
+                  } else if (deliveryAddr && typeof deliveryAddr === 'object') {
+                    if (deliveryAddr.address) {
+                      formattedAddress = deliveryAddr.address;
+                    } else {
+                      // Build address from components
+                      const parts = [
+                        deliveryAddr.streetAddress || deliveryAddr.street_address,
+                        deliveryAddr.barangay,
+                        deliveryAddr.city,
+                        deliveryAddr.province,
+                        deliveryAddr.postalCode || deliveryAddr.postal_code
+                      ].filter(Boolean);
+                      formattedAddress = parts.join(', ');
+                    }
+                    
+                    orderAddress = {
+                      full_name: deliveryAddr.receiver || deliveryAddr.fullName || deliveryAddr.full_name || '',
+                      phone: deliveryAddr.phone || '',
+                      address: formattedAddress
+                    };
+                    console.log('✅ Successfully loaded address from recent order:', orderAddress);
+                  }
+                }
+              }
+            }
+          } catch (orderError) {
+            console.log('ℹ️ Could not fetch address from orders:', orderError.message);
+          }
         }
         
         // Determine the best source for each field (note: database uses snake_case)
-        const name = savedAddress?.full_name || profileData?.full_name || user.user_metadata?.full_name || '';
-        const phone = savedAddress?.phone || profileData?.phone || user.user_metadata?.phone || '';
-        const address = savedAddress?.address || profileData?.address || '';
+        // Priority for name/phone: profileData (where profile edits are saved) > savedAddress > orderAddress > user_metadata
+        // Priority for address: savedAddress > orderAddress > profileData > user_metadata
+        const name = profileData?.full_name || savedAddress?.full_name || orderAddress?.full_name || user.user_metadata?.full_name || '';
+        const phone = profileData?.phone || savedAddress?.phone || orderAddress?.phone || user.user_metadata?.phone || '';
+        const address = savedAddress?.address || orderAddress?.address || profileData?.address || '';
         
         setFormData({
           name: name,
@@ -215,8 +417,6 @@ const Profile = () => {
           address: address,
           password: '*****************'
         });
-        
-        setProfileImage(profileData?.avatar_url || user.user_metadata?.avatar_url);
         
       } catch (error) {
         console.error('Error reloading profile data:', error);
@@ -260,7 +460,20 @@ const Profile = () => {
           {/* Edit Controls - Top Right */}
           <div className="yohanns-profile-top-controls">
             {!isEditing ? (
-              <button className="yohanns-edit-link" onClick={() => setIsEditing(true)}>
+              <button className="yohanns-edit-link" onClick={() => {
+                // Validate existing phone number when entering edit mode
+                if (formData.phone) {
+                  const digitsOnly = formData.phone.replace(/\D/g, '');
+                  if (digitsOnly.length > 11) {
+                    setPhoneError('Phone number must contain exactly 11 digits');
+                  } else if (digitsOnly.length > 0 && digitsOnly.length !== 11) {
+                    setPhoneError('Phone number must contain exactly 11 digits');
+                  } else {
+                    setPhoneError('');
+                  }
+                }
+                setIsEditing(true);
+              }}>
                 Edit
               </button>
             ) : (
@@ -272,37 +485,26 @@ const Profile = () => {
           </div>
 
           <div className="yohanns-personal-info-section">
-            {/* Left Column - Profile Picture */}
+            {/* Left Column - Profile Icon */}
             <div className="yohanns-profile-picture-section">
               <div className="yohanns-profile-picture">
-                {profileImage ? (
-                  <img 
-                    src={profileImage} 
-                    alt="Profile" 
-                    className="yohanns-profile-image"
-                  />
-                ) : (
-                  <div className="yohanns-profile-avatar">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                    </svg>
-                  </div>
-                )}
+                <div className="yohanns-profile-avatar">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                </div>
               </div>
-              <button 
-                className="yohanns-upload-btn" 
-                onClick={handleFileSelect}
-                disabled={isUploading}
-              >
-                {isUploading ? 'Uploading...' : 'Upload Photo'}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-              />
+              {formData.name && (
+                <div style={{ 
+                  marginTop: '1rem', 
+                  textAlign: 'center', 
+                  fontSize: '1.1rem', 
+                  fontWeight: '500',
+                  color: '#ffffff'
+                }}>
+                  {formData.name}
+                </div>
+              )}
             </div>
 
             {/* Right Column - Personal Information */}
@@ -355,9 +557,15 @@ const Profile = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    placeholder="Your contact number"
+                    placeholder="Your contact number (11 digits)"
+                    maxLength={11}
                   />
-                  {!formData.phone && (
+                  {phoneError && (
+                    <small style={{ color: '#ff6b6b', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                      {phoneError}
+                    </small>
+                  )}
+                  {!formData.phone && !phoneError && (
                     <small style={{ color: '#ff6b6b', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
                       📌 Will auto-fill after you place your first order
                     </small>

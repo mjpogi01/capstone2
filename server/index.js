@@ -57,6 +57,11 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
+// Handle favicon.ico requests to prevent 404 errors
+app.get('/favicon.ico', (_req, res) => {
+  res.status(204).end(); // Return 204 No Content instead of 404
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/products', productsRouter);

@@ -587,12 +587,10 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                                             <span className="member-detail-value">{member.fabricOption || member.fabric_option || 'N/A'}</span>
                                                           </div>
                                                         ) : null}
-                                                        {member.cutType || member.cut_type ? (
-                                                          <div className="member-detail-row">
-                                                            <span className="member-detail-label">Cut Type:</span>
-                                                            <span className="member-detail-value">{member.cutType || member.cut_type || 'N/A'}</span>
-                                                          </div>
-                                                        ) : null}
+                                                        <div className="member-detail-row">
+                                                          <span className="member-detail-label">Cut Type:</span>
+                                                          <span className="member-detail-value">{member.cutType || member.cut_type || 'N/A'}</span>
+                                                        </div>
                                                         {member.sizingType || item.sizeType ? (
                                                           <div className="member-detail-row">
                                                             <span className="member-detail-label">Type:</span>
@@ -654,12 +652,10 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                                     <span className="order-detail-value">{item.fabricOption || item.singleOrderDetails?.fabricOption || 'N/A'}</span>
                                                   </div>
                                                 )}
-                                                {(item.cutType || item.singleOrderDetails?.cutType) && (
-                                                  <div className="order-detail-row">
-                                                    <span className="order-detail-label">Cut Type:</span>
-                                                    <span className="order-detail-value">{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</span>
-                                                  </div>
-                                                )}
+                                                <div className="order-detail-row">
+                                                  <span className="order-detail-label">Cut Type:</span>
+                                                  <span className="order-detail-value">{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</span>
+                                                </div>
                                                 {(item.singleOrderDetails?.sizingType || item.sizeType) && (
                                                   <div className="order-detail-row">
                                                     <span className="order-detail-label">Type:</span>

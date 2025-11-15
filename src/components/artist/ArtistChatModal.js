@@ -25,6 +25,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
   const [attachments, setAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [customer, setCustomer] = useState(null);
+  const [orderNumber, setOrderNumber] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewFiles, setReviewFiles] = useState([]);
   const [reviewNotes, setReviewNotes] = useState('');
@@ -63,6 +64,41 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
           full_name: customerName,
           phone: customerPhone
         });
+      }
+      
+      // Get order number from order
+      if (room.order_id) {
+        try {
+          const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session) {
+            const orderResponse = await fetch(`${API_BASE_URL}/api/orders/${room.order_id}`, {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (orderResponse.ok) {
+              const orderData = await orderResponse.json();
+              const extractedOrderNumber = orderData.order_number || orderData.orderNumber || null;
+              console.log('📦 Order number for chat modal:', extractedOrderNumber);
+              setOrderNumber(extractedOrderNumber);
+            } else {
+              console.warn('⚠️ Could not fetch order number, using room.order_number or room_name');
+              // Fallback to order_number from room if available, otherwise room_name
+              setOrderNumber(room.order?.order_number || room.order_number || room.room_name || 'N/A');
+            }
+          }
+        } catch (orderError) {
+          console.warn('Error fetching order number:', orderError);
+          // Fallback to order_number from room if available, otherwise room_name
+          setOrderNumber(room.order?.order_number || room.order_number || room.room_name || 'N/A');
+        }
+      } else {
+        // No order_id, use room_name or order_number from room
+        setOrderNumber(room.order?.order_number || room.order_number || room.room_name || 'N/A');
       }
       
       // Load messages
@@ -418,7 +454,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
               <FontAwesomeIcon icon={faUser} />
               <span>Chatting with: <strong>{customer?.full_name || 'Customer'}</strong></span>
             </h3>
-            <p className="artist-chat-order-info">Order: {room.room_name}</p>
+            <p className="artist-chat-order-info">Order: {orderNumber || room.order?.order_number || room.order_number || room.room_name || 'N/A'}</p>
           </div>
           <button className="artist-chat-close-btn" onClick={onClose}>
             <FontAwesomeIcon icon={faTimes} />

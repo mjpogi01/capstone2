@@ -346,37 +346,14 @@ function getBarangayCoordinate({
   return null;
 }
 
-async function resolveBranchContext(user, optionalBranchId = null) {
-  // For owners, allow filtering by optional branch_id parameter
-  if (user && user.role === 'owner' && optionalBranchId !== null) {
-    const branchId = parseInt(optionalBranchId, 10);
-    if (Number.isNaN(branchId)) {
-      return null;
-    }
-    
-    let branchName = null;
-    try {
-      const { data: branchData, error: branchError } = await supabase
-        .from('branches')
-        .select('id, name')
-        .eq('id', branchId)
-        .single();
-
-      if (!branchError && branchData?.name) {
-        branchName = branchData.name;
-      }
-    } catch (err) {
-      console.warn('⚠️ Unable to resolve branch name for owner filter:', err.message);
-    }
-
-    if (branchName) {
-      return { branchId, branchName, normalizedName: normalizeBranchValue(branchName) };
-    }
+async function resolveBranchContext(user) {
+  // Owners don't need branch filtering - they see all data
+  if (!user || user.role === 'owner') {
     return null;
   }
 
-  // For admins, use their assigned branch
-  if (!user || user.role !== 'admin') {
+  // Only admins need branch filtering
+  if (user.role !== 'admin') {
     return null;
   }
 
@@ -403,9 +380,12 @@ async function resolveBranchContext(user, optionalBranchId = null) {
 
     if (!branchError && branchData?.name) {
       branchName = branchData.name;
+    } else if (branchError) {
+      console.warn('⚠️ Unable to resolve branch name for admin:', branchError.message);
     }
   } catch (err) {
-    console.warn('⚠️ Unable to resolve branch name for admin:', err.message);
+    console.warn('⚠️ Error resolving branch name for admin:', err.message);
+    // Don't throw - continue with branchId even if name lookup fails
   }
 
   return { branchId, branchName, normalizedName: normalizeBranchValue(branchName) };
@@ -886,12 +866,22 @@ function resolveCustomerEmail(order) {
 router.get('/dashboard', async (req, res) => {
   try {
     console.log('📊 Fetching analytics data (optimized)...');
+    console.log('📊 User info:', {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role,
+      branch_id: req.user?.branch_id
+    });
 
-    // For owners, allow filtering by branch_id query parameter
-    const optionalBranchId = req.user?.role === 'owner' && req.query.branch_id 
-      ? req.query.branch_id 
-      : null;
-    const branchContext = await resolveBranchContext(req.user, optionalBranchId);
+    let branchContext;
+    try {
+      branchContext = await resolveBranchContext(req.user);
+      console.log('📊 Branch context resolved:', branchContext);
+    } catch (branchError) {
+      console.error('❌ Error resolving branch context:', branchError);
+      console.error('❌ Branch error stack:', branchError.stack);
+      return handleAnalyticsError(res, branchError, 'Failed to resolve branch context');
+    }
 
     const now = new Date();
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -907,6 +897,24 @@ router.get('/dashboard', async (req, res) => {
     const branchSalesFilter = buildBranchFilterClause(branchContext, 2);
     const uniqueCustomersFilter = buildBranchFilterClause(branchContext, 2);
     const recentOrdersFilter = buildBranchFilterClause(branchContext, 2);
+    
+    console.log('📊 Filter clauses:', {
+      statusFilter: { clause: statusFilter.clause, paramCount: statusFilter.params.length },
+      monthlyFilter: { clause: monthlyFilter.clause, paramCount: monthlyFilter.params.length },
+      branchSalesFilter: { clause: branchSalesFilter.clause, paramCount: branchSalesFilter.params.length }
+    });
+    
+    // Check if DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+      console.error('❌ DATABASE_URL is not configured!');
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection not configured. Please check server/.env file for DATABASE_URL.'
+      });
+    }
+    
+    console.log('📊 DATABASE_URL configured:', process.env.DATABASE_URL ? 'Yes (length: ' + process.env.DATABASE_URL.length + ')' : 'No');
+    console.log('📊 Executing SQL queries...');
 
     const statusQueryPromise = executeSql(
       `
@@ -977,19 +985,82 @@ router.get('/dashboard', async (req, res) => {
       [thirtyDaysAgoIso, ...recentOrdersFilter.params]
     );
 
-    const [
-      statusResult,
-      monthlyResult,
-      salesByBranchResult,
-      uniqueCustomersResult,
-      recentOrdersResult
-    ] = await Promise.all([
-      statusQueryPromise,
-      monthlySalesPromise,
-      salesByBranchPromise,
-      uniqueCustomersPromise,
-      recentOrdersPromise
-    ]);
+    let statusResult, monthlyResult, salesByBranchResult, uniqueCustomersResult, recentOrdersResult;
+    
+    try {
+      [
+        statusResult,
+        monthlyResult,
+        salesByBranchResult,
+        uniqueCustomersResult,
+        recentOrdersResult
+      ] = await Promise.all([
+        statusQueryPromise,
+        monthlySalesPromise,
+        salesByBranchPromise,
+        uniqueCustomersPromise,
+        recentOrdersPromise
+      ]);
+    } catch (sqlError) {
+      console.error('❌ SQL query execution error:', sqlError);
+      console.error('❌ SQL error details:', {
+        message: sqlError.message,
+        code: sqlError.code,
+        stack: sqlError.stack,
+        originalError: sqlError.originalError ? {
+          message: sqlError.originalError.message,
+          code: sqlError.originalError.code
+        } : null
+      });
+      
+      // Check if it's a connection/configuration error
+      if (!process.env.DATABASE_URL) {
+        console.error('❌ DATABASE_URL is not configured in environment!');
+        return res.status(500).json({
+          success: false,
+          error: 'Database connection not configured. Please check server/.env file for DATABASE_URL.'
+        });
+      }
+      
+      // Provide more specific error message
+      let errorMessage = 'Database query failed.';
+      if (sqlError.message?.includes('Missing DATABASE_URL')) {
+        errorMessage = 'Database connection not configured. Please check server/.env file for DATABASE_URL.';
+      } else if (sqlError.message?.includes('password authentication failed')) {
+        errorMessage = 'Database password authentication failed. Please check your DATABASE_URL password in server/.env';
+      } else if (sqlError.message?.includes('Tenant or user not found')) {
+        errorMessage = 'Database connection failed. Please check your DATABASE_URL connection string in server/.env';
+      } else if (sqlError.message) {
+        errorMessage = `Database error: ${sqlError.message}`;
+      }
+      
+      return res.status(500).json({
+        success: false,
+        error: errorMessage
+      });
+    }
+
+    // Defensive checks for query results
+    if (!statusResult || !statusResult.rows) {
+      console.error('❌ statusResult is null or missing rows');
+      statusResult = { rows: [] };
+    }
+    if (!monthlyResult || !monthlyResult.rows) {
+      console.error('❌ monthlyResult is null or missing rows');
+      monthlyResult = { rows: [] };
+    }
+    if (!salesByBranchResult || !salesByBranchResult.rows) {
+      console.error('❌ salesByBranchResult is null or missing rows');
+      salesByBranchResult = { rows: [] };
+    }
+    if (!uniqueCustomersResult || !uniqueCustomersResult.rows) {
+      console.error('❌ uniqueCustomersResult is null or missing rows');
+      uniqueCustomersResult = { rows: [{ total_customers: 0 }] };
+    }
+    if (!recentOrdersResult || !recentOrdersResult.rows) {
+      console.error('❌ recentOrdersResult is null or missing rows');
+      recentOrdersResult = { rows: [] };
+    }
 
     const CANCELLED_STATUSES = new Set(['cancelled', 'canceled']);
     const COMPLETED_STATUSES = new Set(['completed', 'delivered', 'picked_up_delivered', 'picked_up', 'finished']);
@@ -1002,7 +1073,7 @@ router.get('/dashboard', async (req, res) => {
     let pendingCount = 0;
     let cancelledCount = 0;
 
-    statusResult.rows.forEach(row => {
+    (statusResult.rows || []).forEach(row => {
       const status = (row.status || '').toString().toLowerCase();
       const count = Number(row.total) || 0;
 
@@ -1031,7 +1102,7 @@ router.get('/dashboard', async (req, res) => {
       pendingCount += count;
     });
 
-    const monthlySalesArray = monthlyResult.rows
+    const monthlySalesArray = (monthlyResult.rows || [])
       .map(row => {
         const monthDate = new Date(row.month_start);
         if (Number.isNaN(monthDate.getTime())) {
@@ -1070,7 +1141,7 @@ router.get('/dashboard', async (req, res) => {
       }));
 
     const branchTotals = new Map();
-    salesByBranchResult.rows.forEach(row => {
+    (salesByBranchResult.rows || []).forEach(row => {
       const branchName = getBranchDisplayName(row, branchContext) || 'Unspecified';
       const sales = Number(row.sales) || 0;
       branchTotals.set(branchName, (branchTotals.get(branchName) || 0) + sales);
@@ -1090,69 +1161,88 @@ router.get('/dashboard', async (req, res) => {
     const recentOrdersRows = recentOrdersResult.rows || [];
     const recentOrdersList = recentOrdersRows
       .slice(0, 10)
-      .map(order => ({
-        id: order.id,
-        order_number: order.order_number,
-        total_amount: Number(order.total_amount) || 0,
-        status: order.status,
-        created_at: order.created_at,
-        user_id: order.user_id
-      }));
+      .map(order => {
+        try {
+          return {
+            id: order.id,
+            order_number: order.order_number,
+            total_amount: Number(order.total_amount) || 0,
+            status: order.status,
+            created_at: order.created_at,
+            user_id: order.user_id
+          };
+        } catch (err) {
+          console.warn('Error processing recent order:', err, order);
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     const productGroupSales = {};
     const categorySales = {};
 
     recentOrdersRows.forEach(order => {
-      let orderItems = order.order_items;
-      if (!orderItems) {
-        return;
+      try {
+        let orderItems = order.order_items;
+        if (!orderItems) {
+          return;
+        }
+
+        if (typeof orderItems === 'string') {
+          try {
+            orderItems = JSON.parse(orderItems);
+          } catch (parseError) {
+            console.warn('Error parsing order_items JSON:', parseError);
+            orderItems = [];
+          }
+        }
+
+        if (!Array.isArray(orderItems)) {
+          return;
+        }
+
+        orderItems.forEach(item => {
+          try {
+            let categoryName = item?.category || 'Other';
+            if (typeof categoryName === 'string') {
+              categoryName = categoryName.trim();
+            }
+            if (!categoryName) {
+              categoryName = 'Other';
+            }
+
+            const quantity = parseInt(item?.quantity || 0, 10);
+            const price = parseFloat(item?.price || 0);
+            const groupName = determineProductGroup(item);
+
+            if (!productGroupSales[groupName]) {
+              productGroupSales[groupName] = {
+                quantity: 0,
+                revenue: 0,
+                orders: new Set()
+              };
+            }
+            productGroupSales[groupName].quantity += quantity;
+            productGroupSales[groupName].revenue += quantity * price;
+            productGroupSales[groupName].orders.add(order.id);
+
+            if (!categorySales[categoryName]) {
+              categorySales[categoryName] = {
+                quantity: 0,
+                orders: new Set()
+              };
+            }
+            categorySales[categoryName].quantity += quantity;
+            categorySales[categoryName].orders.add(order.id);
+          } catch (itemError) {
+            console.warn('Error processing order item:', itemError, item);
+            // Continue processing other items
+          }
+        });
+      } catch (orderError) {
+        console.warn('Error processing order:', orderError, order);
+        // Continue processing other orders
       }
-
-      if (typeof orderItems === 'string') {
-        try {
-          orderItems = JSON.parse(orderItems);
-        } catch (parseError) {
-          orderItems = [];
-        }
-      }
-
-      if (!Array.isArray(orderItems)) {
-        return;
-      }
-
-      orderItems.forEach(item => {
-        let categoryName = item?.category || 'Other';
-        if (typeof categoryName === 'string') {
-          categoryName = categoryName.trim();
-        }
-        if (!categoryName) {
-          categoryName = 'Other';
-        }
-
-        const quantity = parseInt(item?.quantity || 0, 10);
-        const price = parseFloat(item?.price || 0);
-        const groupName = determineProductGroup(item);
-
-        if (!productGroupSales[groupName]) {
-          productGroupSales[groupName] = {
-            quantity: 0,
-            revenue: 0,
-            orders: new Set()
-          };
-        }
-        productGroupSales[groupName].quantity += quantity;
-        productGroupSales[groupName].revenue += quantity * price;
-        productGroupSales[groupName].orders.add(order.id);
-
-        if (!categorySales[categoryName]) {
-          categorySales[categoryName] = {
-            quantity: 0,
-            orders: new Set()
-          };
-        }
-        categorySales[categoryName].quantity += quantity;
-        categorySales[categoryName].orders.add(order.id);
-      });
     });
 
     const topProductsArray = Object.entries(productGroupSales)
@@ -1218,11 +1308,27 @@ router.get('/dashboard', async (req, res) => {
       totalCustomers: processedData.summary.totalCustomers
     });
 
+    console.log('✅ Dashboard analytics data processed successfully');
+    
     res.json({
       success: true,
       data: processedData
     });
   } catch (error) {
+    console.error('❌ Dashboard analytics error:', error);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error stack:', error.stack);
+    
+    // Log more details if available
+    if (error.originalError) {
+      console.error('❌ Original error:', error.originalError);
+    }
+    if (error.details) {
+      console.error('❌ Error details:', error.details);
+    }
+    
     return handleAnalyticsError(res, error, 'Failed to fetch analytics data');
   }
 });
@@ -1459,16 +1565,23 @@ router.get('/customer-analytics', async (req, res) => {
 });
 
 async function computeSalesForecast({ requestedRange, branchContext }) {
-  const allowedRanges = Object.keys(SALES_FORECAST_RANGE_LABELS);
-  const range = allowedRanges.includes(requestedRange) ? requestedRange : 'restOfYear';
-  const rangeLabel = SALES_FORECAST_RANGE_LABELS[range];
+  try {
+    const allowedRanges = Object.keys(SALES_FORECAST_RANGE_LABELS);
+    const range = allowedRanges.includes(requestedRange) ? requestedRange : 'restOfYear';
+    const rangeLabel = SALES_FORECAST_RANGE_LABELS[range];
 
-  const monthlyFilter = buildBranchFilterClause(branchContext, 2);
+    const monthlyFilter = buildBranchFilterClause(branchContext, 2);
 
-  const now = new Date();
-  const startOfCurrentMonthUTC = startOfMonthUTC(new Date(now));
+    const now = new Date();
+    const startOfCurrentMonthUTC = startOfMonthUTC(new Date(now));
 
-  const { rows } = await executeSql(
+    console.log('📈 Computing sales forecast for range:', range);
+    console.log('📈 Branch context:', branchContext);
+    console.log('📈 Filter clause:', monthlyFilter.clause, 'Params:', monthlyFilter.params.length);
+
+    let rows;
+    try {
+      const result = await executeSql(
     `
       SELECT
         date_trunc('month', created_at) AS month_start,
@@ -1481,8 +1594,19 @@ async function computeSalesForecast({ requestedRange, branchContext }) {
       GROUP BY month_start
       ORDER BY month_start;
     `,
-    [startOfCurrentMonthUTC.toISOString(), ...monthlyFilter.params]
-  );
+      [startOfCurrentMonthUTC.toISOString(), ...monthlyFilter.params]
+      );
+      rows = result.rows || [];
+      console.log('📈 SQL query executed successfully, found', rows.length, 'rows');
+    } catch (sqlError) {
+      console.error('❌ SQL error in computeSalesForecast:', sqlError);
+      console.error('❌ SQL error details:', {
+        message: sqlError.message,
+        code: sqlError.code,
+        stack: sqlError.stack
+      });
+      throw sqlError;
+    }
 
   const historicalRaw = rows
     .map((row) => {
@@ -1718,22 +1842,70 @@ async function computeSalesForecast({ requestedRange, branchContext }) {
     end: historicalPoints[historicalPoints.length - 1]?.monthIso ?? null
   };
 
-  return {
-    range,
-    rangeLabel,
-    generatedAt: new Date().toISOString(),
-    historical: historicalPoints,
-    forecast: forecastPoints,
-    combined: combinedSeries,
-    summary,
-    model: modelInfo,
-    trainingWindow
-  };
+    return {
+      range,
+      rangeLabel,
+      generatedAt: new Date().toISOString(),
+      historical: historicalPoints,
+      forecast: forecastPoints,
+      combined: combinedSeries,
+      summary,
+      model: modelInfo,
+      trainingWindow
+    };
+  } catch (error) {
+    console.error('❌ Error in computeSalesForecast:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      originalError: error.originalError ? {
+        message: error.originalError.message,
+        code: error.originalError.code
+      } : null
+    });
+    
+    // Wrap database connection errors with more helpful messages
+    if (error.message?.includes('Missing DATABASE_URL')) {
+      const helpfulError = new Error('Database connection not configured. Please check server/.env file for DATABASE_URL.');
+      helpfulError.originalError = error;
+      throw helpfulError;
+    }
+    
+    throw error;
+  }
 }
 
 router.get('/sales-forecast', async (req, res) => {
   try {
-    const branchContext = await resolveBranchContext(req.user);
+    console.log('📈 Fetching sales forecast...');
+    console.log('📈 User info:', {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role,
+      branch_id: req.user?.branch_id
+    });
+    
+    // Check if DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+      console.error('❌ DATABASE_URL is not configured!');
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection not configured. Please check server/.env file for DATABASE_URL.'
+      });
+    }
+    
+    console.log('📈 DATABASE_URL configured:', process.env.DATABASE_URL ? 'Yes (length: ' + process.env.DATABASE_URL.length + ')' : 'No');
+    
+    let branchContext;
+    try {
+      branchContext = await resolveBranchContext(req.user);
+      console.log('📈 Branch context resolved:', branchContext);
+    } catch (branchError) {
+      console.error('❌ Error resolving branch context for sales forecast:', branchError);
+      return handleAnalyticsError(res, branchError, 'Failed to resolve branch context');
+    }
+
     const data = await computeSalesForecast({
       requestedRange: typeof req.query.range === 'string' ? req.query.range : '',
       branchContext
@@ -1744,7 +1916,33 @@ router.get('/sales-forecast', async (req, res) => {
       data
     });
   } catch (error) {
-    return handleAnalyticsError(res, error, 'Failed to generate sales forecast');
+    console.error('❌ Sales forecast error:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      originalError: error.originalError ? {
+        message: error.originalError.message,
+        code: error.originalError.code
+      } : null
+    });
+    
+    // Provide more specific error message
+    let errorMessage = 'Failed to fetch sales forecast.';
+    if (error.message?.includes('Missing DATABASE_URL') || error.message?.includes('Database connection not configured')) {
+      errorMessage = 'Database connection not configured. Please check server/.env file for DATABASE_URL.';
+    } else if (error.message?.includes('password authentication failed')) {
+      errorMessage = 'Database password authentication failed. Please check your DATABASE_URL password in server/.env';
+    } else if (error.message?.includes('Tenant or user not found')) {
+      errorMessage = 'Database connection failed. Please check your DATABASE_URL connection string in server/.env';
+    } else if (error.message) {
+      errorMessage = `Sales forecast error: ${error.message}`;
+    }
+    
+    return res.status(500).json({
+      success: false,
+      error: errorMessage
+    });
   }
 });
 

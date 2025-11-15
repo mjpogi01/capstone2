@@ -152,23 +152,23 @@ router.get('/metrics', authenticateArtist, async (req, res) => {
       console.error('Error fetching pending tasks:', pendingError);
     }
 
-    // Get completed tasks
+    // Get completed tasks (including submitted tasks)
     const { count: completedTasks, error: completedError } = await supabase
       .from('artist_tasks')
       .select('*', { count: 'exact', head: true })
       .eq('artist_id', profile.id)
-      .eq('status', 'completed');
+      .in('status', ['completed', 'submitted']);
 
     if (completedError) {
       console.error('Error fetching completed tasks:', completedError);
     }
 
-    // Calculate average completion time (in hours)
+    // Calculate average completion time (in hours) - including submitted tasks
     const { data: completedTasksData, error: avgTimeError } = await supabase
       .from('artist_tasks')
       .select('started_at, completed_at, assigned_at')
       .eq('artist_id', profile.id)
-      .eq('status', 'completed')
+      .in('status', ['completed', 'submitted'])
       .not('completed_at', 'is', null);
 
     let averageCompletionTime = 0;
@@ -240,11 +240,13 @@ router.get('/workload', authenticateArtist, async (req, res) => {
     }
 
     // Get tasks grouped by date and status
-    const { data: tasks, error: tasksError } = await supabase
+    // Get all tasks for the artist, then filter in JavaScript to include:
+    // - Tasks created in the period, OR
+    // - Tasks submitted in the period (even if created earlier)
+    const { data: allTasks, error: tasksError } = await supabase
       .from('artist_tasks')
-      .select('created_at, status')
+      .select('created_at, status, submitted_at, updated_at')
       .eq('artist_id', profile.id)
-      .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: true });
 
     if (tasksError) {
@@ -252,15 +254,60 @@ router.get('/workload', authenticateArtist, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch workload data' });
     }
 
-    // Group tasks by date
+    // Filter and group tasks by date
     const workloadData = {};
-    tasks.forEach(task => {
-      const date = task.created_at.split('T')[0];
-      if (!workloadData[date]) {
-        workloadData[date] = { pending: 0, in_progress: 0, completed: 0 };
+    
+    console.log(`[Workload] Processing ${allTasks.length} tasks for period: ${period}, startDate: ${startDate.toISOString()}`);
+    
+    allTasks.forEach(task => {
+      // Determine which date to use for grouping
+      let dateToUse;
+      let dateToCheck;
+      
+      if (task.status === 'submitted' || task.status === 'completed') {
+        // For submitted/completed tasks, prefer submitted_at, then updated_at, then created_at
+        dateToUse = task.submitted_at || task.updated_at || task.created_at;
+        dateToCheck = new Date(dateToUse);
+        
+        // Debug logging for submitted tasks
+        if (task.status === 'submitted') {
+          console.log(`[Workload] Submitted task found:`, {
+            id: task.id || 'unknown',
+            status: task.status,
+            submitted_at: task.submitted_at,
+            updated_at: task.updated_at,
+            created_at: task.created_at,
+            dateToUse: dateToUse,
+            dateToCheck: dateToCheck.toISOString(),
+            startDate: startDate.toISOString(),
+            inRange: dateToCheck >= startDate
+          });
+        }
+      } else {
+        // For other statuses, use created_at
+        dateToUse = task.created_at;
+        dateToCheck = new Date(task.created_at);
       }
-      workloadData[date][task.status]++;
+      
+      // Only include if the relevant date is within the selected period
+      if (dateToCheck >= startDate) {
+        const date = dateToUse.split('T')[0];
+        
+        if (!workloadData[date]) {
+          workloadData[date] = { pending: 0, in_progress: 0, completed: 0 };
+        }
+        
+        // Map 'submitted' status to 'completed' for workload chart
+        const status = task.status === 'submitted' ? 'completed' : task.status;
+        
+        // Only increment if status is valid
+        if (status === 'pending' || status === 'in_progress' || status === 'completed') {
+          workloadData[date][status]++;
+        }
+      }
     });
+    
+    console.log(`[Workload] Workload data:`, JSON.stringify(workloadData, null, 2));
 
     // Convert to array format
     const result = Object.entries(workloadData).map(([date, counts]) => ({
@@ -415,6 +462,20 @@ router.patch('/tasks/:taskId/status', authenticateArtist, async (req, res) => {
 
       if (!currentTask?.started_at) {
         updateData.started_at = new Date().toISOString();
+      }
+    }
+
+    // Set submitted_at when status changes to 'submitted' and it's not already set
+    if (status === 'submitted') {
+      // Check if submitted_at is already set
+      const { data: currentTask } = await supabase
+        .from('artist_tasks')
+        .select('submitted_at')
+        .eq('id', taskId)
+        .single();
+
+      if (!currentTask?.submitted_at) {
+        updateData.submitted_at = new Date().toISOString();
       }
     }
 
