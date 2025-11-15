@@ -270,11 +270,13 @@ const BranchMap = ({ onDataLoaded }) => {
   return (
     <div className="branch-map-container">
       <div className="branch-map-header">
-        <h3>
-          <FaUsers className="header-icon" />
-          Customer Locations
-        </h3>
-        <p>Visualize customer density with heatmap and red dot markers</p>
+        <div>
+          <h3>
+            <FaUsers className="header-icon" />
+            Customer Locations
+          </h3>
+          <p>Visualize customer density with heatmap and red dot markers</p>
+        </div>
         <div className="branch-map-controls">
           <label className="map-toggle">
             <input
@@ -282,7 +284,10 @@ const BranchMap = ({ onDataLoaded }) => {
               checked={showHeatmap}
               onChange={() => setShowHeatmap(prev => !prev)}
             />
-            <span>Heatmap</span>
+            <span className="toggle-slider"></span>
+            <span className="toggle-label">
+              <span className="toggle-text">Heatmap</span>
+            </span>
           </label>
           <label className="map-toggle">
             <input
@@ -290,7 +295,10 @@ const BranchMap = ({ onDataLoaded }) => {
               checked={showMarkers}
               onChange={() => setShowMarkers(prev => !prev)}
             />
-            <span>Red Dots</span>
+            <span className="toggle-slider"></span>
+            <span className="toggle-label">
+              <span className="toggle-text">Red Dots</span>
+            </span>
           </label>
         </div>
       </div>

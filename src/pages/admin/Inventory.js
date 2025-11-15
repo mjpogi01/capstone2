@@ -5,7 +5,7 @@ import Sidebar from '../../components/admin/Sidebar';
 import AddProductModal from '../../components/admin/AddProductModal';
 import { supabase } from '../../lib/supabase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faPlus, faImage, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faPlus, faImage, faChevronDown, faChevronUp, faSearch } from '@fortawesome/free-solid-svg-icons';
 
 const Inventory = () => {
   const [activePage, setActivePage] = useState('inventory');
@@ -23,6 +23,8 @@ const Inventory = () => {
     priceSort: 'none',
     soldSort: 'none'
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSearchInput, setShowSearchInput] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -30,7 +32,7 @@ const Inventory = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [products, filters]);
+  }, [products, filters, searchTerm]);
 
   const fetchProducts = async () => {
     try {
@@ -46,6 +48,13 @@ const Inventory = () => {
 
   const applyFilters = () => {
     let filtered = [...products];
+
+    // Filter by product name search
+    if (searchTerm.trim() !== '') {
+      filtered = filtered.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase().trim())
+      );
+    }
 
     // Filter by branch
     if (filters.branch !== 'all') {
@@ -343,6 +352,59 @@ const Inventory = () => {
                         <option value="asc">Low to High</option>
                         <option value="desc">High to Low</option>
                       </select>
+                    </div>
+                    
+                    {/* Search Button - Right side of Filter Controls */}
+                    <div className="filter-group search-group">
+                      {showSearchInput ? (
+                        <div className="search-input-wrapper">
+                          <input
+                            type="text"
+                            className="search-input"
+                            placeholder="Search by product name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                applyFilters();
+                              }
+                            }}
+                            onBlur={() => {
+                              if (searchTerm.trim() === '') {
+                                setShowSearchInput(false);
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <button 
+                            className="search-button"
+                            onClick={() => {
+                              if (searchTerm.trim() === '') {
+                                setShowSearchInput(false);
+                              } else {
+                                applyFilters();
+                              }
+                            }}
+                            type="button"
+                            aria-label="Search products"
+                          >
+                            <FontAwesomeIcon icon={faSearch} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          className="search-icon-button"
+                          onClick={() => {
+                            setShowSearchInput(true);
+                            setSearchTerm('');
+                          }}
+                          type="button"
+                          aria-label="Search products"
+                        >
+                          <FontAwesomeIcon icon={faSearch} />
+                        </button>
+                      )}
                     </div>
                   </div>
 

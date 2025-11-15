@@ -549,21 +549,30 @@
 
 @media (max-width: 480px) {
   .signupModal {
-    width: 92vw;
-    max-width: 340px;
+    width: 95vw;
+    max-width: 100%;
+    border-radius: 16px;
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+
+  .signupModalOverlay {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 20px;
   }
 
   .signupModalContent {
-    padding: 18px 16px;
+    padding: 16px 14px;
     gap: 8px;
   }
 
   .signupCloseBtn {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
-    top: 10px;
-    right: 10px;
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+    top: 8px;
+    right: 8px;
   }
 
   .signupHeader {
@@ -572,7 +581,7 @@
   }
 
   .signupLogo {
-    height: 34px;
+    height: 32px;
   }
 
   .signupTitle {
@@ -586,17 +595,18 @@
   /* Stack social buttons on mobile */
   .signupSocialButtons {
     flex-direction: column;
+    gap: 8px;
   }
 
   .signupSocialBtn {
-    font-size: 9px;
-    padding: 7px 9px;
-    gap: 5px;
+    font-size: 10px;
+    padding: 8px 10px;
+    gap: 6px;
     max-width: 100%;
   }
 
   .signupSocialBtn svg {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   /* Stack form to single column on mobile */
@@ -607,8 +617,115 @@
 
   .signupDivider {
     font-size: 8px;
-    margin: 0px 0;
+    margin: 4px 0;
     gap: 8px;
+  }
+
+  .signupLabel {
+    font-size: 9px;
+  }
+
+  .signupInput {
+    font-size: 11px;
+    padding: 8px 0;
+  }
+
+  .signupInputIcon {
+    font-size: 14px;
+  }
+
+  .signupPasswordToggle {
+    font-size: 14px;
+  }
+
+  .signupInputWrapper {
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .signupSignUpBtn {
+    font-size: 11px;
+    padding: 9px 14px;
+    gap: 5px;
+  }
+
+  .signupSpinner {
+    width: 10px;
+    height: 10px;
+    border-width: 1.5px;
+  }
+
+  .signupSignInPrompt {
+    padding-top: 6px;
+  }
+
+  .signupSignInPrompt p {
+    font-size: 9px;
+  }
+
+  .signupSignInLink {
+    font-size: 9px;
+  }
+
+  .signupErrorAlert {
+    font-size: 9px;
+    padding: 7px 9px;
+    gap: 8px;
+  }
+
+  .signupErrorIcon {
+    font-size: 13px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - EXTRA SMALL MOBILE
+   ============================================ */
+
+@media (max-width: 360px) {
+  .signupModal {
+    width: 98vw;
+    border-radius: 12px;
+    max-height: 98vh;
+  }
+
+  .signupModalContent {
+    padding: 14px 12px;
+    gap: 7px;
+  }
+
+  .signupCloseBtn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    top: 6px;
+    right: 6px;
+  }
+
+  .signupLogo {
+    height: 30px;
+  }
+
+  .signupTitle {
+    font-size: 16px;
+  }
+
+  .signupSubtitle {
+    font-size: 8px;
+  }
+
+  .signupSocialBtn {
+    font-size: 9px;
+    padding: 7px 9px;
+    gap: 5px;
+  }
+
+  .signupSocialBtn svg {
+    font-size: 13px;
+  }
+
+  .signupForm {
+    gap: 7px;
   }
 
   .signupLabel {
@@ -624,10 +741,6 @@
     font-size: 13px;
   }
 
-  .signupPasswordToggle {
-    font-size: 13px;
-  }
-
   .signupInputWrapper {
     padding: 0 8px;
     gap: 7px;
@@ -639,31 +752,16 @@
     gap: 4px;
   }
 
-  .signupSpinner {
-    width: 9px;
-    height: 9px;
-    border-width: 1.5px;
-  }
-
-  .signupSignInPrompt {
-    padding-top: 5px;
-  }
-
   .signupSignInPrompt p {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .signupSignInLink {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .signupErrorAlert {
-    font-size: 9px;
+    font-size: 8px;
     padding: 6px 8px;
-    gap: 7px;
-  }
-
-  .signupErrorIcon {
-    font-size: 12px;
   }
 }

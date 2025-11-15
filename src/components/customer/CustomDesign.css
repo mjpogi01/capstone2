@@ -430,6 +430,17 @@ body.checkout-modal-open .custom-design-floating-btn {
   z-index: -1 !important;
 }
 
+/* Hide floating button when SignInModal or SignUpModal are open */
+body:has([class*="signinModalOverlay"]) .custom-design-floating-btn,
+body:has([class*="signupModalOverlay"]) .custom-design-floating-btn,
+body.yohannModalOpen .custom-design-floating-btn {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
 .custom-design-floating-btn::before {
   content: '';
   position: absolute;
@@ -481,6 +492,17 @@ body.checkout-modal-open .custom-design-floating-btn {
     pointer-events: none !important;
     z-index: -1 !important;
   }
+  
+  /* Hide floating button when SignInModal or SignUpModal are open on mobile */
+  body:has([class*="signinModalOverlay"]) .custom-design-floating-btn,
+  body:has([class*="signupModalOverlay"]) .custom-design-floating-btn,
+  body.yohannModalOpen .custom-design-floating-btn {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
 }
 
 @media only screen and (max-width: 600px) {
@@ -504,6 +526,17 @@ body.checkout-modal-open .custom-design-floating-btn {
     pointer-events: none !important;
     z-index: -1 !important;
   }
+  
+  /* Hide floating button when SignInModal or SignUpModal are open */
+  body:has([class*="signinModalOverlay"]) .custom-design-floating-btn,
+  body:has([class*="signupModalOverlay"]) .custom-design-floating-btn,
+  body.yohannModalOpen .custom-design-floating-btn {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -521,6 +554,17 @@ body.checkout-modal-open .custom-design-floating-btn {
   body:has(.checkout-modal-overlay) .custom-design-floating-btn,
   body:has(.customer-chat-modal-overlay) .custom-design-floating-btn,
   body.checkout-modal-open .custom-design-floating-btn {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
+  
+  /* Hide floating button when SignInModal or SignUpModal are open */
+  body:has([class*="signinModalOverlay"]) .custom-design-floating-btn,
+  body:has([class*="signupModalOverlay"]) .custom-design-floating-btn,
+  body.yohannModalOpen .custom-design-floating-btn {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;

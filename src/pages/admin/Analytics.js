@@ -17,6 +17,8 @@ import '../admin/AdminDashboard.css';
 import './admin-shared.css';
 import { API_URL } from '../../config/api';
 import { authFetch, authJsonFetch } from '../../services/apiClient';
+import branchService from '../../services/branchService';
+import { useAuth } from '../../contexts/AuthContext';
 import { FaSearch, FaPlay, FaFilter, FaStore, FaClipboardList, FaTshirt, FaMap, FaChartLine, FaChartArea, FaUsers, FaUserPlus, FaShoppingCart, FaMoneyBillWave, FaRobot } from 'react-icons/fa';
 import './Analytics.css';
 import '../../components/Loading.css';
@@ -113,6 +115,9 @@ const useViewportWidth = (defaultWidth = 1440) => {
 };
 
 const Analytics = () => {
+  const { user } = useAuth();
+  const isOwner = user?.user_metadata?.role === 'owner';
+  
   const [analyticsData, setAnalyticsData] = useState({
     totalSales: [],
     totalSalesMonthly: [],
@@ -148,6 +153,7 @@ const Analytics = () => {
     yearStart: '',
     yearEnd: ''
   });
+  const [branches, setBranches] = useState([]);
   const [totalSalesLoading, setTotalSalesLoading] = useState(true);
   const filterRef = useRef(null);
   const [isNexusOpen, setIsNexusOpen] = useState(false);
@@ -161,6 +167,8 @@ const Analytics = () => {
     model: null
   });
   const [activeTab, setActiveTab] = useState('sales');
+  const [activeSalesChartTab, setActiveSalesChartTab] = useState('totalSales');
+  const [activeCustomersChartTab, setActiveCustomersChartTab] = useState('customerInsights');
   const hasCustomerLocationData = useMemo(() => {
     const pointsCount = Array.isArray(customerLocationsData?.points) ? customerLocationsData.points.length : 0;
     const cityCount = Array.isArray(customerLocationsData?.cityStats) ? customerLocationsData.cityStats.length : 0;
@@ -222,6 +230,31 @@ const Analytics = () => {
       applyFilters();
     }
   }, [filters, rawData]);
+
+  // Fetch branches for owners
+  useEffect(() => {
+    const loadBranches = async () => {
+      if (isOwner) {
+        try {
+          const branchesList = await branchService.getBranches();
+          setBranches(Array.isArray(branchesList) ? branchesList : []);
+        } catch (err) {
+          console.error('Failed to load branches:', err);
+          setBranches([]);
+        }
+      } else {
+        // For admins, set their assigned branch if available
+        const adminBranchId = user?.user_metadata?.branch_id;
+        const adminBranchName = user?.user_metadata?.branch_name;
+        if (adminBranchId && adminBranchName) {
+          setBranches([{ id: adminBranchId, name: adminBranchName }]);
+        } else {
+          setBranches([]);
+        }
+      }
+    };
+    loadBranches();
+  }, [isOwner, user]);
 
   // Close filter dropdown when clicking outside
   useEffect(() => {
@@ -692,15 +725,24 @@ const Analytics = () => {
       });
     }
 
-    const branchFilter = filters.branch !== 'all'
-      ? filters.branch.toLowerCase().replace(/\s+/g, '_')
-      : null;
-
+    // Handle branch filter - can be 'all' or a branch name
     let salesByBranch = rawData.salesByBranch ? [...rawData.salesByBranch] : [];
-    if (branchFilter) {
-      salesByBranch = salesByBranch.filter(
-        item => item.branch && item.branch.toLowerCase().replace(/\s+/g, '_') === branchFilter
-      );
+    if (filters.branch !== 'all') {
+      // Try to find branch by name first
+      const selectedBranch = branches.find(b => b.name === filters.branch);
+      if (selectedBranch) {
+        // Filter by exact branch name
+        salesByBranch = salesByBranch.filter(
+          item => item.branch && (item.branch === selectedBranch.name || 
+                                  item.branch.toLowerCase() === selectedBranch.name.toLowerCase())
+        );
+      } else {
+        // Fallback to old method (normalized name matching) for backward compatibility
+        const branchFilter = filters.branch.toLowerCase().replace(/\s+/g, '_');
+        salesByBranch = salesByBranch.filter(
+          item => item.branch && item.branch.toLowerCase().replace(/\s+/g, '_') === branchFilter
+        );
+      }
     }
 
     let orderStatus = rawData.orderStatus
@@ -1484,10 +1526,21 @@ const Analytics = () => {
                     onChange={(e) => handleFilterChange('branch', e.target.value)}
                   >
                     <option value="all">All Branches</option>
-                    <option value="main">Main Branch</option>
-                    <option value="sm_city">SM City</option>
-                    <option value="ayala">Ayala Mall</option>
-                    <option value="robinson">Robinson's</option>
+                    {branches.length > 0 ? (
+                      branches.map(branch => (
+                        <option key={branch.id} value={branch.name}>
+                          {branch.name}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        {/* Fallback options if branches haven't loaded yet */}
+                        <option value="main">Main Branch</option>
+                        <option value="sm_city">SM City</option>
+                        <option value="ayala">Ayala Mall</option>
+                        <option value="robinson">Robinson's</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 <div className="filter-group">
@@ -1625,8 +1678,33 @@ const Analytics = () => {
         {/* Sales & Revenue Tab */}
         {activeTab === 'sales' && (
           <>
+            {/* Chart Tabs for Sales & Revenue */}
+            <div className="sales-chart-tabs-container">
+              <div className="sales-chart-tabs">
+                <button
+                  className={`sales-chart-tab ${activeSalesChartTab === 'totalSales' ? 'active' : ''}`}
+                  onClick={() => setActiveSalesChartTab('totalSales')}
+                >
+                  <span>Total Sales Over Time</span>
+                </button>
+                <button
+                  className={`sales-chart-tab ${activeSalesChartTab === 'dailySales' ? 'active' : ''}`}
+                  onClick={() => setActiveSalesChartTab('dailySales')}
+                >
+                  <span>Daily Sales & Orders</span>
+                </button>
+                <button
+                  className={`sales-chart-tab ${activeSalesChartTab === 'salesByBranch' ? 'active' : ''}`}
+                  onClick={() => setActiveSalesChartTab('salesByBranch')}
+                >
+                  <span>Sales By Branch</span>
+                </button>
+              </div>
+            </div>
+
             {/* Total Sales Over Time */}
-            <div className="analytics-card geo-distribution-card">
+            {activeSalesChartTab === 'totalSales' && (
+            <div className="analytics-card geo-distribution-card sales-chart-card">
           <div className="card-header">
             <FaChartLine className="card-icon" />
             <h3>Total Sales Over Time</h3>
@@ -1689,9 +1767,11 @@ const Analytics = () => {
             )}
           </div>
         </div>
+            )}
 
         {/* Daily Sales & Orders */}
-        <div className="analytics-card geo-distribution-card">
+        {activeSalesChartTab === 'dailySales' && (
+        <div className="analytics-card geo-distribution-card sales-chart-card">
           <div className="card-header">
             <FaChartArea className="card-icon" />
             <h3>Daily Sales & Orders (Trailing 30 Days)</h3>
@@ -1728,9 +1808,11 @@ const Analytics = () => {
             )}
           </div>
         </div>
+        )}
 
         {/* Sales By Branch */}
-        <div className="analytics-card geo-distribution-card">
+        {activeSalesChartTab === 'salesByBranch' && (
+        <div className="analytics-card geo-distribution-card sales-chart-card">
           <div className="card-header">
             <FaStore className="card-icon" />
             <h3>Sales By Branch</h3>
@@ -1760,6 +1842,7 @@ const Analytics = () => {
             </>
           </div>
         </div>
+        )}
           </>
         )}
 
@@ -1840,8 +1923,27 @@ const Analytics = () => {
         {/* Customers Tab */}
         {activeTab === 'customers' && (
           <>
+            {/* Chart Tabs for Customers */}
+            <div className="sales-chart-tabs-container">
+              <div className="sales-chart-tabs">
+                <button
+                  className={`sales-chart-tab ${activeCustomersChartTab === 'customerInsights' ? 'active' : ''}`}
+                  onClick={() => setActiveCustomersChartTab('customerInsights')}
+                >
+                  <span>Customer Insights</span>
+                </button>
+                <button
+                  className={`sales-chart-tab ${activeCustomersChartTab === 'customerLocations' ? 'active' : ''}`}
+                  onClick={() => setActiveCustomersChartTab('customerLocations')}
+                >
+                  <span>Customer Locations</span>
+                </button>
+              </div>
+            </div>
+
             {/* Customer Insights */}
-            <div className="analytics-card geo-distribution-card">
+            {activeCustomersChartTab === 'customerInsights' && (
+            <div className="analytics-card geo-distribution-card sales-chart-card">
           <div className="card-header">
             <FaUsers className="card-icon" />
             <h3>Customer Insights</h3>
@@ -1920,9 +2022,11 @@ const Analytics = () => {
               </>
             )}
           </div>
+            )}
 
             {/* Customer Locations */}
-            <div className="analytics-card geo-distribution-card">
+            {activeCustomersChartTab === 'customerLocations' && (
+            <div className="analytics-card geo-distribution-card sales-chart-card">
           <div className="card-header">
             <FaMap className="card-icon" />
             <h3>Customer Locations</h3>
@@ -1948,6 +2052,7 @@ const Analytics = () => {
             </div>
           </Suspense>
         </div>
+            )}
           </>
         )}
 

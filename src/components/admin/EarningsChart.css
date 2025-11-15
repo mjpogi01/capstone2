@@ -1,82 +1,67 @@
 /* ===========================================
    EARNINGS CHART - Analytics Style
-   Clean card with simple styling
+   Uses Analytics.css for card layout
    =========================================== */
 
-.earnings-chart {
-  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-  border-radius: 16px;
-  border: 1px solid #e5e7eb;
-  padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  height: auto;
-  min-height: 420px;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 100%;
-  overflow: hidden;
-}
-
-.earnings-chart:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
-  border-color: #cbd5e1;
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.chart-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
-}
-
-.chart-controls {
-  display: flex;
-  gap: 0.875rem;
-}
-
-.year-select,
-.location-select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #ffffff;
-  font-size: 0.875rem;
-  color: #374151;
+/* Year select dropdown styled to match time-range-btn */
+.time-range-btn.year-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 12px;
+  padding-right: 2.25rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120px;
 }
 
-.year-select:hover,
-.location-select:hover {
-  border-color: #9ca3af;
-}
-
-.year-select:focus,
-.location-select:focus {
+.time-range-btn.year-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: #e2e8f0;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .chart-container {
   flex: 1;
   display: flex;
   position: relative;
-  min-height: 280px;
+  min-height: 300px;
   width: 100%;
+}
+
+.chart-loading,
+.chart-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #64748b;
+}
+
+.chart-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.chart-loading p,
+.chart-empty p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
 }
 
 .chart-area {

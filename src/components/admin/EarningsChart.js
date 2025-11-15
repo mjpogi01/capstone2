@@ -1,10 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import {
+  GridComponent,
+  TooltipComponent,
+  TitleComponent,
+  LegendComponent
+} from 'echarts/components';
+import { SVGRenderer } from 'echarts/renderers';
+import ReactEChartsCore from 'echarts-for-react/lib/core';
+import { FaChartLine } from 'react-icons/fa';
 import './EarningsChart.css';
+import '../../pages/admin/Analytics.css';
+import { API_URL } from '../../config/api';
+import { authFetch } from '../../services/apiClient';
 
-const EarningsChart = () => {
-  const [selectedBranch, setSelectedBranch] = useState('all');
-  const [hoveredPoint, setHoveredPoint] = useState(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+echarts.use([
+  GridComponent,
+  TooltipComponent,
+  TitleComponent,
+  LegendComponent,
+  LineChart,
+  SVGRenderer
+]);
+
+const EarningsChart = ({ selectedBranchId = null }) => {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-PH', {
@@ -13,175 +36,249 @@ const EarningsChart = () => {
       minimumFractionDigits: 0
     }).format(amount);
   };
-  
-  const branches = [
-    { value: 'all', label: 'All Branches' },
-    { value: 'batangas_city', label: 'BATANGAS CITY BRANCH' },
-    { value: 'bauan', label: 'BAUAN BRANCH' },
-    { value: 'san_pascual', label: 'SAN PASCUAL (MAIN BRANCH)' },
-    { value: 'calapan', label: 'CALAPAN BRANCH' },
-    { value: 'pinamalayan', label: 'PINAMALAYAN BRANCH' },
-    { value: 'muzon', label: 'MUZON BRANCH' },
-    { value: 'lemery', label: 'LEMERY BRANCH' },
-    { value: 'rosario', label: 'ROSARIO BRANCH' },
-    { value: 'calaca', label: 'CALACA BRANCH' }
-  ];
 
-  const earningsData = [
-    { month: 'Jan', value: 15000 },
-    { month: 'Feb', value: 18000 },
-    { month: 'Mar', value: 22000 },
-    { month: 'Apr', value: 19000 },
-    { month: 'May', value: 24810 },
-    { month: 'Jun', value: 21000 },
-    { month: 'Jul', value: 23000 },
-    { month: 'Aug', value: 25000 },
-    { month: 'Sep', value: 22000 },
-    { month: 'Oct', value: 26000 },
-    { month: 'Nov', value: 24000 },
-    { month: 'Dec', value: 28000 }
-  ];
+  const [allMonthlyData, setAllMonthlyData] = useState([]);
 
-  const maxValue = Math.max(...earningsData.map(d => d.value));
-  const minValue = Math.min(...earningsData.map(d => d.value));
+  // Fetch monthly earnings data
+  useEffect(() => {
+    const fetchMonthlyData = async () => {
+      try {
+        setLoading(true);
+        let url = `${API_URL}/api/analytics/dashboard`;
+        
+        // Include branch_id if provided
+        if (selectedBranchId) {
+          url += `?branch_id=${encodeURIComponent(selectedBranchId)}`;
+        }
+        
+        const response = await authFetch(url);
+        const result = await response.json();
+        
+        if (result.success && result.data?.salesOverTime?.monthly) {
+          // Store all monthly data
+          const allData = result.data.salesOverTime.monthly;
+          setAllMonthlyData(allData);
+          
+          // Filter data for selected year
+          const yearData = allData.filter(item => item.year === selectedYear);
+          
+          // Sort by month
+          yearData.sort((a, b) => a.month - b.month);
+          
+          setMonthlyData(yearData);
+        } else {
+          setAllMonthlyData([]);
+          setMonthlyData([]);
+        }
+      } catch (error) {
+        console.error('Error fetching monthly earnings data:', error);
+        setAllMonthlyData([]);
+        setMonthlyData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMonthlyData();
+  }, [selectedYear, selectedBranchId]);
+
+  // Get available years from all data
+  const availableYears = useMemo(() => {
+    if (!allMonthlyData.length) {
+      const currentYear = new Date().getFullYear();
+      return [currentYear - 1, currentYear, currentYear + 1];
+    }
+    
+    const years = new Set();
+    allMonthlyData.forEach(item => {
+      if (item.year) years.add(item.year);
+    });
+    
+    const yearsArray = Array.from(years).sort((a, b) => b - a);
+    if (yearsArray.length === 0) {
+      const currentYear = new Date().getFullYear();
+      return [currentYear - 1, currentYear, currentYear + 1];
+    }
+    return yearsArray;
+  }, [allMonthlyData]);
+
+  // Prepare chart data
+  const chartOption = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Create data for all 12 months
+    const fullYearData = Array.from({ length: 12 }, (_, i) => {
+      const monthIndex = i + 1;
+      const monthData = monthlyData.find(item => item.month === monthIndex);
+      return monthData ? monthData.sales : 0;
+    });
+
+    return {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+          label: {
+            backgroundColor: '#6a7985'
+          }
+        },
+        formatter: (params) => {
+          const param = params[0];
+          const monthIndex = param.dataIndex;
+          const monthName = months[monthIndex];
+          const value = param.value;
+          return `${monthName}<br/>${formatCurrency(value)}`;
+        },
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        textStyle: {
+          color: '#1e293b',
+          fontSize: 12
+        },
+        padding: [8, 12]
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        top: '10%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: months,
+        axisLine: {
+          lineStyle: {
+            color: '#cbd5e1'
+          }
+        },
+        axisLabel: {
+          color: '#64748b',
+          fontSize: 11
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: {
+          lineStyle: {
+            color: '#cbd5e1'
+          }
+        },
+        axisLabel: {
+          color: '#64748b',
+          fontSize: 11,
+          formatter: (value) => {
+            if (value >= 1000) {
+              return `₱${(value / 1000).toFixed(0)}k`;
+            }
+            return `₱${value}`;
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: '#f1f5f9',
+            type: 'dashed'
+          }
+        }
+      },
+      series: [
+        {
+          name: 'Earnings',
+          type: 'line',
+          smooth: true,
+          data: fullYearData,
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                {
+                  offset: 0,
+                  color: 'rgba(59, 130, 246, 0.3)'
+                },
+                {
+                  offset: 1,
+                  color: 'rgba(59, 130, 246, 0.05)'
+                }
+              ]
+            }
+          },
+          lineStyle: {
+            color: '#3b82f6',
+            width: 2
+          },
+          itemStyle: {
+            color: '#3b82f6',
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          },
+          symbol: 'circle',
+          symbolSize: 6,
+          emphasis: {
+            itemStyle: {
+              color: '#1d4ed8',
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              shadowBlur: 10,
+              shadowColor: 'rgba(59, 130, 246, 0.5)'
+            },
+            symbolSize: 8
+          }
+        }
+      ]
+    };
+  }, [monthlyData]);
+
+  const chartHeights = {
+    base: '300px'
+  };
 
   return (
-    <div className="earnings-chart">
-      <div className="chart-header">
-        <h3 className="chart-title">Earnings</h3>
-        <div className="chart-controls">
-          <select className="year-select">
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-          </select>
+    <div className="analytics-card geo-distribution-card">
+      <div className="card-header">
+        <FaChartLine className="card-icon" />
+        <h3>Earnings</h3>
+        <div className="card-controls">
           <select 
-            className="location-select"
-            value={selectedBranch}
-            onChange={(e) => setSelectedBranch(e.target.value)}
+            className="time-range-btn year-select"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
           >
-            {branches.map(branch => (
-              <option key={branch.value} value={branch.value}>
-                {branch.label}
+            {availableYears.map(year => (
+              <option key={year} value={year}>
+                {year}
               </option>
             ))}
           </select>
         </div>
       </div>
-      
       <div className="chart-container">
-        <div className="chart-area">
-          <svg className="chart-svg" viewBox="0 0 400 200">
-            <defs>
-              <linearGradient id="earningsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3"/>
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05"/>
-              </linearGradient>
-            </defs>
-            
-            {/* Area under the curve */}
-            <path
-              d={`M0,200 ${earningsData.map((d, i) => {
-                const x = (i / (earningsData.length - 1)) * 400;
-                const y = 200 - ((d.value - minValue) / (maxValue - minValue)) * 180;
-                return `L${x},${y}`;
-              }).join(' ')} L400,200 Z`}
-              fill="url(#earningsGradient)"
-            />
-            
-            {/* Line */}
-            <path
-              d={`M${earningsData.map((d, i) => {
-                const x = (i / (earningsData.length - 1)) * 400;
-                const y = 200 - ((d.value - minValue) / (maxValue - minValue)) * 180;
-                return `${i === 0 ? '' : 'L'}${x},${y}`;
-              }).join(' ')}`}
-              stroke="#3b82f6"
-              strokeWidth="2"
-              fill="none"
-            />
-            
-            {/* Data points with hover areas */}
-            {earningsData.map((d, i) => {
-              const x = (i / (earningsData.length - 1)) * 400;
-              const y = 200 - ((d.value - minValue) / (maxValue - minValue)) * 180;
-              return (
-                <g key={i}>
-                  {/* Invisible larger circle for easier hover */}
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r="12"
-                    fill="transparent"
-                    className="data-point-hover"
-                    onMouseEnter={(e) => {
-                      const chartArea = e.currentTarget.closest('.chart-area');
-                      if (chartArea) {
-                        const rect = chartArea.getBoundingClientRect();
-                        const svgRect = chartArea.querySelector('.chart-svg').getBoundingClientRect();
-                        // Calculate position relative to chart area
-                        const relativeX = ((x / 400) * svgRect.width) + svgRect.left - rect.left;
-                        const relativeY = ((y / 200) * svgRect.height) + svgRect.top - rect.top;
-                        setHoveredPoint({ month: d.month, value: d.value, index: i });
-                        setTooltipPosition({
-                          x: relativeX,
-                          y: relativeY
-                        });
-                      }
-                    }}
-                    onMouseMove={(e) => {
-                      const chartArea = e.currentTarget.closest('.chart-area');
-                      if (chartArea && hoveredPoint?.index === i) {
-                        const rect = chartArea.getBoundingClientRect();
-                        const svgRect = chartArea.querySelector('.chart-svg').getBoundingClientRect();
-                        const relativeX = ((x / 400) * svgRect.width) + svgRect.left - rect.left;
-                        const relativeY = ((y / 200) * svgRect.height) + svgRect.top - rect.top;
-                        setTooltipPosition({
-                          x: relativeX,
-                          y: relativeY
-                        });
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  />
-                  {/* Visible data point */}
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={hoveredPoint?.index === i ? "5" : "3"}
-                    fill={hoveredPoint?.index === i ? "#1d4ed8" : "#3b82f6"}
-                    className="data-point"
-                  />
-                </g>
-              );
-            })}
-          </svg>
-          
-          {/* Tooltip */}
-          {hoveredPoint && (
-            <div 
-              className="chart-tooltip"
-              style={{
-                left: `${tooltipPosition.x}px`,
-                top: `${tooltipPosition.y}px`,
-                transform: 'translate(-50%, calc(-100% - 12px))'
-              }}
-            >
-              <div className="tooltip-content">
-                <div className="tooltip-month">{hoveredPoint.month}</div>
-                <div className="tooltip-value">{formatCurrency(hoveredPoint.value)}</div>
-              </div>
-            </div>
-          )}
-          
-          <div className="chart-x-axis">
-            {earningsData.map((d, i) => (
-              <div key={i} className="x-axis-label">
-                {d.month}
-              </div>
-            ))}
+        {loading ? (
+          <div className="analytics-loading-inline">
+            <div className="loading-spinner"></div>
+            <p>Loading earnings data...</p>
           </div>
-        </div>
+        ) : monthlyData.length === 0 ? (
+          <div className="chart-empty-state">
+            <p>No earnings data available</p>
+          </div>
+        ) : (
+          <>
+            <ReactEChartsCore
+              echarts={echarts}
+              option={chartOption}
+              notMerge
+              lazyUpdate
+              opts={{ renderer: 'svg' }}
+              style={{ height: chartHeights.base, width: '100%' }}
+            />
+          </>
+        )}
       </div>
     </div>
   );

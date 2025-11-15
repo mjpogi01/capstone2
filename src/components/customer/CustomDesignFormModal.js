@@ -1289,42 +1289,45 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                           })()}
                         </div>
 
-                        {/* Fabric Option Selector */}
-                        <div className="cdfm-member-customization-group">
-                          <label className="cdfm-member-customization-label">Fabric Option</label>
-                          <select
-                            value={m.fabricOption || 'Polydex'}
-                            onChange={(e) => {
-                              updateMember(idx, 'fabricOption', e.target.value);
-                              if (showErrors) setShowErrors(false);
-                            }}
-                            className="cdfm-member-select"
-                          >
-                            {fabricOptions.map(fabric => (
-                              <option key={fabric.name} value={fabric.name}>
-                                {fabric.name} {fabric.surcharge > 0 ? `(+₱${fabric.surcharge})` : ''}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        {/* Fabric Option and Cut Type in One Row */}
+                        <div className="cdfm-fabric-cut-row">
+                          {/* Fabric Option Selector */}
+                          <div className="cdfm-member-customization-group">
+                            <label className="cdfm-member-customization-label">Fabric Option</label>
+                            <select
+                              value={m.fabricOption || 'Polydex'}
+                              onChange={(e) => {
+                                updateMember(idx, 'fabricOption', e.target.value);
+                                if (showErrors) setShowErrors(false);
+                              }}
+                              className="cdfm-member-select"
+                            >
+                              {fabricOptions.map(fabric => (
+                                <option key={fabric.name} value={fabric.name}>
+                                  {fabric.name} {fabric.surcharge > 0 ? `(+₱${fabric.surcharge})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
-                        {/* Cut Type Selector */}
-                        <div className="cdfm-member-customization-group">
-                          <label className="cdfm-member-customization-label">Cut Type</label>
-                          <select
-                            value={m.cutType || 'Normal Cut'}
-                            onChange={(e) => {
-                              updateMember(idx, 'cutType', e.target.value);
-                              if (showErrors) setShowErrors(false);
-                            }}
-                            className="cdfm-member-select"
-                          >
-                            {cutTypeOptions.map(cut => (
-                              <option key={cut.name} value={cut.name}>
-                                {cut.name} {cut.surcharge > 0 ? `(+₱${cut.surcharge})` : ''}
-                              </option>
-                            ))}
-                          </select>
+                          {/* Cut Type Selector */}
+                          <div className="cdfm-member-customization-group">
+                            <label className="cdfm-member-customization-label">Cut Type</label>
+                            <select
+                              value={m.cutType || 'Normal Cut'}
+                              onChange={(e) => {
+                                updateMember(idx, 'cutType', e.target.value);
+                                if (showErrors) setShowErrors(false);
+                              }}
+                              className="cdfm-member-select"
+                            >
+                              {cutTypeOptions.map(cut => (
+                                <option key={cut.name} value={cut.name}>
+                                  {cut.name} {cut.surcharge > 0 ? `(+₱${cut.surcharge})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     )}

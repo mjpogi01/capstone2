@@ -346,7 +346,36 @@ function getBarangayCoordinate({
   return null;
 }
 
-async function resolveBranchContext(user) {
+async function resolveBranchContext(user, optionalBranchId = null) {
+  // For owners, allow filtering by optional branch_id parameter
+  if (user && user.role === 'owner' && optionalBranchId !== null) {
+    const branchId = parseInt(optionalBranchId, 10);
+    if (Number.isNaN(branchId)) {
+      return null;
+    }
+    
+    let branchName = null;
+    try {
+      const { data: branchData, error: branchError } = await supabase
+        .from('branches')
+        .select('id, name')
+        .eq('id', branchId)
+        .single();
+
+      if (!branchError && branchData?.name) {
+        branchName = branchData.name;
+      }
+    } catch (err) {
+      console.warn('⚠️ Unable to resolve branch name for owner filter:', err.message);
+    }
+
+    if (branchName) {
+      return { branchId, branchName, normalizedName: normalizeBranchValue(branchName) };
+    }
+    return null;
+  }
+
+  // For admins, use their assigned branch
   if (!user || user.role !== 'admin') {
     return null;
   }
@@ -501,6 +530,15 @@ function buildBranchFilterClause(branchContext, startIndex = 1) {
   const params = [];
   let index = startIndex;
 
+  // Filter by pickup_branch_id if available (more accurate)
+  if (branchContext.branchId) {
+    params.push(branchContext.branchId);
+    const branchIdIndex = index;
+    index += 1;
+    conditions.push(`(pickup_branch_id = $${branchIdIndex} OR branch_id = $${branchIdIndex})`);
+  }
+
+  // Also filter by pickup_location name (for compatibility)
   if (branchContext.branchName) {
     const escapedFull = escapeLike(branchContext.branchName);
     params.push(`%${escapedFull}%`);
@@ -849,7 +887,11 @@ router.get('/dashboard', async (req, res) => {
   try {
     console.log('📊 Fetching analytics data (optimized)...');
 
-    const branchContext = await resolveBranchContext(req.user);
+    // For owners, allow filtering by branch_id query parameter
+    const optionalBranchId = req.user?.role === 'owner' && req.query.branch_id 
+      ? req.query.branch_id 
+      : null;
+    const branchContext = await resolveBranchContext(req.user, optionalBranchId);
 
     const now = new Date();
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);

@@ -9,7 +9,13 @@ class BranchService {
     }
 
     const data = await response.json();
-    return Array.isArray(data) ? data : [];
+    // Handle both array response and object with branches property
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data?.branches && Array.isArray(data.branches)) {
+      return data.branches;
+    }
+    return [];
   }
 }
 

@@ -1615,6 +1615,18 @@
   margin-bottom: 8px;
 }
 
+.cdfm-fabric-cut-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.cdfm-fabric-cut-row .cdfm-member-customization-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
 .cdfm-member-customization-label {
   color: #FFFFFF;
   font-size: 0.85rem;
@@ -1663,6 +1675,16 @@
   color: #000;
   box-shadow: 0 0 15px rgba(0, 191, 255, 0.6);
   font-weight: 700;
+}
+
+/* Mobile responsiveness - 2 buttons per row */
+@media only screen and (max-width: 768px) {
+  .cdfm-member-jersey-type-btn,
+  .cdfm-member-size-type-btn {
+    flex: 0 0 calc(50% - 4px);
+    min-width: calc(50% - 4px);
+    max-width: calc(50% - 4px);
+  }
 }
 
 .cdfm-member-size-selectors {

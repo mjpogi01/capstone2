@@ -1,7 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import * as echarts from 'echarts/core';
+import { BarChart } from 'echarts/charts';
+import {
+  GridComponent,
+  TooltipComponent,
+  TitleComponent
+} from 'echarts/components';
+import { SVGRenderer } from 'echarts/renderers';
+import ReactEChartsCore from 'echarts-for-react/lib/core';
+import { useNavigate } from 'react-router-dom';
 import './Dashboard1.css';
+import './Analytics.css';
 import orderService from '../../services/orderService';
 import EarningsChart from '../../components/admin/EarningsChart';
+import AddProductModal from '../../components/admin/AddProductModal';
 import { API_URL } from '../../config/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -16,14 +28,31 @@ import {
   faFileAlt,
   faCog,
   faChevronUp,
+  faChevronDown,
   faEdit,
   faBoxOpen,
   faTrash,
-  faTimes
+  faTimes,
+  faBuilding,
+  faStore
 } from '@fortawesome/free-solid-svg-icons';
 import { authFetch } from '../../services/apiClient';
+import { useAuth } from '../../contexts/AuthContext';
+import branchService from '../../services/branchService';
+
+echarts.use([
+  GridComponent,
+  TooltipComponent,
+  TitleComponent,
+  BarChart,
+  SVGRenderer
+]);
 
 const Dashboard1 = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const isOwner = user?.user_metadata?.role === 'owner';
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [showStockSearch, setShowStockSearch] = useState(false);
   const [stockFilters, setStockFilters] = useState({
@@ -43,6 +72,15 @@ const Dashboard1 = () => {
     stockQuantity: '',
     reorderLevel: ''
   });
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+
+  // Branch filter for owners
+  const [branches, setBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState('all');
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  
+  // Chart tabs
+  const [activeChartTab, setActiveChartTab] = useState('earnings');
 
   // Dashboard stats with real data from API
   const [dashboardStats, setDashboardStats] = useState({
@@ -171,6 +209,7 @@ const Dashboard1 = () => {
     return Math.min((quantity / max) * 100, 100);
   };
 
+
   const formatCategory = (category) => {
     if (!category) return '';
     // Format category names for display: "t-shirts" -> "T-Shirts", "long sleeves" -> "Long Sleeves"
@@ -259,6 +298,25 @@ const Dashboard1 = () => {
     });
   };
 
+  const handleQuickAddProduct = () => {
+    setShowAddProductModal(true);
+  };
+
+  const handleWalkIn = () => {
+    const walkInPath = isOwner ? '/owner/walk-in-orders' : '/admin/walk-in-orders';
+    navigate(walkInPath);
+  };
+
+  const handleAddProduct = (newProduct) => {
+    // Product added successfully, modal will close automatically
+    console.log('Product added:', newProduct);
+    setShowAddProductModal(false);
+  };
+
+  const handleCloseProductModal = () => {
+    setShowAddProductModal(false);
+  };
+
   const handleAddStockSubmit = () => {
     // Validation
     if (!newStockItem.name || !newStockItem.category) {
@@ -335,6 +393,169 @@ const Dashboard1 = () => {
     .sort((a, b) => a.stockQuantity - b.stockQuantity)
     .slice(0, 10);
 
+  // Prepare ECharts data for low stock items
+  const lowStockChartOption = useMemo(() => {
+    if (lowStockItems.length === 0) {
+      return null;
+    }
+
+    // Limit to top 10 items for chart
+    const chartItems = lowStockItems.slice(0, 10);
+    
+    const itemNames = chartItems.map(item => item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name);
+    const stockQuantities = chartItems.map(item => item.stockQuantity);
+    const reorderLevels = chartItems.map(item => item.reorderLevel);
+    const colors = chartItems.map(item => getStockStatusColor(item.status));
+
+    return {
+      tooltip: {
+        trigger: 'item',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: (params) => {
+          if (!params) {
+            return '';
+          }
+          
+          // For item trigger with horizontal bar chart, dataIndex is on params
+          // Also try to get it from data.value if it's an object
+          let dataIndex = params.dataIndex;
+          
+          if (dataIndex === undefined && params.data) {
+            if (typeof params.data === 'object' && params.data.value !== undefined) {
+              // Try to find the index by matching value
+              const value = params.data.value;
+              dataIndex = stockQuantities.findIndex(qty => qty === value);
+            } else if (params.dataIndex !== undefined) {
+              dataIndex = params.dataIndex;
+            }
+          }
+          
+          // If still undefined, try to get from name/value matching
+          if (dataIndex === undefined && params.name !== undefined) {
+            const nameMatch = itemNames.findIndex(name => name === params.name || name.includes(params.name));
+            if (nameMatch !== -1) {
+              dataIndex = nameMatch;
+            }
+          }
+          
+          if (dataIndex === undefined || dataIndex < 0 || dataIndex >= chartItems.length) {
+            return '';
+          }
+          
+          const item = chartItems[dataIndex];
+          if (!item) {
+            return '';
+          }
+          
+          return `
+            <div style="padding: 8px;">
+              <div style="font-weight: 600; margin-bottom: 4px;">${item.name || 'Unknown Item'}</div>
+              <div>Stock: <strong>${item.stockQuantity || 0}</strong> units</div>
+              <div>Reorder Level: <strong>${item.reorderLevel || 0}</strong> units</div>
+              <div>Status: <strong style="color: ${getStockStatusColor(item.status)}">${item.status || 'Unknown'}</strong></div>
+            </div>
+          `;
+        },
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        textStyle: {
+          color: '#1e293b',
+          fontSize: 12
+        },
+        padding: [10, 12]
+      },
+      grid: {
+        left: '25%',
+        right: '8%',
+        bottom: '12%',
+        top: '10%',
+        containLabel: false
+      },
+      xAxis: {
+        type: 'value',
+        axisLine: {
+          lineStyle: {
+            color: '#cbd5e1'
+          }
+        },
+        axisLabel: {
+          color: '#64748b',
+          fontSize: 11
+        },
+        splitLine: {
+          lineStyle: {
+            color: '#f1f5f9',
+            type: 'dashed'
+          }
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: itemNames,
+        axisLine: {
+          lineStyle: {
+            color: '#cbd5e1'
+          }
+        },
+        axisLabel: {
+          color: '#64748b',
+          fontSize: 10,
+          width: 90,
+          overflow: 'truncate',
+          ellipsis: '...',
+          interval: 0
+        }
+      },
+      series: [
+        {
+          name: 'Stock Quantity',
+          type: 'bar',
+          data: stockQuantities.map((qty, index) => ({
+            value: qty,
+            itemStyle: {
+              color: colors[index]
+            }
+          })),
+          barWidth: '40%',
+          label: {
+            show: true,
+            position: 'right',
+            formatter: '{c}',
+            color: '#1e293b',
+            fontSize: 10,
+            fontWeight: 500,
+            distance: 8
+          }
+        },
+        {
+          name: 'Reorder Level',
+          type: 'bar',
+          data: reorderLevels.map((level, index) => ({
+            value: level,
+            itemStyle: {
+              color: 'rgba(107, 114, 128, 0.3)',
+              borderColor: '#6b7280',
+              borderWidth: 1
+            }
+          })),
+          barWidth: '40%',
+          barGap: '-100%',
+          label: {
+            show: false,
+            position: 'right',
+            formatter: 'Reorder: {c}',
+            color: '#64748b',
+            fontSize: 9
+          },
+          z: 1
+        }
+      ]
+    };
+  }, [lowStockItems]);
+
   const categories = [...new Set(stockItems.map(item => item.category))];
   const statuses = ['In Stock', 'Low Stock', 'Out of Stock'];
   const suppliers = [...new Set(stockItems.map(item => item.supplier))];
@@ -359,35 +580,48 @@ const Dashboard1 = () => {
       if (!event.target.closest('.dashboard1-stock-controls')) {
         setShowStockFilters(false);
       }
+      if (!event.target.closest('.dashboard1-branch-filter')) {
+        setShowBranchDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Fetch branches for owners
   useEffect(() => {
-    fetchMetricsData();
-  }, []);
+    const loadBranches = async () => {
+      if (isOwner) {
+        try {
+          const data = await branchService.getBranches();
+          setBranches(Array.isArray(data) ? data : []);
+        } catch (err) {
+          console.error('Failed to load branches:', err);
+          setBranches([]);
+        }
+      }
+    };
+    loadBranches();
+  }, [isOwner]);
 
-  useEffect(() => {
-    fetchRecentOrders(true);
-    
-    // Refresh orders every 30 seconds to keep data up to date (silently, without loading spinner)
-    const refreshInterval = setInterval(() => {
-      fetchRecentOrders(false);
-    }, 30000);
-    
-    // Cleanup interval on unmount
-    return () => clearInterval(refreshInterval);
-  }, []);
-
-  const fetchMetricsData = async () => {
+  const fetchMetricsData = useCallback(async () => {
     try {
       setLoadingStats(true);
       
+      // Build query parameters - include branch_id for owners if selected
+      let url = `${API_URL}/api/analytics/dashboard`;
+      if (isOwner && selectedBranchId && selectedBranchId !== 'all') {
+        url += `?branch_id=${encodeURIComponent(selectedBranchId)}`;
+      }
+      
+      console.log('📊 Fetching dashboard metrics for branch:', selectedBranchId);
+      
       // Fetch analytics data from API
-      const response = await authFetch(`${API_URL}/api/analytics/dashboard`);
+      const response = await authFetch(url);
       const result = await response.json();
+      
+      console.log('📊 Dashboard metrics response:', result);
       
       if (result.success && result.data) {
         const data = result.data;
@@ -417,7 +651,23 @@ const Dashboard1 = () => {
     } finally {
       setLoadingStats(false);
     }
-  };
+  }, [isOwner, selectedBranchId]);
+
+  useEffect(() => {
+    fetchMetricsData();
+  }, [fetchMetricsData]);
+
+  useEffect(() => {
+    fetchRecentOrders(true);
+    
+    // Refresh orders every 30 seconds to keep data up to date (silently, without loading spinner)
+    const refreshInterval = setInterval(() => {
+      fetchRecentOrders(false);
+    }, 30000);
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(refreshInterval);
+  }, []);
 
   const fetchRecentOrders = async (showLoading = true) => {
     try {
@@ -674,6 +924,77 @@ const Dashboard1 = () => {
     <div className="dashboard1-container">
       {/* Main Content */}
       <main className="dashboard1-main">
+        {/* Top Action Bar: Quick Actions and Branch Filter */}
+        <div className="dashboard1-top-action-bar">
+          {/* Quick Action Buttons */}
+          <div className="dashboard1-quick-actions">
+            <button 
+              className="dashboard1-quick-action-btn dashboard1-add-product-btn"
+              onClick={handleQuickAddProduct}
+            >
+              <FontAwesomeIcon icon={faPlus} className="quick-action-icon" />
+              <span>Add Product</span>
+            </button>
+            <button 
+              className="dashboard1-quick-action-btn dashboard1-walkin-btn"
+              onClick={handleWalkIn}
+            >
+              <FontAwesomeIcon icon={faStore} className="quick-action-icon" />
+              <span>Walk-in</span>
+            </button>
+          </div>
+
+          {/* Branch Filter for Owners */}
+          {isOwner && branches.length > 0 && (
+            <div className="dashboard1-branch-filter">
+              <div 
+                className="dashboard1-branch-filter-button"
+                onClick={() => setShowBranchDropdown(!showBranchDropdown)}
+              >
+                <FontAwesomeIcon icon={faBuilding} className="branch-filter-icon" />
+                <span className="branch-filter-selected-name">
+                  {selectedBranchId === 'all' 
+                    ? 'All Branches' 
+                    : branches.find(b => b.id === parseInt(selectedBranchId))?.name || 'All Branches'}
+                </span>
+                <FontAwesomeIcon 
+                  icon={showBranchDropdown ? faChevronUp : faChevronDown} 
+                  className="branch-filter-chevron"
+                />
+              </div>
+              {showBranchDropdown && (
+                <div className="dashboard1-branch-dropdown">
+                  <div
+                    className={`branch-dropdown-item ${selectedBranchId === 'all' ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedBranchId('all');
+                      setShowBranchDropdown(false);
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faBuilding} className="branch-item-icon" />
+                    <span>All Branches</span>
+                  </div>
+                  {branches.map(branch => (
+                    <div
+                      key={branch.id}
+                      className={`branch-dropdown-item ${selectedBranchId === String(branch.id) ? 'selected' : ''}`}
+                      onClick={() => {
+                        const newBranchId = String(branch.id);
+                        setSelectedBranchId(newBranchId);
+                        setShowBranchDropdown(false);
+                        // Force immediate refresh - fetchMetricsData will be called via useEffect
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faBuilding} className="branch-item-icon" />
+                      <span>{branch.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
         {/* Top Cards Section */}
         <div className="dashboard1-top-cards">
           <div className="dashboard1-stat-card dashboard1-sales-card">
@@ -719,236 +1040,67 @@ const Dashboard1 = () => {
           </div>
         </div>
 
-        {/* Earnings Chart Section */}
+        {/* Charts Section with Tabs */}
         <div className="dashboard1-chart-section">
-          <div className="dashboard1-chart-wrapper">
-            <EarningsChart />
+          {/* Chart Tabs - Matching Analytics Style */}
+          <div className="dashboard1-chart-tabs-container">
+            <div className="dashboard1-chart-tabs">
+              <button
+                className={`dashboard1-chart-tab ${activeChartTab === 'earnings' ? 'active' : ''}`}
+                onClick={() => setActiveChartTab('earnings')}
+              >
+                <FontAwesomeIcon icon={faChartLine} className="chart-tab-icon" />
+                <span>Earnings</span>
+              </button>
+              <button
+                className={`dashboard1-chart-tab ${activeChartTab === 'stock' ? 'active' : ''}`}
+                onClick={() => setActiveChartTab('stock')}
+              >
+                <FontAwesomeIcon icon={faBox} className="chart-tab-icon" />
+                <span>Stock</span>
+              </button>
+            </div>
           </div>
-          
-          {/* Low Stock Side Panel */}
-          <div className="dashboard1-stock-sidebar dashboard1-chart-sidebar">
-            <h4 className="dashboard1-sidebar-title-small">Low-Stock Items</h4>
-            {lowStockItems.length === 0 ? (
-              <p className="dashboard1-no-low-stock">All items well stocked</p>
-            ) : (
-              <ul className="dashboard1-low-stock-list">
-                {lowStockItems.map((item) => (
-                  <li key={item.id} className="dashboard1-low-stock-item">
-                    <div className="dashboard1-low-stock-info">
-                      <span className="dashboard1-low-stock-name">{item.name}</span>
-                      <span 
-                        className="dashboard1-low-stock-qty"
-                        style={{ 
-                          backgroundColor: getStockStatusColor(item.status) + '20',
-                          color: getStockStatusColor(item.status)
-                        }}
-                      >
-                        {item.stockQuantity} units
-                      </span>
-                    </div>
-                    <div className="dashboard1-low-stock-bar">
-                      <div 
-                        className="dashboard1-low-stock-progress"
-                        style={{
-                          width: `${getProgressPercentage(item.stockQuantity, item.reorderLevel)}%`,
-                          backgroundColor: getStockStatusColor(item.status)
-                        }}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
 
-        {/* Stock Management Section */}
-        <div className="dashboard1-stock-section">
-          <div className="dashboard1-stock-main" style={{ width: '100%' }}>
-            <div className="dashboard1-stock-header">
-              <h3 className="dashboard1-stock-title">Stock Management</h3>
-              <div className="dashboard1-stock-controls">
-                {showStockSearch && (
-                  <input
-                    type="text"
-                    className="dashboard1-search-input stock-search-input"
-                    placeholder="Search by item, category..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    autoFocus
-                  />
-                )}
-                <button 
-                  className={`dashboard1-search-btn stock-search-btn ${showStockSearch ? 'active' : ''}`}
-                  onClick={() => {
-                    setShowStockSearch(!showStockSearch);
-                    if (showStockSearch) {
-                      setSearchTerm('');
-                    }
-                  }}
-                  aria-label="Search"
-                  title="Search items"
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                  </svg>
-                </button>
-                <div className="dashboard1-filter-container">
-                  <button 
-                    className={`dashboard1-filter-toggle ${showStockFilters ? 'active' : ''}`}
-                    onClick={() => setShowStockFilters(!showStockFilters)}
-                  >
-                    <FontAwesomeIcon icon={faFilter} />
-                    <span>Filter</span>
-                  </button>
-                  {showStockFilters && (
-                    <div className="dashboard1-filter-dropdown">
-                      <select
-                        value={stockFilters.category}
-                        onChange={(e) => setStockFilters({...stockFilters, category: e.target.value})}
-                        className="dashboard1-filter-select"
-                      >
-                        <option value="">All Categories</option>
-                        {categories.map(cat => (
-                          <option key={cat} value={cat}>{formatCategory(cat)}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={stockFilters.status}
-                        onChange={(e) => setStockFilters({...stockFilters, status: e.target.value})}
-                        className="dashboard1-filter-select"
-                      >
-                        <option value="">All Status</option>
-                        {statuses.map(status => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-                <button className="dashboard1-add-btn" onClick={handleAddStock}>
-                  <FontAwesomeIcon icon={faPlus} />
-                  <span>Add Stock</span>
-                </button>
+          {/* Chart Content */}
+          <div className="dashboard1-chart-content-wrapper">
+            {activeChartTab === 'earnings' && (
+              <div className="dashboard1-chart-wrapper">
+                <EarningsChart selectedBranchId={isOwner && selectedBranchId !== 'all' ? selectedBranchId : null} />
               </div>
-            </div>
-
-            <div className="dashboard1-table-container">
-              <table className="dashboard1-table">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Category</th>
-                    <th>Stock Quantity</th>
-                    <th>Last Restocked</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedStockItems.map((item) => {
-                    const progressPercentage = getProgressPercentage(item.stockQuantity, item.reorderLevel);
-                    const statusColor = getStockStatusColor(item.status);
-
-                    return (
-                      <tr key={item.id}>
-                        <td>
-                          <div className="dashboard1-item-cell">
-                            <img 
-                              src={item.image} 
-                              alt={item.name}
-                              className="dashboard1-item-image"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                            <span>{item.name}</span>
-                          </div>
-                        </td>
-                        <td>{formatCategory(item.category)}</td>
-                        <td>
-                          <div className="dashboard1-stock-cell">
-                            <div className="dashboard1-stock-progress">
-                              <div 
-                                className="dashboard1-stock-progress-bar"
-                                style={{
-                                  width: `${progressPercentage}%`,
-                                  backgroundColor: statusColor
-                                }}
-                              />
-                            </div>
-                            <span className="dashboard1-stock-value">{item.stockQuantity}</span>
-                          </div>
-                        </td>
-                        <td>{formatDate(item.lastRestocked)}</td>
-                        <td>
-                          <span 
-                            className="dashboard1-status-badge"
-                            style={{ backgroundColor: statusColor + '20', color: statusColor }}
-                          >
-                            {item.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="dashboard1-action-buttons">
-                            <button 
-                              className="dashboard1-action-btn dashboard1-edit-btn" 
-                              title="Edit"
-                              onClick={() => handleEdit(item)}
-                            >
-                              <FontAwesomeIcon icon={faEdit} />
-                            </button>
-                            <button 
-                              className="dashboard1-action-btn dashboard1-restock-btn" 
-                              title="Restock"
-                              onClick={() => handleRestock(item)}
-                            >
-                              <FontAwesomeIcon icon={faBoxOpen} />
-                            </button>
-                            <button 
-                              className="dashboard1-action-btn dashboard1-delete-btn" 
-                              title="Delete"
-                              onClick={() => handleDelete(item)}
-                            >
-                              <FontAwesomeIcon icon={faTrash} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {hasMoreStockItems && (
-                <div className="dashboard1-view-more-container">
-                  <button 
-                    className="dashboard1-view-more-btn"
-                    onClick={() => setShowAllStockItems(true)}
-                  >
-                    <span>View More</span>
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                      <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
-                    </svg>
-                  </button>
+            )}
+            
+            {activeChartTab === 'stock' && (
+              <div className="dashboard1-chart-wrapper">
+                <div className="analytics-card geo-distribution-card">
+                  <div className="card-header">
+                    <FontAwesomeIcon icon={faBox} className="card-icon" />
+                    <h3>Low-Stock Items</h3>
+                  </div>
+                  <div className="chart-container">
+                    {lowStockItems.length === 0 ? (
+                      <div className="chart-empty-state">
+                        <p>All items well stocked</p>
+                      </div>
+                    ) : lowStockChartOption ? (
+                      <ReactEChartsCore
+                        echarts={echarts}
+                        option={lowStockChartOption}
+                        notMerge
+                        lazyUpdate
+                        opts={{ renderer: 'svg' }}
+                        style={{ height: '280px', width: '100%', minHeight: '280px' }}
+                      />
+                    ) : (
+                      <div className="analytics-loading-inline">
+                        <div className="loading-spinner"></div>
+                        <p>Loading chart...</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {showAllStockItems && filteredStockItems.length > INITIAL_STOCK_DISPLAY && (
-                <div className="dashboard1-view-more-container">
-                  <button 
-                    className="dashboard1-view-more-btn dashboard1-view-less-btn"
-                    onClick={() => {
-                      setShowAllStockItems(false);
-                      document.querySelector('.dashboard1-table-container')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
-                    <span>Show Less</span>
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style={{ transform: 'rotate(180deg)' }}>
-                      <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1248,139 +1400,15 @@ const Dashboard1 = () => {
           </div>
         )}
 
-        {/* Recent Orders Section */}
-        <div className="dashboard1-orders-card recent-orders">
-          <div className="dashboard1-stock-header">
-            <h3 className="dashboard1-stock-title">Recent Orders</h3>
-            <div className="dashboard1-stock-controls">
-              {showOrdersSearch && (
-                <input
-                  type="text"
-                  className="dashboard1-search-input stock-search-input"
-                  placeholder="Search by email, product, or date..."
-                  value={ordersSearchTerm}
-                  onChange={handleOrdersSearch}
-                  autoFocus
-                />
-              )}
-              <button 
-                className={`dashboard1-search-btn stock-search-btn ${showOrdersSearch ? 'active' : ''}`}
-                onClick={handleOrdersSearchToggle}
-                aria-label="Search"
-                title="Search orders"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                </svg>
-              </button>
-              <div className="dashboard1-filter-container">
-                <button 
-                  className={`dashboard1-filter-toggle ${showOrdersFilterDropdown ? 'active' : ''}`}
-                  onClick={handleOrdersFilterToggle}
-                  aria-label="Filter"
-                  title={`Filter: ${getOrdersFilterLabel()}`}
-                >
-                  <FontAwesomeIcon icon={faFilter} />
-                  <span>Filter</span>
-                </button>
-                {showOrdersFilterDropdown && (
-                  <div className="dashboard1-filter-dropdown">
-                    <div 
-                      className={`filter-option ${ordersFilterStatus === 'all' ? 'active' : ''}`}
-                      onClick={() => handleOrdersFilterSelect('all')}
-                    >
-                      <span>All Status</span>
-                      {ordersFilterStatus === 'all' && <span className="check-mark">✓</span>}
-                    </div>
-                    <div 
-                      className={`filter-option ${ordersFilterStatus === 'pending' ? 'active' : ''}`}
-                      onClick={() => handleOrdersFilterSelect('pending')}
-                    >
-                      <span>Pending</span>
-                      {ordersFilterStatus === 'pending' && <span className="check-mark">✓</span>}
-                    </div>
-                    <div 
-                      className={`filter-option ${ordersFilterStatus === 'processing' ? 'active' : ''}`}
-                      onClick={() => handleOrdersFilterSelect('processing')}
-                    >
-                      <span>Processing</span>
-                      {ordersFilterStatus === 'processing' && <span className="check-mark">✓</span>}
-                    </div>
-                    <div 
-                      className={`filter-option ${ordersFilterStatus === 'delivered' ? 'active' : ''}`}
-                      onClick={() => handleOrdersFilterSelect('delivered')}
-                    >
-                      <span>Delivered</span>
-                      {ordersFilterStatus === 'delivered' && <span className="check-mark">✓</span>}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="table-wrapper">
-            {ordersLoading ? (
-              <div className="loading-state">
-                <div className="loading-spinner"></div>
-                <p>Loading orders...</p>
-              </div>
-            ) : filteredOrders.length === 0 ? (
-              <div className="empty-state">
-                <p>{orders.length === 0 ? 'No data order yet' : 'No orders found'}</p>
-              </div>
-            ) : (
-              <>
-                <div className="recent-orders-header-row">
-                  <div className="recent-orders-header-cell recent-orders-col-email">Users Email</div>
-                  <div className="recent-orders-header-cell recent-orders-col-product">Product</div>
-                  <div className="recent-orders-header-cell recent-orders-col-date">Date</div>
-                  <div className="recent-orders-header-cell recent-orders-col-status">Status</div>
-                </div>
-                
-                {displayedOrders.map((order) => (
-                  <div key={order.id} className="recent-orders-row">
-                    <div className="recent-orders-cell recent-orders-col-email">
-                      {order.email}
-                    </div>
-                    <div className="recent-orders-cell recent-orders-col-product">
-                      {order.product}
-                    </div>
-                    <div className="recent-orders-cell recent-orders-col-date">
-                      {order.date}
-                    </div>
-                    <div className="recent-orders-cell recent-orders-col-status">
-                      <span className={`recent-orders-status-badge ${order.statusColor}`}>
-                        {order.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                
-                {hasMoreOrders && (
-                  <button 
-                    className="view-more-btn"
-                    onClick={() => setShowAllOrders(true)}
-                  >
-                    View More ({filteredOrders.length - INITIAL_DISPLAY_COUNT} more)
-                  </button>
-                )}
-                
-                {showAllOrders && filteredOrders.length > INITIAL_DISPLAY_COUNT && (
-                  <button 
-                    className="view-less-btn"
-                    onClick={() => {
-                      setShowAllOrders(false);
-                      document.querySelector('.table-wrapper')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
-                    Show Less
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+        {/* Add Product Modal */}
+        {showAddProductModal && (
+          <AddProductModal
+            onClose={handleCloseProductModal}
+            onAdd={handleAddProduct}
+            editingProduct={null}
+            isEditMode={false}
+          />
+        )}
       </main>
     </div>
   );

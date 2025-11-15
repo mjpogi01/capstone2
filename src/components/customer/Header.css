@@ -63,7 +63,7 @@
 
 .nav-menu-content {
   display: flex;
-  gap: 3.9rem;
+  gap: 3rem;
   flex: 1;
   justify-content: center;
   align-items: center;
@@ -73,10 +73,10 @@
   color: #00bfff;
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 14px;
   transition: all 0.3s ease;
   position: relative;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Oswald', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
   border: none !important;
@@ -2055,7 +2055,7 @@
     color: #00bfff;
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1rem;
     transition: all 0.3s ease;
     position: relative;
     font-family: 'Poppins', sans-serif;

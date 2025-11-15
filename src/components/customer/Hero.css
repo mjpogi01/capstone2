@@ -38,6 +38,7 @@
 .hero-text {
   color: #00bfff;
   max-width: 600px;
+  animation: heroTextFadeIn 1s ease-out;
 }
 
 .hero-title {
@@ -46,6 +47,7 @@
   margin-bottom: 0.4rem;
   line-height: 1.1;
   font-family: 'Orbitron', monospace;
+  animation: heroTitleSlideIn 0.8s ease-out 0.2s both;
 }
 
 .hero-subtitle {
@@ -54,6 +56,7 @@
   margin-bottom: 1rem;
   line-height: 1.2;
   font-family: 'Orbitron', monospace;
+  animation: heroSubtitleSlideIn 0.8s ease-out 0.4s both;
 }
 
 .highlight {
@@ -69,12 +72,14 @@
   text-align: justify;
   font-family: 'Roboto', sans-serif;
   font-weight: 400;
+  animation: heroDescriptionFadeIn 0.8s ease-out 0.6s both;
 }
 
 .hero-buttons {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  animation: heroButtonsFadeIn 0.8s ease-out 0.8s both;
 }
 
 .btn {
@@ -149,7 +154,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  
+  animation: heroImageSlideIn 1s ease-out 0.3s both;
 }
 
 .hero-photo {
@@ -162,6 +167,8 @@
   object-fit: contain;
   border-radius: 12px;
   border: none;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+  animation: heroPhotoFadeIn 1s ease-out 0.5s both;
 }
 
 /* Tablet styles */
@@ -377,6 +384,82 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Hero Section Animations */
+@keyframes heroTextFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes heroTitleSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes heroSubtitleSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes heroDescriptionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroButtonsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroImageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes heroPhotoFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
   }
 }
 
