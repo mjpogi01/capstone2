@@ -6,7 +6,8 @@ import {
   faUser, 
   faCircle,
   faSearch,
-  faShoppingBag
+  faShoppingBag,
+  faFilter
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import chatService from '../../services/chatService';
@@ -21,6 +22,7 @@ const ArtistChatList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('last_message');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { user } = useAuth();
 
   const fetchArtistChatRooms = useCallback(async () => {
@@ -250,6 +252,20 @@ const ArtistChatList = () => {
     }
   }, [user, fetchArtistChatRooms]);
 
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showFilterDropdown && !event.target.closest('.filter-dropdown-container')) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFilterDropdown]);
+
   const filteredRooms = chatRooms.filter(room => {
     const customerName = room.customer?.full_name || '';
     // Use order_number (not order_id) for search
@@ -309,11 +325,6 @@ const ArtistChatList = () => {
   if (loading) {
     return (
       <div className="artist-chat-list">
-        <div className="chat-list-header">
-          <div className="chat-stats">
-            <span className="total-chats">Loading...</span>
-          </div>
-        </div>
         <div className="chat-loading">
           <FontAwesomeIcon icon={faComments} spin />
           <p>Loading chats...</p>
@@ -324,15 +335,6 @@ const ArtistChatList = () => {
 
   return (
     <div className="artist-chat-list">
-      <div className="chat-list-header">
-        <div className="chat-stats">
-          <span className="total-chats">{chatRooms.length} Total</span>
-          <span className="unread-chats">
-            {chatRooms.filter(r => r.unreadCount > 0).length} Unread
-          </span>
-        </div>
-      </div>
-
       <div className="chat-filters">
         <div className="search-box">
           <FontAwesomeIcon icon={faSearch} />
@@ -342,30 +344,46 @@ const ArtistChatList = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </div>
-        
-        <div className="filter-controls">
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Chats</option>
-            <option value="unread">Unread</option>
-            <option value="active">Active</option>
-            <option value="closed">Closed</option>
-          </select>
-          
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="sort-select"
-          >
-            <option value="last_message">Last Message</option>
-            <option value="order_date">Order Date</option>
-            <option value="customer_name">Customer Name</option>
-            <option value="order_amount">Order Amount</option>
-          </select>
+          <div className="filter-dropdown-container">
+            <button 
+              className="filter-icon-btn"
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              aria-label="Filter options"
+            >
+              <FontAwesomeIcon icon={faFilter} />
+            </button>
+            {showFilterDropdown && (
+              <div className="filter-dropdown">
+                <div className="filter-dropdown-item">
+                  <label>Status:</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="all">All Chats</option>
+                    <option value="unread">Unread</option>
+                    <option value="active">Active</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
+                
+                <div className="filter-dropdown-item">
+                  <label>Sort By:</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="sort-select"
+                  >
+                    <option value="last_message">Last Message</option>
+                    <option value="order_date">Order Date</option>
+                    <option value="customer_name">Customer Name</option>
+                    <option value="order_amount">Order Amount</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -407,7 +425,7 @@ const ArtistChatList = () => {
                 <div className="room-details">
                   <span className="order-info">
                     <FontAwesomeIcon icon={faShoppingBag} />
-                    Order #{room.order?.order_number || room.order_number || 'N/A'}
+                    {room.order?.order_number || room.order_number || 'N/A'}
                   </span>
                   {room.last_message_at && (
                     <span className="room-time">

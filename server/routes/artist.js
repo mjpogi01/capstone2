@@ -492,33 +492,7 @@ router.patch('/tasks/:taskId/status', authenticateArtist, async (req, res) => {
       return res.status(500).json({ error: 'Failed to update task status' });
     }
 
-    if (status === 'submitted' && task?.order_id && orderData) {
-      try {
-        const currentPriority = STATUS_PRIORITY[orderData.status];
-        const targetPriority = STATUS_PRIORITY[TARGET_STATUS];
-
-        if (
-          typeof currentPriority === 'number' &&
-          typeof targetPriority === 'number' &&
-          currentPriority < targetPriority
-        ) {
-          console.log(`🎯 Auto-updating order ${orderData.id} status to ${TARGET_STATUS} after design submission`);
-          const { error: updateOrderError } = await supabase
-            .from('orders')
-            .update({
-              status: TARGET_STATUS,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', task.order_id);
-
-          if (updateOrderError) {
-            console.error('⚠️ Failed to auto-update order status to sizing:', updateOrderError);
-          }
-        }
-      } catch (orderUpdateError) {
-        console.error('⚠️ Unexpected error during order status auto-update:', orderUpdateError);
-      }
-    }
+    // Removed auto-advance to sizing on submission; admin review will drive progression
 
     res.json(data);
   } catch (error) {

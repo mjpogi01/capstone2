@@ -53,8 +53,8 @@ BEGIN
   -- Assign to least busy artist with regular order type
   SELECT assign_task_to_least_busy_artist(
     'Layout Store Product: ' || p_product_name,
-    'Prepare layout for store product. Quantity: ' || p_quantity || ' units' || 
-    CASE WHEN p_customer_requirements IS NOT NULL THEN '. Customer notes: ' || p_customer_requirements ELSE '' END,
+    'Prepare layout for store product.' ||
+    CASE WHEN p_customer_requirements IS NOT NULL THEN E'\n' || p_customer_requirements ELSE '' END,
     'Store product layout. Quantity: ' || p_quantity || '. Product: ' || p_product_name,
     p_priority,
     COALESCE(p_deadline, now() + INTERVAL '2 days'),

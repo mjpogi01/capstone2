@@ -29,7 +29,7 @@ const STATUS_PRIORITY = STATUS_ORDER.reduce((acc, status, index) => {
   return acc;
 }, {});
 
-const TARGET_STATUS = 'sizing';
+const TARGET_STATUS = 'sizing'; // deprecated for auto-advance; kept for reference only
 
 const router = express.Router();
 
@@ -39,7 +39,7 @@ router.get('/test', (req, res) => {
 });
 
 // Upload design files for an order (artists can upload, but role is checked inside)
-router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 10), async (req, res) => {
+router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 50), async (req, res) => {
   console.log('🎨 Design upload route hit!');
   try {
     const { orderId } = req.params;
@@ -128,26 +128,14 @@ router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 
       });
     }
 
-    // Determine new status based on current status
-    let newStatus = currentOrder.status;
-    const currentPriority = STATUS_PRIORITY[currentOrder.status];
-    const targetPriority = STATUS_PRIORITY[TARGET_STATUS];
+    // Do NOT auto-advance status anymore; only attach design files
+    const newStatus = currentOrder.status;
 
-    if (
-      typeof currentPriority === 'number' &&
-      typeof targetPriority === 'number' &&
-      currentPriority < targetPriority
-    ) {
-      newStatus = TARGET_STATUS;
-      console.log('🎨 Auto-moving order to sizing status after design upload');
-    }
-
-    // Update order with design files AND status
+    // Update order with design files only
     const { data, error } = await supabase
       .from('orders')
       .update({
         design_files: combinedDesignFiles,
-        status: newStatus,
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
@@ -172,10 +160,10 @@ router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 
 
     res.json({
       success: true,
-      message: `Design files uploaded successfully${newStatus !== currentOrder.status ? ` and order moved to ${newStatus} status` : ''}`,
+      message: `Design files uploaded successfully`,
       designFiles: combinedDesignFiles,
       order: data[0],
-      statusChanged: newStatus !== currentOrder.status,
+      statusChanged: false,
       previousStatus: currentOrder.status,
       newStatus: newStatus
     });
@@ -191,9 +179,46 @@ router.post('/:orderId', authenticateSupabaseToken, upload.array('designFiles', 
 });
 
 // Get design files for an order
-router.get('/:orderId', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
+// Access rules:
+// - Admin/Owner: can view any order's design files
+// - Artist: can view design files only if assigned a task for this order
+router.get('/:orderId', authenticateSupabaseToken, async (req, res) => {
   try {
     const { orderId } = req.params;
+
+    // Determine role from JWT
+    const userRole = req.user.role || req.user.user_metadata?.role || 'customer';
+
+    if (!['admin', 'owner', 'artist'].includes(userRole)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // If artist, ensure they are assigned to this order
+    if (userRole === 'artist') {
+      // Get artist profile id for this user
+      const { data: profile, error: profileError } = await supabase
+        .from('artist_profiles')
+        .select('id')
+        .eq('user_id', req.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(403).json({ error: 'Artist profile not found' });
+      }
+
+      // Verify there is at least one task linking this artist to the order
+      const { data: task, error: taskError } = await supabase
+        .from('artist_tasks')
+        .select('id')
+        .eq('artist_id', profile.id)
+        .eq('order_id', orderId)
+        .limit(1)
+        .maybeSingle();
+
+      if (taskError || !task) {
+        return res.status(403).json({ error: 'Not assigned to this order' });
+      }
+    }
 
     const { data, error } = await supabase
       .from('orders')

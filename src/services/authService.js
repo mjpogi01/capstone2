@@ -143,6 +143,39 @@ class AuthService {
     }
   }
 
+  // Change user email
+  async changeEmail(newEmail, password) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Verify password before changing email
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: password
+      });
+
+      if (signInError) {
+        throw new Error('Password is incorrect');
+      }
+
+      // Update email
+      const { error: updateError } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Failed to update email');
+      }
+
+      return { success: true };
+    } catch (error) {
+      throw new Error(error.message || 'Failed to change email');
+    }
+  }
+
   // Sign in with OAuth provider (Google, Facebook)
   async signInWithProvider(provider) {
     try {

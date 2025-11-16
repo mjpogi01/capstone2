@@ -73,6 +73,7 @@
   flex-direction: column;
   width: 100%;
   box-sizing: border-box;
+  height: 100%;
 }
 
 .dashboard-content {

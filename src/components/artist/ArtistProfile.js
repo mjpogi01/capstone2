@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './ArtistProfile.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -6,13 +6,16 @@ import {
   faEdit, 
   faSave, 
   faTimes,
-  faStar,
-  faChartLine,
-  faTasks,
-  faCheckCircle
+  faStar
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import artistDashboardService from '../../services/artistDashboardService';
+import authService from '../../services/authService';
+import ChangePasswordModal from '../customer/ChangePasswordModal';
+import ChangeEmailModal from './ChangeEmailModal';
+import { useNotification } from '../../contexts/NotificationContext';
+import { supabase } from '../../lib/supabase';
+import profileImageService from '../../services/profileImageService';
 
 const ArtistProfile = () => {
   const [profile, setProfile] = useState({
@@ -28,7 +31,13 @@ const ArtistProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { user } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const fileInputRef = useRef(null);
+  const { user, refreshUser } = useAuth();
+  const { showNotification } = useNotification();
 
   const fetchArtistProfile = useCallback(async () => {
     try {
@@ -51,6 +60,22 @@ const ArtistProfile = () => {
 
       const profileData = await artistDashboardService.getArtistProfile();
       setProfile(profileData);
+      
+      // Load profile image
+      if (user?.user_metadata?.avatar_url) {
+        setProfileImage(user.user_metadata.avatar_url);
+      } else {
+        // Try to get from user_profiles table
+        const { data: profileData } = await supabase
+          .from('user_profiles')
+          .select('avatar_url')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profileData?.avatar_url) {
+          setProfileImage(profileData.avatar_url);
+        }
+      }
     } catch (error) {
       console.error('Error fetching artist profile:', error);
       // Set default values on error
@@ -82,6 +107,39 @@ const ArtistProfile = () => {
     fetchArtistProfile(); // Reset to original data
   };
 
+  const handlePasswordChange = async (passwordData) => {
+    try {
+      await authService.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
+      showNotification('Password changed successfully!', 'success');
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw error; // Re-throw to be handled by the modal
+    }
+  };
+
+  const handleEmailChange = async (emailData) => {
+    try {
+      await authService.changeEmail(
+        emailData.newEmail,
+        emailData.password
+      );
+      showNotification('Email change request sent! Please check your new email to confirm.', 'success');
+      // Refresh user data to get updated email
+      if (user) {
+        const { data: { user: updatedUser } } = await supabase.auth.getUser();
+        if (updatedUser) {
+          // User data will be updated via auth context
+        }
+      }
+    } catch (error) {
+      console.error('Error changing email:', error);
+      throw error; // Re-throw to be handled by the modal
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -103,27 +161,44 @@ const ArtistProfile = () => {
     }));
   };
 
-  const handleSpecialtyChange = (index, value) => {
-    const newSpecialties = [...profile.specialties];
-    newSpecialties[index] = value;
-    setProfile(prev => ({
-      ...prev,
-      specialties: newSpecialties
-    }));
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
   };
 
-  const addSpecialty = () => {
-    setProfile(prev => ({
-      ...prev,
-      specialties: [...prev.specialties, '']
-    }));
-  };
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const removeSpecialty = (index) => {
-    setProfile(prev => ({
-      ...prev,
-      specialties: prev.specialties.filter((_, i) => i !== index)
-    }));
+    try {
+      // Validate file
+      profileImageService.validateImageFile(file);
+      
+      setIsUploading(true);
+      
+      // Upload file
+      const result = await profileImageService.uploadProfileImage(file);
+      
+      // Update user profile with new image URL
+      await profileImageService.updateUserProfileImage(result.imageUrl);
+      
+      // Update local state
+      setProfileImage(result.imageUrl);
+      
+      // Refresh user data
+      await refreshUser();
+      
+      showNotification('Profile image updated successfully!', 'success');
+      
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      showNotification(error.message || 'Failed to upload profile image', 'error');
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const renderStars = (rating) => {
@@ -155,201 +230,147 @@ const ArtistProfile = () => {
 
   if (loading) {
     return (
-      <div className="artist-profile-container">
-        <div className="artist-profile-header artist-loading-skeleton" style={{ height: '200px', borderRadius: '12px' }}></div>
-        <div className="artist-profile-content">
-          <div className="artist-profile-info artist-loading-skeleton" style={{ height: '400px', borderRadius: '12px' }}></div>
-          <div className="artist-profile-stats artist-loading-skeleton" style={{ height: '300px', borderRadius: '12px' }}></div>
+      <div className="artist-profile-page">
+        <div className="artist-profile-container">
+          <div className="artist-profile-content">
+            <div className="artist-profile-loading">
+              <div className="artist-profile-loading-title">Loading profile...</div>
+              <div className="artist-profile-loading-text">Please wait while we fetch your information.</div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="artist-profile-container">
-      {/* Profile Header */}
-      <div className="artist-profile-header">
-        <div className="artist-profile-avatar">
-          <FontAwesomeIcon icon={faUser} />
-        </div>
-        <div className="artist-profile-basic-info">
-          <h2 className="artist-profile-name">{profile.artist_name}</h2>
-          <div className="artist-profile-rating">
-            <div className="artist-profile-stars">
-              {renderStars(profile.rating)}
-            </div>
-            <span className="artist-rating-value">{profile.rating}</span>
-          </div>
-          <p className="artist-profile-bio">{profile.bio}</p>
-        </div>
-        <div className="artist-profile-actions">
-          {!isEditing ? (
-            <button className="artist-profile-edit-btn" onClick={handleEdit}>
-              <FontAwesomeIcon icon={faEdit} />
-              Edit Profile
-            </button>
-          ) : (
-            <div className="artist-edit-actions">
-              <button 
-                className="artist-profile-save-btn" 
-                onClick={handleSave}
-                disabled={saving}
-              >
-                <FontAwesomeIcon icon={faSave} />
-                {saving ? 'Saving...' : 'Save'}
+    <div className="artist-profile-page">
+      <div className="artist-profile-container">
+        {/* Content */}
+        <div className="artist-profile-content">
+          {/* Edit Controls - Top Right */}
+          <div className="artist-profile-top-controls">
+            {!isEditing ? (
+              <button className="artist-edit-link" onClick={() => setIsEditing(true)}>
+                Edit
               </button>
-              <button className="artist-profile-cancel-btn" onClick={handleCancel}>
-                <FontAwesomeIcon icon={faTimes} />
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Profile Content */}
-      <div className="artist-profile-content">
-        {/* Profile Information */}
-        <div className="artist-profile-info">
-          <h3 className="artist-profile-info-title">Profile Information</h3>
-          
-          <div className="artist-info-section">
-            <label className="artist-info-label">Artist Name</label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={profile.artist_name}
-                onChange={(e) => handleInputChange('artist_name', e.target.value)}
-                className="artist-form-input"
-              />
             ) : (
-              <p className="artist-info-text">{profile.artist_name}</p>
-            )}
-          </div>
-
-          <div className="artist-info-section">
-            <label className="artist-info-label">Bio</label>
-            {isEditing ? (
-              <textarea
-                value={profile.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
-                className="artist-form-textarea"
-                rows="4"
-              />
-            ) : (
-              <p className="artist-info-text">{profile.bio}</p>
-            )}
-          </div>
-
-          <div className="artist-info-section">
-            <label className="artist-info-label">Specialties</label>
-            {isEditing ? (
-              <div className="artist-specialties-edit">
-                {profile.specialties.map((specialty, index) => (
-                  <div key={index} className="artist-specialty-input-group">
-                    <input
-                      type="text"
-                      value={specialty}
-                      onChange={(e) => handleSpecialtyChange(index, e.target.value)}
-                      className="artist-form-input"
-                      placeholder="Enter specialty"
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => removeSpecialty(index)}
-                      className="artist-remove-specialty-btn"
-                    >
-                      <FontAwesomeIcon icon={faTimes} />
-                    </button>
-                  </div>
-                ))}
-                <button 
-                  type="button"
-                  onClick={addSpecialty}
-                  className="artist-add-specialty-btn"
-                >
-                  + Add Specialty
+              <div className="artist-edit-actions">
+                <button className="artist-save-btn" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save'}
                 </button>
-              </div>
-            ) : (
-              <div className="artist-specialties-display">
-                {profile.specialties.map((specialty, index) => (
-                  <span key={index} className="artist-specialty-tag">
-                    {specialty}
-                  </span>
-                ))}
+                <button className="artist-cancel-btn" onClick={handleCancel}>Cancel</button>
               </div>
             )}
           </div>
 
-          <div className="artist-info-section">
-            <label className="artist-info-label">Commission Rate</label>
-            {isEditing ? (
-              <div className="artist-commission-input-group">
-                <input
-                  type="number"
-                  value={profile.commission_rate}
-                  onChange={(e) => handleInputChange('commission_rate', parseFloat(e.target.value))}
-                  className="artist-form-input"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                />
-                <span className="artist-input-suffix">%</span>
+          <div className="artist-personal-info-section">
+            {/* Left Column - Profile Picture */}
+            <div className="artist-profile-picture-section">
+              <div className="artist-profile-picture">
+                {profileImage ? (
+                  <img 
+                    src={profileImage} 
+                    alt="Profile" 
+                    className="artist-profile-image"
+                  />
+                ) : (
+                  <div className="artist-profile-avatar">
+                    <FontAwesomeIcon icon={faUser} />
+                  </div>
+                )}
               </div>
-            ) : (
-              <p className="artist-info-text">{profile.commission_rate}%</p>
-            )}
-          </div>
-        </div>
-
-        {/* Profile Statistics */}
-        <div className="artist-profile-stats">
-          <h3 className="artist-profile-stats-title">Statistics</h3>
-          
-          <div className="artist-stats-grid">
-            <div className="artist-stat-card">
-              <div className="artist-stat-icon">
-                <FontAwesomeIcon icon={faTasks} />
-              </div>
-              <div className="artist-stat-info">
-                <div className="artist-stat-value">{profile.total_tasks_completed}</div>
-                <div className="artist-stat-label">Tasks Completed</div>
-              </div>
+              <button 
+                className="artist-upload-btn" 
+                onClick={handleFileSelect}
+                disabled={isUploading}
+              >
+                {isUploading ? 'Uploading...' : 'Upload Photo'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
             </div>
 
-            <div className="artist-stat-card">
-              <div className="artist-stat-icon">
-                <FontAwesomeIcon icon={faChartLine} />
+            {/* Right Column - Personal Information */}
+            <div className="artist-personal-info-form">
+              <div className="artist-form-header">
+                <h3>Personal Information</h3>
               </div>
-              <div className="artist-stat-info">
-                <div className="artist-stat-value">{profile.total_designs}</div>
-                <div className="artist-stat-label">Designs Created</div>
-              </div>
-            </div>
 
-            <div className="artist-stat-card">
-              <div className="artist-stat-icon">
-                <FontAwesomeIcon icon={faCheckCircle} />
-              </div>
-              <div className="artist-stat-info">
-                <div className="artist-stat-value">{profile.total_sales}</div>
-                <div className="artist-stat-label">Designs Sold</div>
-              </div>
-            </div>
+              <div className="artist-form-fields">
+                {/* Artist Name */}
+                <div className="artist-form-field">
+                  <label>Artist Name :</label>
+                  <input
+                    type="text"
+                    value={profile.artist_name}
+                    onChange={(e) => handleInputChange('artist_name', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Your artist name"
+                  />
+                </div>
 
-            <div className="artist-stat-card">
-              <div className="artist-stat-icon">
-                <FontAwesomeIcon icon={faStar} />
-              </div>
-              <div className="artist-stat-info">
-                <div className="artist-stat-value">{profile.rating}</div>
-                <div className="artist-stat-label">Average Rating</div>
+                {/* Email */}
+                <div className="artist-form-field">
+                  <label>Email Address :</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                    <input
+                      type="email"
+                      value={user?.email || ''}
+                      disabled={true}
+                      style={{ cursor: 'not-allowed', opacity: 0.7, flex: 1 }}
+                    />
+                    {isEditing && (
+                      <button 
+                        className="artist-change-email-btn"
+                        onClick={() => setIsEmailModalOpen(true)}
+                      >
+                        Change Email
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="artist-form-field">
+                  <label>Password :</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                    <span style={{ color: '#64748b', fontSize: '14px' }}>••••••••••••••••</span>
+                    {isEditing && (
+                      <button 
+                        className="artist-change-password-btn"
+                        onClick={() => setIsPasswordModalOpen(true)}
+                      >
+                        Change Password
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onPasswordChange={handlePasswordChange}
+      />
+
+      {/* Change Email Modal */}
+      <ChangeEmailModal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        onEmailChange={handleEmailChange}
+        currentEmail={user?.email || ''}
+      />
     </div>
   );
 };

@@ -18,7 +18,8 @@ import {
   faChevronDown,
   faChevronUp,
   faSpinner,
-  faLock
+  faLock,
+  faTrash
 } from '@fortawesome/free-solid-svg-icons';
 import { FaBasketballBall, FaTrophy, FaTshirt, FaUser, FaUserFriends } from 'react-icons/fa';
 import designUploadService from '../../services/designUploadService';
@@ -38,6 +39,7 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
   const [loadingChatRoom, setLoadingChatRoom] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [designFiles, setDesignFiles] = useState([]);
   const fileInputRef = useRef(null);
   const { showSuccess, showError } = useNotification();
 
@@ -117,7 +119,7 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
     }
   }, [task]);
 
-  // Timer effect - calculate elapsed time from started_at
+  // Timer effect - calculate elapsed time from started_at while in progress
   useEffect(() => {
     const taskToCheck = currentTask || task;
     if (!taskToCheck || !taskToCheck.started_at || taskToCheck.status !== 'in_progress') {
@@ -161,6 +163,25 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
       }
     };
     fetchChatRoom();
+  }, [isOpen, task, currentTask]);
+
+  // Load existing design files for this order when modal opens
+  useEffect(() => {
+    const taskToCheck = currentTask || task;
+    const loadDesignFiles = async () => {
+      if (isOpen && taskToCheck && taskToCheck.order_id) {
+        try {
+          const result = await designUploadService.getDesignFiles(taskToCheck.order_id);
+          setDesignFiles(Array.isArray(result?.designFiles) ? result.designFiles : []);
+        } catch (e) {
+          console.error('Error loading design files:', e);
+          setDesignFiles([]);
+        }
+      } else {
+        setDesignFiles([]);
+      }
+    };
+    loadDesignFiles();
   }, [isOpen, task, currentTask]);
 
   // Check approval status when modal opens or task changes
@@ -285,6 +306,28 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
     }
   };
 
+  const handleRemoveFile = async (file) => {
+    try {
+      if (!displayTask || !displayTask.order_id) {
+        showError('Order not found for this task.');
+        return;
+      }
+      const publicId = file.publicId || file.public_id || file.filename || file.name;
+      if (!publicId) {
+        showError('Unable to identify this file.');
+        return;
+      }
+      const confirm = window.confirm('Remove this file from the order?');
+      if (!confirm) return;
+      await designUploadService.deleteDesignFile(displayTask.order_id, publicId);
+      setDesignFiles(prev => (Array.isArray(prev) ? prev.filter(f => (f.publicId || f.public_id || f.filename) !== publicId) : []));
+      showSuccess('File removed.');
+    } catch (error) {
+      console.error('❌ Error removing file:', error);
+      showError(error.message || 'Failed to remove file.');
+    }
+  };
+
   const getOrderTypeClass = (task) => {
     // Return CSS class based on order type
     const orderType = task.order_type || 'regular';
@@ -314,15 +357,49 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
 
   const orderItems = getOrderItems();
 
-  const handleSubmitDesign = () => {
+  // Helper to format long filenames preserving extension (e.g., "reallylongna...jpeg")
+  const formatFilenameForDisplay = (filename, maxBaseLength = 18) => {
+    if (!filename || typeof filename !== 'string') return 'File';
+    const lastDot = filename.lastIndexOf('.');
+    if (lastDot <= 0 || lastDot === filename.length - 1) {
+      // No extension; do simple truncation with ellipsis
+      return filename.length > maxBaseLength ? `${filename.slice(0, maxBaseLength)}…` : filename;
+    }
+    const base = filename.slice(0, lastDot);
+    const ext = filename.slice(lastDot + 1);
+    if (base.length <= maxBaseLength) return filename;
+    return `${base.slice(0, maxBaseLength)}….${ext}`;
+  };
+  const isPreviewableImage = (nameOrUrl) => {
+    if (!nameOrUrl || typeof nameOrUrl !== 'string') return false;
+    const lower = nameOrUrl.toLowerCase();
+    return ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].some(ext => lower.endsWith(ext));
+  };
+
+  const handleOpenUpload = () => {
+    // Open file selector regardless of approval; uploading files does not submit
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleSubmitDesign = async () => {
     if (!isApproved) {
       showError('Design must be approved by customer or wait 60 minutes after review request before submitting.');
       return;
     }
-    
-    // Trigger file input click
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+    if (!designFiles || designFiles.length === 0) {
+      showError('Please upload at least one design file before submitting.');
+      return;
+    }
+    try {
+      if (onStatusUpdate) {
+        await onStatusUpdate(displayTask.id, 'submitted');
+        showSuccess('Design submitted for review.');
+      }
+    } catch (error) {
+      console.error('❌ Error submitting design:', error);
+      showError(error.message || 'Failed to submit design. Please try again.');
     }
   };
 
@@ -342,26 +419,21 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
       console.log('🎨 Uploading design files for order:', displayTask.order_id);
       console.log('🎨 Files selected:', files.length);
 
-      // Upload files using designUploadService
+      // Upload files using designUploadService (no auto-submit)
       const result = await designUploadService.uploadDesignFiles(displayTask.order_id, files);
-      
       console.log('✅ Design files uploaded successfully:', result);
-      showSuccess(result.message || 'Design files uploaded successfully and order moved to sizing status');
+      showSuccess(result.message || 'Design files uploaded successfully');
 
-      // Update task status to submitted after successful upload
-      if (onStatusUpdate) {
-        await onStatusUpdate(displayTask.id, 'submitted');
-      }
+      // Refresh local list of design files
+      try {
+        const refreshed = await designUploadService.getDesignFiles(displayTask.order_id);
+        setDesignFiles(Array.isArray(refreshed?.designFiles) ? refreshed.designFiles : []);
+      } catch {}
 
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-
-      // Close modal after successful upload
-      setTimeout(() => {
-        onClose();
-      }, 1500);
     } catch (error) {
       console.error('❌ Error uploading design files:', error);
       showError(error.message || 'Failed to upload design files. Please try again.');
@@ -428,17 +500,40 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                       </div>
                     </div>
 
-                    {/* Task Timer */}
-                    {displayTask.status === 'in_progress' && displayTask.started_at && (
-                      <div className="task-timer-container">
-                        <div className="task-timer-label">
-                          <FontAwesomeIcon icon={faClock} />
-                          <span>Time Elapsed</span>
-                        </div>
-                        <div className="task-timer-display">
-                          {formatElapsedTime(elapsedTime)}
-                        </div>
-                      </div>
+                    {/* Task Timer (shows during in-progress; after completion shows final elapsed) */}
+                    {displayTask.started_at && (
+                      (() => {
+                        // Determine if task has ended and pick best available end timestamp
+                        const start = displayTask.started_at ? new Date(displayTask.started_at) : null;
+                        const endTimestamp =
+                          displayTask.submitted_at ||
+                          displayTask.completed_at ||
+                          displayTask.finished_at ||
+                          displayTask.ended_at ||
+                          displayTask.updated_at ||
+                          null;
+                        const hasEnded = (displayTask.status === 'submitted' || displayTask.status === 'completed') && Boolean(endTimestamp);
+                        const end = hasEnded ? new Date(endTimestamp) : null;
+                        let seconds = 0;
+                        if (start) {
+                          if (end) {
+                            seconds = Math.max(0, Math.floor((end - start) / 1000));
+                          } else if (displayTask.status === 'in_progress') {
+                            seconds = elapsedTime;
+                          }
+                        }
+                        return (
+                          <div className="task-timer-container">
+                            <div className="task-timer-label">
+                              <FontAwesomeIcon icon={faClock} />
+                              <span>Time Elapsed</span>
+                            </div>
+                            <div className="task-timer-display">
+                              {formatElapsedTime(seconds)}
+                            </div>
+                          </div>
+                        );
+                      })()
                     )}
 
                     {isBlindTask ? (
@@ -724,6 +819,108 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                         <p>No order items found</p>
                       </div>
                     )}
+                    {/* Revision Notes from Admin (artist_tasks.revision_notes) */}
+                    {displayTask.revision_notes && (
+                      <div className="artist-revision-notes-panel" style={{ border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '10px', padding: '12px', marginBottom: '6px', background: '#ffffff' }}>
+                        <div className="artist-revision-notes-title" style={{ fontWeight: 700, marginBottom: '6px', fontSize: 'clamp(13px, 1.2vw, 16px)', display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626' }}>
+                          <FontAwesomeIcon icon={faInfoCircle} />
+                          Revision Notes
+                        </div>
+                        <div className="artist-revision-notes-body" style={{ fontSize: 'clamp(12px, 1.1vw, 15px)', whiteSpace: 'pre-wrap', color: '#000' }}>
+                          {displayTask.revision_notes}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Uploaded Design Files moved below Order Details */}
+                    <div className="artist-design-files-panel">
+                      <div className="artist-design-files-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>
+                          <FontAwesomeIcon icon={faImage} /> Uploaded Design Files
+                          {' '}
+                          <span style={{ color: '#64748b', fontWeight: 600 }}>
+                            ({Array.isArray(designFiles) ? designFiles.length : 0})
+                          </span>
+                        </span>
+                        {isInProgress && (
+                          <button
+                            className="artist-task-action-btn artist-task-secondary-btn"
+                            onClick={handleOpenUpload}
+                            disabled={uploading}
+                            title="Upload one or more design files"
+                          >
+                            <FontAwesomeIcon icon={faUpload} />
+                            {uploading ? 'Uploading…' : 'Upload Files'}
+                          </button>
+                        )}
+                      </div>
+                      {designFiles && designFiles.length > 0 ? (
+                        <ul className="artist-design-files-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+                          {designFiles.map((f, idx) => {
+                            const displayName = formatFilenameForDisplay(f.filename || f.publicId || `File-${idx + 1}`);
+                            const dateStr = f.uploadedAt ? new Date(f.uploadedAt).toLocaleDateString() : '';
+                            const timeStr = f.uploadedAt ? new Date(f.uploadedAt).toLocaleTimeString() : '';
+                            return (
+                              <li
+                                key={f.publicId || idx}
+                                className="artist-design-file-item"
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: '1fr auto',
+                                  alignItems: 'center',
+                                  gap: '10px',
+                                  width: '100%',
+                                  minWidth: 0,
+                                  position: 'relative'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, width: '100%' }}>
+                                  {isPreviewableImage(f.filename || f.url) ? (
+                                    <button
+                                      type="button"
+                                      className="artist-design-file-button-link"
+                                      title={f.filename || f.publicId}
+                                      onClick={() => setZoomedImage({ url: f.url, name: f.filename || f.publicId || `File-${idx + 1}` })}
+                                      style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                    >
+                                      {displayName}
+                                    </button>
+                                  ) : (
+                                    <a
+                                      className="artist-design-file-link"
+                                      href={f.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      title={f.filename || f.publicId}
+                                      style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                    >
+                                      {displayName}
+                                    </a>
+                                  )}
+                                </div>
+                                <div className="artist-design-file-date" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '8px', minWidth: '100px' }}>
+                                  <span style={{ lineHeight: 1.1 }}>{dateStr}</span>
+                                  <span style={{ lineHeight: 1.1, opacity: 0.8 }}>{timeStr}</span>
+                                </div>
+                                {isInProgress && (
+                                  <button
+                                    type="button"
+                                    className="artist-task-icon-btn"
+                                    title="Remove file"
+                                    onClick={() => handleRemoveFile(f)}
+                                    style={{ color: '#dc2626' }}
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} />
+                                  </button>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <div className="artist-design-files-empty">No files uploaded yet.</div>
+                      )}
+                    </div>
                   </div>
                   )}
                   

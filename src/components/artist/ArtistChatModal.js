@@ -444,6 +444,18 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
 
   if (!isOpen || !room) return null;
 
+  // Build a clean order display without redundant words like "Order" or "Chat"
+  const rawOrderDisplay =
+    orderNumber ||
+    room.order?.order_number ||
+    room.order_number ||
+    room.room_name ||
+    'N/A';
+  const cleanedOrderDisplay = String(rawOrderDisplay)
+    .replace(/\bOrder\s*#?\s*/i, '') // remove "Order" or "Order #"
+    .replace(/\s*\bChat\b\s*$/i, '') // remove trailing "Chat"
+    .trim();
+
   return (
     <div className="artist-chat-modal-overlay" onClick={onClose}>
       <div className="artist-chat-modal" onClick={(e) => e.stopPropagation()}>
@@ -452,9 +464,9 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
           <div className="chat-header-info">
             <h3 className="artist-chat-customer-name">
               <FontAwesomeIcon icon={faUser} />
-              <span>Chatting with: <strong>{customer?.full_name || 'Customer'}</strong></span>
+              <span><strong>{customer?.full_name || 'Customer'}</strong></span>
             </h3>
-            <p className="artist-chat-order-info">Order: {orderNumber || room.order?.order_number || room.order_number || room.room_name || 'N/A'}</p>
+            <p className="artist-chat-order-info">{cleanedOrderDisplay}</p>
           </div>
           <button className="artist-chat-close-btn" onClick={onClose}>
             <FontAwesomeIcon icon={faTimes} />

@@ -36,12 +36,53 @@ const CustomerChatModal = ({ isOpen, onClose }) => {
       const enhancedRooms = await Promise.all(
         rooms.map(async (room) => {
           try {
-            // Get order information
-            const { data: order } = await supabase
-              .from('orders')
-              .select('order_number, status, total_amount, created_at')
-              .eq('id', room.order_id)
-              .single();
+            // Get order information (API-first, fallback to Supabase)
+            let order = {};
+            try {
+              if (room.order_id) {
+                const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                  const orderResponse = await fetch(`${API_BASE_URL}/api/orders/${room.order_id}`, {
+                    headers: {
+                      'Authorization': `Bearer ${session.access_token}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  if (orderResponse.ok) {
+                    const orderData = await orderResponse.json();
+                    const orderNumber = orderData.order_number || orderData.orderNumber || null;
+                    order = {
+                      order_number: orderNumber || 'N/A',
+                      status: orderData.status || 'pending',
+                      total_amount: orderData.total_amount || orderData.total || 0,
+                      created_at: orderData.created_at || orderData.createdAt || new Date().toISOString()
+                    };
+                  }
+                }
+              }
+            } catch (apiErr) {
+              // Ignore and fallback
+            }
+            if (!order.order_number && room.order_id) {
+              try {
+                const { data: fallbackOrder } = await supabase
+                  .from('orders')
+                  .select('order_number, status, total_amount, created_at')
+                  .eq('id', room.order_id)
+                  .single();
+                if (fallbackOrder) {
+                  order = {
+                    order_number: fallbackOrder.order_number || 'N/A',
+                    status: fallbackOrder.status || 'pending',
+                    total_amount: fallbackOrder.total_amount || 0,
+                    created_at: fallbackOrder.created_at || new Date().toISOString()
+                  };
+                }
+              } catch (fallbackErr) {
+                // leave order as {}
+              }
+            }
 
             // Get artist information
             const { data: artistProfile } = await supabase

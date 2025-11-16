@@ -482,6 +482,259 @@ router.get('/:id', authenticateSupabaseToken, requireAdminOrOwner, async (req, r
   }
 });
 
+// Admin/Owner design review for custom design orders
+router.patch('/:id/design-review', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, notes } = req.body || {};
+
+    if (!['approve', 'revision_required'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Use approve or revision_required.' });
+    }
+
+    // Load order by ID or order_number without causing UUID cast errors
+    let order = null;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+    if (isUuid) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, status, order_items, order_number')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) {
+        console.warn('Design review: error fetching by UUID id:', id, 'error:', error);
+      }
+      order = data || null;
+    } else {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, status, order_items, order_number')
+        .eq('order_number', id)
+        .maybeSingle();
+      if (error) {
+        console.warn('Design review: error fetching by order_number:', id, 'error:', error);
+      }
+      order = data || null;
+    }
+
+    if (!order) {
+      console.warn('Design review: order not found for identifier:', id);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Find latest artist task for this order
+    const { data: task, error: taskError } = await supabase
+      .from('artist_tasks')
+      .select('*')
+    .eq('order_id', order.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (taskError) {
+      console.error('Error fetching artist task for review:', taskError);
+    }
+
+    if (!task) {
+      return res.status(404).json({ error: 'No artist task found for this order' });
+    }
+
+    // Action handling
+    if (action === 'revision_required') {
+      // Send task back to in_progress, clear submitted_at, set revision notes
+      const updates = [];
+      updates.push(
+        supabase
+          .from('artist_tasks')
+          .update({
+            status: 'in_progress',
+            revision_notes: notes || 'Revisions required by admin.',
+            submitted_at: null,
+            // preserve existing started_at to resume the original timer
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', task.id)
+      );
+
+      // Move order back to layout stage
+      updates.push(
+        supabase
+          .from('orders')
+          .update({
+            status: 'layout',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', order.id)
+      );
+
+      // Ensure any related design chat rooms are open for revision discussion
+      updates.push(
+        supabase
+          .from('design_chat_rooms')
+          .update({ status: 'open', updated_at: new Date().toISOString() })
+          .eq('order_id', order.id)
+      );
+
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed) {
+        console.error('Error updating state for revision:', failed.error);
+        return res.status(500).json({ error: 'Failed to set task to revision required' });
+      }
+
+      return res.json({ ok: true, task_status: 'in_progress', order_status: 'layout', chats_opened: true });
+    }
+
+    if (action === 'approve') {
+      // Approve and proceed: mark artist task as completed and move order to sizing
+      const updates = [];
+
+      updates.push(
+        supabase
+          .from('artist_tasks')
+          .update({
+            status: 'completed',
+            approved_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+            admin_notes: notes || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', task.id)
+      );
+
+      updates.push(
+        supabase
+          .from('orders')
+          .update({
+            status: 'sizing',
+            updated_at: new Date().toISOString()
+          })
+      .eq('id', order.id)
+      );
+
+      // Close all related design chat rooms for this order
+      updates.push(
+        supabase
+          .from('design_chat_rooms')
+          .update({ status: 'closed', updated_at: new Date().toISOString() })
+      .eq('order_id', order.id)
+      );
+
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed) {
+        console.error('Error during approve flow:', failed.error);
+        return res.status(500).json({ error: 'Failed to finalize approval' });
+      }
+
+      return res.json({ ok: true, task_status: 'completed', order_status: 'sizing', chats_closed: true });
+    }
+  } catch (error) {
+    console.error('Design review error:', error);
+    res.status(500).json({ error: 'Failed to process design review' });
+  }
+});
+
+// Get revision notes for the latest artist task of an order (by UUID id or order_number)
+router.get('/:id/revision-notes', authenticateSupabaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    let order = null;
+    if (isUuid) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, order_number')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      order = data || null;
+    } else {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, order_number')
+        .eq('order_number', id)
+        .maybeSingle();
+      if (error) throw error;
+      order = data || null;
+    }
+    if (!order) {
+      return res.status(404).json({ notes: [] });
+    }
+    const { data: task, error: taskError } = await supabase
+      .from('artist_tasks')
+      .select('id, revision_notes, updated_at')
+      .eq('order_id', order.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (taskError) throw taskError;
+    const notes = task?.revision_notes
+      ? [{ message: task.revision_notes, createdAt: task.updated_at, taskId: task.id }]
+      : [];
+    return res.json({ notes });
+  } catch (error) {
+    console.error('Error fetching revision notes:', error);
+    return res.status(500).json({ notes: [] });
+  }
+});
+
+// Set/replace revision notes for the latest artist task on an order
+router.post('/:id/revision-notes', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message } = req.body || {};
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: 'message is required' });
+    }
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    let order = null;
+    if (isUuid) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      order = data || null;
+    } else {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('order_number', id)
+        .maybeSingle();
+      if (error) throw error;
+      order = data || null;
+    }
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    const { data: task, error: taskError } = await supabase
+      .from('artist_tasks')
+      .select('id')
+      .eq('order_id', order.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (taskError) throw taskError;
+    if (!task) {
+      return res.status(404).json({ error: 'No artist task found for this order' });
+    }
+    const { error: updateError } = await supabase
+      .from('artist_tasks')
+      .update({ revision_notes: message.trim(), updated_at: new Date().toISOString() })
+      .eq('id', task.id);
+    if (updateError) throw updateError;
+    return res.json({
+      note: { message: message.trim(), taskId: task.id, createdAt: new Date().toISOString() }
+    });
+  } catch (error) {
+    console.error('Error updating revision notes:', error);
+    return res.status(500).json({ error: 'Failed to update revision notes' });
+  }
+});
+
 // Update order status
 router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   console.log('🚀 STATUS UPDATE ROUTE CALLED');
@@ -605,6 +858,48 @@ router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, asyn
 
     // Debug: Log all status changes
     console.log(`🔄 Order ${updatedOrder.order_number} status changed: ${previousStatus} → ${status}`);
+
+    // If moving back from sizing to layout => treat as admin-requested revisions
+    if (previousStatus === 'sizing' && status === 'layout') {
+      try {
+        // Find latest artist task for this order
+        const { data: latestTask, error: latestTaskError } = await supabase
+          .from('artist_tasks')
+          .select('id')
+          .eq('order_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!latestTaskError && latestTask?.id) {
+          const { error: taskUpdateErr } = await supabase
+            .from('artist_tasks')
+            .update({
+              status: 'in_progress',
+              revision_notes: 'Admin requested revisions (order moved back to layout).',
+              submitted_at: null,
+              started_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', latestTask.id);
+
+          if (taskUpdateErr) {
+            console.warn('⚠️ Failed to update artist task for revisions:', taskUpdateErr.message);
+          }
+        }
+
+        // Re-open related design chat rooms for collaboration
+        const { error: chatUpdateErr } = await supabase
+          .from('design_chat_rooms')
+          .update({ status: 'active', updated_at: new Date().toISOString() })
+          .eq('order_id', id);
+        if (chatUpdateErr) {
+          console.warn('⚠️ Failed to reopen chat rooms on revision:', chatUpdateErr.message);
+        }
+      } catch (e) {
+        console.warn('⚠️ Revision handling error (sizing -> layout):', e.message);
+      }
+    }
 
     // Assign artist task when order moves to 'layout' status
     if (status === 'layout' && previousStatus !== 'layout') {

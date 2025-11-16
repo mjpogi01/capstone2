@@ -42,6 +42,7 @@ import { getApparelSizeVisibility } from '../../utils/orderSizing';
 import designUploadService from '../../services/designUploadService';
 import chatService from '../../services/chatService';
 import OrderNotification from './OrderNotification';
+import { supabase } from '../../lib/supabase';
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -74,6 +75,64 @@ const Orders = () => {
     inProgress: 0,
     pending: 0
   });
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [revisionDialog, setRevisionDialog] = useState({ show: false, notes: '', orderId: null, submitting: false });
+  const [orderDetailsActiveTab, setOrderDetailsActiveTab] = useState('details'); // 'details' | 'status'
+  const [showAllDesignFiles, setShowAllDesignFiles] = useState(false);
+  const [serverRevisionNotes, setServerRevisionNotes] = useState({}); // { [identifier]: Note[] }
+  
+  // Reset "view all" when switching expanded order
+  useEffect(() => {
+    setShowAllDesignFiles(false);
+  }, [expandedOrder]);
+
+  // Fetch server-side revision notes for the expanded order (artist_tasks.revision_notes)
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!expandedOrder) return;
+        const order = orders.find(o => o.id === expandedOrder);
+        if (!order) return;
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+        const { data: { session } } = await supabase.auth.getSession();
+        const identifier = order.orderNumber || order.id;
+        // Dedicated revision-notes endpoint (try id first then orderNumber)
+        const idCandidates = [order.id, order.orderNumber].filter(Boolean);
+        let res;
+        let usedIdentifier = null;
+        for (const candidate of idCandidates) {
+          try {
+            res = await fetch(`${API_BASE_URL}/api/orders/${candidate}/revision-notes`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+              }
+            });
+            if (res.ok) {
+              usedIdentifier = candidate;
+              break;
+            }
+          } catch (_) {
+            // ignore and try next candidate
+          }
+        }
+        if (res && res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const notes = Array.isArray(data?.notes) ? data.notes : Array.isArray(data) ? data : [];
+          try {
+            console.log('[Orders] GET revision-notes', { identifier: usedIdentifier, count: notes.length });
+          } catch (_) {}
+          setServerRevisionNotes(prev => ({ ...prev, [identifier]: notes }));
+          return;
+        }
+        // If no endpoint yet, just record empty for clarity
+        setServerRevisionNotes(prev => ({ ...prev, [identifier]: [] }));
+      } catch (e) {
+        // Silent fail; UI will rely on local fields if any
+      }
+    })();
+  }, [expandedOrder, orders]);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -148,7 +207,7 @@ const Orders = () => {
     };
 
     fetchOrders();
-  }, [filters.pickupBranch, filters.status, pagination.page, pagination.limit]);
+  }, [filters.pickupBranch, filters.status, pagination.page, pagination.limit, refreshKey]);
 
   // Fetch assigned artist when order is expanded
   useEffect(() => {
@@ -917,7 +976,7 @@ const Orders = () => {
                   </button>
                 </div>
               </div>
-            );
+            )
           })}
         </div>
       </div>
@@ -1005,6 +1064,39 @@ const Orders = () => {
                 </div>
                 
                 <div className="order-details-body">
+                  {/* Tabs */}
+                  <div className="order-details-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <button
+                      className={`orders-tab-btn ${orderDetailsActiveTab === 'details' ? 'active' : ''}`}
+                      onClick={() => setOrderDetailsActiveTab('details')}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color, #e5e7eb)',
+                        background: orderDetailsActiveTab === 'details' ? '#111827' : '#fff',
+                        color: orderDetailsActiveTab === 'details' ? '#fff' : '#111827',
+                        fontWeight: 600
+                      }}
+                    >
+                      Details
+                    </button>
+                    <button
+                      className={`orders-tab-btn ${orderDetailsActiveTab === 'status' ? 'active' : ''}`}
+                      onClick={() => setOrderDetailsActiveTab('status')}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color, #e5e7eb)',
+                        background: orderDetailsActiveTab === 'status' ? '#111827' : '#fff',
+                        color: orderDetailsActiveTab === 'status' ? '#fff' : '#111827',
+                        fontWeight: 600
+                      }}
+                    >
+                      Order Status
+                    </button>
+                  </div>
+                  {orderDetailsActiveTab === 'details' && (
+                  <>
                   <div className="yh-customer-section">
                     <h4 className="yh-customer-heading">
                       <FaUser className="yh-customer-heading-icon" />
@@ -1072,7 +1164,7 @@ const Orders = () => {
                   
                   <div className="details-section">
                     <h4><FaBox className="section-icon" />Order Items</h4>
-                    {order.orderItems.map((item, index) => (
+                    {(Array.isArray(order.orderItems) ? order.orderItems : []).map((item, index) => (
                       <div key={index} className="order-item">
                         {item.product_type === 'custom_design' ? (
                           <div className="custom-design-item">
@@ -1084,57 +1176,280 @@ const Orders = () => {
                               </div>
                             </div>
                             
-                            {/* Team Information */}
-                            <div className="custom-design-team-section">
-                              <h5 className="custom-design-section-title">
-                                <FaUsers className="section-icon" />
-                                Team Information
-                              </h5>
-                              <div className="custom-design-team-name">
-                                <strong>Team Name:</strong> {item.team_name}
-                              </div>
-                              <div className="custom-design-members">
-                                <strong>Team Members ({item.team_members?.length || 0}):</strong>
-                                <div className="custom-design-members-list">
-                                  {item.team_members?.map((member, memberIndex) => (
-                                    <div key={memberIndex} className="custom-design-member">
-                                      <span className="member-number">#{member.number}</span>
-                                      <span className="member-surname">{member.surname}</span>
-                                      <span className="member-size">Size: {member.size}</span>
-                                      <span className="member-sizing-type">({member.sizingType})</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
+                            {/* Submitted Design Files section removed - using existing design files section near bottom */}
 
-                            {/* Design Images */}
-                            {item.design_images && item.design_images.length > 0 && (
-                              <div className="custom-design-images-section">
+                            {/* Admin/Owner Design Review */}
+                            {['admin', 'owner'].includes(userRole) && (
+                              <div className="design-review-section">
                                 <h5 className="custom-design-section-title">
-                                  <FaCamera className="section-icon" />
-                                  Design Images ({item.design_images.length})
+                                  <FaCheck className="section-icon" />
+                                  Design Review
                                 </h5>
-                                <div className="custom-design-images-grid">
-                                  {item.design_images.map((image, imageIndex) => (
-                                    <div key={imageIndex} className="custom-design-image-item">
-                                      <img 
-                                        src={image.url} 
-                                        alt={`Design ${imageIndex + 1}`}
-                                        className="custom-design-image"
-                                        onClick={() => window.open(image.url, '_blank')}
-                                      />
-                                      <div className="custom-design-image-name">
-                                        {image.originalname || `Design ${imageIndex + 1}`}
-                                      </div>
-                                    </div>
-                                  ))}
+                                <div className="design-review-content">
+                                  {(() => {
+                                    const members = item.team_members || [];
+                                    const images = item.design_images || [];
+
+                                    // Simple inference: match member number in filename, and jersey/shorts keywords
+                                    const normalize = (s) => (s || '').toString().toLowerCase();
+                                    const hasPiece = (num, piece) => {
+                                      const numberStr = String(num);
+                                      return images.some(img => {
+                                        const name = normalize(img.originalname || img.url);
+                                        return name.includes(numberStr) && name.includes(piece);
+                                      });
+                                    };
+
+                                    const rows = members.map(m => {
+                                      const num = m.number || m.jerseyNo || m.jerseyNumber;
+                                      const jerseyOk = hasPiece(num, 'jersey') || hasPiece(num, 'shirt');
+                                      const shortsOk = hasPiece(num, 'shorts') || hasPiece(num, 'short');
+                                      return {
+                                        num,
+                                        surname: m.surname || m.lastName || '',
+                                        jerseyOk,
+                                        shortsOk
+                                      };
+                                    });
+
+                                    const allCovered = rows.length > 0 && rows.every(r => r.jerseyOk && r.shortsOk);
+
+                                    return (
+                                      <>
+                                        <div className="design-review-summary" style={{ marginBottom: '0.75rem' }}>
+                                          <strong>Coverage:</strong>{' '}
+                                          {rows.length} members •{' '}
+                                          {rows.filter(r => r.jerseyOk).length}/{rows.length} jerseys •{' '}
+                                          {rows.filter(r => r.shortsOk).length}/{rows.length} shorts •{' '}
+                                          <span style={{ color: allCovered ? '#16a34a' : '#dc2626' }}>
+                                            {allCovered ? 'Complete' : 'Incomplete'}
+                                          </span>
+                                        </div>
+                                        <div className="design-review-table-wrapper" style={{ overflowX: 'auto' }}>
+                                          <table className="design-review-table">
+                                            <thead>
+                                              <tr>
+                                                <th>#</th>
+                                                <th>Surname</th>
+                                                <th>Jersey</th>
+                                                <th>Shorts</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {rows.map((r, i) => (
+                                                <tr key={i}>
+                                                  <td>#{r.num || '—'}</td>
+                                                  <td>{(r.surname || '').toUpperCase()}</td>
+                                                  <td style={{ color: r.jerseyOk ? '#16a34a' : '#dc2626' }}>{r.jerseyOk ? 'Yes' : 'No'}</td>
+                                                  <td style={{ color: r.shortsOk ? '#16a34a' : '#dc2626' }}>{r.shortsOk ? 'Yes' : 'No'}</td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                        <div className="design-review-actions" style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+                                          <button
+                                type="button"
+                                            className="approve-design-btn"
+                                            disabled={!allCovered}
+                                            onClick={() => {
+                                              setConfirmDialog({
+                                                show: true,
+                                                title: 'Approve Designs?',
+                                                message: 'This will move the order status to Sizing.',
+                                                currentStatus: getStatusDisplayName(order.status),
+                                                newStatus: getStatusDisplayName('sizing'),
+                                                onConfirm: async () => {
+                                                  try {
+                                                    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+                                                    const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}/design-review`, {
+                                                      method: 'PATCH',
+                                                      headers: {
+                                                        'Content-Type': 'application/json'
+                                                      },
+                                                      body: JSON.stringify({ action: 'approve' })
+                                                    });
+                                                    if (!res.ok) {
+                                                      const err = await res.json().catch(() => ({}));
+                                                      throw new Error(err.error || 'Approval failed');
+                                                    }
+                                                    setRefreshKey(prev => prev + 1);
+                                                    setExpandedOrder(null);
+                                                  } catch (e) {
+                                                    alert(e.message || 'Failed to approve designs');
+                                                  } finally {
+                                                    setConfirmDialog(null);
+                                                  }
+                                                },
+                                                onCancel: () => setConfirmDialog(null)
+                                              });
+                                            }}
+                                          >
+                                            Approve Designs
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="revise-design-btn"
+                                            onClick={async () => {
+                                              const notes = window.prompt('Provide revision notes for the artist:', 'Please revise the following members...');
+                                              if (!notes || !notes.trim()) return;
+                                              try {
+                                                console.log('[Orders] Legacy flow: sending revision notes via prompt', {
+                                                  orderId: order.id,
+                                                  orderNumber: order.orderNumber,
+                                                  notesPreview: (notes || '').slice(0, 80),
+                                                  notesLength: (notes || '').length
+                                                });
+                                              } catch (_) {}
+                                              // Use app-styled confirmation dialog
+                                              setConfirmDialog({
+                                                show: true,
+                                                title: 'Send Revision Request?',
+                                                message: 'This will send the notes to the artist and move the task back to Layout/In Progress.',
+                                                currentStatus: getStatusDisplayName(order.status),
+                                                newStatus: getStatusDisplayName('layout'),
+                                                onConfirm: async () => {
+                                                  try {
+                                                    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+                                                    const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}/design-review`, {
+                                                      method: 'PATCH',
+                                                      headers: { 'Content-Type': 'application/json' },
+                                                      body: JSON.stringify({ action: 'revision_required', notes })
+                                                    });
+                                                    if (!res.ok) {
+                                                      const err = await res.json().catch(() => ({}));
+                                                      throw new Error(err.error || 'Revision request failed');
+                                                    }
+                                                    // Also persist note to dedicated endpoint (best-effort)
+                                                    try {
+                                                      await fetch(`${API_BASE_URL}/api/orders/${order.orderNumber || order.id}/revision-notes`, {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ message: notes })
+                                                      });
+                                                    } catch (_) {}
+                                                    // Optimistically add to local notes state so artists see it immediately
+                                                    try {
+                                                      const key = order.orderNumber || order.id;
+                                                      setServerRevisionNotes(prev => {
+                                                        const existing = Array.isArray(prev[key]) ? prev[key] : [];
+                                                        const optimistic = {
+                                                          message: notes,
+                                                          author: (user?.user_metadata?.role || 'Admin'),
+                                                          createdAt: new Date().toISOString()
+                                                        };
+                                                        return { ...prev, [key]: [optimistic, ...existing] };
+                                                      });
+                                                    } catch (_) {}
+                                                    const result = await res.json().catch(() => ({}));
+                                                    if (result && (result.order_status || result.task_status)) {
+                                                      const pretty = JSON.stringify(result, null, 2);
+                                                      window.alert(`Revise request id=${order.id} (${res.status}):\n${pretty}`);
+                                                    }
+                                                    setRefreshKey(prev => prev + 1);
+                                                    setExpandedOrder(null);
+                                                  } catch (e) {
+                                                    alert(e.message || 'Failed to request revisions');
+                                                  } finally {
+                                                    setConfirmDialog(null);
+                                                  }
+                                                },
+                                                onCancel: () => setConfirmDialog(null)
+                                              });
+                                            }}
+                                          >
+                                            Request Revisions
+                                          </button>
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             )}
 
                             {/* Design Upload Section - Artist Only */}
                             {/* Show upload button only if: customer approved OR 1 hour passed since review request */}
+                            {/* Revision Notes - placed above Upload section for artist */}
+                            {(() => {
+                              const roleLower = (user?.user_metadata?.role || '').toLowerCase();
+                              const canSeeNotes = ['artist', 'admin', 'owner'].includes(roleLower);
+                              if (!canSeeNotes) return null;
+                              // Gather notes from server for this order
+                              const serverKey = (order.orderNumber || order.id);
+                              const fetched = serverRevisionNotes?.[serverKey] || [];
+                              // Only use server-fetched notes for this order
+                              const sources = [];
+                              const notes = Array.isArray(fetched) ? fetched : [];
+                              // Normalize, dedupe, sort
+                              const seen = new Set();
+                              const normalized = notes
+                                .map(n => (typeof n === 'string' ? { message: n } : n))
+                                .filter(n => {
+                                  const key = `${n.message || n.text || n.note}-${n.createdAt || n.created_at || n.timestamp || ''}`;
+                                  if (seen.has(key)) return false;
+                                  seen.add(key);
+                                  return Boolean(n.message || n.text || n.note);
+                                })
+                                .sort((a, b) => {
+                                  const ta = new Date(a.createdAt || a.created_at || a.timestamp || 0).getTime();
+                                  const tb = new Date(b.createdAt || b.created_at || b.timestamp || 0).getTime();
+                                  return tb - ta;
+                                });
+                              try { console.log('[Orders] Above-upload revision notes', { orderId: order.id, itemId: item.id, serverKey, normalizedCount: normalized.length }); } catch (_) {}
+                              if (normalized.length === 0) return null;
+                              return (
+                                <div
+                                  className="revision-notes-panel above-upload"
+                                  style={{
+                                    border: '1px solid var(--border-color, #e5e7eb)',
+                                    borderRadius: '10px',
+                                    padding: '12px',
+                                    margin: '10px 0 14px',
+                                    background: '#fff'
+                                  }}
+                                >
+                                  <div
+                                    className="panel-title"
+                                    style={{ fontWeight: 700, marginBottom: '8px', fontSize: 'clamp(13px, 1.2vw, 16px)', color: '#dc2626' }}
+                                  >
+                                    Revision Notes
+                                  </div>
+                                  <div className="notes-list" style={{ display: 'grid', gap: '10px' }}>
+                                    {normalized.map((n, i) => {
+                                      const ts = n.createdAt || n.created_at || n.timestamp || null;
+                                      const when = ts ? new Date(ts).toLocaleString() : '';
+                                      const by = n.author || n.createdBy || n.user || 'Admin';
+                                      const msg = n.message || n.text || n.note || String(n);
+                                      return (
+                                        <div
+                                          key={i}
+                                          className="note-item"
+                                          style={{
+                                            border: '1px solid var(--border-color, #e5e7eb)',
+                                            borderRadius: '8px',
+                                            padding: '10px'
+                                          }}
+                                        >
+                                          <div
+                                            className="note-meta"
+                                            style={{ fontSize: 'clamp(11px, 1vw, 13px)', opacity: 0.7, marginBottom: 6 }}
+                                          >
+                                            {by}{when ? ` • ${when}` : ''}
+                                          </div>
+                                          <div
+                                            className="note-message"
+                                            style={{ fontSize: 'clamp(12px, 1.1vw, 15px)', whiteSpace: 'pre-wrap', color: '#000' }}
+                                          >
+                                            {msg}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                             {user?.user_metadata?.role === 'artist' && 
                              (item.status === 'confirmed' || item.status === 'layout') && 
                              orderApprovalStatus[item.id] && (
@@ -1203,6 +1518,8 @@ const Orders = () => {
                               </div>
                             </div>
                             
+                            {/* Submitted Design Files section removed - using existing design files section near bottom */}
+
                             {item.isTeamOrder && item.teamMembers && item.teamMembers.length > 0 && (
                               <div className="team-details">
                                 <div className="team-name">Team: {item.teamName || item.team_name || item.teamMembers?.[0]?.teamName || item.teamMembers?.[0]?.team_name || 'N/A'}</div>
@@ -1357,8 +1674,9 @@ const Orders = () => {
                       <div className="order-notes">{order.orderNotes}</div>
                     </div>
                   )}
-                  
-                  {/* Status Update Section */}
+                  </>
+                  )}
+                  {orderDetailsActiveTab === 'status' && (
                   <div className="details-section">
                     <h4><FaCog className="section-icon" />Order Status Management</h4>
                     <div className="status-update-section">
@@ -1574,49 +1892,501 @@ const Orders = () => {
                             )}
                           </h5>
 
-                          {designFiles.length > 0 ? (
-                            <div className="design-files-grid">
-                              {designFiles.map((file, index) => (
-                                <a
-                                  key={file.publicId || `${index}-${file.url}`}
-                                  href={file.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="design-file-card"
-                                  title={file.filename || `Design File ${index + 1}`}
-                                >
-                                  <div className="design-file-icon-wrapper">
-                                    <span className="design-file-icon">
-                                      {designUploadService.getFileTypeIcon(file.filename || '')}
-                                    </span>
-                                  </div>
-                                  <div className="design-file-info">
-                                    <div className="design-file-name">
-                                      {file.filename || `Design File ${index + 1}`}
+                          {/* Two-column layout: Left roster (35%), Right files (65%) */}
+                          <div
+                            className="submitted-design-files-grid"
+                            style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}
+                          >
+                            {/* Left Column */}
+                            <div
+                              className="submitted-col left"
+                              style={{ flex: '0 0 35%', maxWidth: '35%' }}
+                            >
+                              {(() => {
+                                // Aggregate team data across items
+                                const firstItem = (order.orderItems || [])[0] || {};
+                                const teamName =
+                                  firstItem.team_name ||
+                                  firstItem.teamName ||
+                                  (order.orderItems || []).find(i => i.team_name || i.teamName)?.team_name ||
+                                  (order.orderItems || []).find(i => i.team_name || i.teamName)?.teamName ||
+                                  'N/A';
+
+                                // Only keep the essentials: surname and jersey number
+                                const aggregatedMembers = (order.orderItems || []).flatMap(i =>
+                                  (i.team_members || i.teamMembers || []).map(m => ({
+                                    number: m.number || m.jerseyNo || m.jerseyNumber || '—',
+                                    surname: (m.surname || m.lastName || 'N/A').toString().toUpperCase(),
+                                    jerseyType: (m.jerseyType || m.jersey_type || i.jerseyType || 'full')
+                                  }))
+                                );
+
+                                const singleItem = (order.orderItems || []).find(i => i.singleOrderDetails)?.singleOrderDetails || null;
+                                const singleChip = singleItem
+                                  ? {
+                                      number: singleItem.number || singleItem.jerseyNo || singleItem.jerseyNumber || '—',
+                                      surname: (singleItem.surname || singleItem.lastName || 'N/A').toString().toUpperCase(),
+                                      jerseyType: singleItem.jerseyType || 'full'
+                                    }
+                                  : null;
+
+                                return (
+                                  <div style={{ fontSize: 'clamp(12px, 1.25vw, 16px)' }}>
+                                    <div className="team-pill">
+                                      <span className="team-pill-label">Team:</span>
+                                      <span className="team-pill-name">{teamName}</span>
                                     </div>
-                                    {file.uploadedAt && (
-                                      <div className="design-file-timestamp">
-                                        Uploaded {new Date(file.uploadedAt).toLocaleString()}
+                                    {aggregatedMembers.length > 0 ? (
+                                      <div className="member-chips">
+                                        <div className="member-chips-grid" style={{ gap: '8px', display: 'grid', gridTemplateColumns: '1fr' }}>
+                                          {aggregatedMembers.map((m, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="member-chip"
+                                              title={`${m.surname} • #${m.number}`}
+                                              style={{
+                                                width: '100%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '8px',
+                                                fontSize: 'clamp(12px, 1.2vw, 16px)'
+                                              }}
+                                            >
+                                              <span className="member-num-badge" style={{ fontSize: 'clamp(12px, 1.1vw, 15px)' }}>#{m.number}</span>
+                                              <span className="member-surname-text" style={{ flex: 1, marginLeft: '6px', fontSize: 'clamp(12px, 1.2vw, 16px)' }}>{m.surname}</span>
+                                              <span className="member-type-badge" style={{ whiteSpace: 'nowrap', fontSize: 'clamp(11px, 1.05vw, 14px)', opacity: 0.85 }}>
+                                                {m.jerseyType === 'shirt' ? 'Shirt Only' : m.jerseyType === 'shorts' ? 'Shorts Only' : 'Full Set'}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ) : singleChip ? (
+                                      <div className="member-chips">
+                                        <div className="member-chips-grid" style={{ gap: '8px', display: 'grid', gridTemplateColumns: '1fr' }}>
+                                          <div
+                                            className="member-chip"
+                                            title={`${singleChip.surname} • #${singleChip.number}`}
+                                            style={{
+                                              width: '100%',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'space-between',
+                                              gap: '8px',
+                                              fontSize: 'clamp(12px, 1.2vw, 16px)'
+                                            }}
+                                          >
+                                            <span className="member-num-badge" style={{ fontSize: 'clamp(12px, 1.1vw, 15px)' }}>#{singleChip.number}</span>
+                                            <span className="member-surname-text" style={{ flex: 1, marginLeft: '6px', fontSize: 'clamp(12px, 1.2vw, 16px)' }}>{singleChip.surname}</span>
+                                            <span className="member-type-badge" style={{ whiteSpace: 'nowrap', fontSize: 'clamp(11px, 1.05vw, 14px)', opacity: 0.85 }}>
+                                              {singleChip.jerseyType === 'shirt' ? 'Shirt Only' : singleChip.jerseyType === 'shorts' ? 'Shorts Only' : 'Full Set'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="member-empty-row">
+                                        No roster available.
                                       </div>
                                     )}
                                   </div>
-                                  <div className="design-file-open">View</div>
-                                </a>
-                              ))}
+                                );
+                              })()}
                             </div>
-                          ) : (
-                            <div className="design-files-empty">
-                              No design files submitted yet.
+
+                            {/* Right Column */}
+                            <div
+                              className="submitted-col right"
+                              style={{ flex: '1 1 auto', minWidth: 0 }}
+                            >
+                              {(() => {
+                                const serverKey = (order.orderNumber || order.id);
+                                const normalizedNotes = Array.isArray(serverRevisionNotes[serverKey]) ? serverRevisionNotes[serverKey] : [];
+                                try { console.log('[Orders] Rendering revision notes for artist', { orderId: order.id, count: normalizedNotes.length }); } catch (_) {}
+                                const userRoleLower = (user?.user_metadata?.role || '').toLowerCase();
+                                const canSeeNotes = ['artist', 'admin', 'owner'].includes(userRoleLower);
+                                if (canSeeNotes && normalizedNotes.length > 0) {
+                                  return (
+                                    <>
+                                      <div
+                                        className="revision-banner"
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '10px',
+                                          padding: '10px 12px',
+                                          borderRadius: '10px',
+                                          background: 'rgba(59,130,246,0.08)',
+                                          border: '1px solid rgba(59,130,246,0.25)',
+                                          color: '#1f2937',
+                                          marginBottom: '12px',
+                                          fontSize: 'clamp(13px, 1.2vw, 15px)',
+                                          fontWeight: 600
+                                        }}
+                                      >
+                                        <span
+                                          className="banner-dot"
+                                          style={{
+                                            display: 'inline-block',
+                                            width: 10,
+                                            height: 10,
+                                            borderRadius: '50%',
+                                            background: 'var(--primary-color, #2563eb)'
+                                          }}
+                                        />
+                                        Revisions requested — please review the notes below before uploading new designs.
+                                      </div>
+                                      <div
+                                        className="revision-notes-panel"
+                                        style={{
+                                          border: '1px solid var(--border-color, #e5e7eb)',
+                                          borderRadius: '10px',
+                                          padding: '12px',
+                                          marginBottom: '8px',
+                                          background: '#fff'
+                                        }}
+                                      >
+                                        <div
+                                          className="panel-title"
+                                          style={{ fontWeight: 700, marginBottom: '8px', fontSize: 'clamp(13px, 1.2vw, 16px)', color: '#dc2626' }}
+                                        >
+                                          Revision Notes
+                                        </div>
+                                        <div className="notes-list" style={{ display: 'grid', gap: '10px' }}>
+                                          {normalizedNotes.map((n, i) => {
+                                            const ts = n.createdAt || n.created_at || n.timestamp || null;
+                                            const when = ts ? new Date(ts).toLocaleString() : '';
+                                            const by = n.author || n.createdBy || n.user || 'Admin';
+                                            const msg = n.message || n.text || n.note || String(n);
+                                            return (
+                                              <div
+                                                key={i}
+                                                className="note-item"
+                                                style={{
+                                                  border: '1px solid var(--border-color, #e5e7eb)',
+                                                  borderRadius: '8px',
+                                                  padding: '10px'
+                                                }}
+                                              >
+                                                <div
+                                                  className="note-meta"
+                                                  style={{ fontSize: 'clamp(11px, 1vw, 13px)', opacity: 0.7, marginBottom: 6 }}
+                                                >
+                                                  {by}{when ? ` • ${when}` : ''}
+                                                </div>
+                                                <div
+                                                  className="note-message"
+                                                  style={{ fontSize: 'clamp(12px, 1.1vw, 15px)', whiteSpace: 'pre-wrap', color: '#000' }}
+                                                >
+                                                  {msg}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    </>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              {designFiles.length > 0 ? (
+                                <div
+                                  className="custom-design-images-grid"
+                                  style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                                    gap: '12px'
+                                  }}
+                                >
+                                  {(showAllDesignFiles ? designFiles : designFiles.slice(0, 4)).map((file, index) => (
+                                    <div
+                                      key={file.publicId || `${index}-${file.url}`}
+                                      className="custom-design-image-item"
+                                      style={{ width: '100%' }}
+                                    >
+                                      <img
+                                        src={file.url}
+                                        alt={file.filename || `Design ${index + 1}`}
+                                        className="custom-design-image"
+                                        style={{ width: '100%', height: 'auto', display: 'block' }}
+                                        onClick={() => window.open(file.url, '_blank')}
+                                      />
+                                      <div
+                                        className="custom-design-image-name"
+                                        style={{ fontSize: 'clamp(12px, 1.2vw, 14px)' }}
+                                      >
+                                        {file.filename || file.originalname || `Design ${index + 1}`}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="custom-design-images-empty">
+                                  No submitted design files yet.
+                                </div>
+                              )}
+                              {/* View all / Show less toggle */}
+                              {designFiles.length > 4 && (
+                                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
+                                  {!showAllDesignFiles ? (
+                                    <button
+                                      type="button"
+                                      className="design-files-view-all"
+                                      aria-label="View all design files"
+                                      onClick={() => setShowAllDesignFiles(true)}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '8px 12px',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--primary-color, #2563eb)',
+                                        background: 'var(--primary-color, #2563eb)',
+                                        color: 'var(--on-primary-color, #ffffff)',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                      }}
+                                    >
+                                      <span>View all ({designFiles.length})</span>
+                                      <FaChevronDown />
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="design-files-view-less"
+                                      aria-label="Show fewer design files"
+                                      onClick={() => setShowAllDesignFiles(false)}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '8px 12px',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--primary-color, #2563eb)',
+                                        background: '#ffffff',
+                                        color: 'var(--primary-color, #2563eb)',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                      }}
+                                    >
+                                      <FaChevronUp />
+                                      <span>Show less</span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Admin review actions */}
+                          {['admin', 'owner'].includes(userRole) && (
+                            <div className="design-review-actions" style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                              <button
+                                type="button"
+                                className="approve-design-btn"
+                                onClick={() => {
+                                  setConfirmDialog({
+                                    show: true,
+                                    title: 'Approve Designs?',
+                                    message: 'This will move the order status to Sizing.',
+                                    currentStatus: getStatusDisplayName(order.status),
+                                    newStatus: getStatusDisplayName('sizing'),
+                                    onConfirm: async () => {
+                                      try {
+                                        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        const identifier = order.orderNumber || order.id;
+                                        let res = await fetch(`${API_BASE_URL}/api/orders/${identifier}/design-review`, {
+                                          method: 'PATCH',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                                          },
+                                          body: JSON.stringify({ action: 'approve' })
+                                        });
+                                        if (res.status === 404 && order.id && order.id !== identifier) {
+                                          res = await fetch(`${API_BASE_URL}/api/orders/${order.orderNumber}/design-review`, {
+                                            method: 'PATCH',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                              ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                                            },
+                                            body: JSON.stringify({ action: 'approve' })
+                                          });
+                                        }
+                                        if (!res.ok) {
+                                          const err = await res.json().catch(() => ({}));
+                                          throw new Error(err.error || 'Approval failed');
+                                        }
+                                        setRefreshKey(prev => prev + 1);
+                                        setExpandedOrder(null);
+                                      } catch (e) {
+                                        alert(e.message || 'Failed to approve designs');
+                                      } finally {
+                                        setConfirmDialog(null);
+                                      }
+                                    },
+                                    onCancel: () => setConfirmDialog(null)
+                                  });
+                                }}
+                              >
+                                Approve Designs
+                              </button>
+                              <button
+                                type="button"
+                                className="revise-design-btn"
+                                onClick={() => {
+                                  try {
+                                    console.log('[Orders] Opening Request Revisions modal for order', { orderId: order.id, orderNumber: order.orderNumber });
+                                  } catch (_) {}
+                                  setRevisionDialog({ show: true, notes: '', orderId: order.id, submitting: false });
+                                }}
+                              >
+                                Request Revisions
+                              </button>
+
+                              {/* Dev-only test buttons removed */}
                             </div>
                           )}
                         </div>
                       )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* Revision Notes Modal */}
+      {revisionDialog.show && (
+        <div className="orders-revision-modal-overlay" onClick={() => setRevisionDialog({ show: false, notes: '', orderId: null, submitting: false })}>
+          <div className="orders-revision-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="orders-revision-header">
+              <h3>Request Revisions</h3>
+              <button
+                className="orders-revision-close"
+                onClick={() => setRevisionDialog({ show: false, notes: '', orderId: null, submitting: false })}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="orders-revision-body">
+              <label className="orders-revision-label">Revision Notes for Artist</label>
+              <textarea
+                className="orders-revision-textarea"
+                placeholder="List what needs to be revised..."
+                value={revisionDialog.notes}
+                onChange={(e) => setRevisionDialog(prev => ({ ...prev, notes: e.target.value }))}
+                rows={6}
+              />
+              <div className="orders-revision-hint">
+                These notes will be forwarded to the artist's task details and the task will move back to In Progress.
+              </div>
+            </div>
+            <div className="orders-revision-footer">
+              <button
+                type="button"
+                className="revise-design-btn"
+                disabled={revisionDialog.submitting || !revisionDialog.notes.trim()}
+                onClick={async () => {
+                  if (!revisionDialog.orderId) return;
+                  if (!revisionDialog.notes || !revisionDialog.notes.trim()) return;
+                  // Use app-styled confirmation dialog
+                  setConfirmDialog({
+                    show: true,
+                    title: 'Send Revision Request?',
+                    message: 'This will send the notes to the artist and move the task back to Layout/In Progress.',
+                    currentStatus: getStatusDisplayName((orders.find(o => o.id === revisionDialog.orderId) || {}).status || 'layout'),
+                    newStatus: getStatusDisplayName('layout'),
+                    onConfirm: async () => {
+                      try {
+                        setRevisionDialog(prev => ({ ...prev, submitting: true }));
+                        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+                        const { data: { session } } = await supabase.auth.getSession();
+                        // Prefer order number for API lookups
+                        const ord = orders.find(o => o.id === revisionDialog.orderId) || {};
+                        const identifier = ord.orderNumber || revisionDialog.orderId;
+                        let res = await fetch(`${API_BASE_URL}/api/orders/${identifier}/design-review`, {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                          },
+                          body: JSON.stringify({ action: 'revision_required', notes: revisionDialog.notes.trim() })
+                        });
+                        if (res.status === 404 && ord?.orderNumber && ord.orderNumber !== identifier) {
+                          res = await fetch(`${API_BASE_URL}/api/orders/${ord.orderNumber}/design-review`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                            },
+                            body: JSON.stringify({ action: 'revision_required', notes: revisionDialog.notes.trim() })
+                          });
+                        }
+                        if (!res.ok) {
+                          const err = await res.json().catch(() => ({}));
+                          throw new Error(err.error || 'Revision request failed');
+                        }
+                        // Best-effort write to dedicated revision-notes endpoint
+                        try {
+                          await fetch(`${API_BASE_URL}/api/orders/${identifier}/revision-notes`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                            },
+                            body: JSON.stringify({ message: revisionDialog.notes.trim() })
+                          });
+                        } catch (_) {}
+                        // Optimistic local insert so UI shows note immediately
+                        try {
+                          const key = identifier;
+                          const message = revisionDialog.notes.trim();
+                          setServerRevisionNotes(prev => {
+                            const existing = Array.isArray(prev[key]) ? prev[key] : [];
+                            const optimistic = {
+                              message,
+                              author: (user?.user_metadata?.role || 'Admin'),
+                              createdAt: new Date().toISOString()
+                            };
+                            return { ...prev, [key]: [optimistic, ...existing] };
+                          });
+                        } catch (_) {}
+                        const result = await res.json().catch(() => ({}));
+                        setRevisionDialog({ show: false, notes: '', orderId: null, submitting: false });
+                        setRefreshKey(prev => prev + 1);
+                        setExpandedOrder(null);
+                      } catch (e) {
+                        alert(e.message || 'Failed to request revisions');
+                        setRevisionDialog(prev => ({ ...prev, submitting: false }));
+                      } finally {
+                        setConfirmDialog(null);
+                      }
+                    },
+                    onCancel: () => setConfirmDialog(null)
+                  });
+                }}
+              >
+                {revisionDialog.submitting ? 'Sending...' : 'Send Revision Request'}
+              </button>
+              <button
+                type="button"
+                className="orders-revision-cancel"
+                onClick={() => setRevisionDialog({ show: false, notes: '', orderId: null, submitting: false })}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

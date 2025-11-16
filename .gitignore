@@ -23,3 +23,14 @@ server/.env
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Large data and shapefiles
+server/scripts/data/
+server/scripts/data/*
+*.shp
+*.dbf
+*.shx
+*.prj
+*.cpg
+*.zip
+*.csv

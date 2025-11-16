@@ -113,6 +113,28 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
     });
   };
 
+  const cleanDescription = (description) => {
+    if (!description) return '';
+    let output = description;
+
+    // UI-only sanitization: remove noisy prefixes from generated tasks
+    // 1) Remove "Quantity: <n> units." (case-insensitive, flexible spacing)
+    output = output.replace(/Quantity:\s*\d+\s*units\.?\s*/gi, '');
+    // 2) Remove "Customer notes:" label (keep the actual notes content that follows)
+    output = output.replace(/Customer\s*notes:\s*/gi, '');
+    // 3) Remove the label "📸 Product Image:" (keep any URL or text after it)
+    output = output.replace(/📸\s*Product\s*Image:\s*/gi, '');
+
+    // Remove URLs (http, https, www) from card preview only
+    const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+    output = output.replace(urlPattern, '').trim();
+
+    // Clean up multiple spaces and stray punctuation
+    output = output.replace(/\s{2,}/g, ' ').replace(/^\.\s*/g, '').trim();
+
+    return output;
+  };
+
   const handleTaskClick = (task) => {
     setSelectedTask(task);
     setShowTaskModal(true);
@@ -250,7 +272,7 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
                         <FontAwesomeIcon icon={faLock} /> Order details hidden - Start task to view
                       </span>
                     ) : (
-                      task.task_description
+                      cleanDescription(task.task_description)
                     )}
                   </div>
                   <div className="task-meta">
@@ -267,16 +289,18 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
                     {task.status.replace('_', ' ')}
                   </div>
                   <div className="task-actions">
-                    <button 
-                      className="action-btn chat-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenChat(task);
-                      }}
-                      title="Open Chat"
-                    >
-                      <FontAwesomeIcon icon={faComments} />
-                    </button>
+                    {(task.status === 'in_progress' || task.status === 'submitted' || task.status === 'completed') && (
+                      <button 
+                        className="action-btn chat-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenChat(task);
+                        }}
+                        title="Open Chat"
+                      >
+                        <FontAwesomeIcon icon={faComments} />
+                      </button>
+                    )}
                     <button 
                       className="action-btn view-btn"
                       onClick={(e) => {

@@ -22,7 +22,7 @@
 }
 
 .artist-chat-modal {
-  background: #1a1a1a;
+  background: #ffffff;
   border-radius: 12px;
   width: 100%;
   max-width: 900px;
@@ -30,8 +30,8 @@
   max-height: 700px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  border: 1px solid #333;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
   animation: chatModalSlideIn 0.3s ease-out;
   overflow: hidden;
 }
@@ -52,11 +52,11 @@
    -------------------------------- */
 .chat-header {
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #1a1a1a;
+  background: #ffffff;
   flex-shrink: 0;
 }
 
@@ -68,7 +68,7 @@
 .chat-header-info h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #ffffff;
+  color: #0f172a;
   margin: 0 0 0.5rem 0;
   display: flex;
   align-items: center;
@@ -76,33 +76,35 @@
 }
 
 .chat-header-info h3 svg {
-  color: #60a5fa;
+  color: #2563eb;
   font-size: 1.125rem;
 }
 
 .artist-chat-customer-name {
   font-size: 1.375rem !important;
   font-weight: 700 !important;
-  color: #ffffff !important;
+  color: #0f172a !important;
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
 .artist-chat-customer-name svg {
-  color: #60a5fa !important;
+  color: #2563eb !important;
   font-size: 1.25rem !important;
 }
 
 .artist-chat-customer-name strong {
-  color: #60a5fa !important;
+  color: #2563eb !important;
   font-weight: 700 !important;
   font-size: 1.375rem !important;
 }
 
 .artist-chat-order-info {
+  word-break: break-all;
+  white-space: normal;
   font-size: 0.9375rem !important;
-  color: #a1a1aa !important;
+  color: #64748b !important;
   margin: 0 !important;
   font-weight: 500 !important;
 }
@@ -110,9 +112,9 @@
 .artist-chat-close-btn {
   width: 36px;
   height: 36px;
-  border: 1px solid #444;
-  background: #333;
-  color: #ffffff;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #475569;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -124,8 +126,8 @@
 }
 
 .artist-chat-close-btn:hover {
-  background: #444;
-  border-color: #555;
+  background: #e2e8f0;
+  border-color: #cbd5e1;
   transform: scale(1.05);
 }
 
@@ -149,16 +151,16 @@
 }
 
 .chat-messages::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: #f1f5f9;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: #3b82f6;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #2563eb;
+  background: #94a3b8;
 }
 
 .artist-chat-loading-messages {
@@ -166,7 +168,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  color: #a1a1aa;
+  color: #64748b;
   font-size: 0.9375rem;
   height: 100%;
 }
@@ -201,16 +203,16 @@
 
 .message-content {
   max-width: 65%;
-  background: #2a2a2a;
+  background: #f8fafc;
   border-radius: 12px;
   padding: 0.875rem 1rem;
-  border: 1px solid #333;
+  border: 1px solid #e5e7eb;
   word-wrap: break-word;
 }
 
 .message.sent .message-content {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  border-color: #6366f1;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: #2563eb;
 }
 
 .message-header {
@@ -224,7 +226,7 @@
 .sender-name {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #a1a1aa;
+  color: #64748b;
   text-transform: capitalize;
 }
 
@@ -234,7 +236,7 @@
 
 .message-time {
   font-size: 0.6875rem;
-  color: #6b7280;
+  color: #94a3b8;
   white-space: nowrap;
 }
 
@@ -243,16 +245,24 @@
 }
 
 .message-text {
-  color: #ffffff;
+  color: #0f172a;
   line-height: 1.6;
   word-wrap: break-word;
   font-size: 0.9375rem;
   margin: 0;
 }
 
-.message-text strong {
+.message.sent .message-text {
   color: #ffffff;
+}
+
+.message-text strong {
+  color: #0f172a;
   font-weight: 600;
+}
+
+.message.sent .message-text strong {
+  color: #ffffff;
 }
 
 /* --------------------------------
@@ -266,14 +276,15 @@
 }
 
 .attachment {
-  background: rgba(255, 255, 255, 0.05);
+  background: #f8fafc;
   border-radius: 8px;
   padding: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #e5e7eb;
 }
 
 .message.sent .attachment {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .image-attachment {
@@ -299,23 +310,35 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  color: #0f172a;
+}
+
+.message.sent .file-attachment {
   color: #ffffff;
 }
 
 .file-attachment svg {
-  color: #60a5fa;
+  color: #2563eb;
   font-size: 1.25rem;
+}
+
+.message.sent .file-attachment svg {
+  color: #ffffff;
 }
 
 .attachment-name {
   font-size: 0.8125rem;
-  color: #e5e5e5;
+  color: #475569;
   flex: 1;
   word-break: break-all;
 }
 
+.message.sent .attachment-name {
+  color: #ffffff;
+}
+
 .download-link {
-  color: #60a5fa;
+  color: #2563eb;
   text-decoration: none;
   transition: color 0.2s ease;
   padding: 0.25rem;
@@ -323,8 +346,16 @@
 }
 
 .download-link:hover {
-  color: #3b82f6;
-  background: rgba(96, 165, 250, 0.1);
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.message.sent .download-link {
+  color: #ffffff;
+}
+
+.message.sent .download-link:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* --------------------------------
@@ -332,8 +363,8 @@
    -------------------------------- */
 .chat-input,
 .artist-chat-input-container {
-  border-top: 1px solid #2a2a2a;
-  background: #242424;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
   flex-shrink: 0;
 }
 
@@ -402,12 +433,12 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #2a2a2a;
+  background: #f8fafc;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid #3a3a3a;
+  border: 1px solid #e5e7eb;
   font-size: 0.8125rem;
-  color: #ffffff;
+  color: #0f172a;
 }
 
 .attachment-preview img,
@@ -480,7 +511,7 @@
   height: auto;
   border: none;
   background: transparent;
-  color: #60a5fa;
+  color: #2563eb;
   border-radius: 0;
   display: flex;
   align-items: center;
@@ -495,7 +526,7 @@
 
 .attach-btn:hover:not(:disabled) {
   background: transparent;
-  color: #3b82f6;
+  color: #1d4ed8;
   opacity: 0.8;
 }
 
@@ -507,10 +538,10 @@
 .message-input {
   flex: 1;
   height: 38px;
-  border: none;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: #2a2a2a;
-  color: #ffffff;
+  background: #ffffff;
+  color: #0f172a;
   padding: 0 1rem;
   font-size: 0.9375rem;
   transition: all 0.2s ease;
@@ -521,11 +552,12 @@
 
 .message-input:focus {
   outline: none;
-  background: #2f2f2f;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
 .message-input::placeholder {
-  color: #a1a1aa;
+  color: #94a3b8;
 }
 
 .send-btn {
@@ -533,7 +565,7 @@
   height: auto;
   border: none;
   background: transparent;
-  color: #60a5fa;
+  color: #2563eb;
   border-radius: 0;
   display: flex;
   align-items: center;
@@ -548,7 +580,7 @@
 
 .send-btn:hover:not(:disabled) {
   background: transparent;
-  color: #3b82f6;
+  color: #1d4ed8;
   opacity: 0.8;
 }
 
@@ -582,16 +614,16 @@
 }
 
 .artist-review-modal {
-  background: #1a1a1a;
+  background: #ffffff;
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   width: 90%;
   max-width: 600px;
   max-height: 85vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border: 1px solid #333;
+  border: 1px solid #e5e7eb;
   animation: chatModalSlideIn 0.3s ease-out;
 }
 
@@ -600,8 +632,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #2a2a2a;
-  background: #1a1a1a;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
   flex-shrink: 0;
 }
 
@@ -610,13 +642,13 @@
   align-items: center;
   gap: 0.75rem;
   margin: 0;
-  color: #ffffff;
+  color: #0f172a;
   font-size: 1.25rem;
   font-weight: 600;
 }
 
 .artist-review-modal-header h3 svg {
-  color: #60a5fa;
+  color: #2563eb;
 }
 
 .artist-review-modal-content {
@@ -627,8 +659,8 @@
 }
 
 .artist-review-instructions {
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid #6366f1;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid #2563eb;
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -636,7 +668,7 @@
 
 .artist-review-instructions p {
   margin: 0;
-  color: #a5b4fc;
+  color: #1e40af;
   font-size: 0.9rem;
   line-height: 1.6;
 }
@@ -647,23 +679,23 @@
 
 .artist-review-file-upload h4 {
   margin: 0 0 1rem 0;
-  color: #ffffff;
+  color: #0f172a;
   font-size: 1rem;
   font-weight: 600;
 }
 
 .artist-file-upload-area {
-  border: 2px dashed #444;
+  border: 2px dashed #cbd5e1;
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
-  background: #242424;
+  background: #f8fafc;
   transition: all 0.2s ease;
 }
 
 .artist-file-upload-area:hover {
-  border-color: #6366f1;
-  background: rgba(99, 102, 241, 0.05);
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.05);
 }
 
 .upload-files-btn {
@@ -672,7 +704,7 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #6366f1;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -684,7 +716,7 @@
 }
 
 .upload-files-btn:hover:not(:disabled) {
-  background: #5b21b6;
+  background: #1d4ed8;
   transform: translateY(-1px);
 }
 
@@ -696,7 +728,7 @@
 .upload-hint {
   margin: 0;
   font-size: 0.8125rem;
-  color: #a1a1aa;
+  color: #64748b;
 }
 
 .artist-review-files-preview {
@@ -705,7 +737,7 @@
 
 .artist-review-files-preview h5 {
   margin: 0 0 0.75rem 0;
-  color: #ffffff;
+  color: #0f172a;
   font-size: 0.9375rem;
   font-weight: 600;
 }
@@ -721,14 +753,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem;
-  background: #242424;
-  border: 1px solid #3a3a3a;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   transition: all 0.2s ease;
 }
 
 .artist-file-item:hover {
-  border-color: #4a4a4a;
+  border-color: #cbd5e1;
 }
 
 .artist-file-info {
@@ -749,16 +781,16 @@
 .artist-file-icon {
   width: 40px;
   height: 40px;
-  color: #a1a1aa;
+  color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1a1a1a;
+  background: #f1f5f9;
   border-radius: 6px;
 }
 
 .artist-file-name {
-  color: #ffffff;
+  color: #0f172a;
   font-size: 0.9rem;
   font-weight: 500;
   overflow: hidden;
@@ -792,7 +824,7 @@
 
 .artist-review-notes h4 {
   margin: 0 0 1rem 0;
-  color: #ffffff;
+  color: #0f172a;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -800,10 +832,10 @@
 .artist-notes-textarea {
   width: 100%;
   padding: 0.875rem;
-  border: 1px solid #444;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: #242424;
-  color: #ffffff;
+  background: #ffffff;
+  color: #0f172a;
   font-family: inherit;
   font-size: 0.9375rem;
   resize: vertical;
@@ -814,29 +846,29 @@
 
 .artist-notes-textarea:focus {
   outline: none;
-  border-color: #6366f1;
-  background: #2a2a2a;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
 .artist-notes-textarea::placeholder {
-  color: #6b7280;
+  color: #94a3b8;
 }
 
 .artist-review-modal-actions {
   display: flex;
   gap: 1rem;
   padding: 1.5rem 2rem;
-  border-top: 1px solid #2a2a2a;
-  background: #1a1a1a;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
   flex-shrink: 0;
 }
 
 .artist-chat-cancel-btn {
   flex: 1;
   padding: 0.875rem 1.5rem;
-  background: #242424;
-  color: #ffffff;
-  border: 1px solid #444;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
@@ -845,8 +877,8 @@
 }
 
 .artist-chat-cancel-btn:hover {
-  background: #2a2a2a;
-  border-color: #555;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .submit-review-btn {
