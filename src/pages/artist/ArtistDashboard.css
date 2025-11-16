@@ -76,6 +76,43 @@
   height: 100%;
 }
 
+/* Artist-specific scrollable content wrapper to avoid CSS conflicts elsewhere */
+.artist-content-scrollable {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dash-border) transparent;
+  flex: 1;
+  min-height: 0;
+}
+
+.artist-content-scrollable::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.artist-content-scrollable::-webkit-scrollbar-thumb {
+  background-color: var(--dash-border);
+  border-radius: 8px;
+}
+
+.artist-content-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Responsive tweaks for scrollable area */
+@media (max-width: 1024px) {
+  .artist-content-scrollable {
+    padding-bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .artist-content-scrollable {
+    padding-bottom: 0.75rem;
+  }
+}
+
 .dashboard-content {
   display: flex;
   flex-direction: column;
@@ -85,6 +122,162 @@
   overflow: hidden;
   width: 100%;
   box-sizing: border-box;
+}
+
+.artist-panels-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.artist-panels-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.artist-panel {
+  background: white;
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.artist-panel-full {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.artist-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.artist-panel-header h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  margin: 0;
+}
+
+.artist-panel-action {
+  background: var(--dash-primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.artist-panel-action:hover {
+  background: var(--dash-primary-2);
+}
+
+.artist-panel-body {
+  padding: 0.75rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  overflow: hidden; /* body stays fixed; inner sections handle their own scroll */
+}
+
+/* Dashboard chart summary placed above the chart */
+/* artist-panel-summary removed */
+
+/* Hide chart title only within dashboard context where we already have a panel title */
+.artist-hide-chart-title .chart-header h3 {
+  display: none;
+}
+
+.artist-hide-chart-title .chart-header {
+  justify-content: flex-end;
+}
+
+/* Hide chart summary inside dashboard to avoid confusion; chart remains unchanged elsewhere */
+.artist-hide-chart-title .chart-summary {
+  display: none;
+}
+
+/* Make tasks list panel clean and scrollable */
+.artist-panel-body .artist-tasks-table {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.artist-panel-body .artist-tasks-table .tasks-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+}
+
+.artist-panel-body .artist-tasks-table .tasks-list {
+  gap: 0.5rem;
+}
+
+.artist-panel-body .task-item {
+  border-radius: 10px;
+}
+
+/* Compact style for in-progress tasks without shrinking content */
+.artist-panel-body .task-item.in_progress {
+  padding: 0.6rem; /* reduce chrome padding only */
+}
+
+.artist-panel-body .task-item.in_progress .task-header {
+  margin-bottom: 0.4rem; /* slightly tighter header spacing */
+}
+
+.artist-panel-body .task-item.in_progress .task-details {
+  margin-bottom: 0.5rem; /* reduce gap before footer */
+}
+
+.artist-panel-body .task-item.in_progress .task-description {
+  margin-bottom: 0.25rem; /* keep font size, tighten spacing */
+}
+
+.artist-panel-body .task-item.in_progress .task-footer {
+  padding-top: 0.4rem; /* maintain readability while compacting */
+  border-top: 1px solid var(--dash-border);
+}
+
+/* Ensure children inside panel body don't force overflow/overlap */
+.artist-panel-body > * {
+  min-height: 0;
+  max-width: 100%;
+}
+
+/* Common chart/content wrappers inside panels */
+.artist-panel-body .chart-content {
+  min-height: 0;
+  overflow: auto;
 }
 
 .dashboard-grid {
@@ -165,6 +358,11 @@
 
 /* Responsive Design */
 @media (max-width: 1024px) {
+  .artist-panels-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
     gap: 0.75rem;
@@ -208,6 +406,14 @@
 }
 
 @media (max-width: 768px) {
+  .artist-panel-header {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .artist-panel-body {
+    padding: 0.65rem;
+  }
+
   .content-header {
     flex-direction: column;
     align-items: flex-start;

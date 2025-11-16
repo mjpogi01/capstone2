@@ -19,13 +19,15 @@ import ArtistTaskModal from './ArtistTaskModal';
 import ArtistChatModal from './ArtistChatModal';
 import chatService from '../../services/chatService';
 
-const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
+const ArtistTasksTable = ({ limit = null, showHeader = false, enableTabs = false }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedChatRoom, setSelectedChatRoom] = useState(null);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [activeStatus, setActiveStatus] = useState('all'); // all | in_progress | pending | submitted | completed
   const { user } = useAuth();
 
   const fetchArtistTasks = useCallback(async () => {
@@ -38,8 +40,9 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
         return;
       }
 
-      // Fetch tasks for this artist
-      const tasksData = await artistDashboardService.getArtistTasks(limit);
+      // Fetch tasks for this artist (optionally filtered by status)
+      const statusFilter = activeStatus === 'all' ? null : activeStatus;
+      const tasksData = await artistDashboardService.getArtistTasks(limit, statusFilter);
       setTasks(tasksData);
     } catch (error) {
       console.error('Error fetching artist tasks:', error);
@@ -47,11 +50,11 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
     } finally {
       setLoading(false);
     }
-  }, [user, limit]);
+  }, [user, limit, activeStatus]);
 
   useEffect(() => {
     fetchArtistTasks();
-  }, [user, fetchArtistTasks]);
+  }, [user, fetchArtistTasks, activeStatus]);
 
   const getPriorityIcon = (priority) => {
     switch (priority) {
@@ -239,7 +242,31 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
       {showHeader && (
         <div className="table-header">
           <h3>Recent Tasks</h3>
-          <button className="view-all-btn">View All</button>
+          {tasks.length > 2 && (
+            <button
+              className="view-all-btn"
+              onClick={() => setShowAll((prev) => !prev)}
+            >
+              {showAll ? 'Show Less' : 'View All'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {enableTabs && (
+        <div className="tasks-tabs">
+          {['all', 'in_progress', 'pending', 'submitted', 'completed'].map((status) => (
+            <button
+              key={status}
+              className={`tab-btn ${activeStatus === status ? 'active' : ''}`}
+              onClick={() => {
+                setShowAll(true); // show all when using tabs page
+                setActiveStatus(status);
+              }}
+            >
+              {status === 'all' ? 'All' : status.replace('_', ' ')}
+            </button>
+          ))}
         </div>
       )}
       
@@ -251,7 +278,7 @@ const ArtistTasksTable = ({ limit = null, showHeader = false }) => {
           </div>
         ) : (
           <div className="tasks-list">
-            {tasks.map((task) => (
+            {(showAll ? tasks : tasks.slice(0, 2)).map((task) => (
               <div 
                 key={task.id} 
                 className={`task-item ${task.status}`}

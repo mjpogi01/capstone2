@@ -73,9 +73,10 @@
   padding: 1rem;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
   width: 100%;
   box-sizing: border-box;
 }
@@ -137,12 +138,13 @@
 }
 
 .chart-visualization {
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 260px; /* ensure space for chart so summary doesn't overlap */
+  min-height: 260px;
   margin-bottom: 0.75rem;
   width: 100%;
   position: relative;
   box-sizing: border-box;
+  z-index: 0;
 }
 
 .chart-visualization > div {
@@ -155,7 +157,7 @@
 .chart-summary {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.75rem 0;
   padding: 0.75rem;
   background: var(--dash-surface);
   border-radius: 8px;
@@ -163,6 +165,8 @@
   box-sizing: border-box;
   flex-shrink: 0;
   gap: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
 .summary-item {
