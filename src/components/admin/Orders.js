@@ -1065,32 +1065,16 @@ const Orders = () => {
                 
                 <div className="order-details-body">
                   {/* Tabs */}
-                  <div className="order-details-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <div className="order-details-tabs">
                     <button
                       className={`orders-tab-btn ${orderDetailsActiveTab === 'details' ? 'active' : ''}`}
                       onClick={() => setOrderDetailsActiveTab('details')}
-                      style={{
-                        padding: '0.5rem 0.75rem',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-color, #e5e7eb)',
-                        background: orderDetailsActiveTab === 'details' ? '#111827' : '#fff',
-                        color: orderDetailsActiveTab === 'details' ? '#fff' : '#111827',
-                        fontWeight: 600
-                      }}
                     >
                       Details
                     </button>
                     <button
                       className={`orders-tab-btn ${orderDetailsActiveTab === 'status' ? 'active' : ''}`}
                       onClick={() => setOrderDetailsActiveTab('status')}
-                      style={{
-                        padding: '0.5rem 0.75rem',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-color, #e5e7eb)',
-                        background: orderDetailsActiveTab === 'status' ? '#111827' : '#fff',
-                        color: orderDetailsActiveTab === 'status' ? '#fff' : '#111827',
-                        fontWeight: 600
-                      }}
                     >
                       Order Status
                     </button>
