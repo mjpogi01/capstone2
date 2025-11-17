@@ -16,7 +16,6 @@ import {
   faRoute,
   faPhone,
   faClock,
-  faEnvelope,
   faTimes,
   faCheckCircle,
   faSync,
@@ -1368,18 +1367,6 @@ const BranchDetailsModal = ({ branch, isOpen, onClose, onGetDirections, isRoutin
                 </div>
                 <a href={`tel:${branch.phone}`} className="branch-modal-link">
                   {branch.phone}
-                </a>
-              </div>
-            )}
-
-            {branch.email && (
-              <div className="branch-modal-section">
-                <div className="branch-modal-section-title">
-                  <FontAwesomeIcon icon={faEnvelope} />
-                  <span>Email</span>
-                </div>
-                <a href={`mailto:${branch.email}`} className="branch-modal-link">
-                  {branch.email}
                 </a>
               </div>
             )}

@@ -41,18 +41,43 @@ export const AuthProvider = ({ children }) => {
         console.log('🔐 Auth state changed:', event, session?.user?.email, session?.user?.id);
         
         if (event === 'SIGNED_IN' && session?.user) {
+          // Check if this is a new signup (suppress welcome notification)
+          const isNewSignup = localStorage.getItem('isNewSignup');
           const currentTime = Date.now();
           const lastLoginTime = localStorage.getItem('lastLoginTime');
-          const shouldShowWelcome = !lastLoginTime || (currentTime - parseInt(lastLoginTime)) > 3600000; // 1 hour = 3600000ms
           
-          if (shouldShowWelcome) {
-            const userName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
-            showLoginSuccess(userName);
+          // Check if user is new (no lastLoginTime) or if isNewSignup flag is set
+          const isNewUser = !lastLoginTime || isNewSignup;
+          
+          if (!isNewUser) {
+            // Only show welcome back for existing users logging in
+            const shouldShowWelcome = (currentTime - parseInt(lastLoginTime)) > 3600000; // 1 hour = 3600000ms
+            
+            if (shouldShowWelcome) {
+              const userName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
+              showLoginSuccess(userName);
+            }
+          } else {
+            // Remove the flag after use if it exists
+            if (isNewSignup) {
+              localStorage.removeItem('isNewSignup');
+            }
           }
           
           localStorage.setItem('lastLoginTime', currentTime.toString());
         } else if (event === 'SIGNED_OUT') {
-          showLogoutSuccess();
+          // Check if silent logout flag is set (for terms disagreement)
+          // This flag is set when user disagrees with terms during signup
+          const silentLogout = localStorage.getItem('silentLogout');
+          
+          // Only show logout notification if silentLogout flag is NOT set
+          // If flag is 'true', suppress the logout notification
+          if (silentLogout !== 'true') {
+            showLogoutSuccess();
+          } else {
+            // Remove the flag after use - user disagreed with terms
+            localStorage.removeItem('silentLogout');
+          }
           localStorage.removeItem('lastLoginTime');
         }
         

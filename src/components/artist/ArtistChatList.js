@@ -111,32 +111,42 @@ const ArtistChatList = () => {
                 console.warn('Error fetching order for room', room.id, ':', orderError);
               }
               
-              // Fallback: try direct Supabase query if API fails
+              // Fallback: try direct Supabase query if API fails (only if API returned 403/404)
+              // Note: Direct Supabase queries may fail due to RLS policies, so prefer API
               if (!order || !orderNumber || order.order_number === 'N/A') {
                 try {
-                  console.log('🔄 Trying direct Supabase query for order_id:', room.order_id);
-                  const { data: orderData, error: orderError } = await supabase
-                    .from('orders')
-                    .select('order_number, status, total_amount, created_at')
-                    .eq('id', room.order_id)
-                    .single();
+                  console.log('🔄 API failed, trying direct Supabase query for order_id:', room.order_id);
                   
-                  if (!orderError && orderData && orderData.order_number) {
-                    orderNumber = orderData.order_number;
-                    console.log('✅ ACTUAL order number from Supabase orders table:', orderNumber);
-                    order = {
-                      order_number: orderData.order_number,
-                      status: orderData.status || 'pending',
-                      total_amount: orderData.total_amount || 0,
-                      created_at: orderData.created_at || new Date().toISOString()
-                    };
-                  } else if (orderError) {
-                    console.warn('❌ Supabase query error:', orderError);
-                  } else if (!orderData || !orderData.order_number) {
-                    console.warn('⚠️ Order found but no order_number field');
+                  // Ensure we have a valid session before making the query
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session) {
+                    console.warn('⚠️ No session available for Supabase query');
+                  } else {
+                    const { data: orderData, error: orderError } = await supabase
+                      .from('orders')
+                      .select('order_number, status, total_amount, created_at')
+                      .eq('id', room.order_id)
+                      .single();
+                    
+                    if (!orderError && orderData && orderData.order_number) {
+                      orderNumber = orderData.order_number;
+                      console.log('✅ Order number from Supabase:', orderNumber);
+                      order = {
+                        order_number: orderData.order_number,
+                        status: orderData.status || 'pending',
+                        total_amount: orderData.total_amount || 0,
+                        created_at: orderData.created_at || new Date().toISOString()
+                      };
+                    } else if (orderError) {
+                      // Silently handle RLS/permission errors - this is expected for direct queries
+                      if (orderError.code !== 'PGRST301' && orderError.code !== '42501') {
+                        console.warn('❌ Supabase query error:', orderError.message);
+                      }
+                    }
                   }
                 } catch (fallbackError) {
-                  console.warn('Fallback Supabase query failed:', fallbackError);
+                  // Silently handle fallback errors - API should be the primary method
+                  console.debug('Fallback Supabase query failed (expected if RLS blocks access):', fallbackError.message);
                 }
               }
             }

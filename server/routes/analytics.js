@@ -1023,13 +1023,289 @@ router.get('/dashboard', async (req, res) => {
       branchSalesFilter: { clause: branchSalesFilter.clause, paramCount: branchSalesFilter.params.length }
     });
     
-    // Check if DATABASE_URL is configured
+    // Check if DATABASE_URL is configured - if not, use Supabase client fallback
     if (!process.env.DATABASE_URL) {
-      console.error('❌ DATABASE_URL is not configured!');
-      return res.status(500).json({
-        success: false,
-        error: 'Database connection not configured. Please check server/.env file for DATABASE_URL.'
-      });
+      console.warn('⚠️  DATABASE_URL is not configured! Using Supabase client fallback for analytics.');
+      console.warn('⚠️  For better performance, add DATABASE_URL to your server/.env file.');
+      console.warn('⚠️  Format: postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres');
+      
+      // Use Supabase client to fetch orders and calculate analytics
+      try {
+        let ordersQuery = supabase
+          .from('orders')
+          .select('id, order_number, total_amount, status, created_at, user_id, pickup_location, order_items')
+          .lt('created_at', startOfCurrentMonthIso);
+        
+        // Apply branch filter if needed
+        if (branchContext?.branchName) {
+          ordersQuery = ordersQuery.ilike('pickup_location', `%${branchContext.branchName}%`);
+        }
+        
+        const { data: allOrders, error: ordersError } = await ordersQuery;
+        
+        if (ordersError) {
+          throw ordersError;
+        }
+        
+        // Filter out cancelled orders for calculations
+        const validOrders = (allOrders || []).filter(order => {
+          const status = (order.status || '').toLowerCase();
+          return status !== 'cancelled' && status !== 'canceled';
+        });
+        
+        // Calculate analytics from orders
+        const statusCounts = {};
+        const monthlySales = new Map();
+        const branchSales = new Map();
+        const customerSet = new Set();
+        const productGroupSales = {};
+        const categorySales = {};
+        
+        validOrders.forEach(order => {
+          // Status counts
+          const status = (order.status || '').toLowerCase();
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
+          
+          // Monthly sales
+          if (order.created_at) {
+            const orderDate = new Date(order.created_at);
+            const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
+            const current = monthlySales.get(monthKey) || 0;
+            monthlySales.set(monthKey, current + (parseFloat(order.total_amount) || 0));
+          }
+          
+          // Branch sales
+          const branch = order.pickup_location || 'Online Orders';
+          const branchTotal = branchSales.get(branch) || 0;
+          branchSales.set(branch, branchTotal + (parseFloat(order.total_amount) || 0));
+          
+          // Unique customers
+          if (order.user_id) {
+            customerSet.add(order.user_id);
+          }
+          
+          // Product and category analysis
+          try {
+            let items = order.order_items;
+            if (typeof items === 'string') {
+              items = JSON.parse(items);
+            }
+            if (Array.isArray(items)) {
+              items.forEach(item => {
+                const group = determineProductGroup(item);
+                const category = item?.category || 'Other';
+                const quantity = parseInt(item?.quantity || 0, 10);
+                const price = parseFloat(item?.price || 0);
+                
+                if (!productGroupSales[group]) {
+                  productGroupSales[group] = { quantity: 0, revenue: 0, orders: new Set() };
+                }
+                productGroupSales[group].quantity += quantity;
+                productGroupSales[group].revenue += quantity * price;
+                productGroupSales[group].orders.add(order.id);
+                
+                if (!categorySales[category]) {
+                  categorySales[category] = { quantity: 0, orders: new Set() };
+                }
+                categorySales[category].quantity += quantity;
+                categorySales[category].orders.add(order.id);
+              });
+            }
+          } catch (e) {
+            // Skip invalid order items
+          }
+        });
+        
+        // Get recent orders
+        let recentQuery = supabase
+          .from('orders')
+          .select('id, order_number, total_amount, status, created_at, user_id, pickup_location, order_items')
+          .gte('created_at', thirtyDaysAgoIso)
+          .order('created_at', { ascending: false })
+          .limit(1000);
+        
+        if (branchContext?.branchName) {
+          recentQuery = recentQuery.ilike('pickup_location', `%${branchContext.branchName}%`);
+        }
+        
+        const { data: recentOrdersData } = await recentQuery;
+        const recentOrdersList = (recentOrdersData || [])
+          .filter(order => {
+            const status = (order.status || '').toLowerCase();
+            return status !== 'cancelled' && status !== 'canceled';
+          })
+          .slice(0, 10)
+          .map(order => ({
+            id: order.id,
+            order_number: order.order_number,
+            total_amount: parseFloat(order.total_amount) || 0,
+            status: order.status,
+            created_at: order.created_at,
+            user_id: order.user_id
+          }));
+        
+        // Build response data
+        const totalOrders = validOrders.length;
+        const totalRevenue = Array.from(monthlySales.values()).reduce((a, b) => a + b, 0);
+        const totalCustomers = customerSet.size;
+        
+        const CANCELLED_STATUSES = new Set(['cancelled', 'canceled']);
+        const COMPLETED_STATUSES = new Set(['completed', 'delivered', 'picked_up_delivered', 'picked_up', 'finished']);
+        const PROCESSING_STATUSES = new Set(['processing', 'confirmed', 'layout', 'packing_completing', 'in_production', 'ready_for_pickup', 'ready_for_delivery', 'sizing']);
+        const PENDING_STATUSES = new Set(['pending', 'payment_pending', 'awaiting_payment', 'awaiting_confirmation']);
+        
+        let completedCount = 0;
+        let processingCount = 0;
+        let pendingCount = 0;
+        let cancelledCount = 0;
+        
+        Object.entries(statusCounts).forEach(([status, count]) => {
+          if (CANCELLED_STATUSES.has(status)) {
+            cancelledCount += count;
+          } else if (COMPLETED_STATUSES.has(status)) {
+            completedCount += count;
+          } else if (PROCESSING_STATUSES.has(status)) {
+            processingCount += count;
+          } else if (PENDING_STATUSES.has(status)) {
+            pendingCount += count;
+          } else {
+            pendingCount += count;
+          }
+        });
+        
+        const monthlySalesArray = Array.from(monthlySales.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([key, sales]) => {
+            const [year, month] = key.split('-');
+            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+            return {
+              key,
+              year: parseInt(year),
+              month: parseInt(month),
+              label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+              date: date.toISOString(),
+              sales: parseFloat(sales.toFixed(2)),
+              granularity: 'monthly'
+            };
+          });
+        
+        const yearlySalesMap = new Map();
+        monthlySalesArray.forEach(item => {
+          yearlySalesMap.set(item.year, (yearlySalesMap.get(item.year) || 0) + item.sales);
+        });
+        
+        const yearlySalesArray = Array.from(yearlySalesMap.entries())
+          .sort((a, b) => a[0] - b[0])
+          .map(([year, sales]) => ({
+            year,
+            label: String(year),
+            date: new Date(year, 0, 1).toISOString(),
+            sales: parseFloat(sales.toFixed(2)),
+            granularity: 'yearly'
+          }));
+        
+        const salesByBranchArray = Array.from(branchSales.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([branch, sales], index) => ({
+            branch: branch || 'Unspecified',
+            sales: parseFloat(sales.toFixed(2)),
+            color: getBranchColor(index)
+          }));
+        
+        const topProductsArray = Object.entries(productGroupSales)
+          .map(([group, data]) => ({
+            product: group,
+            quantity: data.quantity,
+            orders: data.orders.size,
+            revenue: parseFloat(data.revenue.toFixed(2))
+          }))
+          .sort((a, b) => b.quantity - a.quantity)
+          .slice(0, 7);
+        
+        const topCategoriesArray = Object.entries(categorySales)
+          .map(([category, data]) => ({
+            category,
+            quantity: data.quantity,
+            orders: data.orders.size
+          }))
+          .sort((a, b) => b.quantity - a.quantity);
+        
+        const denominator = totalOrders > 0 ? totalOrders : 1;
+        const orderStatusData = {
+          completed: {
+            count: completedCount,
+            percentage: totalOrders > 0 ? Math.round((completedCount / denominator) * 100) : 0
+          },
+          processing: {
+            count: processingCount,
+            percentage: totalOrders > 0 ? Math.round((processingCount / denominator) * 100) : 0
+          },
+          pending: {
+            count: pendingCount,
+            percentage: totalOrders > 0 ? Math.round((pendingCount / denominator) * 100) : 0
+          },
+          cancelled: {
+            count: cancelledCount,
+            percentage: totalOrders > 0 ? Math.round((cancelledCount / denominator) * 100) : 0
+          },
+          total: totalOrders
+        };
+        
+        const processedData = {
+          salesOverTime: {
+            monthly: monthlySalesArray,
+            yearly: yearlySalesArray
+          },
+          salesByBranch: salesByBranchArray,
+          orderStatus: orderStatusData,
+          topProducts: topProductsArray,
+          topCategories: topCategoriesArray,
+          summary: {
+            totalRevenue,
+            totalOrders,
+            totalCustomers,
+            averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0
+          },
+          recentOrders: recentOrdersList
+        };
+        
+        console.log('✅ Analytics data fetched using Supabase client fallback');
+        console.log(`📊 Found ${totalOrders} orders, ${totalCustomers} customers, ${totalRevenue.toFixed(2)} revenue`);
+        
+        return res.json({
+          success: true,
+          data: processedData
+        });
+      } catch (fallbackError) {
+        console.error('❌ Supabase client fallback error:', fallbackError);
+        // Return empty data if fallback also fails
+        const emptyData = {
+          salesOverTime: { monthly: [], yearly: [] },
+          salesByBranch: [],
+          orderStatus: {
+            completed: { count: 0, percentage: 0 },
+            processing: { count: 0, percentage: 0 },
+            pending: { count: 0, percentage: 0 },
+            cancelled: { count: 0, percentage: 0 },
+            total: 0
+          },
+          topProducts: [],
+          topCategories: [],
+          summary: {
+            totalRevenue: 0,
+            totalOrders: 0,
+            totalCustomers: 0,
+            averageOrderValue: 0
+          },
+          recentOrders: []
+        };
+        
+        return res.json({
+          success: true,
+          data: emptyData,
+          warning: `Analytics error: ${fallbackError.message}`
+        });
+      }
     }
     
     console.log('📊 DATABASE_URL configured:', process.env.DATABASE_URL ? 'Yes (length: ' + process.env.DATABASE_URL.length + ')' : 'No');
@@ -1133,29 +1409,74 @@ router.get('/dashboard', async (req, res) => {
       });
       
       // Check if it's a connection/configuration error
-      if (!process.env.DATABASE_URL) {
-        console.error('❌ DATABASE_URL is not configured in environment!');
-        return res.status(500).json({
-          success: false,
-          error: 'Database connection not configured. Please check server/.env file for DATABASE_URL.'
+      if (!process.env.DATABASE_URL || sqlError.message?.includes('Missing DATABASE_URL')) {
+        console.warn('⚠️  DATABASE_URL is not configured! Returning empty analytics data.');
+        console.warn('⚠️  To enable analytics, add DATABASE_URL to your server/.env file.');
+        
+        // Return empty/default data structure so dashboard can still load
+        const emptyData = {
+          salesOverTime: {
+            monthly: [],
+            yearly: []
+          },
+          salesByBranch: [],
+          orderStatus: {
+            completed: { count: 0, percentage: 0 },
+            processing: { count: 0, percentage: 0 },
+            pending: { count: 0, percentage: 0 },
+            cancelled: { count: 0, percentage: 0 },
+            total: 0
+          },
+          topProducts: [],
+          topCategories: [],
+          summary: {
+            totalRevenue: 0,
+            totalOrders: 0,
+            totalCustomers: 0,
+            averageOrderValue: 0
+          },
+          recentOrders: []
+        };
+        
+        return res.json({
+          success: true,
+          data: emptyData,
+          warning: 'Analytics data unavailable: DATABASE_URL not configured. Dashboard will show empty data.'
         });
       }
       
-      // Provide more specific error message
-      let errorMessage = 'Database query failed.';
-      if (sqlError.message?.includes('Missing DATABASE_URL')) {
-        errorMessage = 'Database connection not configured. Please check server/.env file for DATABASE_URL.';
-      } else if (sqlError.message?.includes('password authentication failed')) {
-        errorMessage = 'Database password authentication failed. Please check your DATABASE_URL password in server/.env';
-      } else if (sqlError.message?.includes('Tenant or user not found')) {
-        errorMessage = 'Database connection failed. Please check your DATABASE_URL connection string in server/.env';
-      } else if (sqlError.message) {
-        errorMessage = `Database error: ${sqlError.message}`;
-      }
+      // For other database errors, still return empty data instead of crashing
+      console.error('❌ Database query error:', sqlError.message);
+      console.error('❌ Returning empty analytics data to prevent dashboard crash.');
       
-      return res.status(500).json({
-        success: false,
-        error: errorMessage
+      const emptyData = {
+        salesOverTime: {
+          monthly: [],
+          yearly: []
+        },
+        salesByBranch: [],
+        orderStatus: {
+          completed: { count: 0, percentage: 0 },
+          processing: { count: 0, percentage: 0 },
+          pending: { count: 0, percentage: 0 },
+          cancelled: { count: 0, percentage: 0 },
+          total: 0
+        },
+        topProducts: [],
+        topCategories: [],
+        summary: {
+          totalRevenue: 0,
+          totalOrders: 0,
+          totalCustomers: 0,
+          averageOrderValue: 0
+        },
+        recentOrders: []
+      };
+      
+      return res.json({
+        success: true,
+        data: emptyData,
+        warning: `Analytics data unavailable: ${sqlError.message || 'Database query failed'}. Dashboard will show empty data.`
       });
     }
 

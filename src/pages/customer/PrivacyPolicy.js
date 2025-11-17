@@ -32,8 +32,6 @@ const PrivacyPolicy = () => {
               <li>Create an account or profile</li>
               <li>Place an order for products or services</li>
               <li>Contact us for customer support</li>
-              <li>Subscribe to our newsletter or marketing communications</li>
-              <li>Participate in surveys or promotions</li>
             </ul>
             <p className="privacy-text">
               The information we collect may include your name, email address, phone number, shipping address, billing information, and any other information you choose to provide.
@@ -50,7 +48,6 @@ const PrivacyPolicy = () => {
               <li>Communicate with you about your orders, products, services, and promotional offers</li>
               <li>Provide customer support and respond to your inquiries</li>
               <li>Improve our products, services, and customer experience</li>
-              <li>Send you marketing communications (with your consent)</li>
               <li>Detect, prevent, and address technical issues and security concerns</li>
               <li>Comply with legal obligations</li>
             </ul>
@@ -76,52 +73,35 @@ const PrivacyPolicy = () => {
           </section>
 
           <section className="privacy-section">
-            <h2 className="privacy-section-title">5. Your Rights and Choices</h2>
-            <p className="privacy-text">
-              You have the right to:
-            </p>
-            <ul className="privacy-list">
-              <li>Access and receive a copy of your personal information</li>
-              <li>Rectify inaccurate or incomplete information</li>
-              <li>Request deletion of your personal information</li>
-              <li>Object to or restrict processing of your information</li>
-              <li>Opt-out of marketing communications at any time</li>
-            </ul>
-            <p className="privacy-text">
-              To exercise these rights, please contact us using the information provided in the "Contact Us" section below.
-            </p>
-          </section>
-
-          <section className="privacy-section">
-            <h2 className="privacy-section-title">6. Cookies and Tracking Technologies</h2>
+            <h2 className="privacy-section-title">5. Cookies and Tracking Technologies</h2>
             <p className="privacy-text">
               We use cookies and similar tracking technologies to enhance your browsing experience, analyze site traffic, and understand where our visitors are coming from. You can control cookies through your browser settings, but note that disabling cookies may affect the functionality of our website.
             </p>
           </section>
 
           <section className="privacy-section">
-            <h2 className="privacy-section-title">7. Third-Party Links</h2>
+            <h2 className="privacy-section-title">6. Third-Party Links</h2>
             <p className="privacy-text">
               Our website may contain links to third-party websites or services. We are not responsible for the privacy practices or content of these third-party sites. We encourage you to review the privacy policies of any third-party sites you visit.
             </p>
           </section>
 
           <section className="privacy-section">
-            <h2 className="privacy-section-title">8. Children's Privacy</h2>
+            <h2 className="privacy-section-title">7. Children's Privacy</h2>
             <p className="privacy-text">
               Our services are not intended for individuals under the age of 18. We do not knowingly collect personal information from children. If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.
             </p>
           </section>
 
           <section className="privacy-section">
-            <h2 className="privacy-section-title">9. Changes to This Privacy Policy</h2>
+            <h2 className="privacy-section-title">8. Changes to This Privacy Policy</h2>
             <p className="privacy-text">
               We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date. You are advised to review this Privacy Policy periodically for any changes.
             </p>
           </section>
 
           <section className="privacy-section">
-            <h2 className="privacy-section-title">10. Contact Us</h2>
+            <h2 className="privacy-section-title">9. Contact Us</h2>
             <p className="privacy-text">
               If you have any questions or concerns about this Privacy Policy or our privacy practices, please contact us:
             </p>

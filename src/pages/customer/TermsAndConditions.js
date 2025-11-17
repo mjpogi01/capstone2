@@ -79,7 +79,6 @@ const TermsAndConditions = () => {
             <ul className="terms-list">
               <li><strong>Standard Orders:</strong> 3-5 business days</li>
               <li><strong>Custom Designs:</strong> 7-10 business days</li>
-              <li><strong>Rush Orders:</strong> Available for additional fee, subject to availability</li>
               <li><strong>Pick Up:</strong> Free pickup available at all our branch locations. You will be notified when your order is ready for pickup.</li>
               <li><strong>Cash on Delivery (COD):</strong> Delivery to your specified address is available for ₱50.00 delivery fee. Payment is made in cash upon delivery.</li>
               <li><strong>Delivery Areas:</strong> COD delivery is available in select areas. Please check with our branches for delivery availability in your location.</li>
@@ -90,24 +89,7 @@ const TermsAndConditions = () => {
           </section>
 
           <section className="terms-section">
-            <h2 className="terms-section-title">6. Returns and Refunds</h2>
-            <p className="terms-text">
-              Due to the custom nature of our products:
-            </p>
-            <ul className="terms-list">
-              <li>Custom orders are generally non-refundable once production has begun</li>
-              <li>Returns may be accepted for defective products or errors on our part</li>
-              <li>Refund requests must be made within 7 days of receiving the product</li>
-              <li>Products must be in original condition and unworn</li>
-              <li>Refunds will be processed using the original payment method</li>
-            </ul>
-            <p className="terms-text">
-              For issues with your order, please contact us immediately at yohanns.sportswear@gmail.com or visit any of our branches.
-            </p>
-          </section>
-
-          <section className="terms-section">
-            <h2 className="terms-section-title">7. Size and Fit</h2>
+            <h2 className="terms-section-title">6. Size and Fit</h2>
             <p className="terms-text">
               We provide size charts to help you select the correct size. However:
             </p>
@@ -120,7 +102,7 @@ const TermsAndConditions = () => {
           </section>
 
           <section className="terms-section">
-            <h2 className="terms-section-title">8. User Accounts</h2>
+            <h2 className="terms-section-title">7. User Accounts</h2>
             <p className="terms-text">
               If you create an account with us:
             </p>
@@ -133,7 +115,7 @@ const TermsAndConditions = () => {
           </section>
 
           <section className="terms-section">
-            <h2 className="terms-section-title">9. Limitation of Liability</h2>
+            <h2 className="terms-section-title">8. Limitation of Liability</h2>
             <p className="terms-text">
               To the maximum extent permitted by law:
             </p>
@@ -146,28 +128,28 @@ const TermsAndConditions = () => {
           </section>
 
           <section className="terms-section">
-            <h2 className="terms-section-title">10. Indemnification</h2>
+            <h2 className="terms-section-title">9. Indemnification</h2>
             <p className="terms-text">
               You agree to indemnify and hold harmless Yohann's Sportswear House, its employees, and affiliates from any claims, damages, losses, or expenses arising from your use of our services, violation of these terms, or infringement of any rights.
             </p>
           </section>
 
           <section className="terms-section">
-            <h2 className="terms-section-title">11. Changes to Terms</h2>
+            <h2 className="terms-section-title">10. Changes to Terms</h2>
             <p className="terms-text">
               We reserve the right to modify these Terms and Conditions at any time. Changes will be effective immediately upon posting on this page. Your continued use of our services after changes are posted constitutes acceptance of the modified terms.
             </p>
           </section>
 
           <section className="terms-section">
-            <h2 className="terms-section-title">12. Governing Law</h2>
+            <h2 className="terms-section-title">11. Governing Law</h2>
             <p className="terms-text">
               These Terms and Conditions shall be governed by and construed in accordance with the laws of the Philippines. Any disputes arising from these terms shall be subject to the exclusive jurisdiction of the courts of Batangas, Philippines.
             </p>
           </section>
 
           <section className="terms-section">
-            <h2 className="terms-section-title">13. Contact Information</h2>
+            <h2 className="terms-section-title">12. Contact Information</h2>
             <p className="terms-text">
               If you have any questions about these Terms and Conditions, please contact us:
             </p>

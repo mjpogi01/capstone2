@@ -425,12 +425,21 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
 });
 
 // Get single order by ID
-router.get('/:id', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
+// Access rules:
+// - Admin/Owner: can view any order (with branch restrictions for admins)
+// - Artist: can view orders they are assigned to
+router.get('/:id', authenticateSupabaseToken, async (req, res) => {
   try {
     const { id } = req.params;
+    const userRole = req.user.role;
+
+    // Check if user has required role
+    if (!['admin', 'owner', 'artist'].includes(userRole)) {
+      return res.status(403).json({ error: 'Access denied. Admin, owner, or artist role required.' });
+    }
 
     let branchContext = null;
-    if (req.user.role === 'admin') {
+    if (userRole === 'admin') {
       branchContext = await resolveAdminBranchContext(req.user);
     }
 
@@ -447,7 +456,35 @@ router.get('/:id', authenticateSupabaseToken, requireAdminOrOwner, async (req, r
       throw new Error(`Supabase error: ${error.message}`);
     }
 
-    ensureOrderAccess(order, branchContext);
+    // If artist, verify they are assigned to this order
+    if (userRole === 'artist') {
+      // Get artist profile id for this user
+      const { data: profile, error: profileError } = await supabase
+        .from('artist_profiles')
+        .select('id')
+        .eq('user_id', req.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(403).json({ error: 'Artist profile not found' });
+      }
+
+      // Verify there is at least one task linking this artist to the order
+      const { data: task, error: taskError } = await supabase
+        .from('artist_tasks')
+        .select('id')
+        .eq('artist_id', profile.id)
+        .eq('order_id', id)
+        .limit(1)
+        .maybeSingle();
+
+      if (taskError || !task) {
+        return res.status(403).json({ error: 'Access denied. You are not assigned to this order.' });
+      }
+    } else {
+      // For admin/owner, apply branch restrictions
+      ensureOrderAccess(order, branchContext);
+    }
 
     // Fetch user data for this order - use getUserById for single order (more efficient)
     let userData = null;

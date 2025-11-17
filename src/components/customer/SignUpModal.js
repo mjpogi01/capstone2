@@ -4,9 +4,12 @@ import { FaFacebook } from "react-icons/fa";
 import { AiOutlineMail, AiOutlineLock, AiOutlinePhone } from "react-icons/ai";
 import styles from "./SignUpModal.module.css";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNotification } from "../../contexts/NotificationContext";
+import { useModal } from "../../contexts/ModalContext";
 import logo from "../../images/yohanns_logo-removebg-preview 3.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import TermsAndConditionsModal from "./TermsAndConditionsModal";
 
 const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
   const [formData, setFormData] = useState({
@@ -19,7 +22,10 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const { register, signInWithProvider } = useAuth();
+  const { showSuccess } = useNotification();
+  const { openSignUp } = useModal();
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -56,10 +62,16 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
         phone: formData.contact,
       };
 
+      // Set flag to suppress welcome back notification for new signup
+      localStorage.setItem('isNewSignup', 'true');
+      
       const result = await register(userData);
       console.log("Sign up successful:", result);
-      onClose();
+      // Show terms and conditions modal after successful signup
+      setShowTermsModal(true);
     } catch (error) {
+      // Remove flag if signup fails
+      localStorage.removeItem('isNewSignup');
       setError(error.message);
       console.error("Sign up error:", error);
     } finally {
@@ -77,6 +89,40 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTermsAgree = () => {
+    setShowTermsModal(false);
+    showSuccess(
+      'Account Created Successfully!',
+      'Welcome to Yohann\'s Sportswear House! Your account has been created.'
+    );
+    // Reset form
+    setFormData({
+      email: "",
+      contact: "",
+      password: "",
+      confirmPassword: "",
+    });
+    setError("");
+    // Close signup modal and open sign-in modal
+    onClose();
+    // Small delay to ensure signup modal is closed before opening sign-in modal
+    setTimeout(() => {
+      onOpenSignIn();
+    }, 100);
+  };
+
+  const handleTermsDisagree = () => {
+    setShowTermsModal(false);
+    // Close the signup modal
+    onClose();
+    // Reopen signup modal after a short delay to allow notification to show
+    setTimeout(() => {
+      // The notification will be shown by TermsAndConditionsModal
+      // Reopen the signup modal so user can try again
+      openSignUp();
+    }, 800);
   };
 
   return (
@@ -265,6 +311,13 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
           </div>
         </div>
       </div>
+
+      {/* Terms and Conditions Modal */}
+      <TermsAndConditionsModal
+        isOpen={showTermsModal}
+        onAgree={handleTermsAgree}
+        onDisagree={handleTermsDisagree}
+      />
     </div>
   );
 };
