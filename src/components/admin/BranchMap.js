@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, useMap, Tooltip } from 'react-leaflet';
 import { FaMap, FaUsers } from 'react-icons/fa';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -115,17 +115,20 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Component to fit map bounds
-function FitBounds({ points }) {
+// Component to fit map bounds (only on initial load)
+function FitBounds({ points, shouldFit }) {
   const map = useMap();
+  const hasFittedRef = React.useRef(false);
   
   useEffect(() => {
-    if (points && points.length > 0) {
+    // Only fit bounds on initial load when shouldFit is true
+    if (shouldFit && !hasFittedRef.current && points && points.length > 0) {
       const bounds = points.map(point => [point[0], point[1]]);
       const boundsGroup = L.latLngBounds(bounds);
       map.fitBounds(boundsGroup, { padding: [50, 50] });
+      hasFittedRef.current = true;
     }
-  }, [map, points]);
+  }, [map, points, shouldFit]);
   
   return null;
 }
@@ -167,9 +170,44 @@ function HeatmapLayer({ points, visible }) {
       if (!layer) {
         return;
       }
-      if (map.hasLayer(layer)) {
-        map.removeLayer(layer);
+      
+      // Clear the heatmap data first
+      try {
+        if (layer.setLatLngs) {
+          layer.setLatLngs([]);
+        }
+      } catch (e) {
+        // Ignore errors when clearing
       }
+      
+      // Remove from map
+      if (map.hasLayer(layer)) {
+        try {
+          map.removeLayer(layer);
+        } catch (e) {
+          // Ignore errors when removing
+        }
+      }
+      
+      // Hide canvas element if it exists
+      try {
+        if (layer._canvas && layer._canvas.parentNode) {
+          layer._canvas.style.display = 'none';
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+      
+      // Clear the canvas if it exists
+      try {
+        if (layer._canvas && layer._ctx && typeof layer._ctx.clearRect === 'function') {
+          const ctx = layer._ctx;
+          ctx.clearRect(0, 0, layer._canvas.width, layer._canvas.height);
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+      
       heatLayerRef.current = null;
     };
 
@@ -249,6 +287,11 @@ function HeatmapLayer({ points, visible }) {
             }
           }
           
+          // Make sure canvas is visible when showing
+          if (layer._canvas) {
+            layer._canvas.style.display = '';
+          }
+          
           // Only update lat/lngs if layer is already on map, otherwise wait
           if (map.hasLayer(layer)) {
             layer.setLatLngs(latLngs);
@@ -317,10 +360,12 @@ function HeatmapLayer({ points, visible }) {
 
 const BranchMap = ({ onDataLoaded }) => {
   const [heatmapData, setHeatmapData] = useState([]);
+  const [markerData, setMarkerData] = useState([]);
   const [cityStats, setCityStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showMarkers, setShowMarkers] = useState(true);
+  const [hasInitialFit, setHasInitialFit] = useState(false);
 
   const reportData = useCallback((points = [], stats = [], extra = {}) => {
     if (typeof onDataLoaded === 'function') {
@@ -344,14 +389,15 @@ const BranchMap = ({ onDataLoaded }) => {
   useEffect(() => {
     fetchCustomerLocations();
     
-    // Refresh customer locations every 30 seconds to show new customers immediately
-    const refreshInterval = setInterval(() => {
-      fetchCustomerLocations();
-    }, 30000); // 30 seconds
-    
-    return () => {
-      clearInterval(refreshInterval);
-    };
+    // Auto-refresh disabled - customer locations will only load once when component mounts
+    // If you want to re-enable auto-refresh, uncomment the code below:
+    // const refreshInterval = setInterval(() => {
+    //   fetchCustomerLocations();
+    // }, 30000); // 30 seconds
+    // 
+    // return () => {
+    //   clearInterval(refreshInterval);
+    // };
   }, []);
 
   const fetchCustomerLocations = async () => {
@@ -364,12 +410,19 @@ const BranchMap = ({ onDataLoaded }) => {
         const data = await response.json();
         if (data.success && data.data) {
           const points = Array.isArray(data.data) ? data.data : [];
+          const markers = Array.isArray(data.markers) ? data.markers : [];
           const statsRaw = Array.isArray(data.cityStats) ? data.cityStats : [];
           const stats = [...statsRaw].sort((a, b) => (Number(b.count) || 0) - (Number(a.count) || 0));
           setHeatmapData(points);
           setCityStats(stats);
+          setMarkerData(markers); // Store marker data with customer names
           reportData(points, stats, { status: 'loaded', source: 'api' });
           console.log(`✅ Loaded ${points.length} customer location points from database`);
+          
+          // Mark initial fit after first successful load
+          if (!hasInitialFit && points.length > 0) {
+            setHasInitialFit(true);
+          }
         } else {
           // No data available - show empty state
           setHeatmapData([]);
@@ -490,24 +543,40 @@ const BranchMap = ({ onDataLoaded }) => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
-          <FitBounds points={heatmapData} />
+          <FitBounds points={heatmapData} shouldFit={!hasInitialFit && heatmapData.length > 0} />
           <HeatmapLayer points={heatmapPoints} visible={showHeatmap} />
           
           {/* Render red dots for each customer location */}
           {showMarkers &&
-            heatmapData.map((point, index) => (
-              <CircleMarker
-                key={index}
-                center={[point[0], point[1]]}
-                radius={4}
-                pathOptions={{
-                  fillColor: '#ef4444',
-                  color: '#dc2626',
-                  fillOpacity: 0.8,
-                  weight: 1
-                }}
-              />
-            ))}
+            heatmapData.map((point, index) => {
+              // Get customer name from marker data if available
+              const marker = markerData[index] || markerData.find(m => 
+                m && typeof m === 'object' && 
+                Math.abs(m.lat - point[0]) < 0.0001 && 
+                Math.abs(m.lng - point[1]) < 0.0001
+              );
+              const customerName = marker && typeof marker === 'object' ? marker.customerName : null;
+              
+              return (
+                <CircleMarker
+                  key={index}
+                  center={[point[0], point[1]]}
+                  radius={4}
+                  pathOptions={{
+                    fillColor: '#ef4444',
+                    color: '#dc2626',
+                    fillOpacity: 0.8,
+                    weight: 1
+                  }}
+                >
+                  {customerName && (
+                    <Tooltip permanent={false} direction="top" offset={[0, -10]}>
+                      {customerName}
+                    </Tooltip>
+                  )}
+                </CircleMarker>
+              );
+            })}
           
         </MapContainer>
       </div>
