@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faRotateRight, faTrash, faUsers, faUserShield, faPalette, faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 import Sidebar from '../../components/admin/Sidebar';
@@ -24,8 +24,16 @@ const Accounts = () => {
     email: ''
   });
 
-  const isOwner = user?.user_metadata?.role === 'owner';
+  // Make isOwner reactive to user changes
+  const isOwner = useMemo(() => user?.user_metadata?.role === 'owner', [user?.user_metadata?.role]);
   const [activeTab, setActiveTab] = useState(isOwner ? 'admin' : 'artist');
+
+  // Update activeTab when isOwner changes (only on initial load)
+  useEffect(() => {
+    if (isOwner) {
+      setActiveTab('admin');
+    }
+  }, [isOwner]);
 
   // Fetch all accounts
   const fetchAccounts = useCallback(async () => {
@@ -44,9 +52,44 @@ const Accounts = () => {
         'Content-Type': 'application/json'
       };
 
+      // Check if user is owner (recalculate inside callback to ensure it's current)
+      const currentIsOwner = user?.user_metadata?.role === 'owner';
+      console.log('🔍 Fetching accounts - isOwner:', currentIsOwner, 'user role:', user?.user_metadata?.role);
+
       // Fetch admin accounts (only if owner)
-      if (isOwner) {
-        const adminResponse = await fetch(`http://localhost:4000/api/admin/users?t=${Date.now()}`, {
+      if (currentIsOwner) {
+        try {
+          console.log('🔵 Attempting to fetch admin accounts...');
+          const adminResponse = await fetch(`http://localhost:4000/api/admin/users?t=${Date.now()}`, {
+            headers: {
+              ...headers,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          console.log('📡 Admin accounts response status:', adminResponse.status, adminResponse.statusText);
+          
+          if (adminResponse.ok) {
+            const adminData = await adminResponse.json();
+            console.log('✅ FETCHED ADMIN ACCOUNTS:', adminData.length, 'accounts');
+            console.log('📋 Admin accounts details:', adminData.map(acc => ({ id: acc.id, email: acc.email, name: acc.name, role: acc.role })));
+            setAdminAccounts(adminData);
+          } else {
+            const errorText = await adminResponse.text();
+            console.error('❌ Failed to fetch admin accounts:', adminResponse.status, errorText);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching admin accounts:', error);
+        }
+      } else {
+        console.log('⚠️ Skipping admin accounts fetch - user is not owner');
+      }
+
+      // Fetch customer accounts
+      try {
+        const customerResponse = await fetch(`http://localhost:4000/api/admin/customers?t=${Date.now()}`, {
           headers: {
             ...headers,
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -55,43 +98,43 @@ const Accounts = () => {
           }
         });
         
-        if (adminResponse.ok) {
-          const adminData = await adminResponse.json();
-          console.log('📋 FETCHED ADMIN ACCOUNTS:', adminData.map(acc => ({ id: acc.id, email: acc.email, name: acc.name })));
-          setAdminAccounts(adminData);
+        if (customerResponse.ok) {
+          const customerData = await customerResponse.json();
+          console.log('📋 FETCHED CUSTOMER ACCOUNTS:', customerData.map(acc => ({ id: acc.id, email: acc.email, name: acc.name })));
+          setCustomerAccounts(customerData);
+        } else {
+          const errorText = await customerResponse.text();
+          console.error('❌ Failed to fetch customer accounts:', customerResponse.status, errorText);
         }
-      }
-
-      // Fetch customer accounts
-      const customerResponse = await fetch(`http://localhost:4000/api/admin/customers?t=${Date.now()}`, {
-        headers: {
-          ...headers,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      
-      if (customerResponse.ok) {
-        const customerData = await customerResponse.json();
-        console.log('📋 FETCHED CUSTOMER ACCOUNTS:', customerData.map(acc => ({ id: acc.id, email: acc.email, name: acc.name })));
-        setCustomerAccounts(customerData);
+      } catch (error) {
+        console.error('❌ Error fetching customer accounts:', error);
       }
 
       // Fetch artist accounts
-      const artistResponse = await fetch(`http://localhost:4000/api/admin/artists?t=${Date.now()}`, {
-        headers: {
-          ...headers,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+      try {
+        console.log('🎨 Attempting to fetch artist accounts...');
+        const artistResponse = await fetch(`http://localhost:4000/api/admin/artists?t=${Date.now()}`, {
+          headers: {
+            ...headers,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        
+        console.log('📡 Artist accounts response status:', artistResponse.status, artistResponse.statusText);
+        
+        if (artistResponse.ok) {
+          const artistData = await artistResponse.json();
+          console.log('✅ FETCHED ARTIST ACCOUNTS:', artistData.length, 'accounts');
+          console.log('📋 Artist accounts details:', artistData.map(acc => ({ id: acc.id, email: acc.email, artist_name: acc.artist_name })));
+          setArtistAccounts(artistData);
+        } else {
+          const errorText = await artistResponse.text();
+          console.error('❌ Failed to fetch artist accounts:', artistResponse.status, errorText);
         }
-      });
-      
-      if (artistResponse.ok) {
-        const artistData = await artistResponse.json();
-        console.log('📋 FETCHED ARTIST ACCOUNTS:', artistData.map(acc => ({ id: acc.id, email: acc.email, artist_name: acc.artist_name })));
-        setArtistAccounts(artistData);
+      } catch (error) {
+        console.error('❌ Error fetching artist accounts:', error);
       }
 
     } catch (error) {
@@ -99,7 +142,7 @@ const Accounts = () => {
     } finally {
       setLoading(false);
     }
-  }, [isOwner]);
+  }, [user]);
 
   // Delete admin account
   const handleDeleteAdmin = async (adminId) => {
@@ -363,8 +406,11 @@ const Accounts = () => {
   };
 
   useEffect(() => {
-    fetchAccounts();
-  }, [fetchAccounts]);
+    // Only fetch accounts when user is available
+    if (user) {
+      fetchAccounts();
+    }
+  }, [fetchAccounts, user]);
 
   // Filter accounts based on search terms
   const filteredAdminAccounts = adminAccounts.filter(admin =>

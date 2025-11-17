@@ -51,24 +51,170 @@ router.get('/branches', requireOwner, async (req, res) => {
   }
 });
 
-// Get all admin users (owner only)
-router.get('/users', requireOwner, async (req, res) => {
+// Test endpoint to debug user structure (temporary)
+router.get('/users/debug', requireOwner, async (req, res) => {
   try {
-    // Use Supabase client to fetch users with cache busting
     const { data: users, error } = await supabase.auth.admin.listUsers({
       page: 1,
-      perPage: 1000
+      perPage: 10
     });
     
     if (error) {
-      console.error('Supabase error fetching users:', error);
-      return res.status(500).json({ error: 'Failed to fetch admin users' });
+      return res.status(500).json({ error: error.message });
+    }
+    
+    // Find an admin user
+    const adminUser = users.users.find(u => {
+      const role = u.user_metadata?.role || u.raw_user_meta_data?.role;
+      return role === 'admin';
+    });
+    
+    return res.json({
+      total_users: users.users.length,
+      sample_user_structure: users.users[0] ? {
+        email: users.users[0].email,
+        all_keys: Object.keys(users.users[0]),
+        user_metadata: users.users[0].user_metadata,
+        raw_user_meta_data: users.users[0].raw_user_meta_data,
+        app_metadata: users.users[0].app_metadata
+      } : null,
+      admin_user_found: !!adminUser,
+      admin_user_structure: adminUser ? {
+        email: adminUser.email,
+        all_keys: Object.keys(adminUser),
+        user_metadata: adminUser.user_metadata,
+        raw_user_meta_data: adminUser.raw_user_meta_data,
+        app_metadata: adminUser.app_metadata
+      } : null,
+      all_users_roles: users.users.map(u => ({
+        email: u.email,
+        role: u.user_metadata?.role || u.raw_user_meta_data?.role || 'no-role',
+        has_user_metadata: !!u.user_metadata,
+        has_raw_metadata: !!u.raw_user_meta_data
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all admin users (owner only)
+router.get('/users', requireOwner, async (req, res) => {
+  try {
+    // Fetch all users by paginating through all pages
+    let allUsers = [];
+    let page = 1;
+    const perPage = 1000;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const { data: usersData, error } = await supabase.auth.admin.listUsers({
+        page,
+        perPage
+      });
+      
+      if (error) {
+        console.error(`Supabase error fetching users (page ${page}):`, error);
+        break;
+      }
+      
+      // Check the response structure - Supabase might return data directly or in a nested structure
+      console.log(`🔍 Page ${page} response structure:`, {
+        hasData: !!usersData,
+        dataType: typeof usersData,
+        isArray: Array.isArray(usersData),
+        hasUsers: !!usersData?.users,
+        usersIsArray: Array.isArray(usersData?.users),
+        usersLength: usersData?.users?.length,
+        directLength: Array.isArray(usersData) ? usersData.length : 'not array'
+      });
+      
+      const users = usersData?.users || (Array.isArray(usersData) ? usersData : []);
+      
+      if (users && Array.isArray(users) && users.length > 0) {
+        console.log(`📄 Fetched page ${page}: ${users.length} users`);
+        allUsers = allUsers.concat(users);
+        hasMore = users.length === perPage;
+        page++;
+      } else {
+        console.log(`📄 Page ${page}: No more users (got ${users?.length || 0} users)`);
+        hasMore = false;
+      }
+    }
+    
+    const users = { users: allUsers };
+    
+    if (allUsers.length === 0) {
+      console.log('⚠️ No users found in database');
+    } else {
+      console.log(`✅ Fetched ${allUsers.length} total users from database`);
     }
 
-    // Filter for admin and owner users
-    const adminUsers = users.users.filter(user => {
-      const role = user.user_metadata?.role;
+    // Debug: Log the raw structure of the first user to understand the API response
+    if (users.users && users.users.length > 0) {
+      const firstUser = users.users[0];
+      console.log('🔬 RAW FIRST USER OBJECT STRUCTURE:', JSON.stringify({
+        email: firstUser.email,
+        id: firstUser.id,
+        has_user_metadata: !!firstUser.user_metadata,
+        has_raw_user_meta_data: !!firstUser.raw_user_meta_data,
+        user_metadata_value: firstUser.user_metadata,
+        raw_user_meta_data_value: firstUser.raw_user_meta_data,
+        all_properties: Object.keys(firstUser)
+      }, null, 2));
+    }
+
+    // Debug: Log role distribution
+    // Check both user_metadata and raw_user_meta_data
+    const roleCounts = {};
+    users.users.forEach(user => {
+      // Try multiple ways to access the role
+      const role = user.user_metadata?.role 
+        || user.raw_user_meta_data?.role 
+        || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null)
+        || 'no-role';
+      roleCounts[role] = (roleCounts[role] || 0) + 1;
+    });
+    console.log('🔍 Role distribution in database:', roleCounts);
+    
+    // Log a sample admin/owner user to see the structure
+    const sampleAdmin = users.users.find(u => {
+      const role = u.user_metadata?.role || u.raw_user_meta_data?.role;
       return role === 'admin' || role === 'owner';
+    });
+    if (sampleAdmin) {
+      console.log('📊 Sample admin/owner user structure:', {
+        email: sampleAdmin.email,
+        id: sampleAdmin.id,
+        user_metadata: sampleAdmin.user_metadata,
+        raw_user_meta_data: sampleAdmin.raw_user_meta_data,
+        all_keys: Object.keys(sampleAdmin),
+        user_metadata_type: typeof sampleAdmin.user_metadata,
+        raw_metadata_type: typeof sampleAdmin.raw_user_meta_data
+      });
+    }
+    
+    console.log('📊 Sample user metadata (first 3):', users.users.slice(0, 3).map(u => ({
+      email: u.email,
+      role: u.user_metadata?.role || u.raw_user_meta_data?.role,
+      has_user_metadata: !!u.user_metadata,
+      has_raw_metadata: !!u.raw_user_meta_data,
+      user_metadata_keys: u.user_metadata ? Object.keys(u.user_metadata) : [],
+      raw_metadata_keys: u.raw_user_meta_data ? Object.keys(u.raw_user_meta_data) : []
+    })));
+    
+    // Filter for admin and owner users
+    // Check both user_metadata and raw_user_meta_data (Supabase sometimes stores in different places)
+    const adminUsers = users.users.filter(user => {
+      // Try multiple ways to access the role
+      const role = user.user_metadata?.role 
+        || user.raw_user_meta_data?.role
+        || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null);
+      const isAdminOrOwner = role === 'admin' || role === 'owner';
+      if (!isAdminOrOwner && role) {
+        console.log(`⚠️ User ${user.email} has role "${role}" (not admin/owner)`);
+      }
+      return isAdminOrOwner;
     });
     
     console.log('👥 Total users found:', users.users.length);
@@ -78,12 +224,13 @@ router.get('/users', requireOwner, async (req, res) => {
     const usersWithBranches = await Promise.all(
       adminUsers.map(async (user) => {
         let branchName = null;
-        if (user.user_metadata?.branch_id) {
+        const branchId = user.user_metadata?.branch_id || user.raw_user_meta_data?.branch_id;
+        if (branchId) {
           try {
             const { data: branchData, error: branchError } = await supabase
               .from('branches')
               .select('name')
-              .eq('id', user.user_metadata.branch_id)
+              .eq('id', branchId)
               .single();
             
             if (!branchError && branchData) {
@@ -99,10 +246,10 @@ router.get('/users', requireOwner, async (req, res) => {
           email: user.email,
           first_name: user.user_metadata?.first_name || null,
           last_name: user.user_metadata?.last_name || null,
-          name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email,
-          role: user.user_metadata?.role || 'customer',
-          branch_id: user.user_metadata?.branch_id || null,
-          contact_number: user.user_metadata?.contact_number || null,
+          name: `${user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || ''} ${user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || ''}`.trim() || user.email,
+          role: user.user_metadata?.role || user.raw_user_meta_data?.role || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null) || 'customer',
+          branch_id: user.user_metadata?.branch_id || user.raw_user_meta_data?.branch_id || null,
+          contact_number: user.user_metadata?.contact_number || user.raw_user_meta_data?.contact_number || null,
           branch_name: branchName,
           created_at: user.created_at
         };
@@ -256,21 +403,98 @@ router.delete('/customers/:id', requireAdminOrOwner, async (req, res) => {
 // Get all artist accounts (admin or owner)
 router.get('/artists', requireAdminOrOwner, async (req, res) => {
   try {
-    // Use Supabase client to fetch users with cache busting
-    const { data: users, error } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000
-    });
+    // Fetch all users by paginating through all pages
+    let allUsers = [];
+    let page = 1;
+    const perPage = 1000;
+    let hasMore = true;
     
-    if (error) {
-      console.error('Supabase error fetching users:', error);
-      return res.status(500).json({ error: 'Failed to fetch artists' });
+    while (hasMore) {
+      const { data: usersData, error } = await supabase.auth.admin.listUsers({
+        page,
+        perPage
+      });
+      
+      if (error) {
+        console.error(`Supabase error fetching users (page ${page}):`, error);
+        break;
+      }
+      
+      // Check the response structure - Supabase might return data directly or in a nested structure
+      console.log(`🔍 Page ${page} response structure:`, {
+        hasData: !!usersData,
+        dataType: typeof usersData,
+        isArray: Array.isArray(usersData),
+        hasUsers: !!usersData?.users,
+        usersIsArray: Array.isArray(usersData?.users),
+        usersLength: usersData?.users?.length,
+        directLength: Array.isArray(usersData) ? usersData.length : 'not array'
+      });
+      
+      const users = usersData?.users || (Array.isArray(usersData) ? usersData : []);
+      
+      if (users && Array.isArray(users) && users.length > 0) {
+        console.log(`📄 Fetched page ${page}: ${users.length} users`);
+        allUsers = allUsers.concat(users);
+        hasMore = users.length === perPage;
+        page++;
+      } else {
+        console.log(`📄 Page ${page}: No more users (got ${users?.length || 0} users)`);
+        hasMore = false;
+      }
+    }
+    
+    const users = { users: allUsers };
+    
+    if (allUsers.length === 0) {
+      console.log('⚠️ No users found in database');
+    } else {
+      console.log(`✅ Fetched ${allUsers.length} total users from database`);
     }
 
+    // Debug: Log the raw structure of the first user to understand the API response
+    if (users.users && users.users.length > 0) {
+      const firstUser = users.users[0];
+      console.log('🔬 RAW FIRST USER OBJECT STRUCTURE (artists):', JSON.stringify({
+        email: firstUser.email,
+        id: firstUser.id,
+        has_user_metadata: !!firstUser.user_metadata,
+        has_raw_user_meta_data: !!firstUser.raw_user_meta_data,
+        user_metadata_value: firstUser.user_metadata,
+        raw_user_meta_data_value: firstUser.raw_user_meta_data,
+        all_properties: Object.keys(firstUser)
+      }, null, 2));
+    }
+
+    // Debug: Log role distribution
+    // Check both user_metadata and raw_user_meta_data
+    const roleCounts = {};
+    users.users.forEach(user => {
+      const role = user.user_metadata?.role || user.raw_user_meta_data?.role || 'no-role';
+      roleCounts[role] = (roleCounts[role] || 0) + 1;
+    });
+    console.log('🔍 Role distribution in database (for artists):', roleCounts);
+    console.log('📊 Sample user metadata (first 3):', users.users.slice(0, 3).map(u => ({
+      email: u.email,
+      role: u.user_metadata?.role || u.raw_user_meta_data?.role,
+      has_user_metadata: !!u.user_metadata,
+      has_raw_metadata: !!u.raw_user_meta_data,
+      user_metadata_keys: u.user_metadata ? Object.keys(u.user_metadata) : [],
+      raw_metadata_keys: u.raw_user_meta_data ? Object.keys(u.raw_user_meta_data) : []
+    })));
+    
     // Filter for artist users
+    // Check both user_metadata and raw_user_meta_data (Supabase sometimes stores in different places)
     const artistUsers = users.users.filter(user => {
-      const role = user.user_metadata?.role;
-      return role === 'artist';
+      // Try multiple ways to access the role
+      const role = user.user_metadata?.role 
+        || user.raw_user_meta_data?.role
+        || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null);
+      const isArtist = role === 'artist';
+      if (!isArtist && role) {
+        console.log(`⚠️ User ${user.email} has role "${role}" (not artist)`);
+      }
+      return isArtist;
     });
     
     console.log('👥 Total users found:', users.users.length);
@@ -297,8 +521,8 @@ router.get('/artists', requireAdminOrOwner, async (req, res) => {
         return {
           id: user.id,
           email: user.email,
-          artist_name: user.user_metadata?.artist_name || artistProfile?.artist_name || 'N/A',
-          full_name: user.user_metadata?.full_name || user.user_metadata?.artist_name || 'N/A',
+          artist_name: user.user_metadata?.artist_name || user.raw_user_meta_data?.artist_name || artistProfile?.artist_name || 'N/A',
+          full_name: user.user_metadata?.full_name || user.raw_user_meta_data?.full_name || user.user_metadata?.artist_name || user.raw_user_meta_data?.artist_name || 'N/A',
           is_active: artistProfile?.is_active !== undefined ? artistProfile.is_active : true,
           is_verified: artistProfile?.is_verified || false,
           total_tasks_completed: artistProfile?.total_tasks_completed || 0,
