@@ -51,10 +51,12 @@ echarts.use([
   SVGRenderer
 ]);
 
-const Dashboard1 = () => {
+  const Dashboard1 = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isOwner = user?.user_metadata?.role === 'owner';
+  const isAdmin = user?.user_metadata?.role === 'admin';
+  const adminBranchId = isAdmin ? user?.user_metadata?.branch_id : null;
   
   const [searchTerm, setSearchTerm] = useState('');
   const [showStockSearch, setShowStockSearch] = useState(false);
@@ -83,7 +85,7 @@ const Dashboard1 = () => {
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   
   // Chart tabs
-  const [activeChartTab, setActiveChartTab] = useState('earnings');
+  const [activeChartTab, setActiveChartTab] = useState('sales');
 
   // Current time state
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -715,13 +717,22 @@ const Dashboard1 = () => {
     try {
       setLoadingStats(true);
       
-      // Build query parameters - include branch_id for owners if selected
+      // Build query parameters
+      // For owners: use selectedBranchId if not 'all'
+      // For admins: DON'T pass branch_id - the backend automatically filters by their branch_id from user metadata
       let url = `${API_URL}/api/analytics/dashboard`;
       if (isOwner && selectedBranchId && selectedBranchId !== 'all') {
         url += `?branch_id=${encodeURIComponent(selectedBranchId)}`;
       }
+      // Admins: backend automatically filters by req.user.branch_id via resolveBranchContext
       
-      console.log('📊 Fetching dashboard metrics for branch:', selectedBranchId);
+      console.log('📊 Fetching dashboard metrics:', {
+        isOwner,
+        isAdmin,
+        selectedBranchId,
+        adminBranchId,
+        url
+      });
       
       // Fetch analytics data from API
       const response = await authFetch(url);
@@ -757,7 +768,7 @@ const Dashboard1 = () => {
     } finally {
       setLoadingStats(false);
     }
-  }, [isOwner, selectedBranchId]);
+  }, [isOwner, isAdmin, selectedBranchId, adminBranchId]);
 
   useEffect(() => {
     fetchMetricsData();
@@ -1130,11 +1141,11 @@ const Dashboard1 = () => {
           <div className="dashboard1-chart-tabs-container">
             <div className="dashboard1-chart-tabs">
               <button
-                className={`dashboard1-chart-tab ${activeChartTab === 'earnings' ? 'active' : ''}`}
-                onClick={() => setActiveChartTab('earnings')}
+                className={`dashboard1-chart-tab ${activeChartTab === 'sales' ? 'active' : ''}`}
+                onClick={() => setActiveChartTab('sales')}
               >
                 <FontAwesomeIcon icon={faChartLine} className="chart-tab-icon" />
-                <span>Earnings</span>
+                <span>Sales</span>
               </button>
               <button
                 className={`dashboard1-chart-tab ${activeChartTab === 'stock' ? 'active' : ''}`}
@@ -1214,10 +1225,16 @@ const Dashboard1 = () => {
           <div className="dashboard1-chart-and-actions-wrapper">
             {/* Chart Content */}
             <div className="dashboard1-chart-content-wrapper">
-              {activeChartTab === 'earnings' && (
+              {activeChartTab === 'sales' && (
                 <div className="dashboard1-chart-wrapper">
                   <EarningsChart 
-                    selectedBranchId={isOwner && selectedBranchId !== 'all' ? selectedBranchId : null}
+                    selectedBranchId={
+                      // Only pass branch_id for owners selecting a specific branch
+                      // For admins, backend automatically filters by their branch_id from user metadata
+                      isOwner && selectedBranchId !== 'all' 
+                        ? selectedBranchId 
+                        : null
+                    }
                     isValuesVisible={isAllValuesVisible}
                   />
                 </div>
@@ -1260,33 +1277,31 @@ const Dashboard1 = () => {
             </div>
 
             {/* Quick Action Buttons - Right Side */}
-            {isOwner && (
-              <div className="dashboard1-quick-actions-sidebar">
-                <div className="dashboard1-quick-actions">
-                  <button 
-                    className="dashboard1-quick-action-btn dashboard1-add-product-btn"
-                    onClick={handleQuickAddProduct}
-                  >
-                    <FontAwesomeIcon icon={faPlus} className="quick-action-icon" />
-                    <span>Add Product</span>
-                  </button>
-                  <button 
-                    className="dashboard1-quick-action-btn dashboard1-walkin-btn"
-                    onClick={handleWalkIn}
-                  >
-                    <FontAwesomeIcon icon={faStore} className="quick-action-icon" />
-                    <span>Walk-in</span>
-                  </button>
-                  <button 
-                    className="dashboard1-quick-action-btn dashboard1-manage-accounts-btn"
-                    onClick={handleManageAccounts}
-                  >
-                    <FontAwesomeIcon icon={faUserShield} className="quick-action-icon" />
-                    <span>Manage Accounts</span>
-                  </button>
-                </div>
+            <div className="dashboard1-quick-actions-sidebar">
+              <div className="dashboard1-quick-actions">
+                <button 
+                  className="dashboard1-quick-action-btn dashboard1-add-product-btn"
+                  onClick={handleQuickAddProduct}
+                >
+                  <FontAwesomeIcon icon={faPlus} className="quick-action-icon" />
+                  <span>Add Product</span>
+                </button>
+                <button 
+                  className="dashboard1-quick-action-btn dashboard1-walkin-btn"
+                  onClick={handleWalkIn}
+                >
+                  <FontAwesomeIcon icon={faStore} className="quick-action-icon" />
+                  <span>Walk-in</span>
+                </button>
+                <button 
+                  className="dashboard1-quick-action-btn dashboard1-manage-accounts-btn"
+                  onClick={handleManageAccounts}
+                >
+                  <FontAwesomeIcon icon={faUserShield} className="quick-action-icon" />
+                  <span>Manage Accounts</span>
+                </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
 

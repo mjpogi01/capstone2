@@ -13,6 +13,7 @@ import PrivacyPolicy from './pages/customer/PrivacyPolicy';
 import TermsAndConditions from './pages/customer/TermsAndConditions';
 import Profile from './pages/customer/Profile';
 import LogoutPage from './pages/customer/LogoutPage';
+import AuthCallback from './pages/customer/AuthCallback';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import ArtistDashboard from './pages/artist/ArtistDashboard';
@@ -53,6 +54,7 @@ const AppContent = () => {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/logout" element={<LogoutPage />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route 
           path="/profile" 
           element={

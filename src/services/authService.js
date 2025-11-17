@@ -179,9 +179,22 @@ class AuthService {
   // Sign in with OAuth provider (Google, Facebook)
   async signInWithProvider(provider) {
     try {
+      // Get the current origin (works for both localhost and production)
+      // Supabase will redirect back to the Site URL configured in Supabase Dashboard
+      // But we can override it here if needed
+      const redirectTo = typeof window !== 'undefined' 
+        ? window.location.origin
+        : process.env.REACT_APP_CLIENT_URL || 'http://localhost:3000';
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider.toLowerCase(),
-        // You can add options here, e.g. redirectTo: window.location.origin or scopes, if needed
+        options: {
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
       });
       if (error) {
         throw new Error(error.message || `Sign in with ${provider} failed`);

@@ -1,6 +1,9 @@
 /* ===================================
-   ADMIN DASHBOARD - Analytics Style
-   Clean, Data-Focused Design
+   ADMIN DASHBOARD LAYOUT
+   With Left Sidebar Navigation
+   Optimized Grid & Spacing
+   Mobile Responsive
+   Mobile Burger Menu
    =================================== */
 
 .admin-dashboard {
@@ -37,33 +40,46 @@ body.sidebar-collapsed .admin-main-content {
 
 /* Additional selectors for extra coverage */
 .admin-dashboard.sidebar-collapsed .admin-main-content,
-.admin-dashboard.sidebar-collapsed > .admin-main-content,
-body.sidebar-collapsed .admin-dashboard .admin-main-content {
+.admin-dashboard.collapsed .admin-main-content {
   margin-left: 80px !important;
   width: calc(100% - 80px) !important;
 }
 
-/* Mobile: collapse state should not affect layout */
-@media (max-width: 768px) {
-  .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-}
-
 .dashboard-content {
   width: 100%;
-  max-width: 1600px;
+  max-width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.25rem;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
   margin: 1.5rem 0;
   align-items: start;
+}
+
+.dashboard-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 0;
+  width: 100%;
+}
+
+.dashboard-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Ensure cards fill their containers properly */
+.dashboard-left > *,
+.dashboard-right > * {
+  width: 100%;
 }
 
 .dashboard-section {
@@ -99,65 +115,25 @@ body.sidebar-collapsed .admin-dashboard .admin-main-content {
   min-width: 0;
 }
 
-/* ===========================================
-   LARGE SCREEN RESPONSIVE (54 inch displays)
-   =========================================== */
-
-/* 4K / Ultra-Wide Displays (2560px - 3839px) */
-@media (min-width: 2560px) and (max-width: 3839px) {
-  .dashboard-content {
-    max-width: 2400px;
-    margin: 0 auto;
-  }
-  
-  .admin-main-content {
-    padding: 2.5rem;
-  }
-  
-  .dashboard-grid {
-    gap: 2rem;
-  }
-}
-
-/* Large 4K Displays (3840px+) */
-@media (min-width: 3840px) {
-  .dashboard-content {
-    max-width: 3200px;
-    margin: 0 auto;
-  }
-  
-  .admin-main-content {
-    padding: 3rem;
-  }
-  
-  .dashboard-grid {
-    gap: 2.5rem;
-  }
-}
-
 /* Responsive Design */
 @media (max-width: 1400px) {
   .admin-main-content {
-    padding: 1.75rem 1.5rem;
     margin-left: 280px;
     width: calc(100% - 280px);
+    padding: 1.75rem 1.5rem;
   }
   
   /* Collapsed state - must override normal state */
   body.sidebar-collapsed .admin-main-content,
   .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-dashboard .admin-main-content {
+  .admin-dashboard.collapsed .admin-main-content {
     margin-left: 80px !important;
     width: calc(100% - 80px) !important;
   }
 
   .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 350px;
     gap: 1.25rem;
-  }
-  
-  .dashboard-content {
-    max-width: 100%;
   }
 }
 
@@ -171,18 +147,14 @@ body.sidebar-collapsed .admin-dashboard .admin-main-content {
   /* Collapsed state - must override normal state */
   body.sidebar-collapsed .admin-main-content,
   .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-dashboard .admin-main-content {
+  .admin-dashboard.collapsed .admin-main-content {
     margin-left: 80px !important;
     width: calc(100% - 80px) !important;
   }
 
   .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.125rem;
-  }
-  
-  .dashboard-content {
-    max-width: 100%;
+    grid-template-columns: 1fr 320px;
+    gap: 1.25rem;
   }
 }
 
@@ -196,19 +168,18 @@ body.sidebar-collapsed .admin-dashboard .admin-main-content {
   /* Collapsed state - must override normal state */
   body.sidebar-collapsed .admin-main-content,
   .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-dashboard .admin-main-content {
+  .admin-dashboard.collapsed .admin-main-content {
     margin-left: 80px !important;
     width: calc(100% - 80px) !important;
   }
 
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: 1.25rem;
+    gap: 1.5rem;
   }
-  
-  .dashboard-content {
+
+  .dashboard-right {
     max-width: 100%;
-    padding: 0;
   }
 }
 
@@ -234,7 +205,7 @@ body.sidebar-collapsed .admin-dashboard .admin-main-content {
     z-index: 1000;
   }
 
-  .mobile-burger-btn {
+  .admin-mobile-header .mobile-burger-btn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #ffffff;
@@ -247,83 +218,81 @@ body.sidebar-collapsed .admin-dashboard .admin-main-content {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    flex-shrink: 0;
   }
 
-  .mobile-burger-btn:hover {
+  .admin-mobile-header .mobile-burger-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.3);
   }
 
-  .mobile-burger-btn:active {
+  .admin-mobile-header .mobile-burger-btn:active {
     transform: scale(0.95);
   }
 
-  .mobile-header-logo {
+  .admin-mobile-header .mobile-header-logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
   }
 
-  .mobile-header-logo img {
+  .admin-mobile-header .mobile-header-logo img {
     height: 40px;
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   }
 
-  .mobile-header-title {
+  .admin-mobile-header .mobile-header-title {
     flex: 1;
     color: #ffffff;
     font-size: 1.125rem;
     font-weight: 600;
     text-align: center;
     margin-right: 44px; /* Balance the burger button width */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .admin-main-content {
     margin-left: 0;
     width: 100%;
     padding: 76px 1rem 1rem; /* 60px header + 16px gap */
-    overflow-x: hidden;
-    box-sizing: border-box;
+  }
+
+  /* Mobile: collapse state should not affect layout */
+  body.sidebar-collapsed .admin-main-content,
+  .admin-dashboard.sidebar-collapsed .admin-main-content,
+  .admin-dashboard.collapsed .admin-main-content { 
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 
   .dashboard-content {
     max-width: 100%;
-    width: 100%;
-    box-sizing: border-box;
   }
 
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: 1rem;
-    margin: 0.75rem 0;
-    width: 100%;
+    gap: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .dashboard-left,
+  .dashboard-right {
+    gap: 1.25rem;
   }
 }
 
 @media (max-width: 480px) {
-  .admin-mobile-header {
-    padding: 0 0.75rem;
-    gap: 0.75rem;
-  }
-
-  .mobile-burger-btn {
+  .admin-mobile-header .mobile-burger-btn {
     width: 40px;
     height: 40px;
     font-size: 1.125rem;
   }
 
-  .mobile-header-logo img {
+  .admin-mobile-header .mobile-header-logo img {
     height: 36px;
   }
 
-  .mobile-header-title {
+  .admin-mobile-header .mobile-header-title {
     font-size: 1rem;
     margin-right: 40px;
   }
@@ -332,93 +301,53 @@ body.sidebar-collapsed .admin-dashboard .admin-main-content {
     margin-left: 0;
     width: 100%;
     padding: 72px 0.75rem 0.75rem; /* Slightly smaller padding */
-    overflow-x: hidden;
-  }
-
-  .dashboard-content {
-    max-width: 100%;
-    width: 100%;
   }
 
   .dashboard-grid {
-    gap: 0.875rem;
-    margin: 0.625rem 0;
+    gap: 1rem;
+    margin: 0.75rem 0;
+  }
+
+  .dashboard-left,
+  .dashboard-right {
+    gap: 1rem;
   }
 }
 
 @media (max-width: 360px) {
   .admin-mobile-header {
     height: 56px;
-    padding: 0 0.5rem;
-    gap: 0.5rem;
+    padding: 0 0.75rem;
+    gap: 0.75rem;
   }
 
-  .mobile-burger-btn {
+  .admin-mobile-header .mobile-burger-btn {
     width: 38px;
     height: 38px;
     font-size: 1rem;
   }
 
-  .mobile-header-logo img {
+  .admin-mobile-header .mobile-header-logo img {
     height: 32px;
   }
 
-  .mobile-header-title {
-    font-size: 0.875rem;
+  .admin-mobile-header .mobile-header-title {
+    font-size: 0.9375rem;
     margin-right: 38px;
   }
 
   .admin-main-content {
     padding: 66px 0.5rem 0.5rem; /* 56px header + 10px gap */
-    overflow-x: hidden;
-  }
-
-  .dashboard-content {
-    max-width: 100%;
-    width: 100%;
   }
 
   .dashboard-grid {
-    gap: 0.75rem;
+    gap: 0.875rem;
     margin: 0.5rem 0;
   }
-}
 
-/* Additional tablet optimization */
-@media (min-width: 769px) and (max-width: 992px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-    gap: 1.125rem;
-  }
-  
-  .admin-main-content {
-    padding: 1.25rem 1rem;
-    margin-left: 280px;
-    width: calc(100% - 280px);
-  }
-  
-  /* Collapsed state - must override normal state */
-  body.sidebar-collapsed .admin-main-content,
-  .admin-dashboard.sidebar-collapsed .admin-main-content,
-  body.sidebar-collapsed .admin-dashboard .admin-main-content {
-    margin-left: 80px !important;
-    width: calc(100% - 80px) !important;
+  .dashboard-left,
+  .dashboard-right {
+    gap: 0.875rem;
   }
 }
 
-/* Prevent horizontal scroll on all screen sizes */
-.admin-dashboard,
-.admin-main-content,
-.dashboard-content,
-.dashboard-grid {
-  max-width: 100%;
-  overflow-x: hidden;
-  box-sizing: border-box;
-}
-
-/* Ensure all grid items don't overflow */
-.dashboard-grid > * {
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}

@@ -510,12 +510,12 @@ function buildBranchFilterClause(branchContext, startIndex = 1) {
   const params = [];
   let index = startIndex;
 
-  // Filter by pickup_branch_id if available (more accurate)
+  // Filter by pickup_branch_id (orders table uses pickup_branch_id, not branch_id)
   if (branchContext.branchId) {
     params.push(branchContext.branchId);
     const branchIdIndex = index;
     index += 1;
-    conditions.push(`(pickup_branch_id = $${branchIdIndex} OR branch_id = $${branchIdIndex})`);
+    conditions.push(`pickup_branch_id = $${branchIdIndex}`);
   }
 
   // Also filter by pickup_location name (for compatibility)

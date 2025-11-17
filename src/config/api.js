@@ -13,13 +13,35 @@
 const COMPUTER_IP = '192.168.254.100';
 
 // Default API URL - automatically switches based on environment
-const DEFAULT_API_URL = process.env.REACT_APP_API_URL || 
-                        (process.env.NODE_ENV === 'development' 
-                          ? `http://localhost:4000` 
-                          : `http://localhost:4000`);
+// For production, set REACT_APP_API_URL in .env.production or build-time environment
+// If not set, it will try to auto-detect at runtime (for separate deployment)
+const getApiUrl = () => {
+  // If REACT_APP_API_URL is explicitly set, use it
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // In development, use localhost
+  if (process.env.NODE_ENV !== 'production') {
+    return 'http://localhost:4000';
+  }
+  
+  // In production without explicit URL, try to auto-detect
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    // If on main domain, assume API is on api subdomain
+    if (hostname && !hostname.startsWith('api.')) {
+      return `${window.location.protocol}//api.${hostname}${window.location.port ? ':' + window.location.port : ''}`;
+    }
+    // If already on api subdomain, use current origin
+    return window.location.origin;
+  }
+  
+  return 'http://localhost:4000'; // Fallback
+};
 
 // Export the API URL
-export const API_URL = DEFAULT_API_URL;
+export const API_URL = getApiUrl();
 
 // For mobile testing, uncomment this line:
 // export const API_URL = `http://${COMPUTER_IP}:4000`;

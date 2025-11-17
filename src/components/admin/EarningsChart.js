@@ -41,14 +41,16 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
 
   const [allMonthlyData, setAllMonthlyData] = useState([]);
 
-  // Fetch monthly earnings data
+  // Fetch monthly sales data
   useEffect(() => {
     const fetchMonthlyData = async () => {
       try {
         setLoading(true);
         let url = `${API_URL}/api/analytics/dashboard`;
         
-        // Include branch_id if provided
+        // Include branch_id if provided (only for owners selecting a specific branch)
+        // For admins, the backend automatically filters by their branch_id from user metadata
+        // Don't pass branch_id for admins - it causes SQL errors because orders table uses pickup_branch_id
         if (selectedBranchId) {
           url += `?branch_id=${encodeURIComponent(selectedBranchId)}`;
         }
@@ -73,7 +75,7 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
           setMonthlyData([]);
         }
       } catch (error) {
-        console.error('Error fetching monthly earnings data:', error);
+        console.error('Error fetching monthly sales data:', error);
         setAllMonthlyData([]);
         setMonthlyData([]);
       } finally {
@@ -190,7 +192,7 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
       },
       series: [
         {
-          name: 'Earnings',
+          name: 'Sales',
           type: 'line',
           smooth: true,
           data: fullYearData,
@@ -247,7 +249,7 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
     <div className="analytics-card geo-distribution-card">
       <div className="card-header">
         <FaChartLine className="card-icon" />
-        <h3>Earnings</h3>
+        <h3>Sales</h3>
         <div className="card-controls">
           {onToggleValues && (
             <button
@@ -279,11 +281,11 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
         {loading ? (
           <div className="analytics-loading-inline">
             <div className="loading-spinner"></div>
-            <p>Loading earnings data...</p>
+            <p>Loading sales data...</p>
           </div>
         ) : monthlyData.length === 0 ? (
           <div className="chart-empty-state">
-            <p>No earnings data available</p>
+            <p>No sales data available</p>
           </div>
         ) : (
           <>

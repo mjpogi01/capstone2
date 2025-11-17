@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import JSZip from 'jszip';
 import { 
   FaShoppingCart, 
   FaEye, 
@@ -32,7 +33,8 @@ import {
   FaUsers,
   FaCamera,
   FaSearch,
-  FaUpload
+  FaUpload,
+  FaDownload
 } from 'react-icons/fa';
 import './Orders.css';
 import './FloatingButton.css';
@@ -657,6 +659,51 @@ const Orders = () => {
   }, [filteredOrders, loading, user, checkDesignApprovalStatus]);
 
   // Handle design file upload
+  const handleDownloadDesignFilesAsZip = async (order, designFiles) => {
+    try {
+      if (!designFiles || designFiles.length === 0) {
+        alert('No design files to download');
+        return;
+      }
+
+      const zip = new JSZip();
+      const orderNumber = order.orderNumber || order.order_number || order.id;
+      
+      // Download each image and add to zip
+      for (let i = 0; i < designFiles.length; i++) {
+        const file = designFiles[i];
+        try {
+          const response = await fetch(file.url);
+          const blob = await response.blob();
+          
+          // Get filename from file object or generate one
+          const filename = file.filename || file.originalname || `design_${i + 1}.${file.url.split('.').pop().split('?')[0]}`;
+          
+          zip.file(filename, blob);
+        } catch (error) {
+          console.error(`Error downloading file ${i + 1}:`, error);
+          // Continue with other files even if one fails
+        }
+      }
+
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `order_${orderNumber}_design_files.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating zip file:', error);
+      alert('Failed to download design files as ZIP. Please try again.');
+    }
+  };
+
   const handleDesignUpload = async (orderId, files) => {
     if (!files || files.length === 0) {
       alert('Please select files to upload');
@@ -1868,13 +1915,47 @@ const Orders = () => {
 
                       {canViewDesignFiles && (
                         <div className="design-files-section inside-status">
-                          <h5 className="design-files-heading">
-                            <FaFileAlt className="design-files-heading-icon" />
-                            Submitted Design Files
-                            {designFiles.length > 0 && (
-                              <span className="design-files-count">({designFiles.length})</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <h5 className="design-files-heading" style={{ margin: 0 }}>
+                              <FaFileAlt className="design-files-heading-icon" />
+                              Submitted Design Files
+                              {designFiles.length > 0 && (
+                                <span className="design-files-count">({designFiles.length})</span>
+                              )}
+                            </h5>
+                            {designFiles.length > 0 && ['admin', 'owner'].includes(userRole) && (
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadDesignFilesAsZip(order, designFiles)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  padding: '8px 16px',
+                                  borderRadius: '8px',
+                                  border: '1px solid var(--primary-color, #2563eb)',
+                                  background: 'var(--primary-color, #2563eb)',
+                                  color: '#ffffff',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  fontSize: 'clamp(12px, 1.1vw, 14px)',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.background = '#1d4ed8';
+                                  e.target.style.transform = 'translateY(-1px)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.background = 'var(--primary-color, #2563eb)';
+                                  e.target.style.transform = 'translateY(0)';
+                                }}
+                              >
+                                <FaDownload />
+                                <span>Download ZIP</span>
+                              </button>
                             )}
-                          </h5>
+                          </div>
 
                           {/* Two-column layout: Left roster (35%), Right files (65%) */}
                           <div
@@ -1977,13 +2058,8 @@ const Orders = () => {
                                   </div>
                                 );
                               })()}
-                            </div>
-
-                            {/* Right Column */}
-                            <div
-                              className="submitted-col right"
-                              style={{ flex: '1 1 auto', minWidth: 0 }}
-                            >
+                              
+                              {/* Revision Notes - moved to left column */}
                               {(() => {
                                 const serverKey = (order.orderNumber || order.id);
                                 const normalizedNotes = Array.isArray(serverRevisionNotes[serverKey]) ? serverRevisionNotes[serverKey] : [];
@@ -1992,35 +2068,7 @@ const Orders = () => {
                                 const canSeeNotes = ['artist', 'admin', 'owner'].includes(userRoleLower);
                                 if (canSeeNotes && normalizedNotes.length > 0) {
                                   return (
-                                    <>
-                                      <div
-                                        className="revision-banner"
-                                        style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '10px',
-                                          padding: '10px 12px',
-                                          borderRadius: '10px',
-                                          background: 'rgba(59,130,246,0.08)',
-                                          border: '1px solid rgba(59,130,246,0.25)',
-                                          color: '#1f2937',
-                                          marginBottom: '12px',
-                                          fontSize: 'clamp(13px, 1.2vw, 15px)',
-                                          fontWeight: 600
-                                        }}
-                                      >
-                                        <span
-                                          className="banner-dot"
-                                          style={{
-                                            display: 'inline-block',
-                                            width: 10,
-                                            height: 10,
-                                            borderRadius: '50%',
-                                            background: 'var(--primary-color, #2563eb)'
-                                          }}
-                                        />
-                                        Revisions requested — please review the notes below before uploading new designs.
-                                      </div>
+                                    <div style={{ marginTop: '16px' }}>
                                       <div
                                         className="revision-notes-panel"
                                         style={{
@@ -2070,11 +2118,18 @@ const Orders = () => {
                                           })}
                                         </div>
                                       </div>
-                                    </>
+                                    </div>
                                   );
                                 }
                                 return null;
                               })()}
+                            </div>
+
+                            {/* Right Column */}
+                            <div
+                              className="submitted-col right"
+                              style={{ flex: '1 1 auto', minWidth: 0 }}
+                            >
                               {designFiles.length > 0 ? (
                                 <div
                                   className="custom-design-images-grid"
