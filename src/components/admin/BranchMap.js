@@ -183,7 +183,7 @@ function HeatmapLayer({ points, visible }) {
       // Remove from map
       if (map.hasLayer(layer)) {
         try {
-          map.removeLayer(layer);
+        map.removeLayer(layer);
         } catch (e) {
           // Ignore errors when removing
         }
@@ -558,16 +558,16 @@ const BranchMap = ({ onDataLoaded }) => {
               const customerName = marker && typeof marker === 'object' ? marker.customerName : null;
               
               return (
-                <CircleMarker
-                  key={index}
-                  center={[point[0], point[1]]}
-                  radius={4}
-                  pathOptions={{
-                    fillColor: '#ef4444',
-                    color: '#dc2626',
-                    fillOpacity: 0.8,
-                    weight: 1
-                  }}
+              <CircleMarker
+                key={index}
+                center={[point[0], point[1]]}
+                radius={4}
+                pathOptions={{
+                  fillColor: '#ef4444',
+                  color: '#dc2626',
+                  fillOpacity: 0.8,
+                  weight: 1
+                }}
                 >
                   {customerName && (
                     <Tooltip permanent={false} direction="top" offset={[0, -10]}>

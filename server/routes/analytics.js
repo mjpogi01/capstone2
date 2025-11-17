@@ -1074,18 +1074,45 @@ function resolveCustomerEmail(order) {
 // Get analytics dashboard data
 router.get('/dashboard', async (req, res) => {
   try {
+    const { branch_id } = req.query;
     console.log('📊 Fetching analytics data (optimized)...');
     console.log('📊 User info:', {
       id: req.user?.id,
       email: req.user?.email,
       role: req.user?.role,
-      branch_id: req.user?.branch_id
+      branch_id: req.user?.branch_id,
+      query_branch_id: branch_id
     });
 
     let branchContext;
     try {
       branchContext = await resolveBranchContext(req.user);
       console.log('📊 Branch context resolved:', branchContext);
+      
+      // For owners: if branch_id is provided in query, create branch context for that branch
+      if (req.user?.role === 'owner' && branch_id) {
+        const branchId = parseInt(branch_id, 10);
+        if (!Number.isNaN(branchId)) {
+          try {
+            const { data: branchData, error: branchError } = await supabase
+              .from('branches')
+              .select('id, name')
+              .eq('id', branchId)
+              .single();
+            
+            if (!branchError && branchData) {
+              branchContext = {
+                branchId: branchData.id,
+                branchName: branchData.name,
+                normalizedName: normalizeBranchValue(branchData.name)
+              };
+              console.log('📊 Owner branch context overridden:', branchContext);
+            }
+          } catch (err) {
+            console.warn('⚠️ Error resolving branch for owner:', err.message);
+          }
+        }
+      }
     } catch (branchError) {
       console.error('❌ Error resolving branch context:', branchError);
       console.error('❌ Branch error stack:', branchError.stack);
@@ -1866,7 +1893,7 @@ router.get('/dashboard', async (req, res) => {
 // Get sales trends
 router.get('/sales-trends', async (req, res) => {
   try {
-    const { period = '30' } = req.query;
+    const { period = '30', branch_id } = req.query;
     const daysAgo = parseInt(period);
     
     const startDate = new Date();
@@ -1880,7 +1907,34 @@ router.get('/sales-trends', async (req, res) => {
  
     if (error) throw error;
  
-    const branchContext = await resolveBranchContext(req.user);
+    // For owners: if branch_id is provided in query, create branch context for that branch
+    // For admins: use resolveBranchContext (automatically filters by their branch)
+    let branchContext = await resolveBranchContext(req.user);
+    
+    // If owner provided branch_id query param, override branch context
+    if (req.user?.role === 'owner' && branch_id) {
+      const branchId = parseInt(branch_id, 10);
+      if (!Number.isNaN(branchId)) {
+        try {
+          const { data: branchData, error: branchError } = await supabase
+            .from('branches')
+            .select('id, name')
+            .eq('id', branchId)
+            .single();
+          
+          if (!branchError && branchData) {
+            branchContext = {
+              branchId: branchData.id,
+              branchName: branchData.name,
+              normalizedName: normalizeBranchValue(branchData.name)
+            };
+          }
+        } catch (err) {
+          console.warn('⚠️ Error resolving branch for owner:', err.message);
+        }
+      }
+    }
+    
     const scopedOrders = filterOrdersByBranch(orders, branchContext);
     // Group by day
     const dailyData = {};

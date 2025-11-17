@@ -1927,6 +1927,48 @@ const Analytics = () => {
                   Analyze
                 </button>
           </div>
+          <div className="analytics-summary customer-insights-summary">
+            <div className="summary-card">
+              <div className="summary-icon pending">
+                <FaChartLine />
+              </div>
+              <div className="summary-content">
+                <h3>Pending</h3>
+                <p className="summary-value">{formatNumber(analyticsData.orderStatus?.pending?.count || 0)}</p>
+                <p className="summary-percentage">({analyticsData.orderStatus?.pending?.percentage || 0}%)</p>
+              </div>
+            </div>
+            <div className="summary-card">
+              <div className="summary-icon completed">
+                <FaStore />
+              </div>
+              <div className="summary-content">
+                <h3>Completed</h3>
+                <p className="summary-value">{formatNumber(analyticsData.orderStatus?.completed?.count || 0)}</p>
+                <p className="summary-percentage">({analyticsData.orderStatus?.completed?.percentage || 0}%)</p>
+              </div>
+            </div>
+            <div className="summary-card">
+              <div className="summary-icon processing">
+                <FaFilter />
+              </div>
+              <div className="summary-content">
+                <h3>Processing</h3>
+                <p className="summary-value">{formatNumber(analyticsData.orderStatus?.processing?.count || 0)}</p>
+                <p className="summary-percentage">({analyticsData.orderStatus?.processing?.percentage || 0}%)</p>
+              </div>
+            </div>
+            <div className="summary-card">
+              <div className="summary-icon">
+                <FaClipboardList />
+              </div>
+              <div className="summary-content">
+                <h3>Cancelled</h3>
+                <p className="summary-value">{formatNumber(analyticsData.orderStatus?.cancelled?.count || 0)}</p>
+                <p className="summary-percentage">({analyticsData.orderStatus?.cancelled?.percentage || 0}%)</p>
+              </div>
+            </div>
+          </div>
           <div className="chart-container">
             <>
               <ReactEChartsCore

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import * as echarts from 'echarts/core';
-import { LineChart } from 'echarts/charts';
+import { BarChart } from 'echarts/charts';
 import {
   GridComponent,
   TooltipComponent,
@@ -22,224 +22,185 @@ echarts.use([
   TooltipComponent,
   TitleComponent,
   LegendComponent,
-  LineChart,
+  BarChart,
   SVGRenderer
 ]);
 
 const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onToggleValues }) => {
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [monthlyData, setMonthlyData] = useState([]);
+  const [salesTrends, setSalesTrends] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
-      minimumFractionDigits: 0
-    }).format(amount);
+  const formatNumber = (num) => {
+    if (num === null || num === undefined || Number.isNaN(num)) {
+      return '0';
+    }
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    }
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toLocaleString();
   };
 
-  const [allMonthlyData, setAllMonthlyData] = useState([]);
-
-  // Fetch monthly sales data
+  // Fetch daily sales trends
   useEffect(() => {
-    const fetchMonthlyData = async () => {
+    const fetchSalesTrends = async () => {
       try {
         setLoading(true);
-        let url = `${API_URL}/api/analytics/dashboard`;
-        
-        // Include branch_id if provided (only for owners selecting a specific branch)
-        // For admins, the backend automatically filters by their branch_id from user metadata
-        // Don't pass branch_id for admins - it causes SQL errors because orders table uses pickup_branch_id
+        // Build URL with branch_id if provided (for owners filtering by specific branch)
+        let url = `${API_URL}/api/analytics/sales-trends?period=30`;
         if (selectedBranchId) {
-          url += `?branch_id=${encodeURIComponent(selectedBranchId)}`;
+          url += `&branch_id=${encodeURIComponent(selectedBranchId)}`;
         }
         
         const response = await authFetch(url);
         const result = await response.json();
         
-        if (result.success && result.data?.salesOverTime?.monthly) {
-          // Store all monthly data
-          const allData = result.data.salesOverTime.monthly;
-          setAllMonthlyData(allData);
-          
-          // Filter data for selected year
-          const yearData = allData.filter(item => item.year === selectedYear);
-          
-          // Sort by month
-          yearData.sort((a, b) => a.month - b.month);
-          
-          setMonthlyData(yearData);
+        if (result.success && Array.isArray(result.data)) {
+          setSalesTrends(result.data);
         } else {
-          setAllMonthlyData([]);
-          setMonthlyData([]);
+          setSalesTrends([]);
         }
       } catch (error) {
-        console.error('Error fetching monthly sales data:', error);
-        setAllMonthlyData([]);
-        setMonthlyData([]);
+        console.error('Error fetching sales trends:', error);
+        setSalesTrends([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMonthlyData();
-  }, [selectedYear, selectedBranchId]);
+    fetchSalesTrends();
+  }, [selectedBranchId]);
 
-  // Get available years from all data
-  const availableYears = useMemo(() => {
-    if (!allMonthlyData.length) {
-      const currentYear = new Date().getFullYear();
-      return [currentYear - 1, currentYear, currentYear + 1];
-    }
-    
-    const years = new Set();
-    allMonthlyData.forEach(item => {
-      if (item.year) years.add(item.year);
-    });
-    
-    const yearsArray = Array.from(years).sort((a, b) => b - a);
-    if (yearsArray.length === 0) {
-      const currentYear = new Date().getFullYear();
-      return [currentYear - 1, currentYear, currentYear + 1];
-    }
-    return yearsArray;
-  }, [allMonthlyData]);
+  // Check if we have data
+  const hasData = useMemo(() => {
+    const trends = Array.isArray(salesTrends) ? salesTrends : [];
+    const salesValues = trends.map(item => Number(item.sales || 0));
+    const ordersValues = trends.map(item => Number(item.orders || 0));
+    return trends.length > 0 &&
+      (salesValues.some(value => value > 0) || ordersValues.some(value => value > 0));
+  }, [salesTrends]);
 
-  // Prepare chart data
+  // Prepare chart data - Daily Sales & Orders with dual axis
   const chartOption = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    // Create data for all 12 months
-    const fullYearData = Array.from({ length: 12 }, (_, i) => {
-      const monthIndex = i + 1;
-      const monthData = monthlyData.find(item => item.month === monthIndex);
-      return monthData ? monthData.sales : 0;
+    const trends = Array.isArray(salesTrends) ? salesTrends : [];
+    const categories = trends.map(item => {
+      const rawDate = item.date || item.day || item.period;
+      if (!rawDate) {
+        return '';
+      }
+      const parsed = new Date(rawDate);
+      if (Number.isNaN(parsed.getTime())) {
+        return rawDate;
+      }
+      return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     });
+    const salesValues = trends.map(item => Number(item.sales || 0));
+    const ordersValues = trends.map(item => Number(item.orders || 0));
 
     return {
+      animation: hasData,
+      animationDuration: hasData ? 600 : 0,
       tooltip: {
         trigger: 'axis',
-        axisPointer: {
-          type: 'cross',
-          label: {
-            backgroundColor: '#6a7985'
-          }
-        },
+        axisPointer: { type: 'shadow' },
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
         formatter: (params) => {
-          if (!isValuesVisible) {
-            return '';
-          }
-          const param = params[0];
-          const monthIndex = param.dataIndex;
-          const monthName = months[monthIndex];
-          const value = param.value;
-          return `${monthName}<br/>${formatCurrency(value)}`;
-        },
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderColor: '#e2e8f0',
-        borderWidth: 1,
-        textStyle: {
-          color: '#1e293b',
-          fontSize: 12
-        },
-        padding: [8, 12]
+          if (!isValuesVisible) return '';
+          if (!Array.isArray(params) || !params.length) return '';
+          const lines = params.map(point => {
+            if (point.seriesName === 'Sales') {
+              return `${point.marker}${point.seriesName}: ₱${formatNumber(point.data ?? 0)}`;
+            }
+            return `${point.marker}${point.seriesName}: ${formatNumber(point.data ?? 0)}`;
+          });
+          return [`${params[0].axisValue}`, ...lines].join('<br/>');
+        }
       },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '10%',
-        top: '10%',
-        containLabel: true
+      legend: {
+        data: ['Sales', 'Orders'],
+        top: 0,
+        textStyle: { color: '#4b5563' }
       },
+      grid: { left: '4%', right: '5%', bottom: '10%', top: '14%', containLabel: true },
       xAxis: {
         type: 'category',
-        boundaryGap: false,
-        data: months,
-        axisLine: {
-          lineStyle: {
-            color: '#cbd5e1'
-          }
+        boundaryGap: true,
+        data: categories,
+        axisLabel: { 
+          color: '#6b7280',
+          rotate: categories.length > 10 ? 45 : 0,
+          interval: 0
         },
-        axisLabel: {
-          color: '#64748b',
-          fontSize: 11
-        }
+        axisLine: { lineStyle: { color: '#d1d5db' } },
+        axisTick: { alignWithLabel: true }
       },
-      yAxis: {
-        type: 'value',
-        axisLine: {
-          lineStyle: {
-            color: '#cbd5e1'
-          }
+      yAxis: [
+        {
+          type: 'value',
+          name: 'Sales',
+          axisLabel: {
+            color: '#6b7280',
+            formatter: isValuesVisible ? (value) => `₱${formatNumber(value)}` : () => '•••'
+          },
+          splitLine: { lineStyle: { color: '#e5e7eb' } }
         },
-        axisLabel: {
-          color: '#64748b',
-          fontSize: 11,
-          formatter: isValuesVisible ? (value) => {
-            if (value >= 1000) {
-              return `₱${(value / 1000).toFixed(0)}k`;
-            }
-            return `₱${value}`;
-          } : () => '•••'
-        },
-        splitLine: {
-          lineStyle: {
-            color: '#f1f5f9',
-            type: 'dashed'
-          }
+        {
+          type: 'value',
+          name: 'Orders',
+          axisLabel: { 
+            color: '#6b7280', 
+            formatter: isValuesVisible ? (value) => formatNumber(value) : () => '•••'
+          },
+          splitLine: { show: false }
         }
-      },
+      ],
       series: [
         {
           name: 'Sales',
-          type: 'line',
-          smooth: true,
-          data: fullYearData,
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                {
-                  offset: 0,
-                  color: 'rgba(59, 130, 246, 0.3)'
-                },
-                {
-                  offset: 1,
-                  color: 'rgba(59, 130, 246, 0.05)'
-                }
-              ]
-            }
-          },
-          lineStyle: {
-            color: '#3b82f6',
-            width: 2
-          },
+          type: 'bar',
+          yAxisIndex: 0,
+          barWidth: '35%',
+          data: salesValues,
           itemStyle: {
-            color: '#3b82f6',
-            borderWidth: 2,
-            borderColor: '#ffffff'
+            color: '#6366f1',
+            borderRadius: [4, 4, 0, 0]
           },
-          symbol: 'circle',
-          symbolSize: 6,
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0,
           emphasis: {
+            focus: 'series',
             itemStyle: {
-              color: '#1d4ed8',
-              borderColor: '#ffffff',
-              borderWidth: 2,
-              shadowBlur: 10,
-              shadowColor: 'rgba(59, 130, 246, 0.5)'
-            },
-            symbolSize: 8
+              color: '#4f46e5'
+            }
+          }
+        },
+        {
+          name: 'Orders',
+          type: 'bar',
+          yAxisIndex: 1,
+          barWidth: '35%',
+          data: ordersValues,
+          itemStyle: {
+            color: '#f97316',
+            borderRadius: [4, 4, 0, 0]
+          },
+          animation: hasData,
+          animationDuration: hasData ? 600 : 0,
+          emphasis: {
+            focus: 'series',
+            itemStyle: {
+              color: '#ea580c'
+            }
           }
         }
-      ]
+      ],
+      barCategoryGap: '20%'
     };
-  }, [monthlyData, isValuesVisible]);
+  }, [salesTrends, isValuesVisible, hasData]);
 
   const chartHeights = {
     base: '300px'
@@ -249,7 +210,7 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
     <div className="analytics-card geo-distribution-card">
       <div className="card-header">
         <FaChartLine className="card-icon" />
-        <h3>Sales</h3>
+        <h3>Daily Sales & Orders</h3>
         <div className="card-controls">
           {onToggleValues && (
             <button
@@ -264,17 +225,6 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
               />
             </button>
           )}
-          <select 
-            className="time-range-btn year-select"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-          >
-            {availableYears.map(year => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
       <div className="chart-container">
@@ -283,7 +233,7 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
             <div className="loading-spinner"></div>
             <p>Loading sales data...</p>
           </div>
-        ) : monthlyData.length === 0 ? (
+        ) : !hasData ? (
           <div className="chart-empty-state">
             <p>No sales data available</p>
           </div>

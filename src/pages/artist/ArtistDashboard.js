@@ -13,7 +13,6 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const ArtistDashboard = () => {
   const [activePage, setActivePage] = useState('home');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('week');
@@ -116,7 +115,7 @@ const ArtistDashboard = () => {
   };
 
   return (
-    <div className={`artist-dashboard ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className="artist-dashboard">
       {/* Mobile Menu Button */}
       <button 
         className="mobile-menu-btn"
@@ -129,8 +128,6 @@ const ArtistDashboard = () => {
       <ArtistSidebar 
         activePage={activePage}
         setActivePage={setActivePage}
-        isCollapsed={isSidebarCollapsed}
-        setIsCollapsed={setIsSidebarCollapsed}
         isMobileOpen={isMobileMenuOpen}
         setIsMobileOpen={setIsMobileMenuOpen}
       />

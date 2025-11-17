@@ -9,17 +9,13 @@ import {
   faUser, 
   faChartBar,
   faComments,
-  faSignOutAlt,
-  faChevronLeft,
-  faChevronRight
+  faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ArtistSidebar = ({ 
   activePage, 
   setActivePage, 
-  isCollapsed, 
-  setIsCollapsed, 
   isMobileOpen, 
   setIsMobileOpen 
 }) => {
@@ -77,21 +73,12 @@ const ArtistSidebar = ({
       )}
 
       {/* Sidebar */}
-      <div className={`artist-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
+      <div className={`artist-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
         {/* Header */}
         <div className="sidebar-header">
           <Link to="/" className="sidebar-logo">
             <img src={logo} alt="YOHANNS" className="sidebar-logo-img" />
           </Link>
-          
-          {/* Collapse Button */}
-          <button 
-            className="collapse-btn"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            aria-label="Toggle sidebar"
-          >
-            <FontAwesomeIcon icon={isCollapsed ? faChevronRight : faChevronLeft} />
-          </button>
         </div>
 
         {/* Navigation */}
@@ -108,7 +95,7 @@ const ArtistSidebar = ({
                   data-tooltip={item.label}
                 >
                   <FontAwesomeIcon icon={item.icon} className="nav-icon" />
-                  {!isCollapsed && <span className="nav-label">{item.label}</span>}
+                  <span className="nav-label">{item.label}</span>
                 </button>
               </li>
             ))}
@@ -123,7 +110,7 @@ const ArtistSidebar = ({
             data-tooltip="Logout"
           >
             <FontAwesomeIcon icon={faSignOutAlt} className="artist-logout-icon" />
-            {!isCollapsed && <span className="artist-logout-text">Logout</span>}
+            <span className="artist-logout-text">Logout</span>
           </button>
         </div>
       </div>
