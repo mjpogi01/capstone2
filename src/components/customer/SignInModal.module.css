@@ -352,6 +352,29 @@
 }
 
 /* ============================================
+   CAPTCHA CONTAINER
+   ============================================ */
+
+.signinCaptchaContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0;
+  padding: 8px 0;
+  width: 100%;
+}
+
+.signinCaptchaContainer > div {
+  transform: scale(0.85);
+  transform-origin: center;
+}
+
+/* Dark theme adjustments for reCAPTCHA */
+.signinCaptchaContainer iframe {
+  filter: brightness(0.9) contrast(1.1);
+}
+
+/* ============================================
    SIGN UP BUTTON
    ============================================ */
 

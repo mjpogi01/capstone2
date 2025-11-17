@@ -26,6 +26,15 @@ window.addEventListener('error', (event) => {
       return false;
     }
   }
+  // Suppress reCAPTCHA timeout errors (handled gracefully in component)
+  if (event.message && (event.message.includes('Timeout') || event.message.includes('timeout'))) {
+    const source = event.filename || event.source || '';
+    if (source.includes('recaptcha') || source.includes('gstatic')) {
+      console.warn('reCAPTCHA timeout error handled gracefully');
+      event.preventDefault();
+      return false;
+    }
+  }
 });
 
 // Also handle unhandled promise rejections for ResizeObserver
@@ -33,6 +42,15 @@ window.addEventListener('unhandledrejection', (event) => {
   if (event.reason && event.reason.message && event.reason.message.includes('ResizeObserver loop')) {
     event.preventDefault();
     return false;
+  }
+  // Suppress reCAPTCHA timeout promise rejections
+  if (event.reason && (event.reason.message && (event.reason.message.includes('Timeout') || event.reason.message.includes('timeout')))) {
+    const stack = event.reason.stack || '';
+    if (stack.includes('recaptcha') || stack.includes('gstatic') || event.reason.message.includes('recaptcha')) {
+      console.warn('reCAPTCHA timeout promise rejection handled gracefully');
+      event.preventDefault();
+      return false;
+    }
   }
 });
 

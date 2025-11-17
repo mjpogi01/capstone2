@@ -180,16 +180,23 @@ class AuthService {
   async signInWithProvider(provider) {
     try {
       // Get the current origin (works for both localhost and production)
-      // Supabase will redirect back to the Site URL configured in Supabase Dashboard
-      // But we can override it here if needed
-      const redirectTo = typeof window !== 'undefined' 
+      // Redirect to /auth/callback route which handles the OAuth callback
+      const baseUrl = typeof window !== 'undefined' 
         ? window.location.origin
         : process.env.REACT_APP_CLIENT_URL || 'http://localhost:3000';
+      
+      const redirectTo = `${baseUrl}/auth/callback`;
+      
+      // Configure scopes based on provider
+      const scopes = provider.toLowerCase() === 'facebook' 
+        ? 'email,public_profile'  // Facebook requires explicit scopes
+        : undefined;  // Google uses default scopes
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider.toLowerCase(),
         options: {
           redirectTo: redirectTo,
+          scopes: scopes,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
