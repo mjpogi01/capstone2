@@ -314,23 +314,53 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
     // Get unique user IDs from orders
     const userIds = [...new Set(filteredOrders.map(order => order.user_id).filter(Boolean))];
     
-    // Fetch user data for all unique user IDs
+    // Fetch user data for all unique user IDs with pagination
     let userData = {};
     if (userIds.length > 0) {
       try {
-        const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
-        if (!usersError && users?.users) {
-          users.users.forEach(user => {
-            const firstName = user.user_metadata?.first_name || '';
-            const lastName = user.user_metadata?.last_name || '';
-            const fullName = user.user_metadata?.full_name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
-            
-            userData[user.id] = {
-              email: user.email,
-              full_name: fullName || null
-            };
+        // Fetch all users by paginating through all pages
+        let allUsers = [];
+        let page = 1;
+        const perPage = 1000;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers({
+            page,
+            perPage
           });
+          
+          if (usersError) {
+            console.error(`Supabase error fetching users (page ${page}):`, usersError);
+            break;
+          }
+          
+          const users = usersData?.users || (Array.isArray(usersData) ? usersData : []);
+          
+          if (users && Array.isArray(users) && users.length > 0) {
+            allUsers = allUsers.concat(users);
+            hasMore = users.length === perPage;
+            page++;
+          } else {
+            hasMore = false;
+          }
         }
+        
+        console.log(`📧 Fetched ${allUsers.length} total users for order email lookup`);
+        
+        // Build userData map from all fetched users
+        allUsers.forEach(user => {
+          const firstName = user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || '';
+          const lastName = user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || '';
+          const fullName = user.user_metadata?.full_name || user.raw_user_meta_data?.full_name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
+          
+          userData[user.id] = {
+            email: user.email,
+            full_name: fullName || null
+          };
+        });
+        
+        console.log(`📧 Found user data for ${Object.keys(userData).length} users`);
       } catch (error) {
         console.warn('Could not fetch user data:', error.message);
       }
@@ -419,23 +449,24 @@ router.get('/:id', authenticateSupabaseToken, requireAdminOrOwner, async (req, r
 
     ensureOrderAccess(order, branchContext);
 
-    // Fetch user data for this order
+    // Fetch user data for this order - use getUserById for single order (more efficient)
     let userData = null;
     if (order.user_id) {
       try {
-        const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
-        if (!usersError && users?.users) {
-          const user = users.users.find(u => u.id === order.user_id);
-          if (user) {
-            const firstName = user.user_metadata?.first_name || '';
-            const lastName = user.user_metadata?.last_name || '';
-            const fullName = user.user_metadata?.full_name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
-            
-            userData = {
-              email: user.email,
-              full_name: fullName || null
-            };
-          }
+        // Use getUserById for single user lookup (more efficient than listing all users)
+        const { data: user, error: userError } = await supabase.auth.admin.getUserById(order.user_id);
+        if (!userError && user?.user) {
+          const userObj = user.user;
+          const firstName = userObj.user_metadata?.first_name || userObj.raw_user_meta_data?.first_name || '';
+          const lastName = userObj.user_metadata?.last_name || userObj.raw_user_meta_data?.last_name || '';
+          const fullName = userObj.user_metadata?.full_name || userObj.raw_user_meta_data?.full_name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
+          
+          userData = {
+            email: userObj.email,
+            full_name: fullName || null
+          };
+        } else if (userError) {
+          console.warn('Could not fetch user data for order:', userError.message);
         }
       } catch (error) {
         console.warn('Could not fetch user data:', error.message);
