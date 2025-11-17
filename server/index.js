@@ -82,6 +82,22 @@ app.use('/api/chat', chatRouter);
 app.use('/api/artist', artistRouter);
 app.use('/api/branch-chat', branchChatRouter);
 
+// Serve static files from React build in production
+if (process.env.NODE_ENV === 'production') {
+  const buildPath = path.join(__dirname, '..', 'build');
+  app.use(express.static(buildPath));
+  
+  // Serve React app for all non-API routes (must be after all API routes)
+  app.use((req, res, next) => {
+    // Skip API routes - let them fall through to 404 handler
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    // Serve React app for all other routes
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

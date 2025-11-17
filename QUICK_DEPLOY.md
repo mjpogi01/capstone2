@@ -62,13 +62,41 @@ REACT_APP_EMAILJS_PUBLIC_KEY=your_public_key
 
 ## 🧪 Test Locally First
 
+**Windows (PowerShell):**
+```powershell
+# Build the app
+npm run build
+
+# Set production mode
+$env:NODE_ENV="production"
+
+# Start server
+npm run start:production
+
+# Visit http://localhost:4000
+```
+
+**Windows (Command Prompt):**
+```cmd
+# Build the app
+npm run build
+
+# Set production mode
+set NODE_ENV=production
+
+# Start server
+npm run start:production
+
+# Visit http://localhost:4000
+```
+
+**Mac/Linux:**
 ```bash
 # Build the app
 npm run build
 
 # Set production mode
-set NODE_ENV=production  # Windows
-export NODE_ENV=production  # Mac/Linux
+export NODE_ENV=production
 
 # Start server
 npm run start:production

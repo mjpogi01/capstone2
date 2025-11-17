@@ -43,6 +43,7 @@
     "server:dev": "nodemon server/index.js",
     "dev:all": "concurrently \"npm start\" \"npm run server:dev\"",
     "build": "react-scripts build",
+    "start:production": "node server/index.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
