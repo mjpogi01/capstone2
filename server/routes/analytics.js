@@ -189,15 +189,23 @@ function ensureBarangayGeo() {
   }
 
   try {
-    // Try multiple possible paths for the CSV file
+    // Try multiple possible paths for the CSV file (prioritize the new comprehensive file)
     const possibleCsvPaths = [
+      path.join(__dirname, '..', 'scripts', 'data', 'barangay-centroids-all.csv'),
+      path.join(__dirname, '..', '..', 'server', 'scripts', 'data', 'barangay-centroids-all.csv'),
+      path.join(process.cwd(), 'server', 'scripts', 'data', 'barangay-centroids-all.csv'),
+      // Fallback to old file if new one doesn't exist
       path.join(__dirname, 'data', 'barangay-centroids.csv'),
       path.join(__dirname, '..', 'scripts', 'data', 'barangay-centroids.csv'),
       path.join(__dirname, '..', '..', 'server', 'scripts', 'data', 'barangay-centroids.csv'),
       path.join(process.cwd(), 'server', 'scripts', 'data', 'barangay-centroids.csv')
     ];
     
+    // Try to find location-data.json (comprehensive location data)
     const possibleJsonPaths = [
+      path.join(__dirname, '..', '..', 'src', 'data', 'location-data.json'),
+      path.join(process.cwd(), 'src', 'data', 'location-data.json'),
+      // Fallback to old JSON file
       path.join(__dirname, 'data', 'barangays-calabarzon-oriental-mindoro.json'),
       path.join(__dirname, '..', 'scripts', 'data', 'barangays-calabarzon-oriental-mindoro.json'),
       path.join(__dirname, '..', '..', 'server', 'scripts', 'data', 'barangays-calabarzon-oriental-mindoro.json'),
@@ -217,7 +225,7 @@ function ensureBarangayGeo() {
       }
     }
     
-    // Find JSON file
+    // Find JSON file (optional - we can work without it)
     for (const possiblePath of possibleJsonPaths) {
       if (fs.existsSync(possiblePath)) {
         jsonPath = possiblePath;
@@ -226,81 +234,101 @@ function ensureBarangayGeo() {
     }
     
     if (!csvPath) {
-      console.error('❌ ERROR: barangay-centroids.csv file not found!');
+      console.error('❌ ERROR: barangay centroids CSV file not found!');
       console.error('   Searched paths:', possibleCsvPaths);
       console.error('   Current __dirname:', __dirname);
       console.error('   Current process.cwd():', process.cwd());
-      throw new Error('barangay-centroids.csv file not found');
-    }
-    
-    if (!jsonPath) {
-      console.error('❌ ERROR: barangays-calabarzon-oriental-mindoro.json file not found!');
-      console.error('   Searched paths:', possibleJsonPaths);
-      throw new Error('barangays-calabarzon-oriental-mindoro.json file not found');
+      throw new Error('barangay centroids CSV file not found');
     }
     
     console.log(`✅ Loading CSV from: ${csvPath}`);
-    console.log(`✅ Loading JSON from: ${jsonPath}`);
-    
     csvContent = fs.readFileSync(csvPath, 'utf8');
-    barangayDataset = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    
+    // Load JSON if available (for structure), but we can work without it
+    if (jsonPath) {
+      console.log(`✅ Loading JSON from: ${jsonPath}`);
+      barangayDataset = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    } else {
+      console.log('⚠️  JSON location data not found, will build structure from CSV only');
+      barangayDataset = { provinces: [] };
+    }
 
     const cityByCode = new Map();
+    const provinceByCode = new Map();
     const cityBarangays = new Map();
     const barangayByCode = new Map();
     const barangayByNameKey = new Map();
     const cityProvinceByCode = new Map();
     let totalBarangays = 0;
 
-    barangayDataset.provinces.forEach(province => {
-      const normalizedProvince = normalizeValue(province.name);
-      province.citiesAndMunicipalities.forEach(city => {
-        const normalizedCity = normalizeValue(city.name);
-        const cityKey = `${normalizedProvince}|${normalizedCity}`;
-        const cityEntry = {
-          name: city.name,
-          province: province.name,
-          normalizedCity,
+    // Build lookup maps from JSON dataset if available
+    if (barangayDataset && barangayDataset.provinces) {
+      barangayDataset.provinces.forEach(province => {
+        const normalizedProvince = normalizeValue(province.name);
+        provinceByCode.set(province.code, {
+          name: province.name,
           normalizedProvince,
-          cityKey
-        };
-        cityByCode.set(city.code, cityEntry);
-        cityProvinceByCode.set(city.code, {
-          normalizedCity,
-          normalizedProvince
+          regionCode: province.regionCode,
+          regionName: province.regionName
         });
-        if (!cityBarangays.has(cityKey)) {
-          cityBarangays.set(cityKey, []);
-        }
-        city.barangays.forEach(barangay => {
-          const normalizedBarangay = normalizeBarangayName(barangay.name);
-          const barangayEntry = {
-            code: barangay.code,
-            name: barangay.name,
-            normalizedBarangay,
+        
+        province.citiesAndMunicipalities.forEach(city => {
+          const normalizedCity = normalizeValue(city.name);
+          const cityKey = `${normalizedProvince}|${normalizedCity}`;
+          const cityEntry = {
+            name: city.name,
+            province: province.name,
             normalizedCity,
             normalizedProvince,
-            city: city.name,
-            province: province.name,
-            latitude: null,
-            longitude: null
+            cityKey,
+            code: city.code
           };
-          cityBarangays.get(cityKey).push(barangayEntry);
-          if (barangay.code) {
-            barangayByCode.set(barangay.code, barangayEntry);
+          cityByCode.set(city.code, cityEntry);
+          cityProvinceByCode.set(city.code, {
+            normalizedCity,
+            normalizedProvince
+          });
+          if (!cityBarangays.has(cityKey)) {
+            cityBarangays.set(cityKey, []);
           }
-          if (normalizedBarangay) {
-            const nameKey = `${cityKey}|${normalizedBarangay}`;
-            barangayByNameKey.set(nameKey, barangayEntry);
+          
+          if (city.barangays) {
+            city.barangays.forEach(barangay => {
+              const normalizedBarangay = normalizeBarangayName(barangay.name);
+              const barangayEntry = {
+                code: barangay.code,
+                name: barangay.name,
+                normalizedBarangay,
+                normalizedCity,
+                normalizedProvince,
+                city: city.name,
+                province: province.name,
+                latitude: null,
+                longitude: null
+              };
+              cityBarangays.get(cityKey).push(barangayEntry);
+              if (barangay.code) {
+                barangayByCode.set(barangay.code, barangayEntry);
+              }
+              if (normalizedBarangay) {
+                const nameKey = `${cityKey}|${normalizedBarangay}`;
+                barangayByNameKey.set(nameKey, barangayEntry);
+              }
+              totalBarangays += 1;
+            });
           }
-          totalBarangays += 1;
         });
       });
-    });
+    }
 
     console.log(`📊 Parsing CSV file (${csvPath})...`);
     const lines = csvContent.split(/\r?\n/);
     console.log(`📊 Total lines in CSV: ${lines.length}`);
+    
+    // Check if it's the new format (barangay-centroids-all.csv) or old format
+    const isNewFormat = csvPath.includes('barangay-centroids-all.csv');
+    const headerLine = lines[0] || '';
+    const hasRegionColumn = headerLine.includes('region_psgc');
     
     let csvCodesLoaded = 0;
     let csvCodesWithCoords = 0;
@@ -310,11 +338,44 @@ function ensureBarangayGeo() {
       if (!line || line.trim() === '') {
         continue;
       }
-      const parts = line.split(',');
-      if (parts.length < 7) {
+      
+      // Parse CSV line (handle quoted fields)
+      const parts = [];
+      let current = '';
+      let inQuotes = false;
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          parts.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      parts.push(current.trim()); // Add last part
+      
+      if (parts.length < 6) {
         continue;
       }
-      const [, , cityCode, barangayCode, rawBarangayName, latStr, lngStr] = parts;
+      
+      // New format: region_psgc,province_psgc,city_muni_psgc,barangay_psgc,barangay_name,latitude,longitude
+      // Old format: region_psgc,province_psgc,city_muni_psgc,barangay_psgc,barangay_name,latitude,longitude (same!)
+      let regionCode, provinceCode, cityCode, barangayCode, rawBarangayName, latStr, lngStr;
+      
+      if (hasRegionColumn && parts.length >= 7) {
+        [regionCode, provinceCode, cityCode, barangayCode, rawBarangayName, latStr, lngStr] = parts;
+      } else if (parts.length >= 7) {
+        // Assume new format even without header check
+        [regionCode, provinceCode, cityCode, barangayCode, rawBarangayName, latStr, lngStr] = parts;
+      } else {
+        // Old format fallback
+        [, , cityCode, barangayCode, rawBarangayName, latStr, lngStr] = parts;
+        regionCode = '';
+        provinceCode = '';
+      }
+      
       const latitude = parseFloat(latStr);
       const longitude = parseFloat(lngStr);
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
@@ -323,28 +384,57 @@ function ensureBarangayGeo() {
 
       const normalizedBarangay = normalizeBarangayName(rawBarangayName);
       let entry = barangayByCode.get(barangayCode);
+      
       if (!entry) {
+        // Try to find city metadata from JSON or create from CSV
         const cityMeta = cityByCode.get(cityCode);
+        const provinceMeta = provinceByCode.get(provinceCode);
+        let normalizedCity = '';
+        let normalizedProvince = '';
+        let cityName = '';
+        let provinceName = '';
+        
         if (cityMeta) {
-          entry = {
-            code: barangayCode,
-            name: titleCase(normalizedBarangay || rawBarangayName),
-            normalizedBarangay,
-            normalizedCity: cityMeta.normalizedCity,
-            normalizedProvince: cityMeta.normalizedProvince,
-            city: cityMeta.name,
-            province: cityMeta.province,
-            latitude: null,
-            longitude: null
-          };
-          barangayByCode.set(barangayCode, entry);
-          csvCodesLoaded++;
-          const cityKey = cityMeta.cityKey;
-          if (!cityBarangays.has(cityKey)) {
-            cityBarangays.set(cityKey, []);
-          }
-          cityBarangays.get(cityKey).push(entry);
+          normalizedCity = cityMeta.normalizedCity;
+          normalizedProvince = cityMeta.normalizedProvince;
+          cityName = cityMeta.name;
+          provinceName = cityMeta.province;
+        } else if (provinceMeta) {
+          // We have province info but not city - use province and infer city
+          normalizedProvince = provinceMeta.normalizedProvince;
+          provinceName = provinceMeta.name;
+          normalizedCity = normalizeValue(cityCode);
+          cityName = `City ${cityCode}`; // Fallback - we don't have city name
+        } else {
+          // No metadata available - use codes as fallback
+          normalizedCity = normalizeValue(cityCode);
+          normalizedProvince = normalizeValue(provinceCode);
+          cityName = `City ${cityCode}`; // Fallback
+          provinceName = `Province ${provinceCode}`; // Fallback
         }
+        
+        entry = {
+          code: barangayCode,
+          name: titleCase(normalizedBarangay || rawBarangayName),
+          normalizedBarangay,
+          normalizedCity,
+          normalizedProvince,
+          city: cityName,
+          province: provinceName,
+          latitude: null,
+          longitude: null,
+          regionCode: regionCode || null,
+          provinceCode: provinceCode || null,
+          cityCode: cityCode || null
+        };
+        barangayByCode.set(barangayCode, entry);
+        csvCodesLoaded++;
+        
+        const cityKey = cityMeta ? cityMeta.cityKey : `${normalizedProvince}|${normalizedCity}`;
+        if (!cityBarangays.has(cityKey)) {
+          cityBarangays.set(cityKey, []);
+        }
+        cityBarangays.get(cityKey).push(entry);
       }
 
       if (entry) {
@@ -2716,7 +2806,13 @@ router.get('/customer-locations', async (req, res) => {
             if (isWithinServiceArea(lat, lng)) {
               const latOffset = (Math.random() - 0.5) * 0.004;
               const lngOffset = (Math.random() - 0.5) * 0.004;
-              preciseHeatmapPoints.push([lat + latOffset, lng + lngOffset, 1]);
+              const customerName = addr.full_name || 'Customer';
+              preciseHeatmapPoints.push({
+                lat: lat + latOffset,
+                lng: lng + lngOffset,
+                intensity: 1,
+                customerName: customerName
+              });
               
               if (isTarget) {
                 console.log(`  ✅✅✅ PLOTTED ON MAP at [${lat + latOffset}, ${lng + lngOffset}]`);
@@ -2839,7 +2935,13 @@ router.get('/customer-locations', async (req, res) => {
             if (isWithinServiceArea(latitude, longitude)) {
               const latOffset = (Math.random() - 0.5) * 0.004;
               const lngOffset = (Math.random() - 0.5) * 0.004;
-              preciseHeatmapPoints.push([latitude + latOffset, longitude + lngOffset, 1]);
+              const customerName = address.full_name || address.receiver || address.receiver_name || address.name || 'Customer';
+              preciseHeatmapPoints.push({
+                lat: latitude + latOffset,
+                lng: longitude + lngOffset,
+                intensity: 1,
+                customerName: customerName
+              });
             }
           }
         }
@@ -2910,7 +3012,12 @@ router.get('/customer-locations', async (req, res) => {
           const candidateLat = barangayEntry.latitude + latOffset;
           const candidateLng = barangayEntry.longitude + lngOffset;
           if (isWithinServiceArea(candidateLat, candidateLng)) {
-            fallbackCityPoints.push([candidateLat, candidateLng, 1]);
+            fallbackCityPoints.push({
+              lat: candidateLat,
+              lng: candidateLng,
+              intensity: 1,
+              customerName: `Customer ${i + 1}`
+            });
             const barangayKey = `${cityInfo.normalizedProvince}|${cityInfo.normalizedCity}|${barangayEntry.normalizedBarangay}`;
             barangayCoverageSet.add(barangayKey);
           }
@@ -2921,7 +3028,12 @@ router.get('/customer-locations', async (req, res) => {
         for (let i = 0; i < cityInfo.count; i++) {
           const latOffset = (Math.random() - 0.5) * baseRadiusJitter;
           const lngOffset = (Math.random() - 0.5) * baseRadiusJitter;
-          fallbackCityPoints.push([coords[0] + latOffset, coords[1] + lngOffset, 1]);
+          fallbackCityPoints.push({
+            lat: coords[0] + latOffset,
+            lng: coords[1] + lngOffset,
+            intensity: 1,
+            customerName: `Customer ${i + 1}`
+          });
         }
       } else {
         console.log(`⚠️ No coordinates found for city: ${cityName}`);
@@ -2942,9 +3054,15 @@ router.get('/customer-locations', async (req, res) => {
 
     console.log(`✅ Generated ${heatmapData.length} heatmap points from ${Object.keys(cityCounts).length} cities`);
     
+    // Convert to array format for heatmap, but keep object format for markers
+    const heatmapDataArray = heatmapData.map(point => 
+      typeof point === 'object' ? [point.lat, point.lng, point.intensity || 1] : point
+    );
+    
     res.json({
       success: true,
-      data: heatmapData,
+      data: heatmapDataArray, // Array format for heatmap library
+      markers: heatmapData, // Object format with customer names for markers
       cityStats: Object.keys(cityCounts).map(key => ({
         city: cityCounts[key].city,
         province: cityCounts[key].province,
