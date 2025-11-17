@@ -34,7 +34,10 @@ import {
   faTrash,
   faTimes,
   faBuilding,
-  faStore
+  faStore,
+  faUserShield,
+  faEye,
+  faEyeSlash
 } from '@fortawesome/free-solid-svg-icons';
 import { authFetch } from '../../services/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
@@ -81,6 +84,56 @@ const Dashboard1 = () => {
   
   // Chart tabs
   const [activeChartTab, setActiveChartTab] = useState('earnings');
+
+  // Current time state
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Global values visibility - controls all values in dashboard
+  // Load from localStorage on mount, default to true
+  const [isAllValuesVisible, setIsAllValuesVisible] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dashboard_values_visible');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch (error) {
+      console.error('Error loading values visibility preference:', error);
+      return true;
+    }
+  });
+
+  // Save to localStorage whenever visibility state changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('dashboard_values_visible', JSON.stringify(isAllValuesVisible));
+    } catch (error) {
+      console.error('Error saving values visibility preference:', error);
+    }
+  }, [isAllValuesVisible]);
+
+  // Listen for storage changes to sync across tabs/pages
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'dashboard_values_visible') {
+        try {
+          const newValue = e.newValue !== null ? JSON.parse(e.newValue) : true;
+          setIsAllValuesVisible(newValue);
+        } catch (error) {
+          console.error('Error parsing storage change:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Dashboard stats with real data from API
   const [dashboardStats, setDashboardStats] = useState({
@@ -307,6 +360,11 @@ const Dashboard1 = () => {
     navigate(walkInPath);
   };
 
+  const handleManageAccounts = () => {
+    const accountsPath = isOwner ? '/owner/accounts' : '/admin/accounts';
+    navigate(accountsPath);
+  };
+
   const handleAddProduct = (newProduct) => {
     // Product added successfully, modal will close automatically
     console.log('Product added:', newProduct);
@@ -395,68 +453,99 @@ const Dashboard1 = () => {
 
   // Prepare ECharts data for low stock items
   const lowStockChartOption = useMemo(() => {
-    if (lowStockItems.length === 0) {
+    if (!lowStockItems || lowStockItems.length === 0) {
       return null;
     }
+    
+    // Use isAllValuesVisible state
+    const showValues = isAllValuesVisible;
 
     // Limit to top 10 items for chart
     const chartItems = lowStockItems.slice(0, 10);
     
-    const itemNames = chartItems.map(item => item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name);
-    const stockQuantities = chartItems.map(item => item.stockQuantity);
-    const reorderLevels = chartItems.map(item => item.reorderLevel);
-    const colors = chartItems.map(item => getStockStatusColor(item.status));
+    // Ensure all arrays have the same length
+    if (chartItems.length === 0) {
+      return null;
+    }
+    
+    const itemNames = chartItems.map(item => {
+      const name = item?.name || 'Unknown';
+      return name.length > 20 ? name.substring(0, 20) + '...' : name;
+    });
+    const stockQuantities = chartItems.map(item => Number(item?.stockQuantity) || 0);
+    const reorderLevels = chartItems.map(item => Number(item?.reorderLevel) || 0);
+    const colors = chartItems.map(item => getStockStatusColor(item?.status || 'In Stock'));
+    
+    // Validate arrays have same length
+    if (itemNames.length !== stockQuantities.length || itemNames.length !== reorderLevels.length) {
+      console.warn('Chart data arrays length mismatch');
+      return null;
+    }
 
     return {
       tooltip: {
-        trigger: 'item',
+        trigger: 'axis',
         axisPointer: {
           type: 'shadow'
         },
-        formatter: (params) => {
-          if (!params) {
+        formatter: function(params) {
+          if (!showValues) {
             return '';
           }
           
-          // For item trigger with horizontal bar chart, dataIndex is on params
-          // Also try to get it from data.value if it's an object
-          let dataIndex = params.dataIndex;
+          if (!params || !Array.isArray(params) || params.length === 0) {
+            return '';
+          }
           
-          if (dataIndex === undefined && params.data) {
-            if (typeof params.data === 'object' && params.data.value !== undefined) {
-              // Try to find the index by matching value
-              const value = params.data.value;
-              dataIndex = stockQuantities.findIndex(qty => qty === value);
-            } else if (params.dataIndex !== undefined) {
-              dataIndex = params.dataIndex;
+          try {
+            // Get the first param which contains the axis data
+            const param = params[0];
+            if (!param || param.dataIndex === undefined || param.dataIndex === null) {
+              return '';
             }
-          }
-          
-          // If still undefined, try to get from name/value matching
-          if (dataIndex === undefined && params.name !== undefined) {
-            const nameMatch = itemNames.findIndex(name => name === params.name || name.includes(params.name));
-            if (nameMatch !== -1) {
-              dataIndex = nameMatch;
+            
+            const dataIndex = Number(param.dataIndex);
+            
+            if (isNaN(dataIndex) || dataIndex < 0 || dataIndex >= chartItems.length) {
+              return '';
             }
-          }
-          
-          if (dataIndex === undefined || dataIndex < 0 || dataIndex >= chartItems.length) {
+            
+            const item = chartItems[dataIndex];
+            if (!item) {
+              return '';
+            }
+            
+            // Get values from all series - handle both object and primitive values
+            let stockValue = item.stockQuantity;
+            let reorderValue = item.reorderLevel;
+            
+            const stockParam = params.find(p => p.seriesName === 'Stock Quantity');
+            const reorderParam = params.find(p => p.seriesName === 'Reorder Level');
+            
+            if (stockParam) {
+              stockValue = typeof stockParam.value === 'object' && stockParam.value !== null 
+                ? stockParam.value.value 
+                : stockParam.value;
+            }
+            
+            if (reorderParam) {
+              reorderValue = typeof reorderParam.value === 'object' && reorderParam.value !== null
+                ? reorderParam.value.value
+                : reorderParam.value;
+            }
+            
+            return `
+              <div style="padding: 8px;">
+                <div style="font-weight: 600; margin-bottom: 4px;">${item.name || 'Unknown Item'}</div>
+                <div>Stock: <strong>${stockValue || 0}</strong> units</div>
+                <div>Reorder Level: <strong>${reorderValue || 0}</strong> units</div>
+                <div>Status: <strong style="color: ${getStockStatusColor(item.status || 'In Stock')}">${item.status || 'Unknown'}</strong></div>
+              </div>
+            `;
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
             return '';
           }
-          
-          const item = chartItems[dataIndex];
-          if (!item) {
-            return '';
-          }
-          
-          return `
-            <div style="padding: 8px;">
-              <div style="font-weight: 600; margin-bottom: 4px;">${item.name || 'Unknown Item'}</div>
-              <div>Stock: <strong>${item.stockQuantity || 0}</strong> units</div>
-              <div>Reorder Level: <strong>${item.reorderLevel || 0}</strong> units</div>
-              <div>Status: <strong style="color: ${getStockStatusColor(item.status)}">${item.status || 'Unknown'}</strong></div>
-            </div>
-          `;
         },
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderColor: '#e2e8f0',
@@ -468,31 +557,13 @@ const Dashboard1 = () => {
         padding: [10, 12]
       },
       grid: {
-        left: '25%',
-        right: '8%',
-        bottom: '12%',
+        left: '10%',
+        right: '5%',
+        bottom: '20%',
         top: '10%',
-        containLabel: false
+        containLabel: true
       },
       xAxis: {
-        type: 'value',
-        axisLine: {
-          lineStyle: {
-            color: '#cbd5e1'
-          }
-        },
-        axisLabel: {
-          color: '#64748b',
-          fontSize: 11
-        },
-        splitLine: {
-          lineStyle: {
-            color: '#f1f5f9',
-            type: 'dashed'
-          }
-        }
-      },
-      yAxis: {
         type: 'category',
         data: itemNames,
         axisLine: {
@@ -502,46 +573,78 @@ const Dashboard1 = () => {
         },
         axisLabel: {
           color: '#64748b',
-          fontSize: 10,
-          width: 90,
-          overflow: 'truncate',
-          ellipsis: '...',
-          interval: 0
+          fontSize: 9,
+          interval: 0,
+          rotate: itemNames.length > 6 ? 45 : 0,
+          formatter: function(value) {
+            if (value.length > 15) {
+              return value.substring(0, 15) + '...';
+            }
+            return value;
+          }
+        },
+        axisTick: {
+          alignWithLabel: true
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: {
+          lineStyle: {
+            color: '#cbd5e1'
+          }
+        },
+        axisLabel: {
+          color: '#64748b',
+          fontSize: 11,
+          formatter: showValues ? (value) => {
+            if (value >= 1000) {
+              return `${(value / 1000).toFixed(0)}k`;
+            }
+            return `${value}`;
+          } : () => '•••'
+        },
+        splitLine: {
+          lineStyle: {
+            color: '#f1f5f9',
+            type: 'dashed'
+          }
         }
       },
       series: [
         {
           name: 'Stock Quantity',
           type: 'bar',
-          data: stockQuantities.map((qty, index) => ({
-            value: qty,
-            itemStyle: {
-              color: colors[index]
+          data: stockQuantities,
+          itemStyle: {
+            color: (params) => {
+              return colors[params.dataIndex] || '#3b82f6';
             }
-          })),
-          barWidth: '40%',
+          },
+          barWidth: '25%',
           label: {
-            show: true,
-            position: 'right',
+            show: showValues,
+            position: 'top',
             formatter: '{c}',
             color: '#1e293b',
-            fontSize: 10,
+            fontSize: 9,
             fontWeight: 500,
-            distance: 8
+            distance: 5
+          },
+          emphasis: {
+            focus: 'series'
           }
         },
         {
           name: 'Reorder Level',
           type: 'bar',
-          data: reorderLevels.map((level, index) => ({
-            value: level,
-            itemStyle: {
-              color: 'rgba(107, 114, 128, 0.3)',
-              borderColor: '#6b7280',
-              borderWidth: 1
-            }
-          })),
-          barWidth: '40%',
+          data: reorderLevels,
+          itemStyle: {
+            color: 'rgba(107, 114, 128, 0.3)',
+            borderColor: '#6b7280',
+            borderWidth: 1
+          },
+          barWidth: '25%',
           barGap: '-100%',
           label: {
             show: false,
@@ -550,11 +653,14 @@ const Dashboard1 = () => {
             color: '#64748b',
             fontSize: 9
           },
-          z: 1
+          z: 1,
+          emphasis: {
+            focus: 'series'
+          }
         }
       ]
     };
-  }, [lowStockItems]);
+  }, [lowStockItems, isAllValuesVisible]);
 
   const categories = [...new Set(stockItems.map(item => item.category))];
   const statuses = ['In Stock', 'Low Stock', 'Out of Stock'];
@@ -920,81 +1026,55 @@ const Dashboard1 = () => {
     }).format(amount);
   };
 
+  // Format time display
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  };
+
+  // Format date display for user info bar
+  const formatDateDisplay = (date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (!user) return 'User';
+    return user.user_metadata?.full_name || 
+           (user.user_metadata?.first_name && user.user_metadata?.last_name 
+             ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+             : user.user_metadata?.first_name || 
+               user.user_metadata?.last_name || 
+               user.email?.split('@')[0] || 
+               'User');
+  };
+
   return (
     <div className="dashboard1-container">
       {/* Main Content */}
       <main className="dashboard1-main">
-        {/* Top Action Bar: Quick Actions and Branch Filter */}
-        <div className="dashboard1-top-action-bar">
-          {/* Quick Action Buttons */}
-          <div className="dashboard1-quick-actions">
-            <button 
-              className="dashboard1-quick-action-btn dashboard1-add-product-btn"
-              onClick={handleQuickAddProduct}
-            >
-              <FontAwesomeIcon icon={faPlus} className="quick-action-icon" />
-              <span>Add Product</span>
-            </button>
-            <button 
-              className="dashboard1-quick-action-btn dashboard1-walkin-btn"
-              onClick={handleWalkIn}
-            >
-              <FontAwesomeIcon icon={faStore} className="quick-action-icon" />
-              <span>Walk-in</span>
-            </button>
-          </div>
-
-          {/* Branch Filter for Owners */}
-          {isOwner && branches.length > 0 && (
-            <div className="dashboard1-branch-filter">
-              <div 
-                className="dashboard1-branch-filter-button"
-                onClick={() => setShowBranchDropdown(!showBranchDropdown)}
-              >
-                <FontAwesomeIcon icon={faBuilding} className="branch-filter-icon" />
-                <span className="branch-filter-selected-name">
-                  {selectedBranchId === 'all' 
-                    ? 'All Branches' 
-                    : branches.find(b => b.id === parseInt(selectedBranchId))?.name || 'All Branches'}
-                </span>
-                <FontAwesomeIcon 
-                  icon={showBranchDropdown ? faChevronUp : faChevronDown} 
-                  className="branch-filter-chevron"
-                />
-              </div>
-              {showBranchDropdown && (
-                <div className="dashboard1-branch-dropdown">
-                  <div
-                    className={`branch-dropdown-item ${selectedBranchId === 'all' ? 'selected' : ''}`}
-                    onClick={() => {
-                      setSelectedBranchId('all');
-                      setShowBranchDropdown(false);
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faBuilding} className="branch-item-icon" />
-                    <span>All Branches</span>
-                  </div>
-                  {branches.map(branch => (
-                    <div
-                      key={branch.id}
-                      className={`branch-dropdown-item ${selectedBranchId === String(branch.id) ? 'selected' : ''}`}
-                      onClick={() => {
-                        const newBranchId = String(branch.id);
-                        setSelectedBranchId(newBranchId);
-                        setShowBranchDropdown(false);
-                        // Force immediate refresh - fetchMetricsData will be called via useEffect
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faBuilding} className="branch-item-icon" />
-                      <span>{branch.name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {/* User Info and Time Display */}
+        <div className="dashboard1-user-info-bar">
+          <div className="dashboard1-user-info">
+            <h1 className="dashboard1-title">
+              {isOwner ? 'Owner Dashboard' : 'Admin Dashboard'}
+            </h1>
+            <div className="dashboard1-welcome">
+              Welcome, {getUserDisplayName()}!
             </div>
-          )}
+          </div>
+          <div className="dashboard1-separator"></div>
         </div>
-        
+
         {/* Top Cards Section */}
         <div className="dashboard1-top-cards">
           <div className="dashboard1-stat-card dashboard1-sales-card">
@@ -1002,8 +1082,12 @@ const Dashboard1 = () => {
               <span style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>₱</span>
             </div>
             <div className="dashboard1-stat-content">
-              <p className="dashboard1-stat-label">Total Sales</p>
-              <h3 className="dashboard1-stat-value">{formatCurrency(dashboardStats.totalSales)}</h3>
+              <div className="dashboard1-stat-header">
+                <p className="dashboard1-stat-label">Total Sales</p>
+              </div>
+              <h3 className="dashboard1-stat-value">
+                {isAllValuesVisible ? formatCurrency(dashboardStats.totalSales) : '••••••'}
+              </h3>
               <div className="dashboard1-stat-trend">
                 <FontAwesomeIcon icon={faChevronUp} />
                 <span>{dashboardStats.salesTrend}</span>
@@ -1060,44 +1144,146 @@ const Dashboard1 = () => {
                 <span>Stock</span>
               </button>
             </div>
-          </div>
-
-          {/* Chart Content */}
-          <div className="dashboard1-chart-content-wrapper">
-            {activeChartTab === 'earnings' && (
-              <div className="dashboard1-chart-wrapper">
-                <EarningsChart selectedBranchId={isOwner && selectedBranchId !== 'all' ? selectedBranchId : null} />
+            {/* Global Toggle for All Values */}
+            <div className="dashboard1-global-controls">
+              <button
+                className="dashboard1-chart-toggle-btn"
+                onClick={() => setIsAllValuesVisible(!isAllValuesVisible)}
+                title={isAllValuesVisible ? 'Hide all values' : 'Show all values'}
+                aria-label={isAllValuesVisible ? 'Hide all values' : 'Show all values'}
+              >
+                <FontAwesomeIcon 
+                  icon={isAllValuesVisible ? faEyeSlash : faEye} 
+                  className="dashboard1-chart-toggle-icon"
+                />
+                <span className="toggle-label">{isAllValuesVisible ? 'Hide Values' : 'Show Values'}</span>
+              </button>
+            </div>
+            {/* Branch Filter for Owners - Aligned with Tabs */}
+            {isOwner && branches.length > 0 && (
+              <div className="dashboard1-branch-filter">
+                <div 
+                  className="dashboard1-branch-filter-button"
+                  onClick={() => setShowBranchDropdown(!showBranchDropdown)}
+                >
+                  <FontAwesomeIcon icon={faBuilding} className="branch-filter-icon" />
+                  <span className="branch-filter-selected-name">
+                    {selectedBranchId === 'all' 
+                      ? 'All Branches' 
+                      : branches.find(b => b.id === parseInt(selectedBranchId))?.name || 'All Branches'}
+                  </span>
+                  <FontAwesomeIcon 
+                    icon={showBranchDropdown ? faChevronUp : faChevronDown} 
+                    className="branch-filter-chevron"
+                  />
+                </div>
+                {showBranchDropdown && (
+                  <div className="dashboard1-branch-dropdown">
+                    <div
+                      className={`branch-dropdown-item ${selectedBranchId === 'all' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setSelectedBranchId('all');
+                        setShowBranchDropdown(false);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faBuilding} className="branch-item-icon" />
+                      <span>All Branches</span>
+                    </div>
+                    {branches.map(branch => (
+                      <div
+                        key={branch.id}
+                        className={`branch-dropdown-item ${selectedBranchId === String(branch.id) ? 'selected' : ''}`}
+                        onClick={() => {
+                          const newBranchId = String(branch.id);
+                          setSelectedBranchId(newBranchId);
+                          setShowBranchDropdown(false);
+                          // Force immediate refresh - fetchMetricsData will be called via useEffect
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faBuilding} className="branch-item-icon" />
+                        <span>{branch.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-            
-            {activeChartTab === 'stock' && (
-              <div className="dashboard1-chart-wrapper">
-                <div className="analytics-card geo-distribution-card">
-                  <div className="card-header">
-                    <FontAwesomeIcon icon={faBox} className="card-icon" />
-                    <h3>Low-Stock Items</h3>
-                  </div>
-                  <div className="chart-container">
-                    {lowStockItems.length === 0 ? (
-                      <div className="chart-empty-state">
-                        <p>All items well stocked</p>
+          </div>
+
+          {/* Chart Content and Quick Actions Layout */}
+          <div className="dashboard1-chart-and-actions-wrapper">
+            {/* Chart Content */}
+            <div className="dashboard1-chart-content-wrapper">
+              {activeChartTab === 'earnings' && (
+                <div className="dashboard1-chart-wrapper">
+                  <EarningsChart 
+                    selectedBranchId={isOwner && selectedBranchId !== 'all' ? selectedBranchId : null}
+                    isValuesVisible={isAllValuesVisible}
+                  />
+                </div>
+              )}
+              
+              {activeChartTab === 'stock' && (
+                <div className="dashboard1-chart-wrapper">
+                  <div className="analytics-card geo-distribution-card">
+                    <div className="card-header">
+                      <FontAwesomeIcon icon={faBox} className="card-icon" />
+                      <h3>Low-Stock Items</h3>
+                      <div className="card-controls">
                       </div>
-                    ) : lowStockChartOption ? (
-                      <ReactEChartsCore
-                        echarts={echarts}
-                        option={lowStockChartOption}
-                        notMerge
-                        lazyUpdate
-                        opts={{ renderer: 'svg' }}
-                        style={{ height: '280px', width: '100%', minHeight: '280px' }}
-                      />
-                    ) : (
-                      <div className="analytics-loading-inline">
-                        <div className="loading-spinner"></div>
-                        <p>Loading chart...</p>
-                      </div>
-                    )}
+                    </div>
+                    <div className="chart-container">
+                      {lowStockItems.length === 0 ? (
+                        <div className="chart-empty-state">
+                          <p>All items well stocked</p>
+                        </div>
+                      ) : lowStockChartOption ? (
+                        <ReactEChartsCore
+                          key={`low-stock-chart-${lowStockItems.length}`}
+                          echarts={echarts}
+                          option={lowStockChartOption}
+                          notMerge={true}
+                          lazyUpdate={false}
+                          opts={{ renderer: 'svg' }}
+                          style={{ height: '240px', width: '100%', minHeight: '240px' }}
+                        />
+                      ) : (
+                        <div className="analytics-loading-inline">
+                          <div className="loading-spinner"></div>
+                          <p>Loading chart...</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Action Buttons - Right Side */}
+            {isOwner && (
+              <div className="dashboard1-quick-actions-sidebar">
+                <div className="dashboard1-quick-actions">
+                  <button 
+                    className="dashboard1-quick-action-btn dashboard1-add-product-btn"
+                    onClick={handleQuickAddProduct}
+                  >
+                    <FontAwesomeIcon icon={faPlus} className="quick-action-icon" />
+                    <span>Add Product</span>
+                  </button>
+                  <button 
+                    className="dashboard1-quick-action-btn dashboard1-walkin-btn"
+                    onClick={handleWalkIn}
+                  >
+                    <FontAwesomeIcon icon={faStore} className="quick-action-icon" />
+                    <span>Walk-in</span>
+                  </button>
+                  <button 
+                    className="dashboard1-quick-action-btn dashboard1-manage-accounts-btn"
+                    onClick={handleManageAccounts}
+                  >
+                    <FontAwesomeIcon icon={faUserShield} className="quick-action-icon" />
+                    <span>Manage Accounts</span>
+                  </button>
                 </div>
               </div>
             )}

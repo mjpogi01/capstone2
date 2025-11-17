@@ -20,6 +20,8 @@ import { authFetch, authJsonFetch } from '../../services/apiClient';
 import branchService from '../../services/branchService';
 import { useAuth } from '../../contexts/AuthContext';
 import { FaSearch, FaPlay, FaFilter, FaStore, FaClipboardList, FaTshirt, FaMap, FaChartLine, FaChartArea, FaUsers, FaUserPlus, FaShoppingCart, FaMoneyBillWave, FaRobot } from 'react-icons/fa';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import './Analytics.css';
 import '../../components/Loading.css';
 
@@ -169,6 +171,44 @@ const Analytics = () => {
   const [activeTab, setActiveTab] = useState('sales');
   const [activeSalesChartTab, setActiveSalesChartTab] = useState('totalSales');
   const [activeCustomersChartTab, setActiveCustomersChartTab] = useState('customerInsights');
+  
+  // Chart values visibility for Sales & Revenue tab
+  // Load from localStorage on mount, default to true (shared with Dashboard)
+  const [isSalesChartValuesVisible, setIsSalesChartValuesVisible] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dashboard_values_visible');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch (error) {
+      console.error('Error loading values visibility preference:', error);
+      return true;
+    }
+  });
+
+  // Save to localStorage whenever visibility state changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('dashboard_values_visible', JSON.stringify(isSalesChartValuesVisible));
+    } catch (error) {
+      console.error('Error saving values visibility preference:', error);
+    }
+  }, [isSalesChartValuesVisible]);
+
+  // Listen for storage changes to sync across tabs/pages
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'dashboard_values_visible') {
+        try {
+          const newValue = e.newValue !== null ? JSON.parse(e.newValue) : true;
+          setIsSalesChartValuesVisible(newValue);
+        } catch (error) {
+          console.error('Error parsing storage change:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   const hasCustomerLocationData = useMemo(() => {
     const pointsCount = Array.isArray(customerLocationsData?.points) ? customerLocationsData.points.length : 0;
     const cityCount = Array.isArray(customerLocationsData?.cityStats) ? customerLocationsData.cityStats.length : 0;
@@ -829,6 +869,7 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
+          if (!isSalesChartValuesVisible) return '';
           if (!Array.isArray(params) || !params.length) return '';
           const point = params[0];
           return `${point.axisValue}<br/>${seriesName}: ₱${formatNumber(point.data || 0)}`;
@@ -847,7 +888,7 @@ const Analytics = () => {
         type: 'value',
         axisLabel: {
           color: '#6b7280',
-          formatter: (value) => `₱${formatNumber(value)}`
+          formatter: isSalesChartValuesVisible ? (value) => `₱${formatNumber(value)}` : () => '•••'
         },
         splitLine: { lineStyle: { color: '#e5e7eb' } }
       },
@@ -868,7 +909,7 @@ const Analytics = () => {
     };
 
     return { option, hasData };
-  }, [analyticsData.totalSales, analyticsData.totalSalesGranularity]);
+  }, [analyticsData.totalSales, analyticsData.totalSalesGranularity, isSalesChartValuesVisible]);
 
   const salesByBranchChart = useMemo(() => {
     const branchData = Array.isArray(analyticsData?.salesByBranch) ? analyticsData.salesByBranch : [];
@@ -886,6 +927,7 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
+          if (!isSalesChartValuesVisible) return '';
           if (!Array.isArray(params) || !params.length) return '';
           const bar = params[0];
           return `${bar.axisValueLabel}<br/>Sales: ₱${formatNumber(bar.data?.value ?? bar.data ?? 0)}`;
@@ -907,7 +949,7 @@ const Analytics = () => {
         type: 'value',
         axisLabel: {
           color: '#6b7280',
-          formatter: (value) => `₱${formatNumber(value)}`
+          formatter: isSalesChartValuesVisible ? (value) => `₱${formatNumber(value)}` : () => '•••'
         },
         splitLine: { lineStyle: { color: '#e5e7eb' } }
       },
@@ -927,7 +969,7 @@ const Analytics = () => {
           animationDuration: hasData ? 600 : 0,
           emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(31, 41, 55, 0.25)' } },
           label: {
-            show: branchData.length <= 6 && branchData.length > 0,
+            show: isSalesChartValuesVisible && branchData.length <= 6 && branchData.length > 0,
             position: 'top',
             formatter: ({ value }) => `₱${formatNumber(value)}`,
             color: '#475569',
@@ -938,7 +980,7 @@ const Analytics = () => {
     };
 
     return { option, hasData };
-  }, [analyticsData.salesByBranch]);
+  }, [analyticsData.salesByBranch, isSalesChartValuesVisible]);
 
   const orderStatusChart = useMemo(() => {
     const status = analyticsData?.orderStatus;
@@ -1043,6 +1085,7 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
+          if (!isSalesChartValuesVisible) return '';
           if (!Array.isArray(params) || !params.length) return '';
           const lines = params.map(point => {
             if (point.seriesName === 'Sales') {
@@ -1073,14 +1116,17 @@ const Analytics = () => {
           name: 'Sales',
           axisLabel: {
             color: '#6b7280',
-            formatter: (value) => `₱${formatNumber(value)}`
+            formatter: isSalesChartValuesVisible ? (value) => `₱${formatNumber(value)}` : () => '•••'
           },
           splitLine: { lineStyle: { color: '#e5e7eb' } }
         },
         {
           type: 'value',
           name: 'Orders',
-          axisLabel: { color: '#6b7280', formatter: (value) => formatNumber(value) },
+          axisLabel: { 
+            color: '#6b7280', 
+            formatter: isSalesChartValuesVisible ? (value) => formatNumber(value) : () => '•••'
+          },
           splitLine: { show: false }
         }
       ],
@@ -1112,7 +1158,7 @@ const Analytics = () => {
     };
 
     return { option, hasData };
-  }, [salesTrends]);
+  }, [salesTrends, isSalesChartValuesVisible]);
 
   const topProductsChart = useMemo(() => {
     const products = Array.isArray(analyticsData?.topProducts) ? analyticsData.topProducts : [];
@@ -1700,6 +1746,21 @@ const Analytics = () => {
                   <span>Sales By Branch</span>
                 </button>
               </div>
+              {/* Single Toggle for All Charts */}
+              <div className="sales-chart-global-controls">
+                <button
+                  className="dashboard1-chart-toggle-btn"
+                  onClick={() => setIsSalesChartValuesVisible(!isSalesChartValuesVisible)}
+                  title={isSalesChartValuesVisible ? 'Hide all values' : 'Show all values'}
+                  aria-label={isSalesChartValuesVisible ? 'Hide all values' : 'Show all values'}
+                >
+                  <FontAwesomeIcon 
+                    icon={isSalesChartValuesVisible ? faEyeSlash : faEye} 
+                    className="dashboard1-chart-toggle-icon"
+                  />
+                  <span className="toggle-label">{isSalesChartValuesVisible ? 'Hide Values' : 'Show Values'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Total Sales Over Time */}
@@ -1775,13 +1836,15 @@ const Analytics = () => {
           <div className="card-header">
             <FaChartArea className="card-icon" />
             <h3>Daily Sales & Orders (Trailing 30 Days)</h3>
-                  <button
+            <div className="card-controls">
+            </div>
+            <button
               className="analytics-header-analyze-btn"
-                    type="button"
+              type="button"
               onClick={() => handleAnalyzeClick('salesTrends', { data: salesTrends })}
-                  >
-                    Analyze
-                  </button>
+            >
+              Analyze
+            </button>
           </div>
           <div className="chart-container">
             {salesTrendsLoading ? (
@@ -1816,13 +1879,15 @@ const Analytics = () => {
           <div className="card-header">
             <FaStore className="card-icon" />
             <h3>Sales By Branch</h3>
-                <button
+            <div className="card-controls">
+            </div>
+            <button
               className="analytics-header-analyze-btn"
-                  type="button"
-                  onClick={() => handleAnalyzeClick('salesByBranch', { data: analyticsData.salesByBranch, filters })}
-                >
-                  Analyze
-                </button>
+              type="button"
+              onClick={() => handleAnalyzeClick('salesByBranch', { data: analyticsData.salesByBranch, filters })}
+            >
+              Analyze
+            </button>
           </div>
           <div className="chart-container">
             <>

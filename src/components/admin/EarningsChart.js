@@ -10,6 +10,8 @@ import {
 import { SVGRenderer } from 'echarts/renderers';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 import { FaChartLine } from 'react-icons/fa';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import './EarningsChart.css';
 import '../../pages/admin/Analytics.css';
 import { API_URL } from '../../config/api';
@@ -24,7 +26,7 @@ echarts.use([
   SVGRenderer
 ]);
 
-const EarningsChart = ({ selectedBranchId = null }) => {
+const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onToggleValues }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,6 +125,9 @@ const EarningsChart = ({ selectedBranchId = null }) => {
           }
         },
         formatter: (params) => {
+          if (!isValuesVisible) {
+            return '';
+          }
           const param = params[0];
           const monthIndex = param.dataIndex;
           const monthName = months[monthIndex];
@@ -169,12 +174,12 @@ const EarningsChart = ({ selectedBranchId = null }) => {
         axisLabel: {
           color: '#64748b',
           fontSize: 11,
-          formatter: (value) => {
+          formatter: isValuesVisible ? (value) => {
             if (value >= 1000) {
               return `₱${(value / 1000).toFixed(0)}k`;
             }
             return `₱${value}`;
-          }
+          } : () => '•••'
         },
         splitLine: {
           lineStyle: {
@@ -232,7 +237,7 @@ const EarningsChart = ({ selectedBranchId = null }) => {
         }
       ]
     };
-  }, [monthlyData]);
+  }, [monthlyData, isValuesVisible]);
 
   const chartHeights = {
     base: '300px'
@@ -244,6 +249,19 @@ const EarningsChart = ({ selectedBranchId = null }) => {
         <FaChartLine className="card-icon" />
         <h3>Earnings</h3>
         <div className="card-controls">
+          {onToggleValues && (
+            <button
+              className="dashboard1-chart-toggle-btn"
+              onClick={onToggleValues}
+              title={isValuesVisible ? 'Hide values' : 'Show values'}
+              aria-label={isValuesVisible ? 'Hide values' : 'Show values'}
+            >
+              <FontAwesomeIcon 
+                icon={isValuesVisible ? faEyeSlash : faEye} 
+                className="dashboard1-chart-toggle-icon"
+              />
+            </button>
+          )}
           <select 
             className="time-range-btn year-select"
             value={selectedYear}
