@@ -187,16 +187,12 @@ class AuthService {
       
       const redirectTo = `${baseUrl}/auth/callback`;
       
-      // Configure scopes based on provider
-      const scopes = provider.toLowerCase() === 'facebook' 
-        ? 'email,public_profile'  // Facebook requires explicit scopes
-        : undefined;  // Google uses default scopes
-      
+      // Supabase automatically handles scopes for OAuth providers
+      // No need to manually specify scopes as Supabase adds them automatically
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider.toLowerCase(),
         options: {
           redirectTo: redirectTo,
-          scopes: scopes,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

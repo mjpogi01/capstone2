@@ -155,6 +155,56 @@ This guide will help you enable Facebook sign-in for your application.
 
 ---
 
+## 👥 Team Development Setup
+
+When working with a team, each developer needs access:
+
+### Option 1: Add All Team Members' Domains (Recommended)
+
+1. **Get Each Team Member's Domain:**
+   - Ask each teammate what URL they're using:
+     - `localhost` (works automatically)
+     - `127.0.0.1` (needs to be added)
+     - Local IP address like `192.168.1.100` (needs to be added)
+     - Custom domain (needs to be added)
+
+2. **Add to Facebook App Domains:**
+   - Go to Facebook App → **Settings** → **Basic**
+   - In **App Domains**, add each domain:
+     ```
+     localhost
+     127.0.0.1
+     192.168.1.100  (example - use actual IP)
+     ```
+   - **Note**: For IP addresses, add them without `http://` or port numbers
+   - Click **Save Changes**
+
+3. **Add Redirect URIs for Each Developer:**
+   - Go to **Facebook Login** → **Settings**
+   - In **Valid OAuth Redirect URIs**, add:
+     ```
+     https://xnuzdzjfqhbpcnsetjif.supabase.co/auth/v1/callback
+     http://localhost:3000/auth/callback
+     http://127.0.0.1:3000/auth/callback
+     http://192.168.1.100:3000/auth/callback  (example)
+     ```
+   - Replace with actual IPs/domains your team uses
+   - Click **Save Changes**
+
+### Option 2: Use localhost Only (Simpler)
+
+- All team members use `http://localhost:3000`
+- Only `localhost` needs to be in App Domains
+- Works if everyone uses the same port
+
+### Option 3: Use a Shared Development Domain
+
+- Set up a shared dev domain (e.g., `dev.yourdomain.com`)
+- Add it to Facebook App Domains
+- All team members use this domain
+
+---
+
 ## 📝 Production Setup
 
 When deploying to production:
