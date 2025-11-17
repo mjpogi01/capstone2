@@ -504,15 +504,26 @@ router.get('/artists', requireAdminOrOwner, async (req, res) => {
     const artistsWithProfiles = await Promise.all(
       artistUsers.map(async (user) => {
         let artistProfile = null;
+        let totalTasksAssigned = 0;
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('artist_profiles')
-            .select('artist_name, is_active, is_verified, total_tasks_completed, rating, commission_rate')
+            .select('id, artist_name, is_active, is_verified, total_tasks_completed, rating, commission_rate')
             .eq('user_id', user.id)
             .single();
           
           if (!profileError && profileData) {
             artistProfile = profileData;
+            
+            // Get total tasks assigned to this artist
+            const { count, error: tasksError } = await supabase
+              .from('artist_tasks')
+              .select('*', { count: 'exact', head: true })
+              .eq('artist_id', profileData.id);
+            
+            if (!tasksError && count !== null) {
+              totalTasksAssigned = count;
+            }
           }
         } catch (err) {
           console.error('Error fetching artist profile:', err);
@@ -526,6 +537,7 @@ router.get('/artists', requireAdminOrOwner, async (req, res) => {
           is_active: artistProfile?.is_active !== undefined ? artistProfile.is_active : true,
           is_verified: artistProfile?.is_verified || false,
           total_tasks_completed: artistProfile?.total_tasks_completed || 0,
+          total_tasks_assigned: totalTasksAssigned,
           rating: artistProfile?.rating || 0,
           commission_rate: artistProfile?.commission_rate || 0,
           created_at: user.created_at

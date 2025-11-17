@@ -85,6 +85,7 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
   const [attachments, setAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [assignedArtist, setAssignedArtist] = useState(null);
+  const [zoomedImage, setZoomedImage] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const { user } = useAuth();
@@ -401,12 +402,30 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
                           
                           {!isReviewRequest && message.attachments && message.attachments.length > 0 && (
                             <div className="message-attachments">
-                              {message.attachments.map((attachment, index) => (
-                                <div key={index} className="attachment-item">
-                                  <FontAwesomeIcon icon={faFile} />
-                                  <span>{attachment.filename}</span>
-                                </div>
-                              ))}
+                              {message.attachments.map((attachment, index) => {
+                                const isImage = attachment.type?.startsWith('image/') || 
+                                                (attachment.url && /\.(png|jpe?g|gif|webp)$/i.test(attachment.url));
+                                return (
+                                  <div key={index} className="attachment-item">
+                                    {isImage ? (
+                                      <>
+                                        <img 
+                                          src={attachment.url} 
+                                          alt={attachment.filename || attachment.name}
+                                          onClick={() => setZoomedImage(attachment.url)}
+                                          style={{ cursor: 'pointer', maxWidth: '200px', maxHeight: '150px', borderRadius: '8px' }}
+                                        />
+                                        <span>{attachment.filename || attachment.name}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <FontAwesomeIcon icon={faFile} />
+                                        <span>{attachment.filename || attachment.name}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
 
@@ -489,6 +508,27 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
             </>
           )}
         </div>
+
+        {/* Image Zoom Modal */}
+        {zoomedImage && (
+          <div 
+            className="image-zoom-overlay"
+            onClick={() => setZoomedImage(null)}
+          >
+            <button 
+              className="image-zoom-close"
+              onClick={() => setZoomedImage(null)}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <img 
+              src={zoomedImage} 
+              alt="Zoomed"
+              className="image-zoom-content"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

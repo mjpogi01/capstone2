@@ -165,6 +165,37 @@
   margin-bottom: 1.5rem;
 }
 
+.branch-map-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  min-height: 400px;
+}
+
+.branch-map-empty-state .empty-icon {
+  font-size: 4rem;
+  color: #d1d5db;
+  margin-bottom: 1.5rem;
+  opacity: 0.6;
+}
+
+.branch-map-empty-state p {
+  color: #6b7280;
+  font-size: 1.125rem;
+  margin: 0.5rem 0;
+  font-weight: 500;
+}
+
+.branch-map-empty-state .empty-subtitle {
+  color: #9ca3af;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  margin-top: 0.5rem;
+}
+
 .branch-map-loading {
   display: flex;
   flex-direction: column;

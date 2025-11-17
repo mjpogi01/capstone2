@@ -68,7 +68,11 @@ function normalizeBarangayName(value) {
   return value
     .toString()
     .trim()
+    // Remove common prefixes like "brgy.", "barangay", "bgy."
+    .replace(/^(brgy\.?|barangay|bgy\.?)\s*/i, '')
+    // Normalize spaces and hyphens
     .replace(/\s+/g, ' ')
+    .replace(/\s*-\s*/g, '-')
     .toUpperCase();
 }
 
@@ -185,11 +189,61 @@ function ensureBarangayGeo() {
   }
 
   try {
-    const csvPath = path.join(__dirname, 'data', 'barangay-centroids.csv');
-    const jsonPath = path.join(__dirname, 'data', 'barangays-calabarzon-oriental-mindoro.json');
-
-    const csvContent = fs.readFileSync(csvPath, 'utf8');
-    const barangayDataset = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    // Try multiple possible paths for the CSV file
+    const possibleCsvPaths = [
+      path.join(__dirname, 'data', 'barangay-centroids.csv'),
+      path.join(__dirname, '..', 'scripts', 'data', 'barangay-centroids.csv'),
+      path.join(__dirname, '..', '..', 'server', 'scripts', 'data', 'barangay-centroids.csv'),
+      path.join(process.cwd(), 'server', 'scripts', 'data', 'barangay-centroids.csv')
+    ];
+    
+    const possibleJsonPaths = [
+      path.join(__dirname, 'data', 'barangays-calabarzon-oriental-mindoro.json'),
+      path.join(__dirname, '..', 'scripts', 'data', 'barangays-calabarzon-oriental-mindoro.json'),
+      path.join(__dirname, '..', '..', 'server', 'scripts', 'data', 'barangays-calabarzon-oriental-mindoro.json'),
+      path.join(process.cwd(), 'server', 'scripts', 'data', 'barangays-calabarzon-oriental-mindoro.json')
+    ];
+    
+    let csvPath = null;
+    let jsonPath = null;
+    let csvContent = null;
+    let barangayDataset = null;
+    
+    // Find CSV file
+    for (const possiblePath of possibleCsvPaths) {
+      if (fs.existsSync(possiblePath)) {
+        csvPath = possiblePath;
+        break;
+      }
+    }
+    
+    // Find JSON file
+    for (const possiblePath of possibleJsonPaths) {
+      if (fs.existsSync(possiblePath)) {
+        jsonPath = possiblePath;
+        break;
+      }
+    }
+    
+    if (!csvPath) {
+      console.error('❌ ERROR: barangay-centroids.csv file not found!');
+      console.error('   Searched paths:', possibleCsvPaths);
+      console.error('   Current __dirname:', __dirname);
+      console.error('   Current process.cwd():', process.cwd());
+      throw new Error('barangay-centroids.csv file not found');
+    }
+    
+    if (!jsonPath) {
+      console.error('❌ ERROR: barangays-calabarzon-oriental-mindoro.json file not found!');
+      console.error('   Searched paths:', possibleJsonPaths);
+      throw new Error('barangays-calabarzon-oriental-mindoro.json file not found');
+    }
+    
+    console.log(`✅ Loading CSV from: ${csvPath}`);
+    console.log(`✅ Loading JSON from: ${jsonPath}`);
+    
+    csvContent = fs.readFileSync(csvPath, 'utf8');
+    barangayDataset = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
 
     const cityByCode = new Map();
     const cityBarangays = new Map();
@@ -244,10 +298,16 @@ function ensureBarangayGeo() {
       });
     });
 
+    console.log(`📊 Parsing CSV file (${csvPath})...`);
     const lines = csvContent.split(/\r?\n/);
+    console.log(`📊 Total lines in CSV: ${lines.length}`);
+    
+    let csvCodesLoaded = 0;
+    let csvCodesWithCoords = 0;
+    
     for (let i = 1; i < lines.length; i += 1) {
       const line = lines[i];
-      if (!line) {
+      if (!line || line.trim() === '') {
         continue;
       }
       const parts = line.split(',');
@@ -278,6 +338,7 @@ function ensureBarangayGeo() {
             longitude: null
           };
           barangayByCode.set(barangayCode, entry);
+          csvCodesLoaded++;
           const cityKey = cityMeta.cityKey;
           if (!cityBarangays.has(cityKey)) {
             cityBarangays.set(cityKey, []);
@@ -289,12 +350,18 @@ function ensureBarangayGeo() {
       if (entry) {
         entry.latitude = latitude;
         entry.longitude = longitude;
+        csvCodesWithCoords++;
         const nameKey = `${entry.normalizedProvince}|${entry.normalizedCity}|${normalizedBarangay}`;
         if (normalizedBarangay) {
           barangayByNameKey.set(nameKey, entry);
         }
       }
     }
+    
+    console.log(`✅ Loaded ${csvCodesLoaded} barangay codes from CSV`);
+    console.log(`✅ ${csvCodesWithCoords} codes have coordinates`);
+    console.log(`✅ Total codes in barangayByCode map: ${barangayByCode.size}`);
+    console.log(`✅ Total name keys in barangayByNameKey map: ${barangayByNameKey.size}`);
 
     barangayGeoCache = {
       barangayByCode,
@@ -323,22 +390,74 @@ function getBarangayCoordinate({
   normalizedCity,
   normalizedProvince,
   barangayByCode,
-  barangayByNameKey
+  barangayByNameKey,
+  debug = false
 }) {
+  // Try by code first (most accurate)
   if (barangayCode && barangayByCode.has(barangayCode)) {
     const entry = barangayByCode.get(barangayCode);
     if (Number.isFinite(entry.latitude) && Number.isFinite(entry.longitude)) {
+      if (debug) {
+        console.log(`  ✅ Found by code: ${barangayCode}`);
+      }
       return entry;
     }
   }
 
+  // Try by name
   const normalizedBarangay = normalizeBarangayName(barangayName);
   if (normalizedBarangay) {
     const key = `${normalizedProvince}|${normalizedCity}|${normalizedBarangay}`;
+    
+    if (debug) {
+      console.log(`  🔍 Name lookup attempt:`);
+      console.log(`    - Original: "${barangayName}"`);
+      console.log(`    - Normalized: "${normalizedBarangay}"`);
+      console.log(`    - Search key: "${key}"`);
+      console.log(`    - Key exists: ${barangayByNameKey.has(key)}`);
+      
+      // Try some variations
+      const variations = [
+        key,
+        `${normalizedProvince}|${normalizedCity.toUpperCase()}|${normalizedBarangay}`,
+        `${normalizedProvince}|${normalizedCity.toLowerCase()}|${normalizedBarangay}`,
+        `${normalizedProvince.toUpperCase()}|${normalizedCity}|${normalizedBarangay}`,
+        `${normalizedProvince.toLowerCase()}|${normalizedCity}|${normalizedBarangay}`
+      ];
+      
+      // Check what keys actually exist for this city/province
+      const matchingKeys = [];
+      for (const [existingKey, value] of barangayByNameKey.entries()) {
+        if (existingKey.startsWith(`${normalizedProvince}|${normalizedCity}|`)) {
+          matchingKeys.push(existingKey);
+        }
+      }
+      if (matchingKeys.length > 0) {
+        console.log(`    - Available keys for ${normalizedProvince}|${normalizedCity}: ${matchingKeys.slice(0, 5).join(', ')}${matchingKeys.length > 5 ? '...' : ''}`);
+      }
+    }
+    
     if (barangayByNameKey.has(key)) {
       const entry = barangayByNameKey.get(key);
       if (Number.isFinite(entry.latitude) && Number.isFinite(entry.longitude)) {
+        if (debug) {
+          console.log(`  ✅ Found by name lookup`);
+        }
         return entry;
+      }
+    }
+    
+    // Try case-insensitive variations
+    if (!barangayByNameKey.has(key)) {
+      for (const [existingKey, value] of barangayByNameKey.entries()) {
+        if (existingKey.toLowerCase() === key.toLowerCase()) {
+          if (Number.isFinite(value.latitude) && Number.isFinite(value.longitude)) {
+            if (debug) {
+              console.log(`  ✅ Found by case-insensitive match: "${existingKey}"`);
+            }
+            return value;
+          }
+        }
       }
     }
   }
@@ -2067,14 +2186,64 @@ router.get('/customer-locations', async (req, res) => {
     const barangayCoverageSet = new Set();
     const fallbackBarangayIndex = new Map();
 
-    // Get all user addresses (unique customers)
+    // Get all user addresses (unique customers) - include barangay for coordinate lookup
     const { data: addresses, error: addressesError } = await supabase
       .from('user_addresses')
-      .select('city, province, user_id')
+      .select('city, province, user_id, barangay, barangay_code, full_name, street_address')
       .not('city', 'is', null);
 
     if (addressesError) {
       console.error('❌ Error fetching addresses:', addressesError);
+    }
+
+    // Get user email for mjmonday01@gmail.com to find their user_id
+    let targetUserId = null;
+    try {
+      // Try admin API first
+      const { data: targetUser } = await supabase.auth.admin.getUserByEmail('mjmonday01@gmail.com');
+      if (targetUser && targetUser.user) {
+        targetUserId = targetUser.user.id;
+        console.log(`🔍 Found target user ID for mjmonday01@gmail.com: ${targetUserId}`);
+      }
+    } catch (err) {
+      // Fallback: query auth.users directly via RPC or direct query
+      try {
+        const { data: users, error: userError } = await supabase
+          .from('auth.users')
+          .select('id')
+          .eq('email', 'mjmonday01@gmail.com')
+          .limit(1);
+        
+        if (!userError && users && users.length > 0) {
+          targetUserId = users[0].id;
+          console.log(`🔍 Found target user ID for mjmonday01@gmail.com (via direct query): ${targetUserId}`);
+        } else {
+          console.log('⚠️ Could not find user by email - will check addresses by matching email pattern');
+        }
+      } catch (fallbackErr) {
+        console.log('⚠️ Could not find user by email (may need admin access):', err.message);
+        // Last resort: check if any address has a matching pattern
+        console.log('⚠️ Will check all addresses and look for mjmonday01 pattern');
+      }
+    }
+
+    // Debug: Log all user addresses
+    console.log(`\n📋 DEBUG: Total user_addresses found: ${addresses?.length || 0}`);
+    if (addresses && addresses.length > 0) {
+      addresses.forEach((addr, idx) => {
+        const isTarget = targetUserId && addr.user_id === targetUserId;
+        const marker = isTarget ? '🎯' : '  ';
+        console.log(`${marker} Address ${idx + 1}:`, {
+          user_id: addr.user_id,
+          is_target_user: isTarget,
+          full_name: addr.full_name,
+          street_address: addr.street_address,
+          barangay: addr.barangay,
+          barangay_code: addr.barangay_code,
+          city: addr.city,
+          province: addr.province
+        });
+      });
     }
 
     // Also get delivery addresses from orders
@@ -2099,19 +2268,39 @@ router.get('/customer-locations', async (req, res) => {
     const cityRejected = new Map();
     console.log(`🧮 Raw records — addresses: ${addresses?.length || 0}, orders: ${orders?.length || 0}, scoped orders: ${scopedOrders.length}`);
     
-    // Count from user_addresses
+    // Count from user_addresses and try to get precise coordinates
     if (addresses && addresses.length > 0) {
       addresses.forEach(addr => {
+        const isTarget = targetUserId && addr.user_id === targetUserId;
+        const marker = isTarget ? '🎯' : '';
+        
+        if (isTarget) {
+          console.log(`\n${marker} PROCESSING TARGET USER (mjmonday01@gmail.com):`);
+          console.log(`  User ID: ${addr.user_id}`);
+          console.log(`  Address: ${addr.street_address}, ${addr.barangay}, ${addr.city}, ${addr.province}`);
+          console.log(`  Barangay Code: ${addr.barangay_code || 'MISSING'}`);
+        }
+        
         if (allowedUserIds && !allowedUserIds.has(addr.user_id)) {
+          if (isTarget) {
+            console.log(`  ❌ REJECTED: User not in allowed user IDs (branch filtering)`);
+          }
           return;
         }
+        
         const location = canonicalizeCityProvince(addr.city, addr.province);
         if (location.blocked) {
+          if (isTarget) {
+            console.log(`  ❌ REJECTED: City is blocked: ${location.normalizedCity}`);
+          }
           cityRejected.set(location.normalizedCity, (cityRejected.get(location.normalizedCity) || 0) + 1);
           return;
         }
 
         if (!ALLOWED_PROVINCES.has(location.normalizedProvince)) {
+          if (isTarget) {
+            console.log(`  ❌ REJECTED: Province not allowed: ${location.normalizedProvince}`);
+          }
           cityRejected.set(location.normalizedCity, (cityRejected.get(location.normalizedCity) || 0) + 1);
           return;
         }
@@ -2128,6 +2317,119 @@ router.get('/customer-locations', async (req, res) => {
           };
         }
         cityCounts[cityKey].count += 1;
+
+        if (isTarget) {
+          console.log(`  ✅ Passed filters - counting in city: ${cityKey}`);
+        }
+
+        // Try to get precise coordinates from barangay if available
+        if (addr.barangay) {
+          const hasBarangayCode = !!(addr.barangay_code || addr.barangayCode || addr.barangay_psgc);
+          
+          if (isTarget || hasBarangayCode) {
+            console.log(`  🔍 Looking up coordinates for barangay: "${addr.barangay}"`);
+            console.log(`  🔍 Using barangay_code: ${addr.barangay_code || addr.barangayCode || addr.barangay_psgc || 'NONE'}`);
+            console.log(`  🔍 Normalized city: ${location.normalizedCity}, province: ${location.normalizedProvince}`);
+            
+            // Debug code lookup
+            if (hasBarangayCode) {
+              const code = addr.barangay_code || addr.barangayCode || addr.barangay_psgc;
+              const codeExists = barangayByCode.has(code);
+              console.log(`  🔍 Code lookup: "${code}" exists in map: ${codeExists}`);
+              if (codeExists) {
+                const entry = barangayByCode.get(code);
+                console.log(`  🔍 Code entry:`, {
+                  hasLatitude: Number.isFinite(entry?.latitude),
+                  hasLongitude: Number.isFinite(entry?.longitude),
+                  latitude: entry?.latitude,
+                  longitude: entry?.longitude
+                });
+              } else {
+                // Check if code exists with different format
+                console.log(`  🔍 Checking code variations...`);
+                const codeVariations = [
+                  code,
+                  code.toString().padStart(9, '0'),
+                  code.toString().trim(),
+                  code.toString().replace(/^0+/, ''),
+                  String(code).padStart(9, '0'),
+                  String(code).trim()
+                ];
+                let foundVariant = false;
+                for (const variant of codeVariations) {
+                  if (barangayByCode.has(variant)) {
+                    console.log(`  ✅ Found code variant: "${variant}"`);
+                    foundVariant = true;
+                  }
+                }
+                
+                if (!foundVariant) {
+                  // Show sample of codes that DO exist in the map (for debugging)
+                  const sampleCodes = Array.from(barangayByCode.keys()).slice(0, 10);
+                  console.log(`  ⚠️ Code "${code}" not found. Sample codes in map:`, sampleCodes);
+                  console.log(`  ⚠️ Total codes in map: ${barangayByCode.size}`);
+                }
+              }
+            }
+          }
+          
+          const barangayCoordinate = getBarangayCoordinate({
+            barangayCode: addr.barangay_code || addr.barangayCode || addr.barangay_psgc,
+            barangayName: addr.barangay,
+            normalizedCity: location.normalizedCity,
+            normalizedProvince: location.normalizedProvince,
+            barangayByCode,
+            barangayByNameKey,
+            debug: isTarget || hasBarangayCode // Enable debug for target user or addresses with codes
+          });
+
+          if (barangayCoordinate && Number.isFinite(barangayCoordinate.latitude) && Number.isFinite(barangayCoordinate.longitude)) {
+            const lat = barangayCoordinate.latitude;
+            const lng = barangayCoordinate.longitude;
+            
+            if (isTarget) {
+              console.log(`  ✅ Found coordinates: [${lat}, ${lng}]`);
+            }
+            
+            // Check if within service area
+            if (isWithinServiceArea(lat, lng)) {
+              const latOffset = (Math.random() - 0.5) * 0.004;
+              const lngOffset = (Math.random() - 0.5) * 0.004;
+              preciseHeatmapPoints.push([lat + latOffset, lng + lngOffset, 1]);
+              
+              if (isTarget) {
+                console.log(`  ✅✅✅ PLOTTED ON MAP at [${lat + latOffset}, ${lng + lngOffset}]`);
+              } else {
+                console.log(`✅ Found coordinates for ${addr.barangay}, ${location.city}: [${lat}, ${lng}]`);
+              }
+            } else {
+              if (isTarget) {
+                console.log(`  ❌ REJECTED: Coordinates outside service area: [${lat}, ${lng}]`);
+              } else {
+                console.log(`⚠️ Coordinates for ${addr.barangay}, ${location.city} are outside service area: [${lat}, ${lng}]`);
+              }
+            }
+          } else {
+            if (isTarget) {
+              console.log(`  ❌ REJECTED: No coordinates found for barangay`);
+              console.log(`  🔍 Searched with:`);
+              console.log(`    - barangay_code: ${addr.barangay_code || 'NONE'}`);
+              console.log(`    - barangay_name: "${addr.barangay}"`);
+              console.log(`    - city: "${location.normalizedCity}"`);
+              console.log(`    - province: "${location.normalizedProvince}"`);
+            } else {
+              console.log(`⚠️ No coordinates found for barangay: ${addr.barangay}, city: ${location.city}, province: ${location.province}`);
+            }
+          }
+        } else {
+          if (isTarget) {
+            console.log(`  ⚠️ No barangay specified in address`);
+          }
+        }
+        
+        if (isTarget) {
+          console.log(`\n`);
+        }
       });
     }
  
@@ -2247,40 +2549,13 @@ router.get('/customer-locations', async (req, res) => {
       'Tingloy': [13.7033, 120.8797]
     };
 
-    // DEMO DATA: If no real data, use demo customer distribution
+    // Only use real customer data - no demo/mock data
     const hasRealData = Object.keys(cityCounts).length > 0;
     
     if (!hasRealData) {
-      console.log('📊 Using demo customer data for heatmap');
-      // Demo customer distribution (simulating realistic customer spread)
-      const demoCities = {
-        'Batangas City': 45,
-        'Lipa': 32,
-        'Tanauan': 28,
-        'Bauan': 18,
-        'San Pascual': 15,
-        'Calaca': 12,
-        'Lemery': 10,
-        'Calapan': 25,
-        'Rosario': 8,
-        'San Luis': 6,
-        'Pinamalayan': 14,
-        'Santo Tomas': 9,
-        'Taal': 7,
-        'Balayan': 5,
-        'Nasugbu': 11,
-        'Taysan': 4,
-        'Alitagtag': 3
-      };
-
-      Object.keys(demoCities).forEach(cityName => {
-        const count = demoCities[cityName];
-        cityCounts[`${cityName}, Batangas`] = {
-          count,
-          city: cityName,
-          province: cityName === 'Calapan' || cityName === 'Pinamalayan' ? 'Oriental Mindoro' : 'Batangas'
-        };
-      });
+      console.log('ℹ️ No customer location data found in database');
+    } else {
+      console.log(`✅ Found real customer data for ${Object.keys(cityCounts).length} cities`);
     }
 
     // Convert to heatmap data points
@@ -2379,87 +2654,16 @@ router.get('/customer-locations', async (req, res) => {
 
     console.error('❌ Error fetching customer locations:', error);
     
-    // Fallback: Return demo data even on error
-    console.log('📊 Returning demo data due to error');
-    const demoData = generateDemoHeatmapData();
-    
+    // Return empty data on error - no demo/mock data
     res.json({
-      success: true,
-      data: demoData.heatmapData,
-      cityStats: demoData.cityStats
+      success: false,
+      error: 'Failed to fetch customer locations',
+      data: [],
+      cityStats: []
     });
   }
 });
 
-// Helper function to generate demo heatmap data
-function generateDemoHeatmapData() {
-  const cityCoordinates = {
-    'Batangas City': [13.7563, 121.0583],
-    'Lipa': [13.9411, 121.1631],
-    'Tanauan': [14.0886, 121.1494],
-    'Bauan': [13.7918, 121.0073],
-    'San Pascual': [13.8037, 121.0132],
-    'Calaca': [13.9289, 120.8113],
-    'Lemery': [13.8832, 120.9139],
-    'Calapan': [13.4124, 121.1766],
-    'Rosario': [13.8460, 121.2070],
-    'San Luis': [13.8559, 120.9405],
-    'Pinamalayan': [13.0350, 121.4847],
-    'Santo Tomas': [14.1069, 121.1392],
-    'Taal': [13.8797, 120.9231],
-    'Balayan': [13.9367, 120.7325],
-    'Nasugbu': [14.0678, 120.6319],
-    'Taysan': [13.8422, 121.0561],
-    'Alitagtag': [13.8789, 121.0033]
-  };
-
-  const demoCities = {
-    'Batangas City': 45,
-    'Lipa': 32,
-    'Tanauan': 28,
-    'Bauan': 18,
-    'San Pascual': 15,
-    'Calaca': 12,
-    'Lemery': 10,
-    'Calapan': 25,
-    'Rosario': 8,
-    'San Luis': 6,
-    'Pinamalayan': 14,
-    'Santo Tomas': 9,
-    'Taal': 7,
-    'Balayan': 5,
-    'Nasugbu': 11,
-    'Taysan': 4,
-    'Alitagtag': 3
-  };
-
-  const heatmapData = [];
-  const cityStats = [];
-
-  Object.keys(demoCities).forEach(cityName => {
-    const count = demoCities[cityName];
-    const coords = cityCoordinates[cityName];
-    
-    if (coords) {
-      cityStats.push({
-        city: cityName,
-        province: cityName === 'Calapan' || cityName === 'Pinamalayan' ? 'Oriental Mindoro' : 'Batangas',
-        count
-      });
-
-      for (let i = 0; i < count; i++) {
-        const latOffset = (Math.random() - 0.5) * 0.02;
-        const lngOffset = (Math.random() - 0.5) * 0.02;
-        heatmapData.push([coords[0] + latOffset, coords[1] + lngOffset, 1]);
-      }
-    }
-  });
-
-  return {
-    heatmapData,
-    cityStats: cityStats.sort((a, b) => b.count - a.count)
-  };
-}
 
 module.exports = router;
 module.exports.computeSalesForecast = computeSalesForecast;

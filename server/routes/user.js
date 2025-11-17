@@ -64,7 +64,7 @@ router.get('/addresses', authenticateSupabaseToken, async (req, res) => {
 // Save user's address
 router.post('/address', authenticateSupabaseToken, async (req, res) => {
   try {
-    const { fullName, phone, streetAddress, barangay, city, province, postalCode, address, isDefault = true } = req.body;
+    const { fullName, phone, streetAddress, barangay, barangay_code, city, province, postalCode, address, isDefault = true } = req.body;
 
     // Check if user already has an address
     const { data: existingAddresses, error: checkError } = await supabase
@@ -87,6 +87,7 @@ router.post('/address', authenticateSupabaseToken, async (req, res) => {
           phone: phone,
           street_address: streetAddress,
           barangay: barangay,
+          barangay_code: barangay_code || null, // Include barangay code for coordinate lookup
           city: city,
           province: province,
           postal_code: postalCode,
@@ -114,6 +115,7 @@ router.post('/address', authenticateSupabaseToken, async (req, res) => {
           phone: phone,
           street_address: streetAddress,
           barangay: barangay,
+          barangay_code: barangay_code || null, // Include barangay code for coordinate lookup
           city: city,
           province: province,
           postal_code: postalCode,
@@ -142,7 +144,7 @@ router.post('/address', authenticateSupabaseToken, async (req, res) => {
 router.put('/address/:id', authenticateSupabaseToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, phone, streetAddress, barangay, city, province, postalCode, address, isDefault } = req.body;
+    const { fullName, phone, streetAddress, barangay, barangay_code, city, province, postalCode, address, isDefault } = req.body;
 
     const { data, error } = await supabase
       .from('user_addresses')
@@ -151,6 +153,7 @@ router.put('/address/:id', authenticateSupabaseToken, async (req, res) => {
         phone: phone,
         street_address: streetAddress,
         barangay: barangay,
+        barangay_code: barangay_code || null, // Include barangay code for coordinate lookup
         city: city,
         province: province,
         postal_code: postalCode,

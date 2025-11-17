@@ -399,8 +399,15 @@
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.2s ease;
-  z-index: 10000;
+  z-index: 9999;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.6);
+}
+
+/* When image zoom overlay is present, ensure close button stays behind */
+body.image-zoomed .artist-task-close-btn-floating {
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
 }
 
 .artist-task-close-btn-floating:hover {

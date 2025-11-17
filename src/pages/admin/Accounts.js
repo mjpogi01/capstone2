@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faRotateRight, faTrash, faUsers, faUserShield, faPalette, faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faTrash, faUsers, faUserShield, faPalette, faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 import Sidebar from '../../components/admin/Sidebar';
 import '../admin/AdminDashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -400,17 +400,22 @@ const Accounts = () => {
     setEditFormData({ artist_name: '', email: '' });
   };
 
-  // Manual refresh button
-  const handleRefresh = () => {
-    fetchAccounts();
-  };
+
+  // Track if we've already fetched accounts to prevent refetching on focus
+  const hasFetchedRef = React.useRef(false);
+  const userIdRef = React.useRef(null);
 
   useEffect(() => {
-    // Only fetch accounts when user is available
-    if (user) {
+    // Only fetch accounts when user is available and hasn't been fetched yet
+    // or if the user ID has changed (different user logged in)
+    const currentUserId = user?.id;
+    
+    if (user && (!hasFetchedRef.current || userIdRef.current !== currentUserId)) {
+      hasFetchedRef.current = true;
+      userIdRef.current = currentUserId;
       fetchAccounts();
     }
-  }, [fetchAccounts, user]);
+  }, [fetchAccounts, user?.id]); // Only depend on user ID, not the whole user object
 
   // Filter accounts based on search terms
   const filteredAdminAccounts = adminAccounts.filter(admin =>
@@ -456,9 +461,6 @@ const Accounts = () => {
     <div className="accounts-container">
       <div className="accounts-header">
         <h1>Account Management</h1>
-        <button onClick={handleRefresh} className="refresh-btn" title="Refresh" aria-label="Refresh">
-          <FontAwesomeIcon icon={faRotateRight} />
-        </button>
       </div>
 
       {/* Accounts Tabs */}
@@ -585,6 +587,7 @@ const Accounts = () => {
               <tr>
                 <th>Artist Name</th>
                 <th>Email</th>
+                <th>Tasks Assigned</th>
                 <th>Tasks Completed</th>
                 <th>Status</th>
                 <th>Verified</th>
@@ -594,7 +597,7 @@ const Accounts = () => {
             <tbody>
               {filteredArtistAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="no-data">
+                  <td colSpan="7" className="no-data">
                     {artistSearchTerm ? 'No artist accounts match your search.' : 'No artist accounts found.'}
                   </td>
                 </tr>
@@ -627,6 +630,7 @@ const Accounts = () => {
                         artist.email || 'N/A'
                       )}
                     </td>
+                    <td>{artist.total_tasks_assigned || 0}</td>
                     <td>{artist.total_tasks_completed || 0}</td>
                     <td>
                       <span className={`status-badge ${artist.is_active ? 'active' : 'inactive'}`}>

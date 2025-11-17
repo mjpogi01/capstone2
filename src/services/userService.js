@@ -24,6 +24,7 @@ class UserService {
           phone: addressData.phone,
           street_address: addressData.streetAddress,
           barangay: addressData.barangay,
+          barangay_code: addressData.barangay_code || null, // Include barangay code for coordinate lookup
           city: addressData.city,
           province: addressData.province,
           postal_code: addressData.postalCode,
@@ -108,6 +109,7 @@ class UserService {
           phone: addressData.phone,
           street_address: addressData.streetAddress,
           barangay: addressData.barangay,
+          barangay_code: addressData.barangay_code || null, // Include barangay code for coordinate lookup
           city: addressData.city,
           province: addressData.province,
           postal_code: addressData.postalCode,

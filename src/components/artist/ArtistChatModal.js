@@ -30,6 +30,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
   const [reviewFiles, setReviewFiles] = useState([]);
   const [reviewNotes, setReviewNotes] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const reviewFileInputRef = useRef(null);
@@ -38,6 +39,18 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Add/remove class to body when image is zoomed to hide task modal close button
+  useEffect(() => {
+    if (zoomedImage) {
+      document.body.classList.add('image-zoomed');
+    } else {
+      document.body.classList.remove('image-zoomed');
+    }
+    return () => {
+      document.body.classList.remove('image-zoomed');
+    };
+  }, [zoomedImage]);
 
   const initializeChat = useCallback(async () => {
     try {
@@ -533,7 +546,8 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
                                 <img 
                                   src={attachment.url} 
                                   alt={attachment.name}
-                                  onClick={() => window.open(attachment.url, '_blank')}
+                                  onClick={() => setZoomedImage(attachment.url)}
+                                  style={{ cursor: 'pointer' }}
                                 />
                                 <span className="attachment-name">{attachment.name}</span>
                               </div>
@@ -777,6 +791,27 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Image Zoom Modal */}
+        {zoomedImage && (
+          <div 
+            className="image-zoom-overlay"
+            onClick={() => setZoomedImage(null)}
+          >
+            <button 
+              className="image-zoom-close"
+              onClick={() => setZoomedImage(null)}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <img 
+              src={zoomedImage} 
+              alt="Zoomed"
+              className="image-zoom-content"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         )}
       </div>

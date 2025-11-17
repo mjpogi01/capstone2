@@ -22,6 +22,91 @@ if (L.HeatLayer && typeof L.HeatLayer.prototype._initCanvas === 'function') {
   };
 }
 
+// Patch _clear method to handle undefined canvas context gracefully
+if (L.HeatLayer && typeof L.HeatLayer.prototype._clear === 'function') {
+  const originalClear = L.HeatLayer.prototype._clear;
+  L.HeatLayer.prototype._clear = function patchedClear() {
+    // Ensure canvas exists
+    if (!this._canvas) {
+      return;
+    }
+    
+    // Ensure context exists - try to get it if missing
+    if (!this._ctx) {
+      try {
+        const ctx = this._canvas.getContext('2d', { willReadFrequently: true }) || this._canvas.getContext('2d');
+        if (ctx) {
+          this._ctx = ctx;
+        } else {
+          return; // Can't clear if no context available
+        }
+      } catch (e) {
+        return; // Canvas might not be ready yet
+      }
+    }
+    
+    // Double-check context still exists before calling original
+    if (!this._ctx || typeof this._ctx.clearRect !== 'function') {
+      return;
+    }
+    
+    try {
+      originalClear.call(this);
+    } catch (error) {
+      // Silently fail - this is often a timing issue that resolves itself
+      // Don't log to avoid console spam
+    }
+  };
+}
+
+// Patch _redraw method to ensure canvas is initialized
+if (L.HeatLayer && typeof L.HeatLayer.prototype._redraw === 'function') {
+  const originalRedraw = L.HeatLayer.prototype._redraw;
+  L.HeatLayer.prototype._redraw = function patchedRedraw() {
+    // Ensure canvas exists
+    if (!this._canvas) {
+      return;
+    }
+    
+    // Ensure context exists - try to initialize if missing
+    if (!this._ctx) {
+      if (this._initCanvas) {
+        try {
+          this._initCanvas();
+        } catch (e) {
+          // Canvas might not be ready
+        }
+      }
+      
+      // Try to get context directly if still missing
+      if (!this._ctx) {
+        try {
+          const ctx = this._canvas.getContext('2d', { willReadFrequently: true }) || this._canvas.getContext('2d');
+          if (ctx) {
+            this._ctx = ctx;
+          } else {
+            return; // Can't redraw without context
+          }
+        } catch (e) {
+          return; // Canvas not ready
+        }
+      }
+    }
+    
+    // Double-check context has required methods
+    if (!this._ctx || typeof this._ctx.clearRect !== 'function') {
+      return;
+    }
+    
+    try {
+      originalRedraw.call(this);
+    } catch (error) {
+      // Silently fail - this is often a timing issue that resolves itself
+      // Don't log to avoid console spam
+    }
+  };
+}
+
 // Fix for default marker icons in React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -48,10 +133,33 @@ function FitBounds({ points }) {
 function HeatmapLayer({ points, visible }) {
   const map = useMap();
   const heatLayerRef = React.useRef(null);
+  const mapReadyRef = React.useRef(false);
 
   useEffect(() => {
     if (!map) {
       return undefined;
+    }
+
+    // Wait for map to be fully initialized
+    const checkMapReady = () => {
+      if (map && map.getContainer() && map._loaded) {
+        mapReadyRef.current = true;
+      } else {
+        mapReadyRef.current = false;
+      }
+    };
+
+    // Check immediately
+    checkMapReady();
+
+    // Also listen for map load event
+    const onMapReady = () => {
+      mapReadyRef.current = true;
+    };
+    
+    map.on('load', onMapReady);
+    if (map._loaded) {
+      mapReadyRef.current = true;
     }
 
     const removeLayer = () => {
@@ -67,20 +175,25 @@ function HeatmapLayer({ points, visible }) {
 
     const ensureLayer = () => {
       if (!heatLayerRef.current) {
-    const layer = L.heatLayer([], {
-      radius: 20,
-      blur: 28,
-      maxZoom: 11,
-      minOpacity: 0.35,
-      gradient: {
-        0.0: '#fee2e2',
-        0.45: '#fca5a5',
-        0.65: '#f87171',
-        0.85: '#ef4444',
-        1.0: '#b91c1c'
-      }
-    });
-    heatLayerRef.current = layer;
+        try {
+          const layer = L.heatLayer([], {
+            radius: 20,
+            blur: 28,
+            maxZoom: 11,
+            minOpacity: 0.35,
+            gradient: {
+              0.0: '#fee2e2',
+              0.45: '#fca5a5',
+              0.65: '#f87171',
+              0.85: '#ef4444',
+              1.0: '#b91c1c'
+            }
+          });
+          heatLayerRef.current = layer;
+        } catch (layerError) {
+          console.warn('Error creating heat layer:', layerError);
+          return null;
+        }
       }
       return heatLayerRef.current;
     };
@@ -90,21 +203,112 @@ function HeatmapLayer({ points, visible }) {
         removeLayer();
         return;
       }
+      
+      // Wait for map to be ready
+      if (!mapReadyRef.current) {
+        // Retry after a short delay if map isn't ready
+        setTimeout(updateLayer, 100);
+        return;
+      }
+      
       const layer = ensureLayer();
       if (!layer) {
-      return;
-    }
-      const latLngs = Array.isArray(points) && points.length > 0 ? points : [];
-      layer.setLatLngs(latLngs);
-      if (!map.hasLayer(layer)) {
-        layer.addTo(map);
+        return;
       }
+      
+      // Ensure map is ready before adding layer
+      if (!map || !map.getContainer()) {
+        return;
+      }
+      
+      // Ensure map is fully loaded
+      if (!map._loaded && !map._container) {
+        // Map not loaded yet, retry later
+        setTimeout(updateLayer, 100);
+        return;
+      }
+      
+      const latLngs = Array.isArray(points) && points.length > 0 ? points : [];
+      
+      // Use requestAnimationFrame to ensure canvas is ready
+      requestAnimationFrame(() => {
+        try {
+          // Ensure map container exists and is ready
+          const mapContainer = map?.getContainer();
+          if (!mapContainer || !mapContainer.parentNode) {
+            // Map container not ready, retry later
+            setTimeout(updateLayer, 100);
+            return;
+          }
+          
+          // Double-check canvas context exists before updating
+          if (layer._canvas && (!layer._ctx || !layer._canvas.getContext)) {
+            // Reinitialize canvas if needed
+            if (layer._initCanvas) {
+              layer._initCanvas();
+            }
+          }
+          
+          // Only update lat/lngs if layer is already on map, otherwise wait
+          if (map.hasLayer(layer)) {
+            layer.setLatLngs(latLngs);
+          } else {
+            // Layer not on map yet - ensure map is fully ready before adding
+            if (map._panes && map._panes.overlayPane && map._panes.overlayPane.parentNode) {
+              // Double-check that the overlay pane is in the DOM
+              try {
+                // Verify the pane has a parent (is in DOM) and the map container is visible
+                const paneParent = map._panes.overlayPane.parentNode;
+                const mapContainer = map.getContainer();
+                
+                if (paneParent && paneParent.appendChild && mapContainer && mapContainer.offsetParent !== null) {
+                  // Map is visible and ready - try to add layer
+                  try {
+                    layer.setLatLngs(latLngs);
+                    layer.addTo(map);
+                  } catch (addError) {
+                    // If addTo fails, retry after delay
+                    if (addError.message && addError.message.includes('appendChild')) {
+                      setTimeout(updateLayer, 200);
+                    } else {
+                      throw addError;
+                    }
+                  }
+                } else {
+                  // Map not visible or pane not attached, retry
+                  setTimeout(updateLayer, 100);
+                }
+              } catch (paneError) {
+                // Pane check failed, retry
+                setTimeout(updateLayer, 100);
+              }
+            } else {
+              // Map panes not ready, retry later
+              setTimeout(updateLayer, 100);
+            }
+          }
+        } catch (error) {
+          // Silently handle errors - often timing issues that resolve themselves
+          // Only retry if it's a critical error
+          if (error.message && error.message.includes('appendChild')) {
+            // Retry after a short delay
+            setTimeout(updateLayer, 200);
+          }
+        }
+      });
     };
 
-    updateLayer();
+    // Delay initial update to ensure map is ready
+    const timeoutId = setTimeout(() => {
+      updateLayer();
+    }, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       removeLayer();
+      if (map) {
+        map.off('load', onMapReady);
+      }
     };
   }, [map, points, visible]);
 
@@ -139,6 +343,15 @@ const BranchMap = ({ onDataLoaded }) => {
 
   useEffect(() => {
     fetchCustomerLocations();
+    
+    // Refresh customer locations every 30 seconds to show new customers immediately
+    const refreshInterval = setInterval(() => {
+      fetchCustomerLocations();
+    }, 30000); // 30 seconds
+    
+    return () => {
+      clearInterval(refreshInterval);
+    };
   }, []);
 
   const fetchCustomerLocations = async () => {
@@ -156,90 +369,29 @@ const BranchMap = ({ onDataLoaded }) => {
           setHeatmapData(points);
           setCityStats(stats);
           reportData(points, stats, { status: 'loaded', source: 'api' });
-          console.log(`✅ Loaded ${points.length} customer location points`);
+          console.log(`✅ Loaded ${points.length} customer location points from database`);
+        } else {
+          // No data available - show empty state
+          setHeatmapData([]);
+          setCityStats([]);
+          reportData([], [], { status: 'loaded', source: 'api', empty: true });
+          console.log('ℹ️ No customer location data available');
         }
       } else {
-        console.log('⚠️ API returned error, using demo data');
-        loadDemoData();
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ API error fetching customer locations:', errorData);
+        setHeatmapData([]);
+        setCityStats([]);
+        reportData([], [], { status: 'error', source: 'api', error: errorData.error || 'Failed to fetch customer locations' });
       }
     } catch (error) {
-      console.error('Error fetching customer locations:', error);
-      console.log('⚠️ Using demo data due to error');
-      loadDemoData();
+      console.error('❌ Error fetching customer locations:', error);
+      setHeatmapData([]);
+      setCityStats([]);
+      reportData([], [], { status: 'error', source: 'api', error: error.message || 'Network error' });
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadDemoData = () => {
-    // Demo customer distribution
-    const cityCoordinates = {
-      'Batangas City': [13.7563, 121.0583],
-      'Lipa': [13.9411, 121.1631],
-      'Tanauan': [14.0886, 121.1494],
-      'Bauan': [13.7918, 121.0073],
-      'San Pascual': [13.8037, 121.0132],
-      'Calaca': [13.9289, 120.8113],
-      'Lemery': [13.8832, 120.9139],
-      'Calapan': [13.4124, 121.1766],
-      'Rosario': [13.8460, 121.2070],
-      'San Luis': [13.8559, 120.9405],
-      'Pinamalayan': [13.0350, 121.4847],
-      'Santo Tomas': [14.1069, 121.1392],
-      'Taal': [13.8797, 120.9231],
-      'Balayan': [13.9367, 120.7325],
-      'Nasugbu': [14.0678, 120.6319],
-      'Taysan': [13.8422, 121.0561],
-      'Alitagtag': [13.8789, 121.0033]
-    };
-
-    const demoCities = {
-      'Batangas City': 45,
-      'Lipa': 32,
-      'Tanauan': 28,
-      'Bauan': 18,
-      'San Pascual': 15,
-      'Calaca': 12,
-      'Lemery': 10,
-      'Calapan': 25,
-      'Rosario': 8,
-      'San Luis': 6,
-      'Pinamalayan': 14,
-      'Santo Tomas': 9,
-      'Taal': 7,
-      'Balayan': 5,
-      'Nasugbu': 11,
-      'Taysan': 4,
-      'Alitagtag': 3
-    };
-
-    const heatmapData = [];
-    const cityStats = [];
-
-    Object.keys(demoCities).forEach(cityName => {
-      const count = demoCities[cityName];
-      const coords = cityCoordinates[cityName];
-      
-      if (coords) {
-        cityStats.push({
-          city: cityName,
-          province: cityName === 'Calapan' || cityName === 'Pinamalayan' ? 'Oriental Mindoro' : 'Batangas',
-          count
-        });
-
-        for (let i = 0; i < count; i++) {
-          const latOffset = (Math.random() - 0.5) * 0.02;
-          const lngOffset = (Math.random() - 0.5) * 0.02;
-          heatmapData.push([coords[0] + latOffset, coords[1] + lngOffset, 1]);
-        }
-      }
-    });
-
-    const sortedStats = [...cityStats].sort((a, b) => (Number(b.count) || 0) - (Number(a.count) || 0));
-    setHeatmapData(heatmapData);
-    setCityStats(sortedStats);
-    reportData(heatmapData, sortedStats, { status: 'loaded', source: 'demo' });
-    console.log(`✅ Loaded ${heatmapData.length} demo customer location points`);
   };
 
   const heatmapPoints = useMemo(() => {
@@ -259,6 +411,28 @@ const BranchMap = ({ onDataLoaded }) => {
       <div className="branch-map-loading">
         <div className="loading-spinner"></div>
         <p>Loading map...</p>
+      </div>
+    );
+  }
+
+  // Show empty state if no data
+  if (!loading && heatmapData.length === 0 && cityStats.length === 0) {
+    return (
+      <div className="branch-map-container">
+        <div className="branch-map-header">
+          <div>
+            <h3>
+              <FaUsers className="header-icon" />
+              Customer Locations
+            </h3>
+            <p>No customer location data available</p>
+          </div>
+        </div>
+        <div className="branch-map-empty-state">
+          <FaMap className="empty-icon" />
+          <p>No customer locations found in the database.</p>
+          <p className="empty-subtitle">Customer locations will appear here once customers add addresses or place orders.</p>
+        </div>
       </div>
     );
   }

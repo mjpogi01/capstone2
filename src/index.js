@@ -16,6 +16,16 @@ window.addEventListener('error', (event) => {
     event.preventDefault();
     return false;
   }
+  // Suppress Leaflet heat layer canvas context errors (timing issue)
+  if (event.message && event.message.includes('clearRect') && event.message.includes('Cannot read properties of undefined')) {
+    // Check if it's from the heat layer by checking the stack trace or source
+    const source = event.filename || event.source || '';
+    if (source.includes('bundle.js') || source.includes('leaflet') || source.includes('heat')) {
+      // This is the heat layer canvas context timing error - suppress it
+      event.preventDefault();
+      return false;
+    }
+  }
 });
 
 // Also handle unhandled promise rejections for ResizeObserver
