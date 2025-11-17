@@ -27,31 +27,35 @@ const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-app.get('/', (_req, res) => {
-  res.json({ 
-    message: 'Yohanns API Server',
-    version: '1.0.0',
-    endpoints: {
-      health: '/health',
-      auth: '/api/auth',
-      admin: '/api/admin',
-      products: '/api/products',
-      upload: '/api/upload',
-      user: '/api/user',
-      branches: '/api/branches',
-      orders: '/api/orders',
-      orderTracking: '/api/order-tracking',
-      designUpload: '/api/design-upload',
-      customDesign: '/api/custom-design',
-      email: '/api/email',
-      analytics: '/api/analytics',
-      ai: '/api/ai',
-      productionWorkflow: '/api/production-workflow',
-      chat: '/api/chat',
-      artist: '/api/artist'
-    }
+// Root route - only show API info in development
+// In production, this will be handled by static file serving
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/', (_req, res) => {
+    res.json({ 
+      message: 'Yohanns API Server',
+      version: '1.0.0',
+      endpoints: {
+        health: '/health',
+        auth: '/api/auth',
+        admin: '/api/admin',
+        products: '/api/products',
+        upload: '/api/upload',
+        user: '/api/user',
+        branches: '/api/branches',
+        orders: '/api/orders',
+        orderTracking: '/api/order-tracking',
+        designUpload: '/api/design-upload',
+        customDesign: '/api/custom-design',
+        email: '/api/email',
+        analytics: '/api/analytics',
+        ai: '/api/ai',
+        productionWorkflow: '/api/production-workflow',
+        chat: '/api/chat',
+        artist: '/api/artist'
+      }
+    });
   });
-});
+}
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
@@ -85,17 +89,35 @@ app.use('/api/branch-chat', branchChatRouter);
 // Serve static files from React build in production
 if (process.env.NODE_ENV === 'production') {
   const buildPath = path.join(__dirname, '..', 'build');
-  app.use(express.static(buildPath));
+  const fs = require('fs');
   
-  // Serve React app for all non-API routes (must be after all API routes)
-  app.use((req, res, next) => {
-    // Skip API routes - let them fall through to 404 handler
-    if (req.path.startsWith('/api/')) {
-      return next();
-    }
-    // Serve React app for all other routes
-    res.sendFile(path.join(buildPath, 'index.html'));
-  });
+  // Check if build folder exists
+  if (!fs.existsSync(buildPath)) {
+    console.error('❌ ERROR: build folder not found!');
+    console.error('   Make sure to run "npm run build" before starting the server.');
+    console.error('   Build path:', buildPath);
+  } else {
+    console.log('✅ Serving React app from:', buildPath);
+    
+    // Serve static files (JS, CSS, images, etc.)
+    app.use(express.static(buildPath));
+    
+    // Serve React app for all non-API routes (must be after all API routes)
+    app.use((req, res, next) => {
+      // Skip API routes - let them fall through to 404 handler
+      if (req.path.startsWith('/api/')) {
+        return next();
+      }
+      // Serve React app for all other routes
+      const indexPath = path.join(buildPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        console.error('❌ index.html not found in build folder');
+        res.status(500).send('React app not built. Please run "npm run build" first.');
+      }
+    });
+  }
 }
 
 // Global error handler
@@ -127,9 +149,22 @@ const port = process.env.PORT || 4000;
 // Listen on 0.0.0.0 to accept connections from mobile devices on local network
 app.listen(port, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
-  console.log(`API listening on http://localhost:${port}`);
+  console.log(`🚀 Server listening on http://localhost:${port}`);
   console.log(`📱 Mobile access: http://192.168.254.100:${port}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('Using Supabase for database operations');
+  
+  // Log production build status
+  if (process.env.NODE_ENV === 'production') {
+    const buildPath = path.join(__dirname, '..', 'build');
+    const fs = require('fs');
+    if (fs.existsSync(buildPath)) {
+      console.log(`✅ React app build found at: ${buildPath}`);
+    } else {
+      console.error(`❌ React app build NOT found at: ${buildPath}`);
+      console.error('   The build folder is missing. Make sure "npm run build" completed successfully.');
+    }
+  }
 });
 
 
