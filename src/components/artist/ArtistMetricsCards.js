@@ -61,36 +61,28 @@ const ArtistMetricsCards = () => {
       value: metrics.totalTasks,
       icon: faTasks,
       color: '#3b82f6',
-      bgColor: '#dbeafe',
-      change: '+12%',
-      changeType: 'positive'
+      bgColor: '#dbeafe'
     },
     {
       title: 'Pending Tasks',
       value: metrics.pendingTasks,
       icon: faClock,
       color: '#f59e0b',
-      bgColor: '#fef3c7',
-      change: '-3',
-      changeType: 'negative'
+      bgColor: '#fef3c7'
     },
     {
       title: 'Completed',
       value: metrics.completedTasks,
       icon: faCheckCircle,
       color: '#10b981',
-      bgColor: '#d1fae5',
-      change: '+8',
-      changeType: 'positive'
+      bgColor: '#d1fae5'
     },
     {
       title: 'Avg. Completion Time',
       value: `${metrics.averageCompletionTime > 0 ? metrics.averageCompletionTime : '0'} hrs`,
       icon: faClock,
       color: '#8b5cf6',
-      bgColor: '#ede9fe',
-      change: metrics.averageCompletionTime > 0 ? 'On Track' : 'N/A',
-      changeType: 'positive'
+      bgColor: '#ede9fe'
     }
   ];
 
@@ -131,9 +123,6 @@ const ArtistMetricsCards = () => {
             <div className="artist-card-info">
               <h3 className="artist-card-title">{card.title}</h3>
               <div className="artist-card-value">{card.value}</div>
-              <div className={`artist-card-change artist-card-change-${card.changeType}`}>
-                {card.change}
-              </div>
             </div>
           </div>
         </div>

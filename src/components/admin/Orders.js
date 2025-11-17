@@ -1610,6 +1610,7 @@ const Orders = () => {
                             
                             {!item.isTeamOrder && item.singleOrderDetails && (
                               <div className="single-details">
+                                <div className="team-name">Team: {item.singleOrderDetails.teamName || item.singleOrderDetails?.team_name || 'N/A'}</div>
                                 <div className="single-details-table">
                                   {(() => {
                                     const fallbackVisibility = {
@@ -1621,7 +1622,6 @@ const Orders = () => {
                                       <table className="jersey-details-table">
                                         <thead>
                                           <tr>
-                                            <th>Team</th>
                                             <th>Surname</th>
                                             <th>Jersey #</th>
                                             <th>Jersey Type</th>
@@ -1634,7 +1634,6 @@ const Orders = () => {
                                         </thead>
                                         <tbody>
                                           <tr>
-                                            <td>{item.singleOrderDetails.teamName || item.singleOrderDetails?.team_name || 'N/A'}</td>
                                             <td>{(item.singleOrderDetails.surname || item.singleOrderDetails?.lastName || 'N/A').toUpperCase()}</td>
                                             <td>{item.singleOrderDetails.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</td>
                                             <td>{(() => {
@@ -1645,7 +1644,7 @@ const Orders = () => {
                                             <td>{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</td>
                                             <td>{(item.singleOrderDetails.sizingType || item.sizeType || 'adult') === 'kids' ? 'Kids' : 'Adult'}</td>
                                             {(showSingleJerseySize || Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size)) && (
-                                            <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
+                                              <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
                                             )}
                                             {(showSingleShortsSize || Boolean(item.singleOrderDetails?.shortsSize)) && (
                                               <td>{item.singleOrderDetails.shortsSize || 'N/A'}</td>
@@ -1970,11 +1969,19 @@ const Orders = () => {
                               {(() => {
                                 // Aggregate team data across items
                                 const firstItem = (order.orderItems || [])[0] || {};
+                                
+                                // Check for team name in various locations
+                                // For team orders: check item.team_name or item.teamName
+                                // For single orders: check item.singleOrderDetails.teamName or item.singleOrderDetails.team_name
                                 const teamName =
                                   firstItem.team_name ||
                                   firstItem.teamName ||
+                                  firstItem.singleOrderDetails?.teamName ||
+                                  firstItem.singleOrderDetails?.team_name ||
                                   (order.orderItems || []).find(i => i.team_name || i.teamName)?.team_name ||
                                   (order.orderItems || []).find(i => i.team_name || i.teamName)?.teamName ||
+                                  (order.orderItems || []).find(i => i.singleOrderDetails?.teamName || i.singleOrderDetails?.team_name)?.singleOrderDetails?.teamName ||
+                                  (order.orderItems || []).find(i => i.singleOrderDetails?.teamName || i.singleOrderDetails?.team_name)?.singleOrderDetails?.team_name ||
                                   'N/A';
 
                                 // Only keep the essentials: surname and jersey number

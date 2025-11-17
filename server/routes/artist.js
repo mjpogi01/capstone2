@@ -382,6 +382,67 @@ router.get('/tasks', authenticateArtist, async (req, res) => {
   }
 });
 
+// Get order number for an order (artist can only access orders they're assigned to)
+router.get('/order/:orderId/number', authenticateArtist, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    // Get artist profile first
+    const { data: profile, error: profileError } = await supabase
+      .from('artist_profiles')
+      .select('id')
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return res.status(404).json({ error: 'Artist profile not found' });
+    }
+
+    // Verify artist has access to this order (either through a task or chat room)
+    const { data: task, error: taskError } = await supabase
+      .from('artist_tasks')
+      .select('order_id')
+      .eq('artist_id', profile.id)
+      .eq('order_id', orderId)
+      .limit(1)
+      .maybeSingle();
+
+    const { data: chatRoom, error: chatError } = await supabase
+      .from('design_chat_rooms')
+      .select('order_id')
+      .eq('artist_id', profile.id)
+      .eq('order_id', orderId)
+      .limit(1)
+      .maybeSingle();
+
+    // If artist has neither a task nor a chat room for this order, deny access
+    if ((taskError && chatError) || (!task && !chatRoom)) {
+      return res.status(403).json({ error: 'Access denied. You do not have access to this order.' });
+    }
+
+    // Fetch order number
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('order_number, status, total_amount, created_at')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError || !order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json({
+      order_number: order.order_number || null,
+      status: order.status || 'pending',
+      total_amount: order.total_amount || 0,
+      created_at: order.created_at || null
+    });
+  } catch (error) {
+    console.error('Error fetching order number:', error);
+    res.status(500).json({ error: 'Failed to fetch order number' });
+  }
+});
+
 // Update task status
 router.patch('/tasks/:taskId/status', authenticateArtist, async (req, res) => {
   try {

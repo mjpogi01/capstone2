@@ -63,14 +63,15 @@ const ArtistChatList = () => {
             
             console.log('🔍 Fetching order for room', room.id, 'order_id:', room.order_id);
             
-            // ALWAYS fetch from orders table via API first (most reliable)
+            // Use artist-specific endpoint to fetch order number
             if (room.order_id) {
               try {
                 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
                 const { data: { session } } = await supabase.auth.getSession();
                 
                 if (session) {
-                  const orderResponse = await fetch(`${API_BASE_URL}/api/orders/${room.order_id}`, {
+                  // Use artist-specific endpoint that allows artists to access their assigned orders
+                  const orderResponse = await fetch(`${API_BASE_URL}/api/artist/order/${room.order_id}/number`, {
                     headers: {
                       'Authorization': `Bearer ${session.access_token}`,
                       'Content-Type': 'application/json'
@@ -81,12 +82,11 @@ const ArtistChatList = () => {
                     const orderData = await orderResponse.json();
                     console.log('📋 Order API response for', room.order_id, ':', {
                       order_number: orderData.order_number,
-                      orderNumber: orderData.orderNumber,
-                      id: orderData.id
+                      id: room.order_id
                     });
                     
                     // Extract order_number - this is the ACTUAL order number from orders table
-                    orderNumber = orderData.order_number || orderData.orderNumber || null;
+                    orderNumber = orderData.order_number || null;
                     
                     if (orderNumber) {
                       console.log('✅ ACTUAL order number from orders table:', orderNumber, 'Length:', orderNumber.length);
@@ -98,8 +98,8 @@ const ArtistChatList = () => {
                     order = {
                       order_number: orderNumber || 'N/A',
                       status: orderData.status || 'pending',
-                      total_amount: orderData.total_amount || orderData.total || 0,
-                      created_at: orderData.created_at || orderData.createdAt || new Date().toISOString()
+                      total_amount: orderData.total_amount || 0,
+                      created_at: orderData.created_at || new Date().toISOString()
                     };
                   } else {
                     const errorText = await orderResponse.text().catch(() => '');

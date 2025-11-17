@@ -286,10 +286,6 @@ const ArtistTasksTable = ({ limit = null, showHeader = false, enableTabs = false
               >
                 <div className="task-header">
                   <div className="task-title">{task.task_title}</div>
-                  <div className={`task-priority ${task.priority}`}>
-                    <FontAwesomeIcon icon={getPriorityIcon(task.priority)} />
-                    {task.priority}
-                  </div>
                 </div>
                 
                 <div className="task-details">

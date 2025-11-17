@@ -473,6 +473,53 @@ class ChatService {
       return 0;
     }
   }
+
+  // Upload attachment file
+  async uploadAttachment(file, roomId) {
+    try {
+      console.log('📎 Uploading attachment:', file.name, 'for room:', roomId);
+      
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+        throw new Error(errorData.error || 'Failed to upload file');
+      }
+
+      const data = await response.json();
+      
+      // Return attachment object in the format expected by the chat
+      const attachment = {
+        name: file.name,
+        filename: file.name,
+        url: data.url || data.imageUrl,
+        type: file.type,
+        size: file.size
+      };
+
+      console.log('✅ Attachment uploaded successfully:', attachment);
+      return attachment;
+    } catch (error) {
+      console.error('❌ Error uploading attachment:', error);
+      throw error;
+    }
+  }
 }
 
 export default new ChatService();

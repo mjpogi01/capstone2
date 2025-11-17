@@ -51,17 +51,43 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
   useEffect(() => {
     if (loading) return; // Don't set up resize handler while loading
 
+    let resizeFrame = null;
+    let resizeTimeout = null;
+
     const handleResize = () => {
-      if (chartRef.current) {
-        const echartsInstance = chartRef.current.getEchartsInstance();
-        if (echartsInstance) {
-          echartsInstance.resize();
-        }
+      // Cancel any pending resize
+      if (resizeFrame) {
+        window.cancelAnimationFrame(resizeFrame);
       }
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+
+      // Use requestAnimationFrame to batch resize calls and prevent ResizeObserver loops
+      resizeFrame = window.requestAnimationFrame(() => {
+        if (chartRef.current) {
+          const echartsInstance = chartRef.current.getEchartsInstance();
+          if (echartsInstance) {
+            try {
+              echartsInstance.resize();
+            } catch (error) {
+              // Silently handle resize errors (common with ResizeObserver loops)
+              console.debug('Chart resize error (harmless):', error);
+            }
+          }
+        }
+      });
     };
 
-    // Handle window resize
-    window.addEventListener('resize', handleResize);
+    // Handle window resize with debouncing
+    const debouncedWindowResize = () => {
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+      resizeTimeout = setTimeout(handleResize, 150);
+    };
+
+    window.addEventListener('resize', debouncedWindowResize);
     
     // Handle container resize using ResizeObserver
     // Wait a bit for the chart to mount
@@ -69,8 +95,14 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
       if (chartRef.current) {
         const chartElement = chartRef.current.ele;
         if (chartElement && window.ResizeObserver) {
-          const resizeObserver = new ResizeObserver(() => {
-            handleResize();
+          const resizeObserver = new ResizeObserver((entries) => {
+            // Use requestAnimationFrame to prevent ResizeObserver loop errors
+            if (resizeFrame) {
+              window.cancelAnimationFrame(resizeFrame);
+            }
+            resizeFrame = window.requestAnimationFrame(() => {
+              handleResize();
+            });
           });
           resizeObserver.observe(chartElement);
           
@@ -81,8 +113,14 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
     }, 100);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', debouncedWindowResize);
       clearTimeout(timeoutId);
+      if (resizeFrame) {
+        window.cancelAnimationFrame(resizeFrame);
+      }
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
       if (chartRef.current?._resizeObserver && chartRef.current.ele) {
         chartRef.current._resizeObserver.unobserve(chartRef.current.ele);
       }
@@ -99,26 +137,12 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
     return latest ? latest.pending + latest.in_progress + latest.completed : 0;
   };
 
-  const getCompletionRate = () => {
-    const latest = workloadData[workloadData.length - 1];
-    if (!latest) return 0;
-    const total = latest.pending + latest.in_progress + latest.completed;
-    return total > 0 ? Math.round((latest.completed / total) * 100) : 0;
-  };
-
   const dates = useMemo(() => workloadData.map(d => formatDate(d.date)), [workloadData]);
   const pendingData = useMemo(() => workloadData.map(d => d.pending || 0), [workloadData]);
   const inProgressData = useMemo(() => workloadData.map(d => d.in_progress || 0), [workloadData]);
   const completedData = useMemo(() => workloadData.map(d => d.completed || 0), [workloadData]);
   const totals = useMemo(
     () => workloadData.map(d => (d.pending || 0) + (d.in_progress || 0) + (d.completed || 0)),
-    [workloadData]
-  );
-  const completionRates = useMemo(
-    () => workloadData.map(d => {
-      const total = (d.pending || 0) + (d.in_progress || 0) + (d.completed || 0);
-      return total > 0 ? Math.round(((d.completed || 0) / total) * 100) : 0;
-    }),
     [workloadData]
   );
 
@@ -131,15 +155,14 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
 
   const summaryIndex = getSummaryIndex();
   const summaryTotal = totals[summaryIndex] || 0;
-  const summaryRate = completionRates[summaryIndex] || 0;
   const summaryDate = dates[summaryIndex] || '';
 
   // Notify parent (dashboard) about current summary so it can render externally
   useEffect(() => {
     if (onSummaryChange) {
-      onSummaryChange({ date: summaryDate, total: summaryTotal, rate: summaryRate });
+      onSummaryChange({ date: summaryDate, total: summaryTotal });
     }
-  }, [summaryDate, summaryTotal, summaryRate, onSummaryChange]);
+  }, [summaryDate, summaryTotal, onSummaryChange]);
 
   const chartOption = useMemo(() => {
     if (!workloadData || workloadData.length === 0) {
@@ -174,14 +197,13 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
             if (p.seriesName === 'Completed') completed = p.value || 0;
           });
           const total = pending + inProg + completed;
-          const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
           result += `<hr style="border:none;border-top:1px solid #e5e7eb;margin:6px 0;" />`;
-          result += `Total: <strong>${total}</strong><br/>Completion: <strong>${rate}%</strong>`;
+          result += `Total: <strong>${total}</strong>`;
           return result;
         }
       },
       legend: {
-        data: ['Pending', 'In Progress', 'Completed', 'Completion Rate'],
+        data: ['Pending', 'In Progress', 'Completed'],
         bottom: 0,
         textStyle: {
           fontSize: 12
@@ -203,36 +225,21 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
           rotate: dates.length > 7 ? 30 : 0
         }
       },
-      yAxis: [
-        {
-          type: 'value',
-          axisLabel: {
-            fontSize: 11
-          },
-          name: 'Tasks',
-          nameTextStyle: { padding: [0, 0, 0, 0], color: '#6b7280' },
-          splitLine: { lineStyle: { color: '#e5e7eb' } }
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          fontSize: 11
         },
-        {
-          type: 'value',
-          axisLabel: {
-            fontSize: 11,
-            formatter: '{value}%'
-          },
-          name: 'Completion',
-          nameTextStyle: { padding: [0, 0, 0, 0], color: '#6b7280' },
-          min: 0,
-          max: 100,
-          splitLine: { show: false }
-        }
-      ],
+        name: 'Tasks',
+        nameTextStyle: { padding: [0, 0, 0, 0], color: '#6b7280' },
+        splitLine: { lineStyle: { color: '#e5e7eb' } }
+      },
       series: [
         {
           name: 'Pending',
           type: 'bar',
-          stack: 'tasks',
           data: pendingData,
-          barWidth: 18,
+          barWidth: '20%',
           itemStyle: {
             color: {
               type: 'linear',
@@ -252,9 +259,8 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
         {
           name: 'In Progress',
           type: 'bar',
-          stack: 'tasks',
           data: inProgressData,
-          barWidth: 18,
+          barWidth: '20%',
           itemStyle: {
             color: {
               type: 'linear',
@@ -274,9 +280,8 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
         {
           name: 'Completed',
           type: 'bar',
-          stack: 'tasks',
           data: completedData,
-          barWidth: 18,
+          barWidth: '20%',
           itemStyle: {
             color: {
               type: 'linear',
@@ -292,24 +297,11 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
             borderRadius: [4, 4, 0, 0]
           },
           emphasis: { focus: 'series' }
-        },
-        {
-          name: 'Completion Rate',
-          type: 'line',
-          yAxisIndex: 1,
-          smooth: true,
-          showSymbol: false,
-          data: completionRates,
-          lineStyle: { width: 3, color: '#7c3aed' },
-          itemStyle: { color: '#7c3aed' },
-          areaStyle: {
-            opacity: 0.08,
-            color: '#7c3aed'
-          }
         }
-      ]
+      ],
+      barCategoryGap: '20%'
     };
-  }, [workloadData]);
+  }, [workloadData, dates, pendingData, inProgressData, completedData]);
 
   if (loading) {
     return (
@@ -426,10 +418,6 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
             <div className="summary-item">
               <span className="summary-label">Total Tasks:</span>
               <span className="summary-value">{summaryTotal}</span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">Completion Rate:</span>
-              <span className="summary-value">{summaryRate}%</span>
             </div>
           </div>
         )}

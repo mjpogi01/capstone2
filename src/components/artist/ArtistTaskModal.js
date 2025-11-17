@@ -464,10 +464,6 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                       <div className="task-header-left-content">
                         <h3 className="task-title-left">{displayTask.task_title}</h3>
                         <div className="artist-task-header-badges">
-                          <span className={`artist-task-priority-badge ${displayTask.priority}`}>
-                            <FontAwesomeIcon icon={getPriorityIcon(displayTask.priority)} />
-                            {displayTask.priority.toUpperCase()}
-                          </span>
                           <span className={`artist-task-status-badge ${displayTask.status}`}>
                             <FontAwesomeIcon icon={getStatusIcon(displayTask.status)} />
                             {displayTask.status.replace('_', ' ')}

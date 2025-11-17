@@ -11,6 +11,19 @@ window.addEventListener('error', (event) => {
     event.preventDefault();
     return false;
   }
+  // Suppress ResizeObserver loop errors (harmless browser quirk)
+  if (event.message && event.message.includes('ResizeObserver loop')) {
+    event.preventDefault();
+    return false;
+  }
+});
+
+// Also handle unhandled promise rejections for ResizeObserver
+window.addEventListener('unhandledrejection', (event) => {
+  if (event.reason && event.reason.message && event.reason.message.includes('ResizeObserver loop')) {
+    event.preventDefault();
+    return false;
+  }
 });
 
 // Prevent Ethereum property redefinition errors

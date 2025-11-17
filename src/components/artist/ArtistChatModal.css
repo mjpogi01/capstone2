@@ -173,6 +173,46 @@
   height: 100%;
 }
 
+/* Empty Chat State */
+.chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  height: 100%;
+  min-height: 300px;
+}
+
+.chat-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  color: #2563eb;
+  font-size: 1.5rem;
+}
+
+.chat-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 0.5rem 0;
+}
+
+.chat-empty-message {
+  font-size: 0.9375rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
 /* --------------------------------
    Message Styles
    -------------------------------- */

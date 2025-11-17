@@ -73,7 +73,8 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
           const { data: { session } } = await supabase.auth.getSession();
           
           if (session) {
-            const orderResponse = await fetch(`${API_BASE_URL}/api/orders/${room.order_id}`, {
+            // Use artist-specific endpoint that allows artists to access their assigned orders
+            const orderResponse = await fetch(`${API_BASE_URL}/api/artist/order/${room.order_id}/number`, {
               headers: {
                 'Authorization': `Bearer ${session.access_token}`,
                 'Content-Type': 'application/json'
@@ -82,7 +83,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
             
             if (orderResponse.ok) {
               const orderData = await orderResponse.json();
-              const extractedOrderNumber = orderData.order_number || orderData.orderNumber || null;
+              const extractedOrderNumber = orderData.order_number || null;
               console.log('📦 Order number for chat modal:', extractedOrderNumber);
               setOrderNumber(extractedOrderNumber);
             } else {
@@ -483,7 +484,18 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
           ) : (
             <>
               {console.log('🎨 Rendering messages, count:', messages.length)}
-              {messages.map((message) => {
+              {messages.length === 0 ? (
+                <div className="chat-empty-state">
+                  <div className="chat-empty-icon">
+                    <FontAwesomeIcon icon={faUser} />
+                  </div>
+                  <p className="chat-empty-title">Start a conversation</p>
+                  <p className="chat-empty-message">
+                    This is a new chat room. Send a message to start communicating with {customer?.full_name || 'the customer'}.
+                  </p>
+                </div>
+              ) : (
+                messages.map((message) => {
                 console.log('🎨 Rendering message:', message.id, message.message);
                 return (
                   <div 
@@ -546,7 +558,8 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
                   </div>
                 </div>
                 );
-              })}
+              })
+              )}
               <div ref={messagesEndRef} />
             </>
           )}
