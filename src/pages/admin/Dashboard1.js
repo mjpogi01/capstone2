@@ -91,14 +91,14 @@ echarts.use([
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Global values visibility - controls all values in dashboard
-  // Load from localStorage on mount, default to true
+  // Load from localStorage on mount, default to false (hidden)
   const [isAllValuesVisible, setIsAllValuesVisible] = useState(() => {
     try {
       const saved = localStorage.getItem('dashboard_values_visible');
-      return saved !== null ? JSON.parse(saved) : true;
+      return saved !== null ? JSON.parse(saved) : false;
     } catch (error) {
       console.error('Error loading values visibility preference:', error);
-      return true;
+      return false;
     }
   });
 
@@ -116,7 +116,7 @@ echarts.use([
     const handleStorageChange = (e) => {
       if (e.key === 'dashboard_values_visible') {
         try {
-          const newValue = e.newValue !== null ? JSON.parse(e.newValue) : true;
+          const newValue = e.newValue !== null ? JSON.parse(e.newValue) : false;
           setIsAllValuesVisible(newValue);
         } catch (error) {
           console.error('Error parsing storage change:', error);
@@ -774,27 +774,28 @@ echarts.use([
     fetchMetricsData();
   }, [fetchMetricsData]);
 
-  useEffect(() => {
-    fetchRecentOrders(true);
-    
-    // Refresh orders every 30 seconds to keep data up to date (silently, without loading spinner)
-    const refreshInterval = setInterval(() => {
-      fetchRecentOrders(false);
-    }, 30000);
-    
-    // Cleanup interval on unmount
-    return () => clearInterval(refreshInterval);
-  }, []);
-
-  const fetchRecentOrders = async (showLoading = true) => {
+  const fetchRecentOrders = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) {
         setOrdersLoading(true);
       }
-      const response = await orderService.getAllOrders({
+      
+      // Build filters for orders
+      const filters = {
         limit: 100,
         dateSort: 'desc'
-      });
+      };
+      
+      // For owners: if a specific branch is selected, filter by branch name
+      if (isOwner && selectedBranchId && selectedBranchId !== 'all') {
+        const selectedBranch = branches.find(b => b.id === parseInt(selectedBranchId));
+        if (selectedBranch && selectedBranch.name) {
+          filters.pickupBranch = selectedBranch.name;
+        }
+      }
+      // For admins: backend automatically filters by their branch_id from user metadata
+      
+      const response = await orderService.getAllOrders(filters);
       
       if (response && response.orders && Array.isArray(response.orders)) {
         const formattedOrders = response.orders.map(order => {
@@ -816,12 +817,24 @@ echarts.use([
     } catch (error) {
       console.error('Error fetching recent orders:', error);
       setOrders([]);
-    } finally {
-      if (showLoading) {
-        setOrdersLoading(false);
+      } finally {
+        if (showLoading) {
+          setOrdersLoading(false);
+        }
       }
-    }
-  };
+    }, [isOwner, selectedBranchId, branches]);
+
+  useEffect(() => {
+    fetchRecentOrders(true);
+    
+    // Refresh orders every 30 seconds to keep data up to date (silently, without loading spinner)
+    const refreshInterval = setInterval(() => {
+      fetchRecentOrders(false);
+    }, 30000);
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(refreshInterval);
+  }, [fetchRecentOrders]); // Refetch when branch selection changes
 
   const getProductName = (order) => {
     const orderItems = order.order_items || order.orderItems || order.items || [];
@@ -1089,6 +1102,18 @@ echarts.use([
         {/* Top Cards Section */}
         <div className="dashboard1-top-cards">
           <div className="dashboard1-stat-card dashboard1-sales-card">
+            {/* Show Values Toggle Button - Top Right Corner */}
+            <button
+              className="dashboard1-sales-toggle-btn"
+              onClick={() => setIsAllValuesVisible(!isAllValuesVisible)}
+              title={isAllValuesVisible ? 'Hide values' : 'Show values'}
+              aria-label={isAllValuesVisible ? 'Hide values' : 'Show values'}
+            >
+              <FontAwesomeIcon 
+                icon={isAllValuesVisible ? faEyeSlash : faEye} 
+                className="dashboard1-sales-toggle-icon"
+              />
+            </button>
             <div className="dashboard1-stat-icon">
               <span style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>₱</span>
             </div>

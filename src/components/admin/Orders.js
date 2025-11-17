@@ -1194,7 +1194,163 @@ const Orders = () => {
                   </div>
                   
                   <div className="details-section">
-                    <h4><FaBox className="section-icon" />Order Items</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h4 style={{ margin: 0 }}><FaBox className="section-icon" />Order Items</h4>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Find the order items section by finding the section with "Order Items" heading
+                          const allSections = document.querySelectorAll('.details-section');
+                          const orderItemsSection = Array.from(allSections).find(section => {
+                            const heading = section.querySelector('h4');
+                            return heading && heading.textContent.includes('Order Items');
+                          });
+                          
+                          if (!orderItemsSection) return;
+                          
+                          // Clone the section and remove the print button
+                          const printContent = orderItemsSection.cloneNode(true);
+                          const headerDiv = printContent.querySelector('div[style*="display: flex"]');
+                          const printBtn = headerDiv?.querySelector('button');
+                          if (printBtn) printBtn.remove();
+                          
+                          const printWindow = window.open('', '_blank');
+                          
+                          printWindow.document.write(`
+                            <html>
+                              <head>
+                                <title>Order Items - Order ${order.orderNumber || order.id}</title>
+                                <style>
+                                  body {
+                                    font-family: Arial, sans-serif;
+                                    padding: 20px;
+                                    color: #000;
+                                  }
+                                  h4 {
+                                    margin: 0 0 15px 0;
+                                    font-size: 18px;
+                                    font-weight: bold;
+                                  }
+                                  .order-item {
+                                    border: 1px solid #ddd;
+                                    border-radius: 8px;
+                                    padding: 15px;
+                                    margin-bottom: 15px;
+                                    background: #fff;
+                                  }
+                                  .custom-design-item, .regular-order-item {
+                                    margin-bottom: 15px;
+                                  }
+                                  .custom-design-header {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
+                                    margin-bottom: 15px;
+                                  }
+                                  .custom-design-title {
+                                    font-weight: bold;
+                                    font-size: 16px;
+                                  }
+                                  .custom-design-subtitle {
+                                    color: #666;
+                                    font-size: 14px;
+                                  }
+                                  .item-header {
+                                    display: flex;
+                                    gap: 15px;
+                                    margin-bottom: 10px;
+                                  }
+                                  .item-image {
+                                    width: 80px;
+                                    height: 80px;
+                                    object-fit: cover;
+                                    border-radius: 4px;
+                                  }
+                                  .item-name {
+                                    font-weight: bold;
+                                    font-size: 16px;
+                                    margin-bottom: 5px;
+                                  }
+                                  .item-price {
+                                    color: #666;
+                                    font-size: 14px;
+                                  }
+                                  table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin-top: 10px;
+                                  }
+                                  th, td {
+                                    border: 1px solid #ddd;
+                                    padding: 8px;
+                                    text-align: left;
+                                    font-size: 12px;
+                                  }
+                                  th {
+                                    background-color: #f5f5f5;
+                                    font-weight: bold;
+                                  }
+                                  .design-review-section, .design-upload-section {
+                                    margin-top: 15px;
+                                    padding-top: 15px;
+                                    border-top: 1px solid #eee;
+                                  }
+                                  .custom-design-section-title {
+                                    font-size: 14px;
+                                    font-weight: bold;
+                                    margin-bottom: 10px;
+                                  }
+                                  .jersey-details-table, .design-review-table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin-top: 10px;
+                                  }
+                                  @media print {
+                                    body {
+                                      padding: 10px;
+                                    }
+                                    button {
+                                      display: none;
+                                    }
+                                  }
+                                </style>
+                              </head>
+                              <body>
+                                <h2>Order Items - Order ${order.orderNumber || order.id}</h2>
+                                <p><strong>Date:</strong> ${new Date(order.created_at || order.createdAt).toLocaleString()}</p>
+                                <p><strong>Customer:</strong> ${order.customerName || 'N/A'}</p>
+                                <hr style="margin: 20px 0;" />
+                                ${printContent.innerHTML}
+                                <script>
+                                  window.onload = function() {
+                                    window.print();
+                                  };
+                                </script>
+                              </body>
+                            </html>
+                          `);
+                          printWindow.document.close();
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          backgroundColor: '#2563eb',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#1d4ed8'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = '#2563eb'}
+                      >
+                        <FaPrint /> Print Order Items
+                      </button>
+                    </div>
                     {(Array.isArray(order.orderItems) ? order.orderItems : []).map((item, index) => (
                       <div key={index} className="order-item">
                         {item.product_type === 'custom_design' ? (
@@ -1545,7 +1701,7 @@ const Orders = () => {
                               <img src={item.image} alt={item.name} className="item-image" />
                               <div className="item-info">
                                 <div className="item-name">{item.name}</div>
-                                <div className="item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} × {item.quantity}</div>
+                                <div className="item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}{item.isTeamOrder ? '' : ` × ${item.quantity}`}</div>
                               </div>
                             </div>
                             
