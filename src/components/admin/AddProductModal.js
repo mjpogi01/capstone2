@@ -672,55 +672,79 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       )
     );
 
+    // Count how many sizes have surcharges
+    const surchargeCount = normalizedList.filter(
+      (size) => sizeSurcharges[groupKey]?.[size] && sizeSurcharges[groupKey][size] !== ''
+    ).length;
+
     return (
       <div className="apm-size-surcharge-group" key={`${groupKey}-group`}>
-        <div className="apm-size-surcharge-heading">
-          <h5>{label}</h5>
+        <div className="apm-size-surcharge-header">
+          <div className="apm-size-surcharge-title-section">
+            <h5 className="apm-size-surcharge-title">{label}</h5>
+            {normalizedList.length > 0 && (
+              <span className="apm-size-surcharge-count">
+                {surchargeCount > 0 ? `${surchargeCount} of ${normalizedList.length} set` : 'None set'}
+              </span>
+            )}
+          </div>
           {normalizedList.length === 0 && emptyMessage && (
             <span className="apm-muted">{emptyMessage}</span>
           )}
         </div>
         {description && (
-          <small
-            className="apm-form-help"
-            style={{
-              display: 'block',
-              marginBottom: normalizedList.length > 0 ? '0.75rem' : '0'
-            }}
-          >
+          <div className="apm-size-surcharge-description">
             {description}
-          </small>
+          </div>
         )}
         {normalizedList.length > 0 && (
-        <div className="apm-size-surcharge-grid">
-            {normalizedList.map((size) => (
-            <div className="apm-size-surcharge-row" key={`${groupKey}-${size}`}>
-              <span className="apm-size-chip">{size}</span>
-              <div className="apm-size-surcharge-input">
-                <span className="apm-currency-prefix">₱</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={sizeSurcharges[groupKey]?.[size] ?? ''}
-                  onChange={(e) =>
-                    handleSizeSurchargeChange(groupKey, size, e.target.value)
-                  }
-                  placeholder="0.00"
-                />
-              </div>
-              {(sizeSurcharges[groupKey]?.[size] ?? '') !== '' && (
-                <button
-                  type="button"
-                  className="apm-size-surcharge-clear"
-                  onClick={() => handleSizeSurchargeChange(groupKey, size, '')}
-                  aria-label={`Clear surcharge for ${size}`}
-                >
-                  ×
-                </button>
-              )}
+          <div className="apm-size-surcharge-container">
+            <div className="apm-size-surcharge-grid">
+              {normalizedList.map((size) => {
+                const hasValue = sizeSurcharges[groupKey]?.[size] && sizeSurcharges[groupKey][size] !== '';
+                const value = sizeSurcharges[groupKey]?.[size] ?? '';
+                
+                return (
+                  <div 
+                    className={`apm-size-surcharge-item ${hasValue ? 'has-surcharge' : ''}`} 
+                    key={`${groupKey}-${size}`}
+                  >
+                    <div className="apm-size-surcharge-label">
+                      <span className="apm-size-chip">{size}</span>
+                      {hasValue && (
+                        <span className="apm-size-surcharge-badge">Set</span>
+                      )}
+                    </div>
+                    <div className={`apm-size-surcharge-input-wrapper ${hasValue ? 'has-value' : ''}`}>
+                      <span className="apm-currency-prefix">₱</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={value}
+                        onChange={(e) =>
+                          handleSizeSurchargeChange(groupKey, size, e.target.value)
+                        }
+                        placeholder="0.00"
+                        className="apm-size-surcharge-input-field"
+                      />
+                      {hasValue && (
+                        <button
+                          type="button"
+                          className="apm-size-surcharge-clear"
+                          onClick={() => handleSizeSurchargeChange(groupKey, size, '')}
+                          aria-label={`Clear surcharge for ${size}`}
+                          title="Clear surcharge"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
         )}
       </div>
     );

@@ -539,25 +539,53 @@
   resize: vertical;
 }
 
+/* Size Surcharge Group - Redesigned */
 .apm-size-surcharge-group {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   margin-top: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
 }
 
-.apm-size-surcharge-heading {
+.apm-size-surcharge-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
-.apm-size-surcharge-heading h5 {
+.apm-size-surcharge-title-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.apm-size-surcharge-title {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
   color: #0f172a;
+}
+
+.apm-size-surcharge-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  background: #e2e8f0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+}
+
+.apm-size-surcharge-description {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.4;
+  margin-top: 0.25rem;
 }
 
 .apm-muted {
@@ -565,84 +593,163 @@
   color: #64748b;
 }
 
+.apm-size-surcharge-container {
+  margin-top: 0.5rem;
+}
+
 .apm-size-surcharge-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-.apm-size-surcharge-row {
+.apm-size-surcharge-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.apm-size-surcharge-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.apm-size-surcharge-item.has-surcharge {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1);
+}
+
+.apm-size-surcharge-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  max-width: 100%;
+  justify-content: space-between;
+  gap: 0.4rem;
 }
 
 .apm-size-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
+  min-width: 35px;
   padding: 0.2rem 0.5rem;
-  border-radius: 9999px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
   color: #1e1b4b;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   flex-shrink: 0;
 }
 
-.apm-size-surcharge-input {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 0.25rem 0.5rem;
-  min-width: 90px;
-  max-width: 120px;
-  flex: 1;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+.apm-size-surcharge-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #059669;
+  background: #d1fae5;
+  padding: 0.1rem 0.35rem;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.apm-size-surcharge-input input {
+.apm-size-surcharge-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  transition: all 0.2s ease;
+}
+
+.apm-size-surcharge-input-wrapper:focus-within {
+  border-color: #3b82f6;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.apm-size-surcharge-input-wrapper.has-value {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.apm-size-surcharge-input-wrapper.has-value:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.apm-currency-prefix {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.apm-size-surcharge-input-field {
   border: none;
   background: transparent;
   width: 100%;
   font-size: 0.8rem;
   font-weight: 500;
-  color: #374151;
-}
-
-.apm-size-surcharge-input input:focus {
+  color: #111827;
+  padding: 0;
   outline: none;
 }
 
-.apm-currency-prefix {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #6b7280;
+/* Remove number input spinners */
+.apm-size-surcharge-input-field::-webkit-outer-spin-button,
+.apm-size-surcharge-input-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.apm-size-surcharge-input-field[type=number] {
+  -moz-appearance: textfield;
+}
+
+.apm-size-surcharge-input-field::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.apm-size-surcharge-input-field:focus {
+  outline: none;
 }
 
 .apm-size-surcharge-clear {
-  background: none;
+  background: #fee2e2;
   border: none;
-  color: #ef4444;
-  font-size: 1.1rem;
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.2s ease;
+  padding: 0.15rem 0.3rem;
+  line-height: 1;
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
 }
 
 .apm-size-surcharge-clear:hover {
+  background: #fecaca;
   color: #b91c1c;
-  transform: scale(1.1);
+  transform: scale(1.05);
+}
+
+.apm-size-surcharge-clear:active {
+  transform: scale(0.95);
 }
 
 .apm-fabric-quick-add {
@@ -1196,5 +1303,45 @@
 .apm-submit-btn:disabled:hover {
   transform: none;
   box-shadow: none;
+}
+
+/* Responsive Design for Size Surcharge Group */
+@media (max-width: 768px) {
+  .apm-size-surcharge-group {
+    padding: 0.75rem;
+  }
+
+  .apm-size-surcharge-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .apm-size-surcharge-item {
+    padding: 0.6rem;
+  }
+
+  .apm-size-surcharge-title-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .apm-size-surcharge-count {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .apm-size-surcharge-group {
+    padding: 0.5rem;
+  }
+
+  .apm-size-surcharge-item {
+    padding: 0.5rem;
+  }
+
+  .apm-size-surcharge-input-wrapper {
+    padding: 0.4rem 0.6rem;
+  }
 }
 
