@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaTimes, FaEye, FaTruck, FaMapMarkerAlt, FaCalendarAlt, FaShoppingBag, FaUsers, FaBan, FaRoute, FaCheckCircle, FaStar, FaCamera, FaLocationArrow, FaComments, FaEdit, FaTrash } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaTimes, FaEye, FaTruck, FaMapMarkerAlt, FaCalendarAlt, FaShoppingBag, FaUsers, FaBan, FaRoute, FaCheckCircle, FaStar, FaCamera, FaLocationArrow, FaComments, FaChevronLeft, FaChevronRight, FaDownload, FaEdit, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
@@ -29,6 +29,75 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
   const [orderToCancel, setOrderToCancel] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const [selectedOrderForChat, setSelectedOrderForChat] = useState(null);
+  const [imageGallery, setImageGallery] = useState({ isOpen: false, images: [], currentIndex: 0 }); // Image gallery modal state
+
+  // Image gallery functions
+  const openImageGallery = useCallback((images, startIndex = 0) => {
+    if (!images || images.length === 0) return;
+    setImageGallery({
+      isOpen: true,
+      images: images.map(img => ({
+        url: img.url || img,
+        filename: img.filename || img.originalname || `image-${images.indexOf(img) + 1}.jpg`
+      })),
+      currentIndex: startIndex
+    });
+  }, []);
+
+  const closeImageGallery = useCallback(() => {
+    setImageGallery({ isOpen: false, images: [], currentIndex: 0 });
+  }, []);
+
+  const goToNextImage = useCallback(() => {
+    setImageGallery(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex + 1) % prev.images.length
+    }));
+  }, []);
+
+  const goToPrevImage = useCallback(() => {
+    setImageGallery(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex - 1 + prev.images.length) % prev.images.length
+    }));
+  }, []);
+
+  const downloadImage = useCallback((imageUrl, filename) => {
+    fetch(imageUrl)
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'image.jpg';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      })
+      .catch(error => {
+        console.error('Error downloading image:', error);
+        window.open(imageUrl, '_blank');
+      });
+  }, []);
+
+  // Keyboard navigation for image gallery
+  useEffect(() => {
+    if (!imageGallery.isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeImageGallery();
+      } else if (e.key === 'ArrowLeft') {
+        goToPrevImage();
+      } else if (e.key === 'ArrowRight') {
+        goToNextImage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [imageGallery.isOpen, closeImageGallery, goToPrevImage, goToNextImage]);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -167,6 +236,69 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
       case 'cancelled': return 'status-cancelled';
       default: return 'status-pending';
     }
+  };
+
+  // Calculate order total dynamically for custom design orders
+  const calculateOrderTotal = (order) => {
+    if (!order.orderItems || order.orderItems.length === 0) {
+      return parseFloat(order.totalAmount || 0);
+    }
+
+    let calculatedSubtotal = 0;
+
+    order.orderItems.forEach((item) => {
+      const isCustomDesign = item.product_type === 'custom_design';
+      
+      if (isCustomDesign && item.team_members && item.team_members.length > 0) {
+        // Calculate total for custom design items by summing all member prices
+        item.team_members.forEach((member) => {
+          let memberPrice = 0;
+          const memberSizingType = member.sizingType || 'adults';
+          const memberJerseyType = member.jerseyType || 'full';
+          
+          // Base price calculation
+          if (memberSizingType === 'kids') {
+            if (memberJerseyType === 'full') memberPrice = 850;
+            else if (memberJerseyType === 'shirt') memberPrice = 450;
+            else if (memberJerseyType === 'shorts') memberPrice = 400;
+          } else {
+            if (memberJerseyType === 'full') memberPrice = 950;
+            else if (memberJerseyType === 'shirt') memberPrice = 500;
+            else if (memberJerseyType === 'shorts') memberPrice = 450;
+          }
+          
+          // Size surcharge
+          const surchargeSizes = ['2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
+          const shirtSize = member.size || '';
+          const shortsSize = member.shortsSize || '';
+          if (surchargeSizes.includes(shirtSize) || surchargeSizes.includes(shortsSize)) {
+            memberPrice += 50;
+          }
+          
+          // Fabric surcharge
+          const fabricOption = member.fabricOption || '';
+          if (fabricOption === 'Polytex') memberPrice += 50;
+          
+          // Cut type surcharge
+          const cutType = member.cutType || '';
+          if (cutType === 'NBA Cut') memberPrice += 100;
+          
+          // Custom design fee
+          memberPrice += 200;
+          
+          calculatedSubtotal += memberPrice;
+        });
+      } else {
+        // Regular items: use price * quantity
+        const itemPrice = parseFloat(item.price || 0);
+        const quantity = parseFloat(item.quantity || 1);
+        calculatedSubtotal += itemPrice * quantity;
+      }
+    });
+
+    // Add shipping cost
+    const shippingCost = parseFloat(order.shippingCost || 0);
+    return calculatedSubtotal + shippingCost;
   };
 
   const getStatusDescription = (status) => {
@@ -455,7 +587,10 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         <FaCalendarAlt /> {formatDate(order.orderDate)}
                       </div>
                       <div className="customer-order-total">
-                        Total: ₱{parseFloat(order.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        Total: ₱{(() => {
+                          const calculatedTotal = calculateOrderTotal(order);
+                          return calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                        })()}
                       </div>
                       {order.assignedArtist && (
                         <div className="customer-order-artist">
@@ -495,80 +630,346 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                 {isCustomDesign ? (
                                   <>
                                     <div className="item-info">
-                                      <div className="item-name">Custom Design Order</div>
-                                      <div className="item-details">
-                                        <div className="team-order-details-expanded">
-                                          <div className="team-order-header-info">
-                                            <FaUsers className="team-order-icon" /> Custom Design Order
+                                      {/* Get first design image as product image */}
+                                      {(() => {
+                                        const designImage = item.design_images && item.design_images.length > 0 
+                                          ? item.design_images[0].url 
+                                          : null;
+                                        const getApparelDisplayName = (apparelType) => {
+                                          const apparelTypeMap = {
+                                            'basketball_jersey': 'Custom Basketball Jersey',
+                                            'volleyball_jersey': 'Custom Volleyball Jersey',
+                                            'hoodie': 'Custom Hoodie',
+                                            'tshirt': 'Custom T-shirt',
+                                            'longsleeves': 'Custom Long Sleeves',
+                                            'uniforms': 'Custom Uniforms'
+                                          };
+                                          return apparelTypeMap[apparelType] || 'Custom Design';
+                                        };
+
+                                        return (
+                                          <div className="cd-order-item-header">
+                                            <div 
+                                              className="cd-order-item-image-wrapper"
+                                              onClick={() => {
+                                                const images = item.design_images || [];
+                                                if (images.length > 0) {
+                                                  openImageGallery(images, 0);
+                                                }
+                                              }}
+                                              style={{ position: 'relative', cursor: (item.design_images && item.design_images.length > 0) ? 'pointer' : 'default' }}
+                                            >
+                                              <img 
+                                                src={designImage || '/placeholder-image.png'} 
+                                                alt={getApparelDisplayName(item.apparel_type)} 
+                                                className="cd-order-item-image"
+                                                onError={(e) => {
+                                                  e.target.src = '/placeholder-image.png';
+                                                }}
+                                              />
+                                              {item.design_images && item.design_images.length > 1 && (
+                                                <div className="cd-order-item-image-badge">
+                                                  +{item.design_images.length - 1}
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="cd-order-item-info">
+                                              <div className="cd-order-item-name">{getApparelDisplayName(item.apparel_type)}</div>
+                                              <div className="cd-order-item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} × {item.quantity || 1}</div>
+                                            </div>
                                           </div>
+                                        );
+                                      })()}
+                                      
+                                      <div className="item-details">
+                                        {(() => {
+                                          const memberCount = item.team_members?.length || 0;
+                                          const isSingleOrder = memberCount <= 1;
+                                          
+                                          // Calculate member price for single orders (before rendering)
+                                          let calculatedMemberPrice = 0;
+                                          if (isSingleOrder && item.team_members && item.team_members.length > 0) {
+                                            const member = item.team_members[0];
+                                            const memberJerseyType = member.jerseyType || 'full';
+                                            const memberSizingType = member.sizingType || 'adults';
+                                            
+                                            // Calculate member price
+                                            if (memberSizingType === 'kids') {
+                                              if (memberJerseyType === 'full') calculatedMemberPrice = 850;
+                                              else if (memberJerseyType === 'shirt') calculatedMemberPrice = 450;
+                                              else if (memberJerseyType === 'shorts') calculatedMemberPrice = 400;
+                                            } else {
+                                              if (memberJerseyType === 'full') calculatedMemberPrice = 950;
+                                              else if (memberJerseyType === 'shirt') calculatedMemberPrice = 500;
+                                              else if (memberJerseyType === 'shorts') calculatedMemberPrice = 450;
+                                            }
+                                            
+                                            const surchargeSizes = ['2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
+                                            const shirtSize = member.size || '';
+                                            const shortsSize = member.shortsSize || '';
+                                            if (surchargeSizes.includes(shirtSize) || surchargeSizes.includes(shortsSize)) {
+                                              calculatedMemberPrice += 50;
+                                            }
+                                            
+                                            const fabricOption = member.fabricOption || '';
+                                            if (fabricOption === 'Polytex') calculatedMemberPrice += 50;
+                                            
+                                            const cutType = member.cutType || '';
+                                            if (cutType === 'NBA Cut') calculatedMemberPrice += 100;
+                                            
+                                            calculatedMemberPrice += 200; // Custom design fee
+                                          }
+                                          
+                                          // Use calculated price if available, otherwise fall back to item.price
+                                          const displayPrice = calculatedMemberPrice > 0 ? calculatedMemberPrice : (item.price || 0);
+                                          const quantity = item.quantity || memberCount || 1;
+                                          const totalPrice = displayPrice * quantity;
+                                          
+                                          return isSingleOrder ? (
+                                            <div className="single-order-details-expanded">
+                                              <div className="single-order-header-info">
+                                                <span className="header-order-text">Single Order | Qty: {quantity}</span>
+                                                <span className="header-price-text">₱{totalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                    </div>
+                                              <div className="single-order-details-list">
+                                                {item.team_name && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Team Name:</span>
+                                                    <span className="order-detail-value">{item.team_name}</span>
+                                                  </div>
+                                                )}
+                                                {item.team_members && item.team_members.length > 0 && (() => {
+                                                  const member = item.team_members[0];
+                                                  const memberJerseyType = member.jerseyType || 'full';
+                                                  const memberSizingType = member.sizingType || 'adults';
+                                                  
+                                                  // Use the pre-calculated price
+                                                  const memberPrice = calculatedMemberPrice;
+                                                  
+                                                  return (
+                                                    <>
+                                                      {member.surname && (
+                                                        <div className="order-detail-row">
+                                                          <span className="order-detail-label">Surname:</span>
+                                                          <span className="order-detail-value">{member.surname}</span>
+                                      </div>
+                                                      )}
+                                                      {member.number && (
+                                                        <div className="order-detail-row">
+                                                          <span className="order-detail-label">Jersey #:</span>
+                                                          <span className="order-detail-value">{member.number || 'N/A'}</span>
+                                            </div>
+                                                      )}
+                                                      <div className="order-detail-row">
+                                                        <span className="order-detail-label">Jersey Type:</span>
+                                                        <span className="order-detail-value">
+                                                          {memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set'}
+                                                        </span>
+                                        </div>
+                                                      {(memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                                        <div className="order-detail-row">
+                                                          <span className="order-detail-label">Jersey Size:</span>
+                                                          <span className="order-detail-value">{member.size || 'N/A'}</span>
+                                      </div>
+                                                      )}
+                                                      {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && (
+                                                        <div className="order-detail-row">
+                                                          <span className="order-detail-label">Shorts Size:</span>
+                                                          <span className="order-detail-value">{member.shortsSize || 'N/A'}</span>
+                                    </div>
+                                                      )}
+                                                      {member.fabricOption && (
+                                                        <div className="order-detail-row">
+                                                          <span className="order-detail-label">Fabric:</span>
+                                                          <span className="order-detail-value">{member.fabricOption || 'N/A'}</span>
+                                                        </div>
+                                                      )}
+                                                      {member.cutType && (
+                                                        <div className="order-detail-row">
+                                                          <span className="order-detail-label">Cut Type:</span>
+                                                          <span className="order-detail-value">{member.cutType || 'N/A'}</span>
+                                                        </div>
+                                                      )}
+                                                      {member.sizingType && (
+                                                        <div className="order-detail-row">
+                                                          <span className="order-detail-label">Type:</span>
+                                                          <span className="order-detail-value">{member.sizingType === 'kids' ? 'Kids' : 'Adult'}</span>
+                                                        </div>
+                                                      )}
+                                                      <div className="order-detail-row">
+                                                        <span className="order-detail-label">Price:</span>
+                                                        <span className="order-detail-value">₱{memberPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                      </div>
+                                                    </>
+                                                  );
+                                                })()}
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="team-order-details-expanded">
+                                              <div className="team-order-header-info">
+                                                <FaUsers className="team-order-icon" /> Team Order
+                                              </div>
                                           <div className="team-order-teamname-section">
                                             <div className="team-order-teamname-row">
                                               <span className="team-order-teamname-label">Team Name:</span>
                                               <span className="team-order-teamname-value">{item.team_name || 'N/A'}</span>
                                             </div>
                                           </div>
-                                          {item.team_members && item.team_members.length > 0 && (
-                                            <div className="team-order-members-list">
-                                              {item.team_members.map((member, memberIndex) => (
-                                                <div key={memberIndex} className="team-member-detail-item">
-                                                  <div className="member-detail-row">
-                                                    <span className="member-detail-label">Surname:</span>
-                                                    <span className="member-detail-value">{member.surname || 'N/A'}</span>
-                                                  </div>
-                                                  <div className="member-detail-row">
-                                                    <span className="member-detail-label">Jersey #:</span>
-                                                    <span className="member-detail-value">{member.number || 'N/A'}</span>
-                                                  </div>
-                                                  <div className="member-detail-row">
-                                                    <span className="member-detail-label">Jersey Size:</span>
-                                                    <span className="member-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
-                                                  </div>
-                                                  <div className="member-detail-row">
-                                                    <span className="member-detail-label">Shorts Size:</span>
-                                                    <span className="member-detail-value">{member.shortsSize || member.size || 'N/A'}</span>
-                                                  </div>
-                                                  {member.sizingType && (
+                                          <div className="team-order-members-list">
+                                            {(() => {
+                                              // Calculate total price by summing all member prices
+                                              let totalTeamPrice = 0;
+                                              const memberPrices = [];
+                                              
+                                              if (item.team_members && item.team_members.length > 0) {
+                                                item.team_members.forEach((member) => {
+                                                  // Calculate member price
+                                                  let memberPrice = 0;
+                                                  const memberSizingType = member.sizingType || 'adults';
+                                                  const memberJerseyType = member.jerseyType || 'full';
+                                                  
+                                                  // Base price calculation
+                                                  if (memberSizingType === 'kids') {
+                                                    if (memberJerseyType === 'full') memberPrice = 850;
+                                                    else if (memberJerseyType === 'shirt') memberPrice = 450;
+                                                    else if (memberJerseyType === 'shorts') memberPrice = 400;
+                                                  } else {
+                                                    if (memberJerseyType === 'full') memberPrice = 950;
+                                                    else if (memberJerseyType === 'shirt') memberPrice = 500;
+                                                    else if (memberJerseyType === 'shorts') memberPrice = 450;
+                                                  }
+                                                  
+                                                  // Size surcharge
+                                                  const surchargeSizes = ['2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
+                                                  const shirtSize = member.size || '';
+                                                  const shortsSize = member.shortsSize || '';
+                                                  if (surchargeSizes.includes(shirtSize) || surchargeSizes.includes(shortsSize)) {
+                                                    memberPrice += 50;
+                                                  }
+                                                  
+                                                  // Fabric surcharge (if applicable)
+                                                  const fabricOption = member.fabricOption || '';
+                                                  if (fabricOption === 'Polytex') memberPrice += 50;
+                                                  
+                                                  // Cut type surcharge (if applicable)
+                                                  const cutType = member.cutType || '';
+                                                  if (cutType === 'NBA Cut') memberPrice += 100;
+                                                  
+                                                  // Custom design fee
+                                                  memberPrice += 200;
+                                                  
+                                                  memberPrices.push(memberPrice);
+                                                  totalTeamPrice += memberPrice;
+                                                });
+                                              }
+                                              
+                                              return item.team_members && item.team_members.length > 0 ? (
+                                                item.team_members.map((member, memberIndex) => {
+                                                  // Use the pre-calculated member price
+                                                  const memberPrice = memberPrices[memberIndex] || 0;
+                                                  const memberJerseyType = member.jerseyType || 'full';
+                                                
+                                                return (
+                                                  <div key={memberIndex} className="team-member-detail-item">
                                                     <div className="member-detail-row">
-                                                      <span className="member-detail-label">Type:</span>
-                                                      <span className="member-detail-value">{member.sizingType}</span>
+                                                      <span className="member-detail-label">Surname:</span>
+                                                      <span className="member-detail-value">{member.surname || 'N/A'}</span>
+                                              </div>
+                                                    <div className="member-detail-row">
+                                                      <span className="member-detail-label">Jersey #:</span>
+                                                      <span className="member-detail-value">{member.number || 'N/A'}</span>
+                                            </div>
+                                                    <div className="member-detail-row">
+                                                      <span className="member-detail-label">Jersey Type:</span>
+                                                      <span className="member-detail-value">
+                                                        {memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set'}
+                                                      </span>
                                                     </div>
-                                                  )}
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                          {item.design_images && item.design_images.length > 0 && (
-                                            <div className="com-custom-design-images-section">
-                                              <div className="member-detail-row">
-                                                <span className="member-detail-label">Design Images:</span>
-                                                <span className="member-detail-value">{item.design_images.length} image(s)</span>
-                                              </div>
-                                              <div className="com-custom-design-images-preview">
-                                                {item.design_images.map((image, imageIndex) => (
-                                                  <img 
-                                                    key={imageIndex}
-                                                    src={image.url} 
-                                                    alt={`Design ${imageIndex + 1}`}
-                                                    className="com-custom-design-preview-image"
-                                                    onClick={() => window.open(image.url, '_blank')}
-                                                    title={image.originalname || `Design ${imageIndex + 1}`}
-                                                  />
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )}
-                                          {item.pickup_branch_id && (
-                                            <div className="member-detail-row">
-                                              <span className="member-detail-label">Pickup Branch:</span>
-                                              <span className="member-detail-value">{item.pickup_branch_id}</span>
-                                            </div>
-                                          )}
-                                          <div className="team-order-quantity-info">
-                                            <span className="quantity-text">Quantity: {item.quantity || 1}</span>
-                                            <span className="quantity-price">₱{(item.price * (item.quantity || 1)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                                    {(memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                                      <div className="member-detail-row">
+                                                        <span className="member-detail-label">Jersey Size:</span>
+                                                        <span className="member-detail-value">{member.size || 'N/A'}</span>
+                                                      </div>
+                                                    )}
+                                                    {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && (
+                                                      <div className="member-detail-row">
+                                                        <span className="member-detail-label">Shorts Size:</span>
+                                                        <span className="member-detail-value">{member.shortsSize || 'N/A'}</span>
+                                                      </div>
+                                                    )}
+                                                    {member.fabricOption ? (
+                                                      <div className="member-detail-row">
+                                                        <span className="member-detail-label">Fabric:</span>
+                                                        <span className="member-detail-value">{member.fabricOption || 'N/A'}</span>
+                                                      </div>
+                                                    ) : null}
+                                                    <div className="member-detail-row">
+                                                      <span className="member-detail-label">Cut Type:</span>
+                                                      <span className="member-detail-value">{member.cutType || 'N/A'}</span>
+                                                    </div>
+                                                    {member.sizingType ? (
+                                                      <div className="member-detail-row">
+                                                        <span className="member-detail-label">Type:</span>
+                                                        <span className="member-detail-value">{member.sizingType === 'kids' ? 'Kids' : 'Adult'}</span>
+                                                      </div>
+                                                    ) : null}
+                                                    <div className="member-detail-row member-price-row">
+                                                      <span className="member-detail-label">Price:</span>
+                                                      <span className="member-detail-value member-price-value">₱{memberPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })
+                                            ) : (
+                                              <div className="team-order-no-members">No team members found</div>
+                                            );
+                                            })()}
                                           </div>
+                                          <div className="team-order-quantity-info">
+                                            <span className="quantity-text">Quantity: {item.quantity || item.team_members?.length || 0}</span>
+                                            <span className="quantity-price">₱{(() => {
+                                              // Calculate total by summing all member prices
+                                              let calculatedTotal = 0;
+                                              if (item.team_members && item.team_members.length > 0) {
+                                                item.team_members.forEach((member) => {
+                                                  let memberPrice = 0;
+                                                  const memberSizingType = member.sizingType || 'adults';
+                                                  const memberJerseyType = member.jerseyType || 'full';
+                                                  
+                                                  if (memberSizingType === 'kids') {
+                                                    if (memberJerseyType === 'full') memberPrice = 850;
+                                                    else if (memberJerseyType === 'shirt') memberPrice = 450;
+                                                    else if (memberJerseyType === 'shorts') memberPrice = 400;
+                                                  } else {
+                                                    if (memberJerseyType === 'full') memberPrice = 950;
+                                                    else if (memberJerseyType === 'shirt') memberPrice = 500;
+                                                    else if (memberJerseyType === 'shorts') memberPrice = 450;
+                                                  }
+                                                  
+                                                  const surchargeSizes = ['2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
+                                                  const shirtSize = member.size || '';
+                                                  const shortsSize = member.shortsSize || '';
+                                                  if (surchargeSizes.includes(shirtSize) || surchargeSizes.includes(shortsSize)) {
+                                                    memberPrice += 50;
+                                                  }
+                                                  
+                                                  const fabricOption = member.fabricOption || '';
+                                                  if (fabricOption === 'Polytex') memberPrice += 50;
+                                                  
+                                                  const cutType = member.cutType || '';
+                                                  if (cutType === 'NBA Cut') memberPrice += 100;
+                                                  
+                                                  memberPrice += 200;
+                                                  calculatedTotal += memberPrice;
+                                                });
+                                              }
+                                              return calculatedTotal > 0 ? calculatedTotal : ((item.price || 0) * (item.quantity || item.team_members?.length || 1));
+                                            })().toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                         </div>
                                       </div>
+                                        );
+                                      })()}
                                     </div>
                                   </>
                                 ) : (
@@ -881,18 +1282,28 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
 
                       <div className="customer-order-summary">
                         <h4>Order Summary</h4>
+                        {(() => {
+                          const calculatedTotal = calculateOrderTotal(order);
+                          const shippingCost = parseFloat(order.shippingCost || 0);
+                          const calculatedSubtotal = calculatedTotal - shippingCost;
+                          
+                          return (
+                            <>
                         <div className="summary-row">
                           <span>Subtotal:</span>
-                          <span>₱{parseFloat(order.subtotalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                <span>₱{calculatedSubtotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                         </div>
                         <div className="summary-row">
                           <span>Shipping:</span>
-                          <span>₱{parseFloat(order.shippingCost).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                <span>₱{shippingCost.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                         </div>
                         <div className="summary-row total">
                           <span>Total:</span>
-                          <span>₱{parseFloat(order.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                <span>₱{calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                         </div>
+                            </>
+                          );
+                        })()}
                         {order.orderNotes && (
                           <div className="order-notes">
                             <strong>Notes:</strong> {order.orderNotes}
@@ -916,8 +1327,8 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                         </div>
                       )}
 
-                       {/* Chat Button - Show for orders with custom designs */}
-                       {hasCustomDesign(order) && (
+                       {/* Chat Button - Show only for orders with custom designs AND assigned artist */}
+                       {hasCustomDesign(order) && order.assignedArtist && (
                          <div className="customer-order-chat-actions">
                            <button
                              className="customer-chat-with-artist-btn"
@@ -992,7 +1403,10 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
             <div className="review-modal-body">
               <div className="review-order-info">
                 <h4>Order #{selectedOrderForReview.orderNumber}</h4>
-                <p>Total: ₱{parseFloat(selectedOrderForReview.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                <p>Total: ₱{(() => {
+                  const calculatedTotal = calculateOrderTotal(selectedOrderForReview);
+                  return calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                })()}</p>
               </div>
               
               <div className="review-rating-input">
@@ -1120,6 +1534,71 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
           isOpen={showChat}
           onClose={handleCloseChat}
         />
+      )}
+
+      {/* Image Gallery Modal */}
+      {imageGallery.isOpen && imageGallery.images.length > 0 && (
+        <div 
+          className="cd-image-gallery-overlay"
+          onClick={closeImageGallery}
+        >
+          <div 
+            className="cd-image-gallery-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="cd-image-gallery-close"
+              onClick={closeImageGallery}
+              aria-label="Close gallery"
+            >
+              <FaTimes />
+            </button>
+
+            <button
+              className="cd-image-gallery-nav cd-image-gallery-prev"
+              onClick={goToPrevImage}
+              aria-label="Previous image"
+              disabled={imageGallery.images.length <= 1}
+            >
+              <FaChevronLeft />
+            </button>
+
+            <div className="cd-image-gallery-main">
+              <img
+                src={imageGallery.images[imageGallery.currentIndex].url}
+                alt={`Design ${imageGallery.currentIndex + 1}`}
+                className="cd-image-gallery-image"
+                onError={(e) => {
+                  e.target.src = '/placeholder-image.png';
+                }}
+              />
+              <div className="cd-image-gallery-info">
+                <span className="cd-image-gallery-counter">
+                  {imageGallery.currentIndex + 1} / {imageGallery.images.length}
+                </span>
+                <button
+                  className="cd-image-gallery-download"
+                  onClick={() => downloadImage(
+                    imageGallery.images[imageGallery.currentIndex].url,
+                    imageGallery.images[imageGallery.currentIndex].filename
+                  )}
+                  aria-label="Download image"
+                >
+                  <FaDownload />
+                </button>
+              </div>
+            </div>
+
+            <button
+              className="cd-image-gallery-nav cd-image-gallery-next"
+              onClick={goToNextImage}
+              aria-label="Next image"
+              disabled={imageGallery.images.length <= 1}
+            >
+              <FaChevronRight />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

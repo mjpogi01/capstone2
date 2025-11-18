@@ -1869,4 +1869,341 @@
     width: 45px;
     height: 45px;
   }
+  
+  .custom-design-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+  
+  .customer-orders-modal .custom-design-header {
+    padding: 16px 20px;
+    margin-bottom: 24px;
+  }
+
+  /* Center the custom design icon on smaller mobile */
+  .custom-design-icon {
+    display: block;
+    margin: 0 auto;
+    align-self: center;
+  }
+  
+  .custom-design-title {
+    font-size: 1.3rem;
+  }
+  
+  .customer-orders-modal .custom-design-title {
+    font-size: 1.5rem;
+  }
+  
+  .custom-design-subtitle {
+    font-size: 1rem;
+  }
+  
+  .customer-orders-modal .custom-design-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .custom-design-section-title {
+    font-size: 1rem;
+    padding: 10px 14px;
+    margin: 20px 0 14px 0;
+  }
+  
+  .customer-orders-modal .custom-design-section-title {
+    font-size: 1.1rem;
+    padding: 12px 16px;
+    margin: 24px 0 16px 0;
+  }
+  
+  .custom-design-members-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .customer-orders-modal .custom-design-members-list {
+    gap: 10px;
+  }
+  
+  .custom-design-images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .customer-orders-modal .custom-design-images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  
+  .custom-design-image {
+    height: 100px;
+  }
+  
+  .customer-orders-modal .custom-design-image {
+    height: 120px;
+  }
+    font-size: 1rem;
+  }
+  
+  .customer-orders-modal .custom-design-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .custom-design-section-title {
+    font-size: 1rem;
+    padding: 10px 14px;
+    margin: 20px 0 14px 0;
+  }
+  
+  .customer-orders-modal .custom-design-section-title {
+    font-size: 1.1rem;
+    padding: 12px 16px;
+    margin: 24px 0 16px 0;
+  }
+  
+  .custom-design-members-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .customer-orders-modal .custom-design-members-list {
+    gap: 10px;
+  }
+  
+  .custom-design-images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .customer-orders-modal .custom-design-images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  
+  .custom-design-image {
+    height: 100px;
+  }
+  
+  .customer-orders-modal .custom-design-image {
+    height: 120px;
+  }
+/* Custom Design Order Item Styles */
+.cd-order-item-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.cd-order-item-image {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 8px;
+  object-fit: cover;
+  background: rgba(99, 179, 237, 0.1);
+  flex-shrink: 0;
+}
+
+.cd-order-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cd-order-item-name {
+  font-weight: 600;
+  color: #f1f1f1;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.cd-order-item-price {
+  color: #cbd5e0;
+  font-size: 0.875rem;
+}
+
+/* Image wrapper with badge */
+.cd-order-item-image-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.cd-order-item-image-wrapper:hover .cd-order-item-image {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.cd-order-item-image-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+/* Image Gallery Modal */
+.cd-image-gallery-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cd-image-gallery-content {
+  position: relative;
+  width: 90vw;
+  height: 90vh;
+  max-width: 1200px;
+  max-height: 800px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cd-image-gallery-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.5rem;
+  z-index: 10001;
+  transition: all 0.3s ease;
+}
+
+.cd-image-gallery-close:hover {
+  background: rgba(255, 77, 77, 0.8);
+  border-color: rgba(255, 77, 77, 1);
+  transform: scale(1.1);
+}
+
+.cd-image-gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.5rem;
+  z-index: 10001;
+  transition: all 0.3s ease;
+}
+
+.cd-image-gallery-nav:hover:not(:disabled) {
+  background: rgba(99, 179, 237, 0.8);
+  border-color: rgba(99, 179, 237, 1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.cd-image-gallery-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.cd-image-gallery-prev {
+  left: 20px;
+}
+
+.cd-image-gallery-next {
+  right: 20px;
+}
+
+.cd-image-gallery-main {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cd-image-gallery-image {
+  max-width: 100%;
+  max-height: calc(90vh - 80px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.cd-image-gallery-info {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 12px 20px;
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+}
+
+.cd-image-gallery-counter {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cd-image-gallery-download {
+  background: rgba(99, 179, 237, 0.8);
+  border: none;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.cd-image-gallery-download:hover {
+  background: rgba(99, 179, 237, 1);
+  transform: scale(1.1);
+>>>>>>> 0d73e2d (Fix artist chat modal CSS conflicts and update custom design order layout in artist task modal)
 }

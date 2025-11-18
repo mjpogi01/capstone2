@@ -39,6 +39,7 @@ import {
 import './Orders.css';
 import './FloatingButton.css';
 import './OrderNotification.css';
+import './artist-assignment-loading.css';
 import orderService from '../../services/orderService';
 import { getApparelSizeVisibility } from '../../utils/orderSizing';
 import designUploadService from '../../services/designUploadService';
@@ -83,6 +84,12 @@ const Orders = () => {
   const [showAllDesignFiles, setShowAllDesignFiles] = useState(false);
   const [serverRevisionNotes, setServerRevisionNotes] = useState({}); // { [identifier]: Note[] }
   const [imageGallery, setImageGallery] = useState({ isOpen: false, images: [], currentIndex: 0 }); // Image gallery modal state
+  const [artistAssignmentLoading, setArtistAssignmentLoading] = useState({ 
+    orderId: null, 
+    orderNumber: null, 
+    status: 'loading', // 'loading' | 'success' | 'error'
+    artistName: null 
+  }); // Track artist assignment loading
   
   // Reset "view all" when switching expanded order
   useEffect(() => {
@@ -536,11 +543,22 @@ const Orders = () => {
       const orderNumber = order?.orderNumber || `#${orderId}`;
       const oldStatus = order?.status || 'unknown';
       
+      // Show loading screen when starting layout (artist assignment)
+      if (newStatus === 'layout') {
+        setArtistAssignmentLoading({ 
+          orderId, 
+          orderNumber, 
+          status: 'loading',
+          artistName: null 
+        });
+      }
+      
       // Check role-based restrictions
       const userRole = user?.user_metadata?.role || 'customer';
       
       if (newStatus === 'sizing' && userRole !== 'artist') {
         updatingOrdersRef.current.delete(orderId);
+        setArtistAssignmentLoading({ orderId: null, orderNumber: null }); // Clear loading if shown
         addNotification({
           type: 'error',
           title: 'Permission Denied',
@@ -580,12 +598,69 @@ const Orders = () => {
       
       // Make API call in background (non-blocking)
       orderService.updateOrderStatus(orderId, newStatus)
-        .then(() => {
+        .then((response) => {
           console.log(`✅ Frontend: Order status update successful`);
           updatingOrdersRef.current.delete(orderId);
+          
+          // Handle artist assignment success for layout status
+          if (newStatus === 'layout' && response.artistAssignmentSuccess) {
+            // Show success state with artist name
+            if (response.artistInfo?.artist_name) {
+              setArtistAssignmentLoading(prev => ({
+                ...prev,
+                status: 'success',
+                artistName: response.artistInfo.artist_name
+              }));
+              
+              // Auto-hide after 2.5 seconds
+              setTimeout(() => {
+                setArtistAssignmentLoading({ 
+                  orderId: null, 
+                  orderNumber: null, 
+                  status: 'loading',
+                  artistName: null 
+                });
+              }, 2500);
+            } else {
+              // No artist info, just close
+              setArtistAssignmentLoading({ 
+                orderId: null, 
+                orderNumber: null, 
+                status: 'loading',
+                artistName: null 
+              });
+            }
+          } else if (newStatus === 'layout') {
+            // Clear loading screen if not layout or no success flag
+            setArtistAssignmentLoading({ 
+              orderId: null, 
+              orderNumber: null, 
+              status: 'loading',
+              artistName: null 
+            });
+          }
         })
         .catch((error) => {
           console.error('Error updating order status:', error);
+          
+          // Clear loading screen on error
+          if (newStatus === 'layout') {
+            setArtistAssignmentLoading({ 
+              orderId: null, 
+              orderNumber: null, 
+              status: 'error',
+              artistName: null 
+            });
+            // Hide error state quickly
+            setTimeout(() => {
+              setArtistAssignmentLoading({ 
+                orderId: null, 
+                orderNumber: null, 
+                status: 'loading',
+                artistName: null 
+              });
+            }, 500);
+          }
           
           // Revert optimistic update on error
           setOrders(prevOrders =>
@@ -607,7 +682,20 @@ const Orders = () => {
           let errorTitle = 'Update Failed';
           let errorMessage = error.message || 'Failed to update order status. Please try again.';
           
-          if (error.message && error.message.includes('Only artists can move orders to sizing status')) {
+          // Check if this is an artist assignment error
+          // Check both error.artistAssignmentError and error.payload (from authJsonFetch)
+          const payload = error.payload || error.response?.data;
+          if (error.artistAssignmentError || payload?.artistAssignmentError) {
+            const assignmentError = error.assignmentError || payload?.assignmentError;
+            errorTitle = 'Artist Assignment Failed';
+            errorMessage = assignmentError?.message || payload?.error || error.message || 'Failed to assign artist task. Please ensure at least one active artist is available.';
+            
+            // Add more specific details if available
+            const details = payload?.details || error.response?.data?.details;
+            if (details) {
+              errorMessage += ` ${details}`;
+            }
+          } else if (error.message && error.message.includes('Only artists can move orders to sizing status')) {
             errorTitle = 'Permission Denied';
             errorMessage = 'Only artists can move orders to sizing status';
           } else if (error.message && error.message.includes('Design files must be uploaded')) {
@@ -616,6 +704,12 @@ const Orders = () => {
           } else if (error.message && error.message.includes('Order must be in layout status')) {
             errorTitle = 'Invalid Status Transition';
             errorMessage = 'Order must be in layout status before moving to sizing';
+          } else if (error.message && error.message.includes('No active artists available')) {
+            errorTitle = 'No Artists Available';
+            errorMessage = 'Cannot assign task: No active artists available. Please ensure at least one artist profile is active.';
+          } else if (error.message && error.message.includes('Cannot assign task')) {
+            errorTitle = 'Assignment Failed';
+            errorMessage = error.message;
           }
           
           addNotification({
@@ -624,7 +718,7 @@ const Orders = () => {
             message: errorMessage,
             orderNumber: orderNumber,
             status: oldStatus,
-            duration: 4000
+            duration: 5000 // Longer duration for assignment errors
           });
           
           updatingOrdersRef.current.delete(orderId);
@@ -2658,6 +2752,48 @@ const Orders = () => {
             >
               <FaChevronRight />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Artist Assignment Loading Modal */}
+      {artistAssignmentLoading.orderId && (
+        <div className="artist-assignment-loading-overlay">
+          <div className={`artist-assignment-loading-modal ${artistAssignmentLoading.status === 'success' ? 'success-state' : ''}`}>
+            <div className="artist-assignment-loading-content">
+              {artistAssignmentLoading.status === 'loading' && (
+                <>
+                  <div className="artist-assignment-spinner">
+                    <FaPalette className="spinner-icon" />
+                  </div>
+                  <h3>Looking for an Artist</h3>
+                  <p>Assigning order {artistAssignmentLoading.orderNumber} to an available artist...</p>
+                  <div className="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </>
+              )}
+              {artistAssignmentLoading.status === 'success' && (
+                <>
+                  <div className="artist-assignment-success-check">
+                    <svg className="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                      <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                      <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                  </div>
+                  <h3 className="success-title">Artist Found!</h3>
+                  <p className="success-message">
+                    Order {artistAssignmentLoading.orderNumber} has been assigned to
+                  </p>
+                  <div className="artist-name-display">
+                    <FaUsers className="artist-icon" />
+                    <span>{artistAssignmentLoading.artistName}</span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

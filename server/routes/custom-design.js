@@ -138,7 +138,7 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
         if (!member.shortsSize) {
           return res.status(400).json({ 
             error: 'Shorts-only orders require shorts size for all members' 
-          });
+        });
         }
         // size is not required for shorts-only orders
       }

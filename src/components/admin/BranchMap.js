@@ -591,7 +591,7 @@ const BranchMap = ({ onDataLoaded }) => {
                 backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
               }}></div>
               <span className="legend-city">{stat.city}</span>
-              <span className="legend-count">({stat.count} customers)</span>
+              <span className="legend-count">({Number(stat.count || 0).toLocaleString()} customers)</span>
             </div>
           ))}
         </div>
