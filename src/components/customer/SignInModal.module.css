@@ -22,6 +22,16 @@
   z-index: 9999;
   animation: fadeIn 0.3s ease;
   overflow: hidden;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .signinModalOverlay {
+    padding: 5px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
 }
 
 /* ============================================
@@ -33,19 +43,20 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 410px;
+  width: 380px;
   max-width: 95vw;
+  max-height: 95vh;
   background: #0f0f0f;
-  border-radius: 20px;
+  border-radius: 18px;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.5),
     0 0 40px rgba(0, 86, 255, 0.15);
   border: 1px solid rgba(0, 86, 255, 0.2);
   color: white;
   animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 0;
-  max-height: none;
 }
 
 .signinModal::-webkit-scrollbar {
@@ -70,10 +81,10 @@
    ============================================ */
 
 .signinModalContent {
-  padding: 24px 22px;
+  padding: 18px 18px 12px 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* ============================================
@@ -82,15 +93,15 @@
 
 .signinCloseBtn {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 34px;
-  height: 34px;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 50%;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 20px;
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -115,20 +126,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   text-align: center;
   margin: 0;
 }
 
 .signinLogo {
-  height: 40px;
+  height: 32px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 2px 8px rgba(0, 86, 255, 0.2));
 }
 
 .signinTitle {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: white;
   font-family: 'Poppins', sans-serif;
@@ -137,7 +148,7 @@
 }
 
 .signinSubtitle {
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.6);
   font-family: 'Poppins', sans-serif;
   margin: 0;
@@ -152,25 +163,25 @@
 .signinSocialButtons {
   display: flex;
   flex-direction: row;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
 
 .signinSocialBtn {
   flex: 1;
-  padding: 9px 11px;
+  padding: 7px 9px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  border-radius: 8px;
   color: white;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   font-family: 'Poppins', sans-serif;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 5px;
   transition: all 0.3s ease;
   min-width: 0;
 }
@@ -183,7 +194,7 @@
 }
 
 .signinSocialBtn svg {
-  font-size: 15px;
+  font-size: 13px;
 }
 
 /* ============================================
@@ -193,9 +204,9 @@
 .signinDivider {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -217,17 +228,17 @@
 .signinForm {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .signinFormGroup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .signinLabel {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
@@ -239,6 +250,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin: -2px 0;
 }
 
 .signinForgotLink {
@@ -277,12 +289,13 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
   background: rgba(255, 255, 255, 0.04);
   border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 0 10px;
+  border-radius: 8px;
+  padding: 0 8px;
   transition: all 0.3s ease;
+  margin-top: -2px;
 }
 
 .signinInputWrapper:focus-within {
@@ -292,7 +305,7 @@
 }
 
 .signinInputIcon {
-  font-size: 15px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.5);
   flex-shrink: 0;
   transition: all 0.3s ease;
@@ -307,8 +320,8 @@
   background: transparent;
   border: none;
   color: white;
-  padding: 8px 0;
-  font-size: 11px;
+  padding: 6px 0;
+  font-size: 10px;
   font-family: 'Poppins', sans-serif;
   outline: none !important;
   box-shadow: none !important;
@@ -347,7 +360,7 @@
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
   padding: 2px;
   display: flex;
@@ -369,8 +382,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 8px 0;
-  padding: 8px 0;
+  margin: 4px 0;
+  padding: 4px 0;
   width: 100%;
 }
 
@@ -390,12 +403,12 @@
 
 .signinSignInBtn {
   width: 100%;
-  padding: 10px 16px;
+  padding: 8px 14px;
   background: linear-gradient(135deg, #0055ff 0%, #0077ff 100%);
   color: white;
   border: 2px solid transparent;
-  border-radius: 10px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 11px;
   font-weight: 700;
   font-family: 'Poppins', sans-serif;
   cursor: pointer;
@@ -403,7 +416,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   position: relative;
   overflow: hidden;
   letter-spacing: 0.2px;
@@ -455,13 +468,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  gap: 8px;
+  gap: 6px;
 }
 
 .signinSignUpPrompt p {
-  font-size: 12px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.7);
   font-family: 'Poppins', sans-serif;
   margin: 0;
@@ -475,7 +488,7 @@
   font-weight: 700;
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
-  font-size: 10px;
+  font-size: 9px;
   transition: all 0.3s ease;
   text-decoration: none;
   padding: 0;
@@ -562,6 +575,8 @@
   .signinModal {
     width: 95vw;
     max-width: 380px;
+    max-height: 90vh;
+    border-radius: 18px;
   }
 
   .signinModalContent {
@@ -600,13 +615,19 @@
   .signinModal {
     width: 92vw;
     max-width: 340px;
+    max-height: 90vh;
+    border-radius: 16px;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
 
   .signinModalContent {
     padding: 18px 16px;
     gap: 8px;
   }
+}
 
+@media (max-width: 480px) {
   .signinCloseBtn {
     width: 28px;
     height: 28px;
@@ -704,5 +725,13 @@
 
   .signinErrorIcon {
     font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) and (max-height: 600px) {
+  .signinModal {
+    max-height: 95vh;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
 }
