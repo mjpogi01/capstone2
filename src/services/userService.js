@@ -16,22 +16,30 @@ class UserService {
         .update({ is_default: false })
         .eq('user_id', user.id);
 
+      // Build insert data object
+      const insertData = {
+        user_id: user.id,
+        full_name: addressData.fullName,
+        phone: addressData.phone,
+        street_address: addressData.streetAddress,
+        barangay: addressData.barangay,
+        barangay_code: addressData.barangay_code || null, // Include barangay code for coordinate lookup
+        city: addressData.city,
+        province: addressData.province,
+        postal_code: addressData.postalCode,
+        address: addressData.address,
+        is_default: true
+      };
+      
+      // Include email if provided (column may exist in some databases)
+      if (addressData.email) {
+        insertData.email = addressData.email;
+      }
+      
       // Insert new address as default
       const { data, error } = await supabase
         .from('user_addresses')
-        .insert({
-          user_id: user.id,
-          full_name: addressData.fullName,
-          phone: addressData.phone,
-          street_address: addressData.streetAddress,
-          barangay: addressData.barangay,
-          barangay_code: addressData.barangay_code || null, // Include barangay code for coordinate lookup
-          city: addressData.city,
-          province: addressData.province,
-          postal_code: addressData.postalCode,
-          address: addressData.address,
-          is_default: true
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -134,21 +142,29 @@ class UserService {
         throw new Error('Address not found or does not belong to user');
       }
 
+      // Build update data object
+      const updateData = {
+        full_name: addressData.fullName,
+        phone: addressData.phone,
+        street_address: addressData.streetAddress,
+        barangay: addressData.barangay,
+        barangay_code: addressData.barangay_code || null, // Include barangay code for coordinate lookup
+        city: addressData.city,
+        province: addressData.province,
+        postal_code: addressData.postalCode,
+        address: addressData.address,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Include email if provided (column may exist in some databases)
+      if (addressData.email) {
+        updateData.email = addressData.email;
+      }
+      
       // Update the address - first update without select to avoid coercion issues
       const { error: updateError } = await supabase
         .from('user_addresses')
-        .update({
-          full_name: addressData.fullName,
-          phone: addressData.phone,
-          street_address: addressData.streetAddress,
-          barangay: addressData.barangay,
-          barangay_code: addressData.barangay_code || null, // Include barangay code for coordinate lookup
-          city: addressData.city,
-          province: addressData.province,
-          postal_code: addressData.postalCode,
-          address: addressData.address,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', addressId)
         .eq('user_id', user.id);
 

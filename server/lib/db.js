@@ -138,6 +138,9 @@ async function ensureUsersTable() {
   // Add is_default column if it doesn't exist
   await query(`ALTER TABLE user_addresses ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false;`);
   
+  // Add email column if it doesn't exist
+  await query(`ALTER TABLE user_addresses ADD COLUMN IF NOT EXISTS email VARCHAR(255);`);
+  
   // Create index for default addresses
   await query(`CREATE INDEX IF NOT EXISTS idx_user_addresses_default ON user_addresses(user_id, is_default);`);
 
