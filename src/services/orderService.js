@@ -233,6 +233,15 @@ class OrderService {
         })
       });
  
+      // Check for artist assignment errors in response
+      if (data.artistAssignmentError) {
+        const assignmentError = new Error(data.error || data.assignmentError?.message || 'Artist assignment failed');
+        assignmentError.artistAssignmentError = true;
+        assignmentError.assignmentError = data.assignmentError;
+        assignmentError.response = { data };
+        throw assignmentError;
+      }
+
       // Log email status
       if (data.emailSent) {
         console.log('✅ Email notification sent successfully');
@@ -240,9 +249,40 @@ class OrderService {
         console.warn('⚠️ Email notification failed:', data.emailError);
       }
 
+      // Log artist assignment success if present
+      if (data.artistAssignmentSuccess) {
+        console.log('✅ Artist task assigned successfully');
+      }
+      if (data.artistAssignmentWarning) {
+        console.warn('⚠️ Artist assignment warning:', data.artistAssignmentWarning);
+      }
+
       return data;
     } catch (error) {
       console.error('Error updating order status:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        payload: error.payload,
+        artistAssignmentError: error.artistAssignmentError,
+        assignmentError: error.assignmentError
+      });
+      
+      // Check if error has payload (from authJsonFetch) and if it contains artist assignment error
+      if (error.payload && error.payload.artistAssignmentError) {
+        console.error('🎨 Artist assignment error detected in payload:', error.payload);
+        const assignmentError = new Error(
+          error.payload.error || 
+          error.payload.assignmentError?.message || 
+          error.payload.details ||
+          'Artist assignment failed'
+        );
+        assignmentError.artistAssignmentError = true;
+        assignmentError.assignmentError = error.payload.assignmentError;
+        assignmentError.response = { data: error.payload };
+        assignmentError.status = error.status;
+        throw assignmentError;
+      }
       
       // Check for network/connection errors
       if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {

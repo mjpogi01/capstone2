@@ -978,7 +978,7 @@ function pointInPolygonCoordinates(point, coordinates) {
 
 // Load all province barangays from CSV for wide distribution
 // Also create a mapping from city code to city name using shapefile
-async function loadProvinceBarangays(csvPath, provinceCode, provinceName, cityShapefileMap) {
+async function loadProvinceBarangays(csvPath, provinceCode, provinceName, cityShapefileMap, shapefileProvinceCode) {
   const barangays = [];
   const cityCodeToName = new Map(); // Map city code to city name
   
@@ -995,12 +995,39 @@ async function loadProvinceBarangays(csvPath, provinceCode, provinceName, citySh
     const records = parseCsv(raw);
     
     // Pre-filter cities from shapefile by province for faster lookup
+    // Use the shapefile province code format (e.g., 401000000 for Batangas, 1705200000 for Oriental Mindoro)
     const provinceCities = new Map();
+    let sampleProvinceCode = null;
+    
     for (const [code, cityData] of cityShapefileMap.entries()) {
-      if (!cityData.provinceCode || cityData.provinceCode === provinceCode) {
-        provinceCities.set(code, cityData);
+      if (cityData.provinceCode) {
+        if (!sampleProvinceCode) {
+          sampleProvinceCode = cityData.provinceCode;
+        }
+        // Match by exact province code or normalized codes
+        const normalizedShpProvinceCode = cityData.provinceCode.replace(/^0+/, '') || cityData.provinceCode;
+        const normalizedTargetCode = shapefileProvinceCode.replace(/^0+/, '') || shapefileProvinceCode;
+        
+        if (cityData.provinceCode === shapefileProvinceCode || normalizedShpProvinceCode === normalizedTargetCode) {
+          provinceCities.set(code, cityData);
+        }
       }
     }
+    
+    if (sampleProvinceCode && provinceCities.size === 0) {
+      console.log(`   ⚠️ No cities found for province code ${shapefileProvinceCode}, sample shapefile province code: ${sampleProvinceCode}`);
+      console.log(`   🔍 Trying to match by province name: ${provinceName}`);
+      // Try matching by province name instead (fallback)
+      for (const [code, cityData] of cityShapefileMap.entries()) {
+        // Check if any property contains the province name
+        const props = cityData.properties || {};
+        const allProps = Object.values(props).map(v => (v || '').toString().toLowerCase());
+        if (allProps.some(v => v.includes(provinceName.toLowerCase()))) {
+          provinceCities.set(code, cityData);
+        }
+      }
+    }
+    
     console.log(`   🔍 Filtered ${provinceCities.size} cities from shapefile for ${provinceName}`);
     
     let directMatches = 0;
@@ -1032,14 +1059,29 @@ async function loadProvinceBarangays(csvPath, provinceCode, provinceName, citySh
           const normalizedCityCode = cityCode.replace(/^0+/, '') || cityCode;
           let foundMatch = false;
           
+          // Debug first few attempts
+          if (directMatches + polygonMatches < 3) {
+            console.log(`   🔍 Sample: CSV cityCode=${cityCode}, normalized=${normalizedCityCode}`);
+            const sampleShpCodes = Array.from(provinceCities.keys()).slice(0, 3);
+            console.log(`   🔍 Sample shapefile codes: ${sampleShpCodes.join(', ')}`);
+          }
+          
           for (const [shpCode, cityData] of provinceCities.entries()) {
             const normalizedShpCode = shpCode.replace(/^0+/, '') || shpCode;
             
             // Try direct code match (with normalization)
-            if (normalizedCityCode === normalizedShpCode || cityCode === shpCode) {
+            // CSV format: 000401005, shapefile format: 401005000 (last 3 digits might be different)
+            // Try matching first 6 digits or full normalized match
+            const csvPrefix = normalizedCityCode.substring(0, 6);
+            const shpPrefix = normalizedShpCode.substring(0, 6);
+            
+            if (normalizedCityCode === normalizedShpCode || cityCode === shpCode || csvPrefix === shpPrefix) {
               cityCodeToName.set(cityCode, cityData.name);
               foundMatch = true;
               directMatches++;
+              if (directMatches <= 3) {
+                console.log(`   ✅ Direct match: ${cityCode} -> ${cityData.name} (shapefile code: ${shpCode})`);
+              }
               break;
             }
           }
@@ -1051,6 +1093,9 @@ async function loadProvinceBarangays(csvPath, provinceCode, provinceName, citySh
                 cityCodeToName.set(cityCode, cityData.name);
                 foundMatch = true;
                 polygonMatches++;
+                if (polygonMatches <= 3) {
+                  console.log(`   ✅ Polygon match: ${cityCode} -> ${cityData.name} (shapefile code: ${shpCode})`);
+                }
                 break; // Found the city, no need to check others
               }
             }
@@ -1126,9 +1171,51 @@ async function loadProvinceBarangays(csvPath, provinceCode, provinceName, citySh
   }
 }
 
+// Load province CSV to build province code mapping
+function loadProvinceMapping(csvPath) {
+  const provinceMap = new Map(); // province name -> { csvCode, shapefileCode, name }
+  
+  try {
+    if (!csvPath || !fs.existsSync(csvPath)) {
+      console.warn('⚠️ Province CSV not found:', csvPath);
+      return provinceMap;
+    }
+
+    const raw = fs.readFileSync(csvPath, 'utf8').trim();
+    if (!raw) {
+      return provinceMap;
+    }
+
+    const records = parseCsv(raw);
+    
+    records.forEach((row) => {
+      const shapefileCode = (row.adm2_psgc || '').trim();
+      const provinceName = (row.adm2_en || '').trim();
+      
+      if (shapefileCode && provinceName) {
+        // Normalize the code (remove leading zeros) for matching
+        const normalizedCode = shapefileCode.replace(/^0+/, '') || shapefileCode;
+        provinceMap.set(provinceName.toLowerCase(), {
+          name: provinceName,
+          shapefileCode: shapefileCode,
+          normalizedCode: normalizedCode
+        });
+      }
+    });
+
+    console.log(`✅ Loaded ${provinceMap.size} provinces from CSV`);
+    return provinceMap;
+  } catch (error) {
+    console.warn('⚠️ Unable to load province CSV:', error.message);
+    return provinceMap;
+  }
+}
+
 // Load city shapefile
 const shapefilePath = path.join(__dirname, 'data', 'PH_Adm3_MuniCities.shp.shp');
+const provinceCsvPath = path.join(__dirname, 'data', 'PH_Adm2_ProvDists.csv');
 let cityShapefileMap = new Map();
+let provinceMapping = new Map();
 
 // Initialize province barangays (will be loaded asynchronously in generateAndInsertData)
 let batangasDataPromise = null;
@@ -1726,15 +1813,23 @@ function generateAddress(branchName) {
       : CUSTOMER_LOCATION_TRACKER.allOrientalMindoroBarangays || [];
     
     // Convert CSV barangays to barangay objects for selection
-    const allProvinceBarangays = allProvinceBarangaysList.map(b => toBarangayObject({
-      name: b.name,
-      cityCode: b.cityCode,
-      latitude: b.latitude,
-      longitude: b.longitude
-    }, {
-      provinceCode: cityData.province === 'Batangas' ? '041000000' : '175200000',
-      cityCode: b.cityCode
-    }));
+    // IMPORTANT: Preserve the cityCode from CSV so we can map it correctly
+    const allProvinceBarangays = allProvinceBarangaysList.map(b => {
+      const barangayObj = toBarangayObject({
+        name: b.name,
+        cityCode: b.cityCode,
+        latitude: b.latitude,
+        longitude: b.longitude
+      }, {
+        provinceCode: cityData.province === 'Batangas' ? '041000000' : '175200000',
+        cityCode: b.cityCode
+      });
+      // Ensure cityCode is preserved
+      if (b.cityCode && !barangayObj.cityCode) {
+        barangayObj.cityCode = b.cityCode;
+      }
+      return barangayObj;
+    });
     
     // Combine resolved barangays (from current city) with all province barangays
     // Use a Set to avoid duplicates based on normalized name
@@ -1803,19 +1898,29 @@ function generateAddress(branchName) {
     const selectedBarangayFromCSV = allProvinceBarangaysList.find(b => 
       normaliseKey(b.name) === normaliseKey(selectedBarangay.name)
     );
-    if (selectedBarangayFromCSV && selectedBarangayFromCSV.cityCode) {
+    
+    // Get the city code - prefer from CSV, then from selectedBarangay
+    const barangayCityCode = selectedBarangayFromCSV?.cityCode || selectedBarangay.cityCode;
+    
+    if (barangayCityCode) {
       // Try to find the city name from the city code mapping
       const cityCodeMap = cityData.province === 'Batangas'
         ? CUSTOMER_LOCATION_TRACKER.batangasCityCodeToName
         : CUSTOMER_LOCATION_TRACKER.orientalMindoroCityCodeToName;
-      const mappedCityName = cityCodeMap.get(selectedBarangayFromCSV.cityCode);
+      const mappedCityName = cityCodeMap.get(barangayCityCode);
       if (mappedCityName) {
         const newCityData = findCityData(mappedCityName);
         if (newCityData) {
+          // Always update city data when we have a match
+          const oldCity = cityData.city;
           cityData.city = newCityData.city;
           cityData.lat = newCityData.lat;
           cityData.lng = newCityData.lng;
           cityData.postalCode = newCityData.postalCode;
+          // Debug: log city updates (first few only)
+          if (Math.random() < 0.001) { // Log ~0.1% of updates to avoid spam
+            console.log(`   🔄 City updated: ${oldCity} -> ${newCityData.city} (barangay: ${selectedBarangay.name}, code: ${barangayCityCode})`);
+          }
         }
       } else {
         // If mapping fails, try to find city by checking all CITY_DATA cities in the province
@@ -1833,7 +1938,9 @@ function generateAddress(branchName) {
             cityData.lng = city.lng;
             cityData.postalCode = city.postalCode;
             // Also update the mapping for future use
-            cityCodeMap.set(selectedBarangayFromCSV.cityCode, city.city);
+            if (barangayCityCode) {
+              cityCodeMap.set(barangayCityCode, city.city);
+            }
             foundMatch = true;
             break;
           }
@@ -1861,7 +1968,9 @@ function generateAddress(branchName) {
             cityData.lng = closestCity.lng;
             cityData.postalCode = closestCity.postalCode;
             // Update the mapping for future use
-            cityCodeMap.set(selectedBarangayFromCSV.cityCode, closestCity.city);
+            if (barangayCityCode) {
+              cityCodeMap.set(barangayCityCode, closestCity.city);
+            }
           }
         }
       }
@@ -2305,6 +2414,98 @@ async function loadExistingCustomers() {
   }
 
   return customerUsers;
+}
+
+/**
+ * Load existing city counts from database to initialize CUSTOMER_LOCATION_TRACKER
+ * Uses the same query logic as query-customers-by-city-simple.sql
+ */
+async function loadExistingCityCounts() {
+  console.log('📍 Loading existing city counts from database...');
+  
+  try {
+    // Query cities from user_addresses
+    const { data: addressCities, error: addressError } = await supabase
+      .from('user_addresses')
+      .select('user_id, city, province')
+      .not('city', 'is', null)
+      .neq('city', '')
+      .in('province', ['Batangas', 'Oriental Mindoro']);
+
+    if (addressError) {
+      console.warn('   ⚠️  Error loading cities from user_addresses:', addressError.message);
+    }
+
+    // Query cities from orders.delivery_address
+    // Note: We need to fetch all orders and filter in JavaScript since Supabase client
+    // doesn't easily support JSONB field filtering for nested properties
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('user_id, delivery_address, status')
+      .not('delivery_address', 'is', null);
+
+    if (ordersError) {
+      console.warn('   ⚠️  Error loading cities from orders:', ordersError.message);
+    }
+
+    // Combine and count cities
+    const cityUserMap = new Map(); // "city|province" -> Set of user_ids
+
+    // Process user_addresses
+    if (addressCities) {
+      for (const addr of addressCities) {
+        const city = (addr.city || '').trim();
+        const province = (addr.province || '').trim();
+        if (city && province) {
+          const key = `${city}|${province}`;
+          if (!cityUserMap.has(key)) {
+            cityUserMap.set(key, new Set());
+          }
+          cityUserMap.get(key).add(addr.user_id);
+        }
+      }
+    }
+
+    // Process orders.delivery_address
+    if (orders) {
+      for (const order of orders) {
+        // Skip cancelled orders
+        const status = (order.status || '').toLowerCase();
+        if (status === 'cancelled' || status === 'canceled') {
+          continue;
+        }
+        
+        const deliveryAddr = order.delivery_address;
+        if (deliveryAddr && typeof deliveryAddr === 'object') {
+          const city = (deliveryAddr.city || '').trim();
+          const province = (deliveryAddr.province || '').trim();
+          if (city && province && 
+              (province === 'Batangas' || province === 'Oriental Mindoro')) {
+            const key = `${city}|${province}`;
+            if (!cityUserMap.has(key)) {
+              cityUserMap.set(key, new Set());
+            }
+            cityUserMap.get(key).add(order.user_id);
+          }
+        }
+      }
+    }
+
+    // Initialize CUSTOMER_LOCATION_TRACKER.cityCounts
+    let loadedCount = 0;
+    for (const [key, userIds] of cityUserMap.entries()) {
+      const [city, province] = key.split('|');
+      const count = userIds.size;
+      CUSTOMER_LOCATION_TRACKER.cityCounts.set(city, count);
+      loadedCount++;
+    }
+
+    console.log(`   ✅ Loaded ${loadedCount} cities with existing customer counts`);
+    return true;
+  } catch (error) {
+    console.error('   ❌ Error loading existing city counts:', error.message);
+    return false;
+  }
 }
 
 async function prepareCustomers(targetCount) {
@@ -3426,19 +3627,32 @@ async function generateAndInsertData() {
   
   console.log(`📅 Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}\n`);
   
+  // Load province mapping CSV
+  console.log('🗺️  Loading province mapping...');
+  provinceMapping = loadProvinceMapping(provinceCsvPath);
+  
   // Load city shapefile for accurate city mapping
   console.log('🗺️  Loading city shapefile...');
   cityShapefileMap = await loadCityShapefile(shapefilePath);
   
+  // Get correct province codes from mapping
+  const batangasProvince = provinceMapping.get('batangas');
+  const mindoroProvince = provinceMapping.get('oriental mindoro');
+  const batangasShapefileCode = batangasProvince ? batangasProvince.shapefileCode : '401000000';
+  const mindoroShapefileCode = mindoroProvince ? mindoroProvince.shapefileCode : '1705200000';
+  
+  console.log(`   📍 Batangas province code: ${batangasShapefileCode}`);
+  console.log(`   📍 Oriental Mindoro province code: ${mindoroShapefileCode}`);
+  
   // Initialize Batangas Province barangays with shapefile data
   console.log('📍 Loading Batangas Province barangays...');
-  const batangasData = await loadProvinceBarangays(barangayCentroidPath, '000004010', 'Batangas', cityShapefileMap);
+  const batangasData = await loadProvinceBarangays(barangayCentroidPath, '000004010', 'Batangas', cityShapefileMap, batangasShapefileCode);
   CUSTOMER_LOCATION_TRACKER.allBatangasBarangays = batangasData.barangays || [];
   CUSTOMER_LOCATION_TRACKER.batangasCityCodeToName = batangasData.cityCodeToName || new Map();
   
   // Initialize Oriental Mindoro Province barangays with shapefile data
   console.log('📍 Loading Oriental Mindoro Province barangays...');
-  const mindoroData = await loadProvinceBarangays(barangayCentroidPath, '000017052', 'Oriental Mindoro', cityShapefileMap);
+  const mindoroData = await loadProvinceBarangays(barangayCentroidPath, '000017052', 'Oriental Mindoro', cityShapefileMap, mindoroShapefileCode);
   CUSTOMER_LOCATION_TRACKER.allOrientalMindoroBarangays = mindoroData.barangays || [];
   CUSTOMER_LOCATION_TRACKER.orientalMindoroCityCodeToName = mindoroData.cityCodeToName || new Map();
   
@@ -3469,6 +3683,9 @@ async function generateAndInsertData() {
   console.log('🛍️  Loading product catalog from database...');
   PRODUCT_CATALOG = await loadProductCatalog();
   console.log(`   ✅ Products loaded: ${PRODUCT_CATALOG.all.length} total (jerseys: ${PRODUCT_CATALOG.jerseys.length}, apparel: ${PRODUCT_CATALOG.apparel.length}, balls: ${PRODUCT_CATALOG.balls.length}, trophies: ${PRODUCT_CATALOG.trophies.length})`);
+  
+  // Load existing city counts from database to ensure accurate distribution
+  await loadExistingCityCounts();
   
   // Don't use existing customers - create all customers on-demand when they place orders
   // This ensures every customer has at least one order

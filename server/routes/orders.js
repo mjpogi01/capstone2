@@ -981,16 +981,123 @@ router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, asyn
         });
       }
 
+      // Validation: Check if at least one active artist exists
+      try {
+        const { data: activeArtists, error: artistCheckError } = await supabase
+          .from('artist_profiles')
+          .select('id')
+          .eq('is_active', true)
+          .limit(1);
+
+        if (artistCheckError) {
+          console.error('❌ Error checking for active artists:', artistCheckError);
+          return res.status(500).json({
+            error: 'Failed to validate artist availability',
+            details: artistCheckError.message,
+            artistAssignmentError: true
+          });
+        }
+
+        if (!activeArtists || activeArtists.length === 0) {
+          console.error('❌ No active artists available for assignment');
+          return res.status(400).json({
+            error: 'Cannot assign task: No active artists available',
+            details: 'Please ensure at least one artist profile is active before moving orders to layout status',
+            artistAssignmentError: true
+          });
+        }
+      } catch (validationError) {
+        console.error('❌ Error validating artist availability:', validationError);
+        return res.status(500).json({
+          error: 'Failed to validate artist availability',
+          details: validationError.message,
+          artistAssignmentError: true
+        });
+      }
+
+      // Check for duplicate task assignment
+      let existingTask = null;
+      try {
+        const { data: existingTasks, error: duplicateCheckError } = await supabase
+          .from('artist_tasks')
+          .select('id, artist_id, status, created_at')
+          .eq('order_id', currentOrder.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (duplicateCheckError && duplicateCheckError.code !== 'PGRST116') {
+          console.error('❌ Error checking for existing tasks:', duplicateCheckError);
+        } else if (existingTasks) {
+          existingTask = existingTasks;
+          console.log(`⚠️ Existing task found for order ${updatedOrder.order_number}: ${existingTask.id}`);
+        }
+      } catch (duplicateError) {
+        console.error('❌ Error checking for duplicate tasks:', duplicateError);
+      }
+
+      // If task already exists, return it instead of creating a new one
+      if (existingTask) {
+        console.log(`✅ Using existing task ${existingTask.id} for order ${updatedOrder.order_number}`);
+        
+        // Still create chat room if it doesn't exist
+        try {
+          const { data: existingRoom } = await supabase
+            .from('design_chat_rooms')
+            .select('id')
+            .eq('order_id', currentOrder.id)
+            .limit(1)
+            .maybeSingle();
+
+          if (!existingRoom && existingTask.artist_id) {
+            const { data: chatRoom, error: roomError } = await supabase
+              .from('design_chat_rooms')
+              .insert({
+                order_id: currentOrder.id,
+                customer_id: currentOrder.user_id,
+                artist_id: existingTask.artist_id,
+                task_id: existingTask.id,
+                room_name: `Order ${updatedOrder.order_number} Chat`
+              })
+              .select()
+              .single();
+
+            if (roomError) {
+              console.error('❌ Error creating chat room:', roomError);
+            } else {
+              console.log(`✅ Chat room created for existing task: ${chatRoom.id}`);
+            }
+          }
+        } catch (chatError) {
+          console.error('❌ Error in chat room creation:', chatError);
+        }
+
+        // Return success with existing task info
+        return res.json({
+          ...updatedOrder,
+          artistTask: {
+            id: existingTask.id,
+            artist_id: existingTask.artist_id,
+            status: existingTask.status,
+            isExisting: true
+          },
+          artistAssignmentWarning: 'Task already exists for this order'
+        });
+      }
+
       try {
         console.log(`🎨 Assigning artist task for order ${updatedOrder.order_number}`);
         console.log(`🎨 Order ID: ${currentOrder.id}`);
-        console.log(`🎨 Order Type: ${currentOrder.order_type}`);
+        console.log(`🎨 Order Type: ${currentOrder.order_type || 'regular'}`);
         console.log(`🎨 Order Items:`, JSON.stringify(currentOrder.order_items, null, 2));
         
         // Determine order type and assign appropriate task
+        // Use order_type field instead of parsing order_number
+        const orderType = currentOrder.order_type || 'regular';
         let taskId = null;
+        let assignmentError = null;
         
-        if (currentOrder.order_type === 'custom_design') {
+        if (orderType === 'custom_design') {
           // Custom design order
           const { data: customTaskData, error: customError } = await supabase.rpc('assign_custom_design_task', {
             p_order_id: currentOrder.id,
@@ -1005,12 +1112,17 @@ router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, asyn
           if (customError) {
             console.error('❌ Error assigning custom design task:', customError);
             console.error('❌ Custom task error details:', JSON.stringify(customError, null, 2));
+            assignmentError = {
+              type: 'custom_design',
+              message: customError.message || 'Failed to assign custom design task',
+              details: customError
+            };
           } else {
             taskId = customTaskData;
             console.log(`✅ Custom design task assigned: ${taskId}`);
           }
-        } else if (currentOrder.order_number?.startsWith('WALKIN-')) {
-          // Walk-in order
+        } else if (orderType === 'walk_in') {
+          // Walk-in order (using order_type field instead of parsing order_number)
           const { data: walkInTaskData, error: walkInError } = await supabase.rpc('assign_walk_in_order_task', {
             p_product_name: currentOrder.order_items?.[0]?.name || 'Walk-in Product',
             p_quantity: currentOrder.total_items || 1,
@@ -1024,6 +1136,11 @@ router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, asyn
           if (walkInError) {
             console.error('❌ Error assigning walk-in order task:', walkInError);
             console.error('❌ Walk-in task error details:', JSON.stringify(walkInError, null, 2));
+            assignmentError = {
+              type: 'walk_in',
+              message: walkInError.message || 'Failed to assign walk-in order task',
+              details: walkInError
+            };
           } else {
             taskId = walkInTaskData;
             console.log(`✅ Walk-in order task assigned: ${taskId}`);
@@ -1056,6 +1173,11 @@ router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, asyn
           if (regularError) {
             console.error('❌ Error assigning regular order task:', regularError);
             console.error('❌ Regular task error details:', JSON.stringify(regularError, null, 2));
+            assignmentError = {
+              type: 'regular',
+              message: regularError.message || 'Failed to assign regular order task',
+              details: regularError
+            };
           } else {
             taskId = regularTaskData;
             console.log(`✅ Regular order task assigned: ${taskId}`);
@@ -1093,18 +1215,44 @@ router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, asyn
           }
         }
         
+        // Handle assignment result
         if (taskId) {
           console.log(`🎨 Artist task successfully assigned for order ${updatedOrder.order_number}`);
 
-          // Create chat room automatically when task is assigned (admin/owner initiated)
+          // Fetch artist information for the response
+          let artistInfo = null;
           try {
             const { data: assignedTask, error: taskFetchError } = await supabase
               .from('artist_tasks')
-              .select('artist_id')
+              .select(`
+                artist_id,
+                artist_profiles(
+                  id,
+                  artist_name,
+                  is_active
+                )
+              `)
               .eq('id', taskId)
               .single();
 
             if (!taskFetchError && assignedTask?.artist_id) {
+              // Extract artist profile
+              if (assignedTask.artist_profiles) {
+                const profile = Array.isArray(assignedTask.artist_profiles) 
+                  ? assignedTask.artist_profiles[0] 
+                  : assignedTask.artist_profiles;
+                
+                if (profile) {
+                  artistInfo = {
+                    id: profile.id || assignedTask.artist_id,
+                    artist_name: profile.artist_name || 'Assigned Artist',
+                    is_active: profile.is_active
+                  };
+                  console.log(`✅ Artist found: ${artistInfo.artist_name}`);
+                }
+              }
+
+              // Create chat room automatically when task is assigned (admin/owner initiated)
               const { data: existingRoom, error: existingRoomError } = await supabase
                 .from('design_chat_rooms')
                 .select('id')
@@ -1139,13 +1287,49 @@ router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, asyn
           } catch (chatError) {
             console.error('❌ Error in chat room creation after layout assignment:', chatError);
           }
+
+          // Return success with task info, artist info, and any chat room errors (non-critical)
+          return res.json({
+            ...updatedOrder,
+            artistTask: {
+              id: taskId,
+              orderType: orderType
+            },
+            artistInfo: artistInfo,
+            chatRoomError: null,
+            artistAssignmentSuccess: true
+          });
         } else {
+          // Assignment failed - return error to frontend
           console.warn(`⚠️ Failed to assign artist task for order ${updatedOrder.order_number}`);
+          
+          const errorMessage = assignmentError?.message || 'Failed to assign artist task. No active artists may be available.';
+          
+          return res.status(400).json({
+            ...updatedOrder,
+            error: 'Artist task assignment failed',
+            artistAssignmentError: true,
+            assignmentError: assignmentError || {
+              message: errorMessage,
+              type: 'unknown'
+            },
+            details: assignmentError?.details || 'Please ensure at least one active artist is available.'
+          });
         }
         
       } catch (error) {
         console.error('❌ Error in artist task assignment:', error);
-        // Don't fail the entire request if artist assignment fails
+        // Return error to frontend instead of silently failing
+        return res.status(500).json({
+          ...updatedOrder,
+          error: 'Artist task assignment failed',
+          artistAssignmentError: true,
+          assignmentError: {
+            message: error.message || 'An unexpected error occurred during artist assignment',
+            type: 'exception',
+            details: error
+          }
+        });
       }
     }
 

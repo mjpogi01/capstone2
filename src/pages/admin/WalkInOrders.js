@@ -304,6 +304,7 @@ const WalkInOrders = () => {
       const formattedOrderData = {
         user_id: user.id,
         order_number: `WALKIN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        order_type: 'walk_in', // Set order_type for proper artist assignment
         status: 'pending',
         shipping_method: orderData.shippingMethod,
         pickup_location: orderData.selectedLocation || null,

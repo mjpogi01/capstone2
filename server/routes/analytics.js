@@ -167,7 +167,13 @@ function determineProductGroup(item = {}) {
 }
 
 function canonicalizeCityProvince(city, province) {
-  const normalizedCity = normalizeValue(city);
+  // Clean up city name - remove common suffixes like "(capital)", "(Capital)", etc.
+  let cleanedCity = (city || '').toString().trim();
+  cleanedCity = cleanedCity.replace(/\s*\(capital\)/i, '');
+  cleanedCity = cleanedCity.replace(/\s*\(Capital\)/i, '');
+  cleanedCity = cleanedCity.replace(/\s*\(CAPITAL\)/i, '');
+  
+  const normalizedCity = normalizeValue(cleanedCity);
   const normalizedProvince = normalizeValue(province);
 
   if (!normalizedCity) {
@@ -2820,13 +2826,185 @@ router.get('/customer-locations', async (req, res) => {
       ? new Set(scopedOrders.map(order => order.user_id).filter(Boolean))
       : null;
  
-    // Aggregate customers by city
+    // Aggregate customers by city using SQL
+    // Get city stats from SQL query that fetches cities from customer addresses
+    let cityStatsFromSQL = [];
+    try {
+      // Build branch filter if needed
+      let branchFilter = '';
+      let userAddressFilter = '';
+      const queryParams = [];
+      
+      if (branchContext && branchContext.branchName) {
+        branchFilter = `AND o.pickup_location = $1`;
+        // For user_addresses, only include users who have orders from this branch
+        userAddressFilter = `
+          AND ua.user_id IN (
+            SELECT DISTINCT user_id 
+            FROM orders 
+            WHERE pickup_location = $1 
+              AND LOWER(status) NOT IN ('cancelled', 'canceled')
+          )
+        `;
+        queryParams.push(branchContext.branchName);
+      }
+      
+      const cityStatsQuery = `
+        WITH customer_cities AS (
+          -- Get cities from user_addresses (only for users with orders from this branch if filtered)
+          SELECT DISTINCT
+            ua.user_id,
+            COALESCE(ua.city, '') as city,
+            COALESCE(ua.province, '') as province
+          FROM user_addresses ua
+          WHERE ua.city IS NOT NULL 
+            AND ua.city != ''
+            AND ua.province IN ('Batangas', 'Oriental Mindoro')
+            ${userAddressFilter}
+          
+          UNION
+          
+          -- Get cities from orders.delivery_address
+          SELECT DISTINCT
+            o.user_id,
+            COALESCE(
+              CASE 
+                WHEN o.delivery_address->>'city' IS NOT NULL 
+                THEN o.delivery_address->>'city'
+                ELSE NULL
+              END,
+              ''
+            ) as city,
+            COALESCE(
+              CASE 
+                WHEN o.delivery_address->>'province' IS NOT NULL 
+                THEN o.delivery_address->>'province'
+                ELSE NULL
+              END,
+              ''
+            ) as province
+          FROM orders o
+          WHERE o.delivery_address IS NOT NULL
+            AND o.delivery_address->>'city' IS NOT NULL
+            AND o.delivery_address->>'city' != ''
+            AND o.delivery_address->>'province' IN ('Batangas', 'Oriental Mindoro')
+            AND LOWER(o.status) NOT IN ('cancelled', 'canceled')
+            ${branchFilter}
+        )
+        SELECT 
+          city,
+          province,
+          COUNT(DISTINCT user_id)::int as customer_count
+        FROM customer_cities
+        WHERE city != ''
+          AND province != ''
+        GROUP BY city, province
+        ORDER BY customer_count DESC
+      `;
+      
+      const result = await executeSql(cityStatsQuery, queryParams);
+      cityStatsFromSQL = result.rows || [];
+      
+      console.log(`✅ Fetched ${cityStatsFromSQL.length} cities from SQL`);
+      
+      // Debug: Log top cities to verify counts
+      const topCities = cityStatsFromSQL.slice(0, 10);
+      console.log('🔍 Top cities from SQL (before normalization):');
+      topCities.forEach((stat, idx) => {
+        console.log(`  ${idx + 1}. ${stat.city}, ${stat.province}: ${stat.customer_count} customers`);
+      });
+    } catch (sqlError) {
+      console.warn('⚠️ SQL query failed, falling back to JavaScript aggregation:', sqlError.message);
+      cityStatsFromSQL = [];
+    }
+    
+    // Convert SQL results to cityCounts format
+    // IMPORTANT: Group by raw city name from SQL to prevent incorrect aggregation
+    // Only normalize for display purposes, not for grouping
     const cityCounts = {};
+    const rawCityToNormalized = new Map(); // Map raw city names to normalized for display
+    
+    cityStatsFromSQL.forEach(stat => {
+      // Use RAW city and province as the primary key to prevent incorrect grouping
+      // This ensures each unique raw city name is counted separately
+      const rawCityKey = `${stat.city}|${stat.province}`;
+      
+      // Normalize for display and validation only
+      const location = canonicalizeCityProvince(stat.city, stat.province);
+      if (location.blocked || !ALLOWED_PROVINCES.has(location.normalizedProvince)) {
+        return; // Skip blocked cities or provinces
+      }
+      
+      // Store the normalized name for this raw city
+      rawCityToNormalized.set(rawCityKey, {
+        city: location.city,
+        province: location.province,
+        normalizedCity: location.normalizedCity,
+        normalizedProvince: location.normalizedProvince
+      });
+      
+      // Use RAW city key for grouping to prevent incorrect aggregation
+      // This ensures "Calaca" and "Calaca City" are counted separately
+      if (!cityCounts[rawCityKey]) {
+        cityCounts[rawCityKey] = {
+          count: 0,
+          city: location.city, // Use normalized city name for display
+          province: location.province,
+          normalizedCity: location.normalizedCity,
+          normalizedProvince: location.normalizedProvince,
+          locationKey: `${location.normalizedProvince}|${location.normalizedCity}`,
+          rawCity: stat.city // Keep original for debugging
+        };
+      }
+      
+      // Ensure count is a number, not a string
+      const count = typeof stat.customer_count === 'number' 
+        ? stat.customer_count 
+        : parseInt(stat.customer_count, 10) || 0;
+      cityCounts[rawCityKey].count += count;
+    });
+    
+    // Now group by normalized city name for final display
+    // This combines cities with the same normalized name (e.g., "Calaca" and "Calaca City")
+    const finalCityCounts = {};
+    Object.keys(cityCounts).forEach(rawKey => {
+      const cityData = cityCounts[rawKey];
+      const displayKey = `${cityData.city}, ${cityData.province}`;
+      
+      if (!finalCityCounts[displayKey]) {
+        finalCityCounts[displayKey] = {
+          count: 0,
+          city: cityData.city,
+          province: cityData.province,
+          normalizedCity: cityData.normalizedCity,
+          normalizedProvince: cityData.normalizedProvince,
+          locationKey: cityData.locationKey
+        };
+      }
+      
+      // Add the count from this raw city
+      finalCityCounts[displayKey].count += cityData.count;
+    });
+    
+    // Replace cityCounts with the final grouped version
+    Object.keys(cityCounts).forEach(key => delete cityCounts[key]);
+    Object.assign(cityCounts, finalCityCounts);
+    
+    // Debug: Log final city counts after normalization
+    const finalTopCities = Object.keys(cityCounts)
+      .map(key => ({ key, ...cityCounts[key] }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+    console.log('🔍 Top cities after normalization:');
+    finalTopCities.forEach((stat, idx) => {
+      console.log(`  ${idx + 1}. ${stat.city}, ${stat.province}: ${stat.count} customers`);
+    });
+    
     const preciseHeatmapPoints = [];
     const cityRejected = new Map();
     console.log(`🧮 Raw records — addresses: ${addresses?.length || 0}, orders: ${orders?.length || 0}, scoped orders: ${scopedOrders.length}`);
     
-    // Count from user_addresses and try to get precise coordinates
+    // Count from user_addresses and try to get precise coordinates (for heatmap points only)
     if (addresses && addresses.length > 0) {
       addresses.forEach(addr => {
         const isTarget = targetUserId && addr.user_id === targetUserId;
@@ -2864,9 +3042,11 @@ router.get('/customer-locations', async (req, res) => {
         }
 
         const cityKey = `${location.city}, ${location.province}`;
+        // Initialize cityCounts entry if it doesn't exist (for heatmap coordinate lookup)
+        // But don't increment count here - we're using SQL for city stats
         if (!cityCounts[cityKey]) {
           cityCounts[cityKey] = {
-            count: 0,
+            count: 0, // Will be set from SQL results
             city: location.city,
             province: location.province,
             normalizedCity: location.normalizedCity,
@@ -2874,7 +3054,7 @@ router.get('/customer-locations', async (req, res) => {
             locationKey: `${location.normalizedProvince}|${location.normalizedCity}`
           };
         }
-        cityCounts[cityKey].count += 1;
+        // Don't increment count - SQL already provides accurate counts
 
         if (isTarget) {
           console.log(`  ✅ Passed filters - counting in city: ${cityKey}`);
@@ -3017,9 +3197,11 @@ router.get('/customer-locations', async (req, res) => {
           }
 
           const cityKey = `${location.city}, ${location.province}`;
+          // Initialize cityCounts entry if it doesn't exist (for heatmap coordinate lookup)
+          // But don't increment count here - we're using SQL for city stats
           if (!cityCounts[cityKey]) {
             cityCounts[cityKey] = {
-              count: 0,
+              count: 0, // Will be set from SQL results
               city: location.city,
               province: location.province,
               normalizedCity: location.normalizedCity,
@@ -3027,7 +3209,7 @@ router.get('/customer-locations', async (req, res) => {
               locationKey: `${location.normalizedProvince}|${location.normalizedCity}`
             };
           }
-          cityCounts[cityKey].count += 1;
+          // Don't increment count - SQL already provides accurate counts
 
           const latitudeCandidates = [
             address.latitude,

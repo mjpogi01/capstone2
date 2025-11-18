@@ -34,3 +34,8 @@ server/scripts/data/*
 *.cpg
 *.zip
 *.csv
+
+# Database backups
+/backups/
+backups/
+*.sql.backup

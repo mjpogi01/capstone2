@@ -474,8 +474,8 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
     <div className="artist-chat-modal-overlay" onClick={onClose}>
       <div className="artist-chat-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="chat-header">
-          <div className="chat-header-info">
+        <div className="artist-chat-header">
+          <div className="artist-chat-header-info">
             <h3 className="artist-chat-customer-name">
               <FontAwesomeIcon icon={faUser} />
               <span><strong>{customer?.full_name || 'Customer'}</strong></span>
@@ -488,7 +488,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
         </div>
 
         {/* Messages */}
-        <div className="chat-messages">
+        <div className="artist-chat-messages">
           {loading ? (
             <div className="artist-chat-loading-messages">
               <FontAwesomeIcon icon={faSpinner} spin />
@@ -498,12 +498,12 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
             <>
               {console.log('🎨 Rendering messages, count:', messages.length)}
               {messages.length === 0 ? (
-                <div className="chat-empty-state">
-                  <div className="chat-empty-icon">
+                <div className="artist-chat-empty-state">
+                  <div className="artist-chat-empty-icon">
                     <FontAwesomeIcon icon={faUser} />
                   </div>
-                  <p className="chat-empty-title">Start a conversation</p>
-                  <p className="chat-empty-message">
+                  <p className="artist-chat-empty-title">Start a conversation</p>
+                  <p className="artist-chat-empty-message">
                     This is a new chat room. Send a message to start communicating with {customer?.full_name || 'the customer'}.
                   </p>
                 </div>
@@ -513,15 +513,15 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
                 return (
                   <div 
                     key={message.client_id || message.id}
-                    className={`message ${message.sender_type === 'artist' ? 'sent' : 'received'}`}
+                    className={`artist-chat-message ${message.sender_type === 'artist' ? 'sent' : 'received'}`}
                   >
-                  <div className="message-content">
-                    <div className="message-header">
-                      <span className="sender-name">{message.sender_name}</span>
-                      <span className="message-time">{formatTime(message.created_at)}</span>
+                  <div className="artist-chat-message-content">
+                    <div className="artist-chat-message-header">
+                      <span className="artist-chat-sender-name">{message.sender_name}</span>
+                      <span className="artist-chat-message-time">{formatTime(message.created_at)}</span>
                     </div>
                     <div 
-                      className="message-text"
+                      className="artist-chat-message-text"
                       dangerouslySetInnerHTML={{
                         __html: (() => {
                           try {
@@ -538,28 +538,28 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
                       }}
                     />
                     {message.attachments && message.attachments.length > 0 && (
-                      <div className="message-attachments">
+                      <div className="artist-chat-message-attachments">
                         {message.attachments.map((attachment, index) => (
-                          <div key={index} className="attachment">
+                          <div key={index} className="artist-chat-attachment">
                             {attachment.type.startsWith('image/') ? (
-                              <div className="image-attachment">
+                              <div className="artist-chat-image-attachment">
                                 <img 
                                   src={attachment.url} 
                                   alt={attachment.name}
                                   onClick={() => setZoomedImage(attachment.url)}
                                   style={{ cursor: 'pointer' }}
                                 />
-                                <span className="attachment-name">{attachment.name}</span>
+                                <span className="artist-chat-attachment-name">{attachment.name}</span>
                               </div>
                             ) : (
-                              <div className="file-attachment">
+                              <div className="artist-chat-file-attachment">
                                 <FontAwesomeIcon icon={faFile} />
-                                <span className="attachment-name">{attachment.name}</span>
+                                <span className="artist-chat-attachment-name">{attachment.name}</span>
                                 <a 
                                   href={attachment.url} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="download-link"
+                                  className="artist-chat-download-link"
                                 >
                                   <FontAwesomeIcon icon={faEye} />
                                 </a>
@@ -629,7 +629,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
 
               <button
                 type="button"
-                className="attach-btn"
+                className="artist-chat-attach-btn"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
@@ -645,13 +645,13 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type your message..."
-                className="message-input"
+                className="artist-chat-message-input"
                 disabled={sending}
               />
 
               <button
                 type="submit"
-                className="send-btn"
+                className="artist-chat-send-btn"
                 disabled={sending || (!newMessage.trim() && attachments.length === 0)}
               >
                 {sending ? (
@@ -797,11 +797,11 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
         {/* Image Zoom Modal */}
         {zoomedImage && (
           <div 
-            className="image-zoom-overlay"
+            className="artist-chat-image-zoom-overlay"
             onClick={() => setZoomedImage(null)}
           >
             <button 
-              className="image-zoom-close"
+              className="artist-chat-image-zoom-close"
               onClick={() => setZoomedImage(null)}
             >
               <FontAwesomeIcon icon={faTimes} />
@@ -809,7 +809,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
             <img 
               src={zoomedImage} 
               alt="Zoomed"
-              className="image-zoom-content"
+              className="artist-chat-image-zoom-content"
               onClick={(e) => e.stopPropagation()}
             />
           </div>

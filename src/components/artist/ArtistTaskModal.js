@@ -21,7 +21,7 @@ import {
   faLock,
   faTrash
 } from '@fortawesome/free-solid-svg-icons';
-import { FaBasketballBall, FaTrophy, FaTshirt, FaUser, FaUserFriends } from 'react-icons/fa';
+import { FaBasketballBall, FaTrophy, FaTshirt, FaUser, FaUserFriends, FaChevronLeft, FaChevronRight, FaDownload, FaTimes } from 'react-icons/fa';
 import designUploadService from '../../services/designUploadService';
 import { useNotification } from '../../contexts/NotificationContext';
 import chatService from '../../services/chatService';
@@ -41,7 +41,76 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
   const [elapsedTime, setElapsedTime] = useState(0);
   const [designFiles, setDesignFiles] = useState([]);
   const fileInputRef = useRef(null);
+  const [imageGallery, setImageGallery] = useState({ isOpen: false, images: [], currentIndex: 0 }); // Image gallery modal state
   const { showSuccess, showError } = useNotification();
+
+  // Image gallery functions
+  const openImageGallery = useCallback((images, startIndex = 0) => {
+    if (!images || images.length === 0) return;
+    setImageGallery({
+      isOpen: true,
+      images: images.map(img => ({
+        url: img.url || img,
+        filename: img.filename || img.originalname || `image-${images.indexOf(img) + 1}.jpg`
+      })),
+      currentIndex: startIndex
+    });
+  }, []);
+
+  const closeImageGallery = useCallback(() => {
+    setImageGallery({ isOpen: false, images: [], currentIndex: 0 });
+  }, []);
+
+  const goToNextImage = useCallback(() => {
+    setImageGallery(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex + 1) % prev.images.length
+    }));
+  }, []);
+
+  const goToPrevImage = useCallback(() => {
+    setImageGallery(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex - 1 + prev.images.length) % prev.images.length
+    }));
+  }, []);
+
+  const downloadImage = useCallback((imageUrl, filename) => {
+    fetch(imageUrl)
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'image.jpg';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      })
+      .catch(error => {
+        console.error('Error downloading image:', error);
+        window.open(imageUrl, '_blank');
+      });
+  }, []);
+
+  // Keyboard navigation for image gallery
+  useEffect(() => {
+    if (!imageGallery.isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeImageGallery();
+      } else if (e.key === 'ArrowLeft') {
+        goToPrevImage();
+      } else if (e.key === 'ArrowRight') {
+        goToNextImage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [imageGallery.isOpen, closeImageGallery, goToPrevImage, goToNextImage]);
 
   // Check if design is approved or review timed out (60 minutes)
   const checkDesignApprovalStatus = useCallback(async (orderId) => {
@@ -549,24 +618,58 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                         const isTrophy = item.category?.toLowerCase() === 'trophies';
                         const isCustomDesign = item.product_type === 'custom_design';
                         const isApparel = !isBall && !isTrophy && !isCustomDesign;
-                        const isTeamOrder = item.isTeamOrder || (item.teamMembers && item.teamMembers.length > 0);
+                        // For custom design, check team_members; for regular orders, check teamMembers
+                        const isTeamOrder = isCustomDesign 
+                          ? ((item.team_members || item.teamMembers || []).length > 1)
+                          : (item.isTeamOrder || (item.teamMembers && item.teamMembers.length > 0));
                         
+                        // For custom design orders, use design_images as product image
+                        const designImages = item.design_images || [];
+                        const productImage = isCustomDesign && designImages.length > 0 
+                          ? designImages[0].url 
+                          : (item.main_image || item.image || item.imageUrl || item.photo || item.image_url || item.product_image || item.thumbnail || '/image_highlights/image.png');
+
                         return (
                           <div key={index} className="artist-order-item-card">
                             <div className="artist-order-item-header">
-                              <div className="artist-order-item-image">
-                                <img 
-                                  src={item.main_image || item.image || item.imageUrl || item.photo || item.image_url || item.product_image || item.thumbnail || '/image_highlights/image.png'} 
-                                  alt={item.name}
-                                  className="artist-product-img-clickable"
-                                  onClick={() => setZoomedImage({
-                                    url: item.main_image || item.image || item.imageUrl || item.photo || item.image_url || item.product_image || item.thumbnail || '/image_highlights/image.png',
-                                    name: item.name
-                                  })}
-                                  onError={(e) => {
-                                    e.target.src = '/image_highlights/image.png';
-                                  }}
-                                />
+                              <div 
+                                className="artist-order-item-image"
+                                style={{ position: 'relative' }}
+                              >
+                                {isCustomDesign && designImages.length > 0 ? (
+                                  <div 
+                                    className="artist-order-item-image-wrapper"
+                                    onClick={() => openImageGallery(designImages, 0)}
+                                    style={{ position: 'relative', cursor: 'pointer' }}
+                                  >
+                                    <img 
+                                      src={productImage} 
+                                      alt={item.name}
+                                      className="artist-product-img-clickable"
+                                      onError={(e) => {
+                                        e.target.src = '/image_highlights/image.png';
+                                      }}
+                                    />
+                                    {designImages.length > 1 && (
+                                      <div className="artist-order-item-image-badge">
+                                        +{designImages.length - 1}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <img 
+                                    src={productImage} 
+                                    alt={item.name}
+                                    className="artist-product-img-clickable"
+                                    onClick={() => setZoomedImage({
+                                      url: productImage,
+                                      name: item.name
+                                    })}
+                                    onError={(e) => {
+                                      e.target.src = '/image_highlights/image.png';
+                                    }}
+                                  />
+                                )}
                               </div>
                               <div className="artist-order-item-info">
                                 <div className="artist-order-item-name">{item.name}</div>
@@ -785,25 +888,144 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
                                     )}
                                   </div>
                                 ) : isCustomDesign ? (
-                                  /* Custom Design */
-                                  <div className="artist-order-custom-details">
-                                    <div className="artist-order-detail-row">
-                                      <span className="artist-order-detail-label">Order Type:</span>
-                                      <span className="artist-order-detail-value">{getOrderTypeLabel(displayTask)}</span>
-                                    </div>
-                                    {item.name && (
-                                      <div className="artist-order-detail-row">
-                                        <span className="artist-order-detail-label">Product Name:</span>
-                                        <span className="artist-order-detail-value">{item.name}</span>
+                                  /* Custom Design - Use same layout as regular orders */
+                                  (() => {
+                                    const teamMembers = item.team_members || item.teamMembers || [];
+                                    const memberCount = teamMembers.length;
+                                    const isCustomTeamOrder = memberCount > 1;
+                                    
+                                    return isCustomTeamOrder ? (
+                                      /* Custom Design - Team Orders */
+                                      <div className="artist-order-team-details">
+                                        <div className="artist-order-detail-row">
+                                          <span className="artist-order-detail-label">Team:</span>
+                                          <span className="artist-order-detail-value">{item.team_name || item.teamName || 'N/A'}</span>
+                                        </div>
+                                        <div className="artist-order-team-divider"></div>
+                                        <div className="artist-order-members-list">
+                                          {(() => {
+                                            const fallbackVisibility = {
+                                              jersey: teamMembers.some(member => Boolean(member?.size)),
+                                              shorts: teamMembers.some(member => Boolean(member?.shortsSize))
+                                            };
+                                            const { showJersey: showTeamJerseySize, showShorts: showTeamShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
+                                            return teamMembers.map((member, memberIndex) => {
+                                              const memberJerseyType = member.jerseyType || member.jersey_type || 'full';
+                                              const jerseyTypeLabel = memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                              return (
+                                                <div key={memberIndex} className="artist-order-member-item">
+                                                  <div className="artist-order-detail-row">
+                                                    <span className="artist-order-detail-label">Surname:</span>
+                                                    <span className="artist-order-detail-value">{(member.surname || member.lastName || 'N/A').toUpperCase()}</span>
+                                                  </div>
+                                                  <div className="artist-order-detail-row">
+                                                    <span className="artist-order-detail-label">Jersey No:</span>
+                                                    <span className="artist-order-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
+                                                  </div>
+                                                  <div className="artist-order-detail-row">
+                                                    <span className="artist-order-detail-label">Jersey Type:</span>
+                                                    <span className="artist-order-detail-value">{jerseyTypeLabel}</span>
+                                                  </div>
+                                                  {(member.fabricOption || member.fabric_option) && (
+                                                    <div className="artist-order-detail-row">
+                                                      <span className="artist-order-detail-label">Fabric:</span>
+                                                      <span className="artist-order-detail-value">{member.fabricOption || member.fabric_option || 'N/A'}</span>
+                                                    </div>
+                                                  )}
+                                                  <div className="artist-order-detail-row">
+                                                    <span className="artist-order-detail-label">Cut Type:</span>
+                                                    <span className="artist-order-detail-value">{member.cutType || member.cut_type || 'N/A'}</span>
+                                                  </div>
+                                                  <div className="artist-order-detail-row">
+                                                    <span className="artist-order-detail-label">Type:</span>
+                                                    <span className="artist-order-detail-value">{member.sizingType || member.sizing_type || 'Adult'}</span>
+                                                  </div>
+                                                  {showTeamJerseySize && (memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                                    <div className="artist-order-detail-row">
+                                                      <span className="artist-order-detail-label">Jersey Size:</span>
+                                                      <span className="artist-order-detail-value">{member.size || member.jerseySize || 'N/A'}</span>
+                                                    </div>
+                                                  )}
+                                                  <div className="artist-order-detail-row">
+                                                    <span className="artist-order-detail-label">Shorts Size:</span>
+                                                    <span className="artist-order-detail-value">{(memberJerseyType === 'full' || memberJerseyType === 'shorts') ? (member.shortsSize || 'N/A') : '-'}</span>
+                                                  </div>
+                                                </div>
+                                              );
+                                            });
+                                          })()}
+                                        </div>
                                       </div>
-                                    )}
-                                    {item.quantity && (
-                                      <div className="artist-order-detail-row">
-                                        <span className="artist-order-detail-label">Quantity:</span>
-                                        <span className="artist-order-detail-value">{item.quantity}</span>
+                                    ) : (
+                                      /* Custom Design - Single Orders */
+                                      <div className="artist-order-single-details">
+                                        {teamMembers.length > 0 ? (() => {
+                                          const member = teamMembers[0];
+                                          const memberJerseyType = member.jerseyType || 'full';
+                                          const jerseyTypeLabel = memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                          const fallbackVisibility = {
+                                            jersey: Boolean(member?.size),
+                                            shorts: Boolean(member?.shortsSize)
+                                          };
+                                          const { showJersey: showSingleJerseySize, showShorts: showSingleShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
+                                          return (
+                                            <>
+                                              {item.team_name && (
+                                                <div className="artist-order-detail-row">
+                                                  <span className="artist-order-detail-label">Team:</span>
+                                                  <span className="artist-order-detail-value">{item.team_name || 'N/A'}</span>
+                                                </div>
+                                              )}
+                                              {member.surname && (
+                                                <div className="artist-order-detail-row">
+                                                  <span className="artist-order-detail-label">Surname:</span>
+                                                  <span className="artist-order-detail-value">{(member.surname || 'N/A').toUpperCase()}</span>
+                                                </div>
+                                              )}
+                                              {member.number && (
+                                                <div className="artist-order-detail-row">
+                                                  <span className="artist-order-detail-label">Jersey No:</span>
+                                                  <span className="artist-order-detail-value">{member.number || 'N/A'}</span>
+                                                </div>
+                                              )}
+                                              <div className="artist-order-detail-row">
+                                                <span className="artist-order-detail-label">Jersey Type:</span>
+                                                <span className="artist-order-detail-value">{jerseyTypeLabel}</span>
+                                              </div>
+                                              {member.fabricOption && (
+                                                <div className="artist-order-detail-row">
+                                                  <span className="artist-order-detail-label">Fabric:</span>
+                                                  <span className="artist-order-detail-value">{member.fabricOption || 'N/A'}</span>
+                                                </div>
+                                              )}
+                                              <div className="artist-order-detail-row">
+                                                <span className="artist-order-detail-label">Cut Type:</span>
+                                                <span className="artist-order-detail-value">{member.cutType || 'N/A'}</span>
+                                              </div>
+                                              <div className="artist-order-detail-row">
+                                                <span className="artist-order-detail-label">Type:</span>
+                                                <span className="artist-order-detail-value">{member.sizingType === 'kids' ? 'Kids' : 'Adult'}</span>
+                                              </div>
+                                              {showSingleJerseySize && (memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                                <div className="artist-order-detail-row">
+                                                  <span className="artist-order-detail-label">Jersey Size:</span>
+                                                  <span className="artist-order-detail-value">{member.size || 'N/A'}</span>
+                                                </div>
+                                              )}
+                                              <div className="artist-order-detail-row">
+                                                <span className="artist-order-detail-label">Shorts Size:</span>
+                                                <span className="artist-order-detail-value">{(memberJerseyType === 'full' || memberJerseyType === 'shorts') ? (member.shortsSize || 'N/A') : '-'}</span>
+                                              </div>
+                                            </>
+                                          );
+                                        })() : (
+                                          <div className="artist-order-detail-row">
+                                            <span className="artist-order-detail-label">No member details available</span>
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
+                                    );
+                                  })()
                                 ) : null}
                               </div>
                             )}
@@ -1042,6 +1264,71 @@ const ArtistTaskModal = ({ task, isOpen, onClose, onStatusUpdate, onOpenChat }) 
         />
 
       </div>
+
+      {/* Image Gallery Modal */}
+      {imageGallery.isOpen && imageGallery.images.length > 0 && (
+        <div 
+          className="artist-image-gallery-overlay"
+          onClick={closeImageGallery}
+        >
+          <div 
+            className="artist-image-gallery-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="artist-image-gallery-close"
+              onClick={closeImageGallery}
+              aria-label="Close gallery"
+            >
+              <FaTimes />
+            </button>
+
+            <button
+              className="artist-image-gallery-nav artist-image-gallery-prev"
+              onClick={goToPrevImage}
+              aria-label="Previous image"
+              disabled={imageGallery.images.length <= 1}
+            >
+              <FaChevronLeft />
+            </button>
+
+            <div className="artist-image-gallery-main">
+              <img
+                src={imageGallery.images[imageGallery.currentIndex].url}
+                alt={`Design ${imageGallery.currentIndex + 1}`}
+                className="artist-image-gallery-image"
+                onError={(e) => {
+                  e.target.src = '/image_highlights/image.png';
+                }}
+              />
+              <div className="artist-image-gallery-info">
+                <span className="artist-image-gallery-counter">
+                  {imageGallery.currentIndex + 1} / {imageGallery.images.length}
+                </span>
+                <button
+                  className="artist-image-gallery-download"
+                  onClick={() => downloadImage(
+                    imageGallery.images[imageGallery.currentIndex].url,
+                    imageGallery.images[imageGallery.currentIndex].filename
+                  )}
+                  aria-label="Download image"
+                >
+                  <FaDownload />
+                </button>
+              </div>
+            </div>
+
+            <button
+              className="artist-image-gallery-nav artist-image-gallery-next"
+              onClick={goToNextImage}
+              aria-label="Next image"
+              disabled={imageGallery.images.length <= 1}
+            >
+              <FaChevronRight />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

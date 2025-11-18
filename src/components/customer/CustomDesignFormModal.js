@@ -138,7 +138,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       }
       // Check if delivery address fields are missing
       else if (!deliveryAddress.address || !deliveryAddress.receiver || !deliveryAddress.phone) {
-        e.deliveryAddress = 'Delivery address is required';
+      e.deliveryAddress = 'Delivery address is required';
       }
       // Additional check: if address exists but is incomplete
       else if (deliveryAddress.address && (!deliveryAddress.receiver || !deliveryAddress.phone)) {
