@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import './BranchSupportChat.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -31,6 +31,7 @@ const BranchSupportChat = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [closingRoom, setClosingRoom] = useState(false);
   const [error, setError] = useState(null);
+  const selectedRoomIdRef = useRef(null);
 
   const isOwner = role === 'owner';
 
@@ -67,8 +68,19 @@ const BranchSupportChat = () => {
       const fetchedRooms = data.rooms || [];
       setRooms(fetchedRooms);
 
-      if (fetchedRooms.length > 0 && !selectedRoomId) {
-        setSelectedRoomId(fetchedRooms[0].id);
+      // Check if currently selected room still exists in the new list
+      const currentSelectedId = selectedRoomIdRef.current;
+      if (currentSelectedId && !fetchedRooms.some(room => room.id === currentSelectedId)) {
+        // Selected room no longer exists, clear selection
+        selectedRoomIdRef.current = null;
+        setSelectedRoomId(null);
+      }
+
+      // Auto-select first room only if no room is currently selected
+      if (fetchedRooms.length > 0 && !selectedRoomIdRef.current) {
+        const firstRoomId = fetchedRooms[0].id;
+        selectedRoomIdRef.current = firstRoomId;
+        setSelectedRoomId(firstRoomId);
       }
     } catch (err) {
       console.error('Failed to load branch support chats:', err);
@@ -77,7 +89,7 @@ const BranchSupportChat = () => {
     } finally {
       setLoadingRooms(false);
     }
-  }, [statusFilter, branchFilter, isOwner, adminBranchId, selectedRoomId]);
+  }, [statusFilter, branchFilter, isOwner, adminBranchId]);
 
   const loadMessages = useCallback(async (roomId) => {
     if (!roomId) return;
@@ -103,6 +115,11 @@ const BranchSupportChat = () => {
     loadRooms();
   }, [loadRooms]);
 
+  // Sync ref with state
+  useEffect(() => {
+    selectedRoomIdRef.current = selectedRoomId;
+  }, [selectedRoomId]);
+
   useEffect(() => {
     if (selectedRoomId) {
       loadMessages(selectedRoomId);
@@ -112,6 +129,7 @@ const BranchSupportChat = () => {
   }, [selectedRoomId, loadMessages]);
 
   const handleRoomSelect = (roomId) => {
+    selectedRoomIdRef.current = roomId;
     setSelectedRoomId(roomId);
   };
 
@@ -245,10 +263,10 @@ const BranchSupportChat = () => {
                       <FontAwesomeIcon icon={faBuilding} />
                     </div>
                     <div className="admin-branch-support-room-info">
-                      <h3>{branch.name || 'Branch'}</h3>
+                      <h3>{room.customer_name || `Customer ${room.customer_id?.slice(0, 8)}`}</h3>
                       <p>
-                        <FontAwesomeIcon icon={faUserCircle} />
-                        Customer ID: {room.customer_id?.slice(0, 8)}…
+                        <FontAwesomeIcon icon={faBuilding} />
+                        {branch.name || 'Branch'}
                       </p>
                       <div className="admin-branch-support-room-meta">
                         <span className={`admin-branch-support-status-pill admin-branch-support-status-${room.status}`}>
@@ -271,8 +289,8 @@ const BranchSupportChat = () => {
             <div className="admin-branch-support-window">
               <div className="admin-branch-support-window-header">
                 <div>
-                  <h3>{branchLookup.get(selectedRoom.branch_id)?.name || selectedRoom.branch?.name || 'Branch Support'}</h3>
-                  <span>Customer: {selectedRoom.customer_id?.slice(0, 8)}…</span>
+                  <h3>{selectedRoom.customer_name || `Customer ${selectedRoom.customer_id?.slice(0, 8)}`}</h3>
+                  <span>Branch: {branchLookup.get(selectedRoom.branch_id)?.name || selectedRoom.branch?.name || 'Branch Support'}</span>
                 </div>
                 <button
                   className="admin-branch-support-close-btn"

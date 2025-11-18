@@ -155,18 +155,30 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
         }))
     )];
 
-    // Combine all categories, removing duplicates
-    const allCategories = [
-      ...visiblePredefined,
-      ...customCategories,
-      ...productCategories.filter(
-        pc => !visiblePredefined.some(pre => pre.id === pc.id) &&
-              !customCategories.some(cc => cc.id === pc.id) &&
-              !hiddenCategories.includes(pc.id)
-      )
-    ];
+    // Combine all categories, removing duplicates using a Map to ensure uniqueness
+    const categoryMap = new Map();
+    
+    // Add visible predefined categories first
+    visiblePredefined.forEach(cat => {
+      categoryMap.set(cat.id, cat);
+    });
+    
+    // Add custom categories (will overwrite if duplicate)
+    customCategories.forEach(cat => {
+      if (!hiddenCategories.includes(cat.id)) {
+        categoryMap.set(cat.id, cat);
+      }
+    });
+    
+    // Add product categories (only if not already present and not hidden)
+    productCategories.forEach(cat => {
+      if (!categoryMap.has(cat.id) && !hiddenCategories.includes(cat.id)) {
+        categoryMap.set(cat.id, cat);
+      }
+    });
 
-    return allCategories;
+    // Convert Map values back to array
+    return Array.from(categoryMap.values());
   }, [products]);
 
   // Fetch products from API

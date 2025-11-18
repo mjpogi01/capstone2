@@ -247,6 +247,111 @@ router.get('/rooms/admin', authenticateSupabaseToken, async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    // Fetch customer names from user_profiles and auth.users
+    // Note: customer_id in branch_chat_rooms = user_id in user_profiles = id in auth.users
+    if (data && data.length > 0) {
+      const customerIds = [...new Set(data.map(room => room.customer_id).filter(Boolean))];
+      
+      if (customerIds.length > 0) {
+        const profileMap = new Map();
+        
+        // Try 1: Get from user_profiles table (where user_id = customer_id)
+        try {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('user_profiles')
+            .select('user_id, full_name')
+            .in('user_id', customerIds);
+
+          if (!profilesError && profiles && profiles.length > 0) {
+            profiles.forEach(p => {
+              if (p.full_name) {
+                profileMap.set(p.user_id, p.full_name);
+              }
+            });
+          }
+        } catch (profileErr) {
+          console.warn('Error fetching user_profiles:', profileErr.message);
+        }
+
+        // Try 2: For ALL customers, fetch from auth.users to get real names
+        // Priority: full_name > first_name + last_name > username > display_name > email (as last resort)
+        try {
+          await Promise.all(
+            customerIds.map(async (userId) => {
+              try {
+                const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+                if (!userError && user) {
+                  // Only set if we don't already have a name from user_profiles
+                  if (!profileMap.has(userId)) {
+                    const metadata = user.user_metadata || user.raw_user_meta_data || {};
+                    
+                    // Priority 1: full_name from metadata
+                    let customerName = metadata.full_name || null;
+                    
+                    // Priority 2: Combine first_name + last_name
+                    if (!customerName) {
+                      const firstName = metadata.first_name || '';
+                      const lastName = metadata.last_name || '';
+                      if (firstName && lastName) {
+                        customerName = `${firstName} ${lastName}`.trim();
+                      } else if (firstName) {
+                        customerName = firstName.trim();
+                      } else if (lastName) {
+                        customerName = lastName.trim();
+                      }
+                    }
+                    
+                    // Priority 3: username or display_name
+                    if (!customerName) {
+                      customerName = metadata.username || metadata.display_name || metadata.name || null;
+                    }
+                    
+                    // Priority 4: Extract name from email (e.g., "john.doe@email.com" -> "John Doe")
+                    if (!customerName && user.email) {
+                      const emailParts = user.email.split('@')[0];
+                      // Try to extract name if email format is "firstname.lastname" or "firstname_lastname"
+                      if (emailParts.includes('.') || emailParts.includes('_')) {
+                        const separator = emailParts.includes('.') ? '.' : '_';
+                        const parts = emailParts.split(separator);
+                        if (parts.length >= 2) {
+                          // Capitalize first letter of each part
+                          customerName = parts.map(part => 
+                            part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+                          ).join(' ');
+                        }
+                      }
+                    }
+                    
+                    // Last resort: Use email (but format it nicely)
+                    if (!customerName && user.email) {
+                      // Extract the part before @ and capitalize it
+                      const emailName = user.email.split('@')[0];
+                      customerName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+                    }
+                    
+                    if (customerName) {
+                      profileMap.set(userId, customerName);
+                    }
+                  }
+                } else if (userError) {
+                  console.warn(`Could not fetch user ${userId}:`, userError.message);
+                }
+              } catch (authError) {
+                console.warn(`Error fetching user data for ${userId}:`, authError.message);
+              }
+            })
+          );
+        } catch (authErr) {
+          console.warn('Error in auth.users lookup:', authErr.message);
+        }
+        
+        // Add customer name to each room - should always have at least email now
+        data.forEach(room => {
+          room.customer_name = profileMap.get(room.customer_id) || null;
+        });
+      }
+    }
+
     res.json({ rooms: data || [] });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to load branch chats' });

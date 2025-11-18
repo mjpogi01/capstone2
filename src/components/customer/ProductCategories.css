@@ -898,7 +898,7 @@
   .sportswear-product-card {
     background: #000000;
     border: 1.5px solid rgba(0, 191, 255, 0.35);
-    border-radius: 18px !important;
+    border-radius: 8px !important;
     height: 310px;
     min-height: 310px;
     max-height: 310px;
@@ -919,6 +919,8 @@
     background: #000000;
     border-bottom: 1.5px solid rgba(0, 191, 255, 0.2);
     padding: 0.4rem;
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
   }
 
   .sportswear-product-image {
@@ -1514,7 +1516,7 @@
     width: 150px;
     min-width: 150px;
     max-width: 150px;
-    border-radius: 16px !important;
+    border-radius: 8px !important;
   }
 }
 
@@ -1600,7 +1602,7 @@
     max-width: 150px;
     background: #000000;
     border: 1.5px solid rgb(64, 182, 221);
-    border-radius: 16px !important;
+    border-radius: 8px !important;
     height: 220px;
     min-height: 220px;
     max-height: 220px;
@@ -1620,6 +1622,8 @@
     background: #000000;
     border-bottom: 1.5px solid rgba(0, 191, 255, 0.2);
     padding: 0.3rem;
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
   }
   
   .sportswear-product-image {

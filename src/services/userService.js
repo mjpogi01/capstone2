@@ -102,7 +102,24 @@ class UserService {
         throw new Error('User not authenticated');
       }
 
-      const { data, error } = await supabase
+      // First, verify the address exists and belongs to the user
+      const { data: existingAddress, error: checkError } = await supabase
+        .from('user_addresses')
+        .select('id')
+        .eq('id', addressId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (checkError) {
+        throw new Error(`Failed to verify address: ${checkError.message}`);
+      }
+
+      if (!existingAddress) {
+        throw new Error('Address not found or does not belong to user');
+      }
+
+      // Update the address - first update without select to avoid coercion issues
+      const { error: updateError } = await supabase
         .from('user_addresses')
         .update({
           full_name: addressData.fullName,
@@ -113,15 +130,30 @@ class UserService {
           city: addressData.city,
           province: addressData.province,
           postal_code: addressData.postalCode,
-          address: addressData.address
+          address: addressData.address,
+          updated_at: new Date().toISOString()
         })
         .eq('id', addressId)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        throw new Error(`Failed to update address: ${updateError.message}`);
+      }
+
+      // Fetch the updated address separately to avoid coercion issues
+      const { data, error: fetchError } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('id', addressId)
         .eq('user_id', user.id)
-        .select()
         .single();
 
-      if (error) {
-        throw new Error(`Failed to update address: ${error.message}`);
+      if (fetchError) {
+        throw new Error(`Failed to fetch updated address: ${fetchError.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Address update completed but address not found');
       }
 
       return data;

@@ -429,6 +429,12 @@
     display: none;
   }
   
+  /* Hide Gmail and Telephone icons on mobile */
+  .contact-item:nth-child(2),
+  .contact-item:nth-child(3) {
+    display: none !important;
+  }
+  
   .footer-bottom {
     padding-top: 2rem;
     margin-top: 0.5rem;
