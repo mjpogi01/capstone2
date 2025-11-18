@@ -212,19 +212,41 @@ router.post('/send-code', async (req, res) => {
       });
     }
 
+    // Check if a code was recently sent (prevent duplicate sends within 30 seconds)
+    const existingData = verificationCodes.get(normalizedEmail);
+    if (existingData && existingData.lastSentAt) {
+      const timeSinceLastSend = Date.now() - existingData.lastSentAt;
+      const minTimeBetweenSends = 30 * 1000; // 30 seconds
+      
+      if (timeSinceLastSend < minTimeBetweenSends) {
+        const secondsLeft = Math.ceil((minTimeBetweenSends - timeSinceLastSend) / 1000);
+        console.log(`⏱️ Code already sent recently for ${normalizedEmail}, wait ${secondsLeft} seconds`);
+        // Return existing code info but don't send another email
+        const expiresIn = existingData.expiresAt > Date.now() 
+          ? Math.floor((existingData.expiresAt - Date.now()) / 60000)
+          : 0;
+        return res.json({
+          success: true,
+          message: `Verification code already sent. Please check your email. Wait ${secondsLeft} second(s) before requesting a new code.`,
+          expiresIn: expiresIn,
+          retryAfter: secondsLeft
+        });
+      }
+    }
+
     // Generate verification code
     const code = generateVerificationCode();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     // Store verification code (preserve existing user data if present, or use new data)
-    const existingData = verificationCodes.get(normalizedEmail);
     verificationCodes.set(normalizedEmail, {
       code,
       expiresAt,
       userId: userId || existingData?.userId || null,
       userData: userData || existingData?.userData || null,
-      attempts: 0,
-      maxAttempts: 5
+      attempts: existingData?.attempts || 0, // Preserve attempt count
+      maxAttempts: 5,
+      lastSentAt: Date.now() // Track when code was sent
     });
 
     console.log(`📧 Generated verification code for ${normalizedEmail}: ${code}`);
@@ -407,19 +429,35 @@ router.post('/resend-code', async (req, res) => {
       }
     }
 
-    // Generate new code
-    const code = generateVerificationCode();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+           // Check rate limit for resend (prevent spam)
+           if (existingData && existingData.lastSentAt) {
+             const timeSinceLastSend = Date.now() - existingData.lastSentAt;
+             const minTimeBetweenResends = 30 * 1000; // 30 seconds
+             
+             if (timeSinceLastSend < minTimeBetweenResends) {
+               const secondsLeft = Math.ceil((minTimeBetweenResends - timeSinceLastSend) / 1000);
+               return res.status(429).json({
+                 success: false,
+                 error: `Please wait ${secondsLeft} second(s) before requesting a new code.`,
+                 retryAfter: secondsLeft
+               });
+             }
+           }
 
-    // Store new verification code (preserve user data if exists)
-    verificationCodes.set(normalizedEmail, {
-      code,
-      expiresAt,
-      userId: existingData?.userId || null,
-      userData: existingData?.userData || null,
-      attempts: 0, // Reset attempts
-      maxAttempts: 5
-    });
+           // Generate new code
+           const code = generateVerificationCode();
+           const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+           // Store new verification code (preserve user data if exists)
+           verificationCodes.set(normalizedEmail, {
+             code,
+             expiresAt,
+             userId: existingData?.userId || null,
+             userData: existingData?.userData || null,
+             attempts: 0, // Reset attempts
+             maxAttempts: 5,
+             lastSentAt: Date.now() // Track when code was sent
+           });
 
     console.log(`📧 Resent verification code for ${normalizedEmail}: ${code}`);
     console.log(`📋 Stored code: "${code}" (length: ${code.length})`);

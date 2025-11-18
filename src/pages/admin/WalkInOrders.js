@@ -26,10 +26,12 @@ import {
   FaChevronUp,
   FaStar,
   FaChevronLeft,
-  FaChevronRight
+  FaChevronRight,
+  FaPalette
 } from 'react-icons/fa';
 import ProductModal from '../../components/customer/ProductModal';
 import CheckoutModal from '../../components/customer/CheckoutModal';
+import WalkInCustomOrder from '../../components/admin/WalkInCustomOrder';
 import productService from '../../services/productService';
 import orderService from '../../services/orderService';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -52,6 +54,7 @@ const WalkInOrders = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [editQuantity, setEditQuantity] = useState(1);
   const [editSize, setEditSize] = useState('');
+  const [viewMode, setViewMode] = useState('products'); // 'products' or 'custom-order'
   
   // Filter states (copied from shop page)
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -164,6 +167,18 @@ const WalkInOrders = () => {
     filterProducts();
     setCurrentPage(1); // Reset to first page when filters change
   }, [filterProducts]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (viewMode === 'custom-order') {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [viewMode]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
@@ -417,6 +432,10 @@ const WalkInOrders = () => {
             </div>
           </div>
 
+          <div className="navbar-center">
+            {/* Empty center for spacing */}
+          </div>
+
           <div className="navbar-right">
             <div className="walkin-cart-icon-wrapper" ref={cartDropdownRef}>
               <button
@@ -515,128 +534,154 @@ const WalkInOrders = () => {
           </div>
         </header>
 
-        {/* Sort Bar */}
-        <div className="walkin-filter-bar">
-          <div className="walkin-search-box">
-            <FaSearch className="walkin-search-icon" />
-            <input
-              type="text"
-              className="walkin-search-input"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="walkin-sort-label">Sort by</div>
-          <div className="walkin-sort-buttons">
-            <button
-              className={`walkin-sort-btn ${sortBy === 'name' ? 'active' : ''}`}
-              onClick={() => setSortBy('name')}
-            >
-              Relevance
-            </button>
-            <button
-              className={`walkin-sort-btn ${sortBy === 'latest' ? 'active' : ''}`}
-              onClick={() => setSortBy('latest')}
-            >
-              Latest
-            </button>
-            <button
-              className={`walkin-sort-btn ${sortBy === 'popularity' ? 'active' : ''}`}
-              onClick={() => setSortBy('popularity')}
-            >
-              Top Sales
-            </button>
-            <div className="walkin-price-dropdown-wrapper">
+        {/* Sort Bar - Only show in products view */}
+        {viewMode === 'products' && (
+          <div className="walkin-filter-bar">
+            <div className="walkin-search-box">
+              <FaSearch className="walkin-search-icon" />
+              <input
+                type="text"
+                className="walkin-search-input"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="walkin-sort-label">Sort by</div>
+            <div className="walkin-sort-buttons">
               <button
-                className={`walkin-sort-btn price-btn ${sortBy === 'price-low' || sortBy === 'price-high' ? 'active' : ''}`}
-                onClick={() => setShowPriceDropdown(!showPriceDropdown)}
+                className={`walkin-sort-btn ${sortBy === 'name' ? 'active' : ''}`}
+                onClick={() => setSortBy('name')}
               >
-                Price
-                <FaChevronDown className={`walkin-price-arrow ${showPriceDropdown ? 'rotated' : ''}`} />
+                Relevance
               </button>
-              {showPriceDropdown && (
-                <div className="walkin-price-dropdown-menu">
+              <button
+                className={`walkin-sort-btn ${sortBy === 'latest' ? 'active' : ''}`}
+                onClick={() => setSortBy('latest')}
+              >
+                Latest
+              </button>
+              <button
+                className={`walkin-sort-btn ${sortBy === 'popularity' ? 'active' : ''}`}
+                onClick={() => setSortBy('popularity')}
+              >
+                Top Sales
+              </button>
+              <div className="walkin-price-dropdown-wrapper">
+                <button
+                  className={`walkin-sort-btn price-btn ${sortBy === 'price-low' || sortBy === 'price-high' ? 'active' : ''}`}
+                  onClick={() => setShowPriceDropdown(!showPriceDropdown)}
+                >
+                  Price
+                  <FaChevronDown className={`walkin-price-arrow ${showPriceDropdown ? 'rotated' : ''}`} />
+                </button>
+                {showPriceDropdown && (
+                  <div className="walkin-price-dropdown-menu">
+                    <button
+                      className={`walkin-price-option ${sortBy === 'price-low' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setSortBy('price-low');
+                        setShowPriceDropdown(false);
+                      }}
+                    >
+                      Lowest to Highest
+                    </button>
+                    <button
+                      className={`walkin-price-option ${sortBy === 'price-high' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setSortBy('price-high');
+                        setShowPriceDropdown(false);
+                      }}
+                    >
+                      Highest to Lowest
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Desktop/Laptop Filter Icon Button and Pagination */}
+            <div className="walkin-filter-pagination-group">
+              {/* Filter Icon Button */}
+              <button
+                className="walkin-desktop-filter-btn"
+                onClick={() => setShowMobileFilters(true)}
+                aria-label="Open filters"
+                title="Filters"
+              >
+                <FaFilter />
+              </button>
+              {/* Pagination Buttons */}
+              {filteredProducts.length > 0 && totalPages > 1 && (
+                <div className="walkin-pagination-controls">
                   <button
-                    className={`walkin-price-option ${sortBy === 'price-low' ? 'selected' : ''}`}
-                    onClick={() => {
-                      setSortBy('price-low');
-                      setShowPriceDropdown(false);
-                    }}
+                    className="walkin-pagination-btn"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    aria-label="Previous page"
+                    title="Previous page"
                   >
-                    Lowest to Highest
+                    &lt;
                   </button>
+                  <span className="walkin-pagination-info">
+                    {currentPage}/{totalPages}
+                  </span>
                   <button
-                    className={`walkin-price-option ${sortBy === 'price-high' ? 'selected' : ''}`}
-                    onClick={() => {
-                      setSortBy('price-high');
-                      setShowPriceDropdown(false);
-                    }}
+                    className="walkin-pagination-btn"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    aria-label="Next page"
+                    title="Next page"
                   >
-                    Highest to Lowest
+                    &gt;
                   </button>
                 </div>
               )}
             </div>
           </div>
-          {/* Desktop/Laptop Filter Icon Button and Pagination */}
-          <div className="walkin-filter-pagination-group">
-            {/* Filter Icon Button */}
-            <button
-              className="walkin-desktop-filter-btn"
+        )}
+
+        {/* Mobile Filter Button Row - Only visible on mobile and in products view */}
+        {viewMode === 'products' && (
+          <div className="walkin-mobile-filter-row">
+            <button 
+              className="walkin-mobile-filter-btn"
               onClick={() => setShowMobileFilters(true)}
               aria-label="Open filters"
-              title="Filters"
             >
-              <FaFilter />
+              <FaFilter className="filter-icon" />
+              <span>Filters</span>
             </button>
-            {/* Pagination Buttons */}
-            {filteredProducts.length > 0 && totalPages > 1 && (
-              <div className="walkin-pagination-controls">
-                <button
-                  className="walkin-pagination-btn"
-                  onClick={handlePreviousPage}
-                  disabled={currentPage === 1}
-                  aria-label="Previous page"
-                  title="Previous page"
-                >
-                  &lt;
-                </button>
-                <span className="walkin-pagination-info">
-                  {currentPage}/{totalPages}
-                </span>
-                <button
-                  className="walkin-pagination-btn"
-                  onClick={handleNextPage}
-                  disabled={currentPage === totalPages}
-                  aria-label="Next page"
-                  title="Next page"
-                >
-                  &gt;
-                </button>
-              </div>
-            )}
+            <div className="walkin-mobile-results-text">
+              {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
+            </div>
           </div>
-        </div>
-
-        {/* Mobile Filter Button Row - Only visible on mobile */}
-        <div className="walkin-mobile-filter-row">
-          <button 
-            className="walkin-mobile-filter-btn"
-            onClick={() => setShowMobileFilters(true)}
-            aria-label="Open filters"
-          >
-            <FaFilter className="filter-icon" />
-            <span>Filters</span>
-          </button>
-          <div className="walkin-mobile-results-text">
-            {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
-          </div>
-        </div>
+        )}
 
         {/* Main Content Area - Full Width */}
         <div className="main-content-full">
-          <div className="products-section-full">
+          {viewMode === 'custom-order' ? (
+            /* Custom Order View - Modal Overlay */
+            <div className="wio-custom-order-overlay" onClick={() => setViewMode('products')}>
+              <div className="wio-custom-order-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="wio-custom-order-modal-header">
+                  <h2 className="wio-custom-order-modal-title">Custom Design Order</h2>
+                  <button
+                    className="wio-custom-order-close-btn"
+                    onClick={() => setViewMode('products')}
+                    aria-label="Close Custom Order"
+                    title="Close"
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+                <div className="wio-custom-order-modal-content">
+                  <WalkInCustomOrder onClose={() => setViewMode('products')} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Products View */
+            <div className="products-section-full">
               {loading ? (
               <div className="loading-state">
                   <FaSpinner className="spinner" />
@@ -725,7 +770,8 @@ const WalkInOrders = () => {
                   })}
                 </div>
               )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Product Modal */}
@@ -877,6 +923,19 @@ const WalkInOrders = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Floating Custom Order Button - Bottom Right (only show in products view) */}
+        {viewMode === 'products' && (
+          <button
+            className="walkin-floating-custom-order-btn"
+            onClick={() => setViewMode('custom-order')}
+            title="Custom Design Order"
+            aria-label="Open Custom Order"
+          >
+            <FaPalette className="walkin-floating-btn-icon" />
+            <span className="walkin-floating-btn-text">Custom Order</span>
+          </button>
         )}
       </div>
     </div>

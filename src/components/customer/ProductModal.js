@@ -2194,7 +2194,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                         </div>
                         <button
                           type="button"
-                          className="modal-member-toggle-btn"
+                          className={`modal-member-toggle-btn ${isExpanded ? 'modal-member-toggle-btn-expanded' : ''}`}
                           onClick={() => toggleMemberExpanded(member.id)}
                           title={isExpanded ? "Collapse details" : "Expand details"}
                         >

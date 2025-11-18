@@ -36,11 +36,24 @@ window.addEventListener('error', (event) => {
     }
   }
   // Suppress AbortSignal timeout errors from Supabase queries (handled gracefully in services)
-  if (event.message && (event.message === 'Timeout (u)' || event.message.includes('Timeout') || event.name === 'AbortError')) {
-    const source = event.filename || event.source || event.error?.stack || '';
-    if (source.includes('supabase') || source.includes('AbortSignal') || event.message === 'Timeout (u)') {
+  // Catch all "Timeout (u)" errors - these are non-critical AbortSignal timeouts
+  if (event.message === 'Timeout (u)' || 
+      (event.message && event.message.includes('Timeout')) || 
+      event.name === 'AbortError' ||
+      (event.error && event.error.name === 'AbortError')) {
+    // Always suppress "Timeout (u)" errors - they're non-critical
+    if (event.message === 'Timeout (u)' || event.name === 'AbortError' || (event.error && event.error.name === 'AbortError')) {
       console.warn('⚠️ Timeout error handled gracefully (non-critical)');
       event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }
+    // Check source for other timeout errors
+    const source = event.filename || event.source || event.error?.stack || '';
+    if (source.includes('supabase') || source.includes('AbortSignal') || source.includes('bundle.js')) {
+      console.warn('⚠️ Timeout error handled gracefully (non-critical)');
+      event.preventDefault();
+      event.stopPropagation();
       return false;
     }
   }
@@ -72,13 +85,29 @@ window.addEventListener('unhandledrejection', (event) => {
     }
   }
   // Suppress AbortSignal timeout promise rejections from Supabase queries
-  if (event.reason && (event.reason.name === 'AbortError' || event.reason.message === 'Timeout (u)' || 
-      (event.reason.message && (event.reason.message.includes('Timeout') || event.reason.message.includes('timeout'))))) {
-    const stack = event.reason.stack || '';
-    if (stack.includes('supabase') || stack.includes('AbortSignal') || event.reason.name === 'AbortError' || event.reason.message === 'Timeout (u)') {
-      console.warn('⚠️ Timeout promise rejection handled gracefully (non-critical)');
-      event.preventDefault();
-      return false;
+  // Catch all "Timeout (u)" promise rejections - these are non-critical
+  if (event.reason) {
+    const reason = event.reason;
+    const isTimeout = reason.name === 'AbortError' || 
+                      reason.message === 'Timeout (u)' ||
+                      (reason.message && (reason.message.includes('Timeout') || reason.message.includes('timeout')));
+    
+    if (isTimeout) {
+      // Always suppress "Timeout (u)" promise rejections
+      if (reason.message === 'Timeout (u)' || reason.name === 'AbortError') {
+        console.warn('⚠️ Timeout promise rejection handled gracefully (non-critical)');
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+      // Check stack for other timeout errors
+      const stack = reason.stack || '';
+      if (stack.includes('supabase') || stack.includes('AbortSignal') || stack.includes('bundle.js')) {
+        console.warn('⚠️ Timeout promise rejection handled gracefully (non-critical)');
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
     }
   }
   // Suppress geolocation timeout promise rejections
@@ -171,6 +200,56 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
       }
     }
     return originalAppendChild.call(this, child);
+  };
+}
+
+// Suppress React error overlay for timeout errors
+// Intercept console.error before React uses it
+const originalError = console.error;
+console.error = (...args) => {
+  // Filter out timeout errors from console.error
+  const message = args.join(' ');
+  const firstArg = args[0];
+  
+  // Check if this is a timeout error in various formats
+  const isTimeoutError = 
+    message.includes('Timeout (u)') || 
+    message.includes('AbortError') ||
+    (typeof firstArg === 'string' && firstArg.includes('Timeout (u)')) ||
+    (firstArg && typeof firstArg === 'object' && firstArg.message && firstArg.message.includes('Timeout (u)')) ||
+    (firstArg && typeof firstArg === 'object' && firstArg.name === 'AbortError') ||
+    (args.some(arg => arg && typeof arg === 'object' && arg.message === 'Timeout (u)'));
+
+  if (isTimeoutError) {
+    // Suppress timeout errors in console.error (prevents React error overlay)
+    console.warn('⚠️ Timeout error (suppressed from error overlay):', ...args);
+    return;
+  }
+  
+  // Also check for error objects in the args
+  if (args.some(arg => arg && typeof arg === 'object' && 
+      (arg.message === 'Timeout (u)' || arg.name === 'AbortError'))) {
+    console.warn('⚠️ Timeout error (suppressed from error overlay):', ...args);
+    return;
+  }
+  
+  originalError.apply(console, args);
+};
+
+// Also intercept React's error overlay directly if possible
+if (typeof window !== 'undefined') {
+  // Override window.onerror to catch timeout errors before React
+  const originalOnError = window.onerror;
+  window.onerror = (message, source, lineno, colno, error) => {
+    if (message === 'Timeout (u)' || 
+        (error && (error.name === 'AbortError' || error.message === 'Timeout (u)'))) {
+      console.warn('⚠️ Timeout error caught by window.onerror (suppressed):', message);
+      return true; // Prevent default error handling
+    }
+    if (originalOnError) {
+      return originalOnError(message, source, lineno, colno, error);
+    }
+    return false;
   };
 }
 

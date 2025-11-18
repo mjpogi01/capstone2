@@ -552,34 +552,54 @@
 }
 
 .modal-member-toggle-btn {
-  background: transparent;
-  border: 2px solid #95def7;
-  color: #95def7;
-  border-radius: 6px;
-  padding: 6px 12px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  display: inline;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
-  white-space: nowrap;
+  color: #95def7;
+}
+
+.modal-member-toggle-btn:hover,
+.modal-member-toggle-btn:active,
+.modal-member-toggle-btn:focus {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  display: inline;
+  cursor: pointer;
+  color: #95def7;
+  transform: none;
+  transition: none;
+}
+
+.modal-member-toggle-btn-expanded,
+.modal-member-toggle-btn-expanded:hover,
+.modal-member-toggle-btn-expanded:active,
+.modal-member-toggle-btn-expanded:focus {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  display: inline;
+  cursor: pointer;
+  color: #95def7;
+  transform: none;
+  transition: none;
 }
 
 .modal-member-toggle-label {
+  display: inline;
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-family: "Oswald", sans-serif;
-}
-
-.modal-member-toggle-btn:hover {
-  background: rgba(149, 222, 247, 0.1);
-  border-color: #00bfff;
-  color: #00bfff;
 }
 
 .modal-member-customization-section {

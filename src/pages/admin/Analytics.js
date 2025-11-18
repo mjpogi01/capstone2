@@ -933,25 +933,40 @@ const Analytics = () => {
           return `${bar.axisValueLabel}<br/>Sales: ₱${formatNumber(bar.data?.value ?? bar.data ?? 0)}`;
         }
       },
-      grid: { left: '6%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      grid: { left: '6%', right: '4%', bottom: '12%', top: '10%', containLabel: true, show: false },
       xAxis: {
         type: 'category',
-        data: branchData.map(item => item.branch),
+        data: branchData.map(item => {
+          const branchName = item.branch || '';
+          const cleanedName = branchName.replace(/\s*BRANCH\s*/gi, '').trim();
+          // Split into words and join with line break for better display
+          const words = cleanedName.split(/\s+/);
+          if (words.length > 1) {
+            // Split into two lines: first word(s) on top, last word on bottom
+            const midPoint = Math.ceil(words.length / 2);
+            const firstLine = words.slice(0, midPoint).join(' ');
+            const secondLine = words.slice(midPoint).join(' ');
+            return `${firstLine}\n${secondLine}`;
+          }
+          return cleanedName;
+        }),
         axisLabel: {
           color: '#6b7280',
           interval: 0,
-          rotate: branchData.length > 6 ? 30 : 0
+          rotate: 0,
+          lineHeight: 16
         },
-        axisLine: { lineStyle: { color: '#d1d5db' } },
-        axisTick: { alignWithLabel: true }
+        axisLine: { show: true, lineStyle: { color: '#d1d5db' } },
+        axisTick: { show: false }
       },
       yAxis: {
         type: 'value',
         axisLabel: {
-          color: '#6b7280',
-          formatter: isSalesChartValuesVisible ? (value) => `₱${formatNumber(value)}` : () => '•••'
+          show: false
         },
-        splitLine: { lineStyle: { color: '#e5e7eb' } }
+        splitLine: { show: false },
+        axisLine: { show: false },
+        axisTick: { show: false }
       },
       series: [
         {
@@ -969,7 +984,7 @@ const Analytics = () => {
           animationDuration: hasData ? 600 : 0,
           emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(31, 41, 55, 0.25)' } },
           label: {
-            show: isSalesChartValuesVisible && branchData.length <= 6 && branchData.length > 0,
+            show: isSalesChartValuesVisible,
             position: 'top',
             formatter: ({ value }) => `₱${formatNumber(value)}`,
             color: '#475569',
@@ -1017,9 +1032,8 @@ const Analytics = () => {
         backgroundColor: '#111827',
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
-        formatter: ({ name, value, data }) => {
-          const percentage = data?.percentage ?? 0;
-          return `${name}<br/>${value} orders (${percentage}%)`;
+        formatter: ({ name, value }) => {
+          return `${name}<br/>${value} orders`;
         }
       },
       legend: {
@@ -1642,7 +1656,6 @@ const Analytics = () => {
           <div className="summary-content">
             <h3>Completed</h3>
             <p className="summary-value">{formatNumber(analyticsData.orderStatus?.completed?.count || 0)}</p>
-            <p className="summary-percentage">({analyticsData.orderStatus?.completed?.percentage || 0}%)</p>
           </div>
         </div>
         <div className="summary-card">
@@ -1652,7 +1665,6 @@ const Analytics = () => {
           <div className="summary-content">
             <h3>Processing</h3>
             <p className="summary-value">{formatNumber(analyticsData.orderStatus?.processing?.count || 0)}</p>
-            <p className="summary-percentage">({analyticsData.orderStatus?.processing?.percentage || 0}%)</p>
           </div>
         </div>
         <div className="summary-card">
@@ -1662,7 +1674,6 @@ const Analytics = () => {
           <div className="summary-content">
             <h3>Pending</h3>
             <p className="summary-value">{formatNumber(analyticsData.orderStatus?.pending?.count || 0)}</p>
-            <p className="summary-percentage">({analyticsData.orderStatus?.pending?.percentage || 0}%)</p>
           </div>
         </div>
       </div>
@@ -1922,7 +1933,6 @@ const Analytics = () => {
               <div className="summary-content">
                 <h3>Pending</h3>
                 <p className="summary-value">{formatNumber(analyticsData.orderStatus?.pending?.count || 0)}</p>
-                <p className="summary-percentage">({analyticsData.orderStatus?.pending?.percentage || 0}%)</p>
               </div>
             </div>
             <div className="summary-card">
@@ -1932,7 +1942,6 @@ const Analytics = () => {
               <div className="summary-content">
                 <h3>Completed</h3>
                 <p className="summary-value">{formatNumber(analyticsData.orderStatus?.completed?.count || 0)}</p>
-                <p className="summary-percentage">({analyticsData.orderStatus?.completed?.percentage || 0}%)</p>
               </div>
             </div>
             <div className="summary-card">
@@ -1942,7 +1951,6 @@ const Analytics = () => {
               <div className="summary-content">
                 <h3>Processing</h3>
                 <p className="summary-value">{formatNumber(analyticsData.orderStatus?.processing?.count || 0)}</p>
-                <p className="summary-percentage">({analyticsData.orderStatus?.processing?.percentage || 0}%)</p>
               </div>
             </div>
             <div className="summary-card">
@@ -1952,7 +1960,6 @@ const Analytics = () => {
               <div className="summary-content">
                 <h3>Cancelled</h3>
                 <p className="summary-value">{formatNumber(analyticsData.orderStatus?.cancelled?.count || 0)}</p>
-                <p className="summary-percentage">({analyticsData.orderStatus?.cancelled?.percentage || 0}%)</p>
               </div>
             </div>
           </div>

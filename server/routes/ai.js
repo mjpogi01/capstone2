@@ -393,7 +393,8 @@ async function getChartDataset(chartId, filters = {}, options = {}) {
       return { sql, rows: formattedRows };
     }
     case 'topProducts': {
-      const sql = `
+      // First, get all product groups without limit to find "Other Products"
+      const allProductsSql = `
         WITH expanded AS (
           SELECT
             CASE
@@ -421,16 +422,37 @@ async function getChartDataset(chartId, filters = {}, options = {}) {
           COUNT(DISTINCT order_id)::int AS order_count
         FROM expanded
         GROUP BY product_group
-        ORDER BY total_quantity DESC
-        LIMIT 7;
+        ORDER BY total_quantity DESC;
       `;
-      const { rows } = await executeSql(sql, where.params);
-      const formattedRows = rows.map((row) => ({
-        product_group: row.product_group,
-        total_quantity: coerceNumber(row.total_quantity),
-        total_revenue: coerceNumber(row.total_revenue),
-        order_count: coerceNumber(row.order_count)
-      }));
+      const { rows: allRows } = await executeSql(allProductsSql, where.params);
+      
+      // Find "Other Products" if it exists
+      const otherProducts = allRows.find(row => row.product_group === 'Other Products');
+      const otherProductsFormatted = otherProducts ? {
+        product_group: otherProducts.product_group,
+        total_quantity: coerceNumber(otherProducts.total_quantity),
+        total_revenue: coerceNumber(otherProducts.total_revenue),
+        order_count: coerceNumber(otherProducts.order_count)
+      } : null;
+      
+      // Get top 6 (excluding "Other Products" if it exists)
+      const top6 = allRows
+        .filter(row => row.product_group !== 'Other Products')
+        .slice(0, 6)
+        .map((row) => ({
+          product_group: row.product_group,
+          total_quantity: coerceNumber(row.total_quantity),
+          total_revenue: coerceNumber(row.total_revenue),
+          order_count: coerceNumber(row.order_count)
+        }));
+      
+      // Always include "Other Products" at the end if it exists and has data
+      const formattedRows = [...top6];
+      if (otherProductsFormatted && (otherProductsFormatted.total_quantity > 0 || otherProductsFormatted.order_count > 0)) {
+        formattedRows.push(otherProductsFormatted);
+      }
+      
+      const sql = allProductsSql.replace(';', ' LIMIT 7;');
       return { sql, rows: formattedRows };
     }
     case 'topCustomers': {

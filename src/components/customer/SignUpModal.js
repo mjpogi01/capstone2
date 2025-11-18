@@ -152,20 +152,10 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
         };
         setPendingUserData(pendingData);
         
-        // Send verification code with user data
-        try {
-          await authService.sendVerificationCode(
-            formData.email, 
-            null,
-            pendingData.userId,
-            pendingData
-          );
-        } catch (codeError) {
-          console.error("Error sending verification code:", codeError);
-          // Still show modal, user can resend
-        }
+        // Don't send code here - EmailVerificationModal will send it automatically when it opens
+        // This prevents duplicate emails
         
-        // Show verification modal instead of terms modal
+        // Show verification modal instead of terms modal (it will auto-send code)
         setShowVerificationModal(true);
       } else {
         // Show terms and conditions modal after successful signup (fallback)

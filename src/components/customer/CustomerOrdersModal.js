@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaEye, FaTruck, FaMapMarkerAlt, FaCalendarAlt, FaShoppingBag, FaUsers, FaBan, FaRoute, FaCheckCircle, FaStar, FaCamera, FaLocationArrow, FaComments } from 'react-icons/fa';
+import { FaTimes, FaEye, FaTruck, FaMapMarkerAlt, FaCalendarAlt, FaShoppingBag, FaUsers, FaBan, FaRoute, FaCheckCircle, FaStar, FaCamera, FaLocationArrow, FaComments, FaEdit, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
@@ -244,6 +244,42 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     setSelectedOrderForChat(null);
   };
 
+  const handleEditCustomOrder = (order) => {
+    // TODO: Implement edit functionality
+    console.log('Edit custom order:', order);
+    showSuccess('Edit Order', 'Edit functionality will be implemented soon.');
+  };
+
+  const handleDeleteCustomOrder = async (order) => {
+    if (!window.confirm(`Are you sure you want to delete order #${order.orderNumber}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Only allow deletion of pending orders
+      if (order.status.toLowerCase() !== 'pending') {
+        showError('Cannot Delete', 'Only pending orders can be deleted.');
+        return;
+      }
+
+      await orderService.updateOrderStatus(order.id, 'cancelled');
+      
+      // Remove the order from the list
+      setOrders(prevOrders => 
+        prevOrders.filter(o => o.id !== order.id)
+      );
+      
+      showSuccess('Order Deleted', `Order #${order.orderNumber} has been successfully deleted.`);
+      
+      // Trigger event to refresh orders count in header
+      window.dispatchEvent(new CustomEvent('orderCancelled'));
+      
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      showError('Delete Failed', 'Failed to delete order. Please try again or contact support.');
+    }
+  };
+
   const hasCustomDesign = (order) => {
     // Check both order_items and orderItems for compatibility
     const items = order.order_items || order.orderItems || [];
@@ -457,78 +493,84 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                             return (
                               <div key={index} className="order-item">
                                 {isCustomDesign ? (
-                                  <div className="custom-design-order-item">
-                                    <div className="custom-design-header">
-                                      <div className="custom-design-icon">🎨</div>
-                                      <div className="custom-design-info">
-                                        <div className="custom-design-title">Custom Design Order</div>
-                                        <div className="custom-design-subtitle">Team: {item.team_name}</div>
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Team Information */}
-                                    <div className="custom-design-team-info">
-                                      <h5 className="custom-design-section-title">
-                                        <FaUsers className="section-icon" />
-                                        Team Information
-                                      </h5>
-                                      <div className="custom-design-team-name">
-                                        <strong>Team Name:</strong> {item.team_name}
-                                      </div>
-                                      <div className="custom-design-members">
-                                        <strong>Team Members ({item.team_members?.length || 0}):</strong>
-                                        <div className="custom-design-members-list">
-                                          {item.team_members?.map((member, memberIndex) => (
-                                            <div key={memberIndex} className="custom-design-member">
-                                              <span className="member-number">#{member.number}</span>
-                                              <span className="member-surname">{member.surname}</span>
-                                              <span className="member-size">Jersey: {member.jerseySize || member.size || 'N/A'}</span>
-                                              <span className="member-size">Shorts: {member.shortsSize || member.size || 'N/A'}</span>
-                                              <span className="member-sizing-type">({member.sizingType})</span>
+                                  <>
+                                    <div className="item-info">
+                                      <div className="item-name">Custom Design Order</div>
+                                      <div className="item-details">
+                                        <div className="team-order-details-expanded">
+                                          <div className="team-order-header-info">
+                                            <FaUsers className="team-order-icon" /> Custom Design Order
+                                          </div>
+                                          <div className="team-order-teamname-section">
+                                            <div className="team-order-teamname-row">
+                                              <span className="team-order-teamname-label">Team Name:</span>
+                                              <span className="team-order-teamname-value">{item.team_name || 'N/A'}</span>
                                             </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Design Images */}
-                                    {item.design_images && item.design_images.length > 0 && (
-                                      <div className="custom-design-images-info">
-                                        <h5 className="custom-design-section-title">
-                                          <FaCamera className="section-icon" />
-                                          Design Images ({item.design_images.length})
-                                        </h5>
-                                        <div className="custom-design-images-grid">
-                                          {item.design_images.map((image, imageIndex) => (
-                                            <div key={imageIndex} className="custom-design-image-item">
-                                              <img 
-                                                src={image.url} 
-                                                alt={`Design ${imageIndex + 1}`}
-                                                className="custom-design-image"
-                                                onClick={() => window.open(image.url, '_blank')}
-                                              />
-                                              <div className="custom-design-image-name">
-                                                {image.originalname || `Design ${imageIndex + 1}`}
+                                          </div>
+                                          {item.team_members && item.team_members.length > 0 && (
+                                            <div className="team-order-members-list">
+                                              {item.team_members.map((member, memberIndex) => (
+                                                <div key={memberIndex} className="team-member-detail-item">
+                                                  <div className="member-detail-row">
+                                                    <span className="member-detail-label">Surname:</span>
+                                                    <span className="member-detail-value">{member.surname || 'N/A'}</span>
+                                                  </div>
+                                                  <div className="member-detail-row">
+                                                    <span className="member-detail-label">Jersey #:</span>
+                                                    <span className="member-detail-value">{member.number || 'N/A'}</span>
+                                                  </div>
+                                                  <div className="member-detail-row">
+                                                    <span className="member-detail-label">Jersey Size:</span>
+                                                    <span className="member-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
+                                                  </div>
+                                                  <div className="member-detail-row">
+                                                    <span className="member-detail-label">Shorts Size:</span>
+                                                    <span className="member-detail-value">{member.shortsSize || member.size || 'N/A'}</span>
+                                                  </div>
+                                                  {member.sizingType && (
+                                                    <div className="member-detail-row">
+                                                      <span className="member-detail-label">Type:</span>
+                                                      <span className="member-detail-value">{member.sizingType}</span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                          {item.design_images && item.design_images.length > 0 && (
+                                            <div className="com-custom-design-images-section">
+                                              <div className="member-detail-row">
+                                                <span className="member-detail-label">Design Images:</span>
+                                                <span className="member-detail-value">{item.design_images.length} image(s)</span>
+                                              </div>
+                                              <div className="com-custom-design-images-preview">
+                                                {item.design_images.map((image, imageIndex) => (
+                                                  <img 
+                                                    key={imageIndex}
+                                                    src={image.url} 
+                                                    alt={`Design ${imageIndex + 1}`}
+                                                    className="com-custom-design-preview-image"
+                                                    onClick={() => window.open(image.url, '_blank')}
+                                                    title={image.originalname || `Design ${imageIndex + 1}`}
+                                                  />
+                                                ))}
                                               </div>
                                             </div>
-                                          ))}
+                                          )}
+                                          {item.pickup_branch_id && (
+                                            <div className="member-detail-row">
+                                              <span className="member-detail-label">Pickup Branch:</span>
+                                              <span className="member-detail-value">{item.pickup_branch_id}</span>
+                                            </div>
+                                          )}
+                                          <div className="team-order-quantity-info">
+                                            <span className="quantity-text">Quantity: {item.quantity || 1}</span>
+                                            <span className="quantity-price">₱{(item.price * (item.quantity || 1)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                          </div>
                                         </div>
                                       </div>
-                                    )}
-
-                                    {/* Pickup Information */}
-                                    {item.pickup_branch_id && (
-                                      <div className="custom-design-pickup-info">
-                                        <h5 className="custom-design-section-title">
-                                          <FaMapMarkerAlt className="section-icon" />
-                                          Pickup Information
-                                        </h5>
-                                        <div className="custom-design-pickup-details">
-                                          <strong>Pickup Branch:</strong> {item.pickup_branch_id}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
+                                    </div>
+                                  </>
                                 ) : (
                                   <>
                                     <div className="item-info">
@@ -884,6 +926,29 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                            >
                              <FaComments />
                              Chat with Artist
+                           </button>
+                         </div>
+                       )}
+
+                       {/* Edit and Delete Buttons - Show for custom design orders */}
+                       {hasCustomDesign(order) && (
+                         <div className="customer-order-custom-actions">
+                           <button
+                             className="customer-edit-order-btn"
+                             onClick={() => handleEditCustomOrder(order)}
+                             title="Edit Custom Order"
+                           >
+                             <FaEdit />
+                             Edit
+                           </button>
+                           <button
+                             className="customer-delete-order-btn"
+                             onClick={() => handleDeleteCustomOrder(order)}
+                             title="Delete Custom Order"
+                             disabled={order.status.toLowerCase() !== 'pending'}
+                           >
+                             <FaTrash />
+                             Delete
                            </button>
                          </div>
                        )}

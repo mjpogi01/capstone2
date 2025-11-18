@@ -11,10 +11,15 @@ const EmailVerificationModal = ({ isOpen, onClose, email, onVerified, userName =
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const inputRefs = useRef([]);
 
+  const hasSentCodeRef = useRef(false);
+
   useEffect(() => {
     if (isOpen) {
-      // Auto-send code when modal opens
-      sendCode();
+      // Auto-send code when modal opens (only once)
+      if (!hasSentCodeRef.current) {
+        hasSentCodeRef.current = true;
+        sendCode();
+      }
       // Reset code inputs
       setCode(['', '', '', '', '', '']);
       setError('');
@@ -26,6 +31,9 @@ const EmailVerificationModal = ({ isOpen, onClose, email, onVerified, userName =
           inputRefs.current[0].focus();
         }
       }, 100);
+    } else {
+      // Reset flag when modal closes so it can send again if reopened
+      hasSentCodeRef.current = false;
     }
   }, [isOpen]);
 
@@ -190,6 +198,9 @@ const EmailVerificationModal = ({ isOpen, onClose, email, onVerified, userName =
       if (!response.ok) {
         throw new Error(data.error || 'Failed to resend verification code');
       }
+
+      // Reset the sent flag when manually resending
+      hasSentCodeRef.current = true;
 
       // Focus first input
       setTimeout(() => {

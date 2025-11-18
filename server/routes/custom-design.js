@@ -144,8 +144,11 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       }
     }
 
-    // Generate order number
-    const orderNumber = `CD-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    // Generate order number with unique identifier for walk-in orders
+    const isWalkIn = req.body.isWalkIn === 'true' || req.body.isWalkIn === true;
+    const orderNumber = isWalkIn 
+      ? `WALKIN-CD-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+      : `CD-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
     
     // Calculate pricing (you can adjust these based on your pricing structure)
     const basePricePerJersey = 500; // Base price per jersey

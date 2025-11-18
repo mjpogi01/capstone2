@@ -1363,8 +1363,29 @@ router.get('/dashboard', async (req, res) => {
             orders: data.orders.size,
             revenue: parseFloat(data.revenue.toFixed(2))
           }))
-          .sort((a, b) => b.quantity - a.quantity)
-          .slice(0, 7);
+          .sort((a, b) => {
+            // Sort by quantity, but always put "Other Products" at the end if it exists
+            if (a.product === 'Other Products' && b.product !== 'Other Products') return 1;
+            if (b.product === 'Other Products' && a.product !== 'Other Products') return -1;
+            return b.quantity - a.quantity;
+          });
+        
+        // Separate "Other Products" if it exists
+        const otherProductsIndex = topProductsArray.findIndex(item => item.product === 'Other Products');
+        let otherProducts = null;
+        if (otherProductsIndex >= 0) {
+          otherProducts = topProductsArray.splice(otherProductsIndex, 1)[0];
+        }
+        
+        // Get top 6 (or 7 if no "Other Products")
+        const top6 = topProductsArray.slice(0, 6);
+        
+        // Always include "Other Products" at the end if it exists, even if not in top 6
+        if (otherProducts && (otherProducts.quantity > 0 || otherProducts.orders > 0)) {
+          topProductsArray.splice(0, topProductsArray.length, ...top6, otherProducts);
+        } else {
+          topProductsArray.splice(0, topProductsArray.length, ...top6);
+        }
         
         const topCategoriesArray = Object.entries(categorySales)
           .map(([category, data]) => ({
@@ -1853,15 +1874,36 @@ router.get('/dashboard', async (req, res) => {
       }
     });
 
-    const topProductsArray = Object.entries(productGroupSales)
-      .map(([group, data]) => ({
-        product: group,
-        quantity: data.quantity,
-        orders: data.orders.size,
-        revenue: parseFloat(data.revenue.toFixed(2))
-      }))
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 7);
+        const topProductsArray = Object.entries(productGroupSales)
+          .map(([group, data]) => ({
+            product: group,
+            quantity: data.quantity,
+            orders: data.orders.size,
+            revenue: parseFloat(data.revenue.toFixed(2))
+          }))
+          .sort((a, b) => {
+            // Sort by quantity, but always put "Other Products" at the end if it exists
+            if (a.product === 'Other Products' && b.product !== 'Other Products') return 1;
+            if (b.product === 'Other Products' && a.product !== 'Other Products') return -1;
+            return b.quantity - a.quantity;
+          });
+        
+        // Separate "Other Products" if it exists
+        const otherProductsIndex = topProductsArray.findIndex(item => item.product === 'Other Products');
+        let otherProducts = null;
+        if (otherProductsIndex >= 0) {
+          otherProducts = topProductsArray.splice(otherProductsIndex, 1)[0];
+        }
+        
+        // Get top 6 (or 7 if no "Other Products")
+        const top6 = topProductsArray.slice(0, 6);
+        
+        // Always include "Other Products" at the end if it exists, even if not in top 6
+        if (otherProducts && (otherProducts.quantity > 0 || otherProducts.orders > 0)) {
+          topProductsArray.splice(0, topProductsArray.length, ...top6, otherProducts);
+        } else {
+          topProductsArray.splice(0, topProductsArray.length, ...top6);
+        }
 
     const topCategoriesArray = Object.entries(categorySales)
       .map(([category, data]) => ({

@@ -1,6 +1,7 @@
 .searchable-select-wrapper {
   position: relative;
   width: 100%;
+  z-index: 1;
 }
 
 .searchable-select-label {
@@ -114,7 +115,7 @@
   border: 1.5px solid #4a5568;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 10000;
+  z-index: 999999;
   max-height: 300px;
   display: flex;
   flex-direction: column;
@@ -289,6 +290,35 @@
   }
 }
 
+/* ============================================
+   ADDRESS FORM DROPDOWNS - MAXIMUM Z-INDEX
+   Unique Identifier: cdfm- prefix to avoid conflicts
+   ============================================ */
+
+/* Address Form Dropdowns - Maximum Z-Index to Appear in Front */
+.cdfm-address-form .searchable-select-dropdown,
+.cdfm-card .cdfm-address-form .searchable-select-dropdown,
+.cdfm-address-form-fields .searchable-select-dropdown,
+.cdfm-modal .cdfm-address-form .searchable-select-dropdown,
+div.cdfm-address-form .searchable-select-dropdown {
+  z-index: 99999999 !important;
+  position: absolute !important;
+}
+
+.cdfm-address-form .searchable-select-wrapper,
+.cdfm-card .cdfm-address-form .searchable-select-wrapper,
+div.cdfm-address-form .searchable-select-wrapper {
+  z-index: 99999998 !important;
+  position: relative !important;
+}
+
+.cdfm-address-form .cdfm-form-group:has(.searchable-select.open),
+.cdfm-card .cdfm-address-form .cdfm-form-group:has(.searchable-select.open),
+div.cdfm-address-form .cdfm-form-group:has(.searchable-select.open) {
+  z-index: 99999997 !important;
+  position: relative !important;
+}
+
 .searchable-select-label {
   display: block;
   font-size: 0.875rem;
@@ -400,7 +430,7 @@
   border: 1.5px solid #4a5568;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 10000;
+  z-index: 999999;
   max-height: 300px;
   display: flex;
   flex-direction: column;
@@ -573,4 +603,33 @@
     padding: 12px 16px;
     font-size: 1rem;
   }
+}
+
+/* ============================================
+   ADDRESS FORM DROPDOWNS - MAXIMUM Z-INDEX
+   Unique Identifier: cdfm- prefix to avoid conflicts
+   ============================================ */
+
+/* Address Form Dropdowns - Maximum Z-Index to Appear in Front */
+.cdfm-address-form .searchable-select-dropdown,
+.cdfm-card .cdfm-address-form .searchable-select-dropdown,
+.cdfm-address-form-fields .searchable-select-dropdown,
+.cdfm-modal .cdfm-address-form .searchable-select-dropdown,
+div.cdfm-address-form .searchable-select-dropdown {
+  z-index: 99999999 !important;
+  position: absolute !important;
+}
+
+.cdfm-address-form .searchable-select-wrapper,
+.cdfm-card .cdfm-address-form .searchable-select-wrapper,
+div.cdfm-address-form .searchable-select-wrapper {
+  z-index: 99999998 !important;
+  position: relative !important;
+}
+
+.cdfm-address-form .cdfm-form-group:has(.searchable-select.open),
+.cdfm-card .cdfm-address-form .cdfm-form-group:has(.searchable-select.open),
+div.cdfm-address-form .cdfm-form-group:has(.searchable-select.open) {
+  z-index: 99999997 !important;
+  position: relative !important;
 }

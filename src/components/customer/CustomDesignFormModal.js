@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faXmark, faLock, faCircleCheck, faChevronDown, faChevronUp, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
-import { FaTruck, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaTruck, FaMapMarkerAlt, FaCloudUploadAlt } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { API_URL } from '../../config/api';
@@ -83,6 +83,8 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState(null);
   const [newAddress, setNewAddress] = useState({
     fullName: '',
     email: '',
@@ -589,12 +591,18 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     setPhone(addressToEdit.phone || '');
   };
 
-  const handleDeleteAddress = async (addressId) => {
-    if (window.confirm('Are you sure you want to delete this address?')) {
+  const handleDeleteAddress = (addressId) => {
+    setAddressToDelete(addressId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+    
       try {
-        await userService.deleteUserAddress(addressId);
+      await userService.deleteUserAddress(addressToDelete);
         await checkUserAddress();
-        if (selectedAddressId === addressId) {
+      if (selectedAddressId === addressToDelete) {
           setSelectedAddressId(null);
           setDeliveryAddress({
             address: '',
@@ -602,11 +610,19 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             phone: ''
           });
         }
+      setShowDeleteConfirm(false);
+      setAddressToDelete(null);
       } catch (error) {
         console.error('Failed to delete address:', error);
         alert('Failed to delete address. Please try again.');
-      }
+      setShowDeleteConfirm(false);
+      setAddressToDelete(null);
     }
+  };
+
+  const cancelDeleteAddress = () => {
+    setShowDeleteConfirm(false);
+    setAddressToDelete(null);
   };
 
   const resetForm = () => {
@@ -1157,21 +1173,26 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           {/* Image Upload */}
           <section className="cdfm-card">
             <h3 className="cdfm-card-title">Design Image Upload</h3>
-            <div className="cdfm-upload-area"
+            <div className="cdfm-cust-upload-area"
                  onDrop={handleDrop}
                  onDragOver={(e) => e.preventDefault()}>
-              <input id="file-input" type="file" accept="image/*" multiple onChange={handleFileInput} />
-              <label htmlFor="file-input" className="cdfm-upload-label">
-                <span className="cdfm-upload-icon">⬆️</span>
-                Drag & drop images here or click to upload
+              <input id="cdfm-cust-file-input" type="file" accept="image/*" multiple onChange={handleFileInput} />
+              <label htmlFor="cdfm-cust-file-input" className="cdfm-cust-upload-label">
+                <div className="cdfm-cust-upload-icon-wrapper">
+                  <FaCloudUploadAlt className="cdfm-cust-upload-icon" />
+                </div>
+                <div className="cdfm-cust-upload-text">
+                  <span className="cdfm-cust-upload-text-primary">Drag a file here</span>
+                  <span className="cdfm-cust-upload-text-secondary">or browse a file to upload</span>
+                </div>
               </label>
             </div>
             {images.length > 0 && (
-              <div className="cdfm-preview-grid">
+              <div className="cdfm-cust-preview-grid">
                 {images.map((img, i) => (
-                  <div key={i} className="cdfm-preview-item">
+                  <div key={i} className="cdfm-cust-preview-item">
                     <img src={img.url} alt={`design-${i}`} />
-                    <button type="button" className="cdfm-delete-thumb" onClick={() => removeImage(i)}>✕</button>
+                    <button type="button" className="cdfm-cust-delete-thumb" onClick={() => removeImage(i)}>✕</button>
                   </div>
                 ))}
               </div>
@@ -1244,7 +1265,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                       </div>
                       <button
                         type="button"
-                        className="cdfm-member-toggle-btn"
+                        className={`cdfm-member-toggle-btn ${isExpanded ? 'cdfm-member-toggle-btn-expanded' : ''}`}
                         onClick={() => toggleMemberExpanded(idx)}
                         title={isExpanded ? "Collapse details" : "Expand details"}
                       >
@@ -1601,6 +1622,35 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                   openSignIn(); 
                 }}>
                   Go to Login
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Address Confirmation Modal - Black Theme */}
+        {showDeleteConfirm && (
+          <div className="cdfm-delete-confirm-overlay" onClick={cancelDeleteAddress}>
+            <div className="cdfm-delete-confirm-modal" onClick={e => e.stopPropagation()}>
+              <div className="cdfm-delete-confirm-icon">
+                <FontAwesomeIcon icon={faTrash} />
+              </div>
+              <h3 className="cdfm-delete-confirm-title">Delete Address?</h3>
+              <p className="cdfm-delete-confirm-message">Are you sure you want to delete this address? This action cannot be undone.</p>
+              <div className="cdfm-delete-confirm-actions">
+                <button 
+                  type="button"
+                  className="cdfm-delete-confirm-no"
+                  onClick={cancelDeleteAddress}
+                >
+                  No
+                </button>
+                <button 
+                  type="button"
+                  className="cdfm-delete-confirm-yes"
+                  onClick={confirmDeleteAddress}
+                >
+                  Yes
                 </button>
               </div>
             </div>

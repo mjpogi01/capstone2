@@ -120,10 +120,38 @@
   font-family: 'Oswald', sans-serif;
 }
 
-.subscribe-btn:hover {
+.subscribe-btn:hover:not(:disabled) {
   background: #0099cc;
   transform: translateY(-2px);
   box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+}
+
+.subscribe-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.newsletter-error {
+  background-color: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: #ff6b6b;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.newsletter-success {
+  background-color: rgba(0, 191, 255, 0.1);
+  border: 1px solid rgba(0, 191, 255, 0.3);
+  color: #00bfff;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
 }
 
 /* ===== ALBUM IMAGES ===== */
