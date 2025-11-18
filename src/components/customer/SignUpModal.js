@@ -10,6 +10,9 @@ import logo from "../../images/yohanns_logo-removebg-preview 3.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import TermsAndConditionsModal from "./TermsAndConditionsModal";
+import EmailVerificationModal from "./EmailVerificationModal";
+import authService from "../../services/authService";
+import { quickValidateEmail, validateEmailWithBackend } from "../../utils/emailValidator";
 
 const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
   const [formData, setFormData] = useState({
@@ -22,9 +25,13 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [isValidatingEmail, setIsValidatingEmail] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [pendingUserData, setPendingUserData] = useState(null);
   const { register, signInWithProvider } = useAuth();
-  const { showSuccess } = useNotification();
+  const { showSuccess, showError } = useNotification();
   const { openSignUp } = useModal();
 
   // Prevent body scroll when modal is open
@@ -42,12 +49,79 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear email error when user types
+    if (name === 'email' && emailError) {
+      setEmailError("");
+    }
+  };
+
+  const handleEmailBlur = async (e) => {
+    const email = e.target.value.trim();
+    
+    if (!email) {
+      setEmailError("");
+      return;
+    }
+
+    // Quick format validation first
+    const quickCheck = quickValidateEmail(email);
+    if (!quickCheck.valid) {
+      setEmailError(quickCheck.error);
+      return;
+    }
+
+    // Backend validation (domain check)
+    setIsValidatingEmail(true);
+    try {
+      const result = await validateEmailWithBackend(email);
+      if (!result.valid) {
+        setEmailError(result.errors.join('. '));
+      } else {
+        setEmailError("");
+      }
+    } catch (error) {
+      console.error('Error validating email:', error);
+      // Keep quick validation error if backend fails
+      setEmailError("");
+    } finally {
+      setIsValidatingEmail(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setEmailError("");
+
+    // Validate email format first
+    const quickEmailCheck = quickValidateEmail(formData.email);
+    if (!quickEmailCheck.valid) {
+      setEmailError(quickEmailCheck.error);
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate email with backend (includes format, disposable, and domain checks)
+    // SMTP verification is attempted but won't block valid emails if verification is unavailable
+    try {
+      const emailValidation = await validateEmailWithBackend(formData.email);
+      if (!emailValidation.valid) {
+        // Email validation failed (format invalid, disposable, or domain doesn't exist) - reject signup
+        setEmailError(emailValidation.errors.join('. '));
+        setIsLoading(false);
+        return;
+      }
+      
+      // If validation passed, allow signup to proceed
+      // Warnings don't block signup - user will verify via email code
+      // If email is fake, they won't receive the code anyway
+    } catch (validationError) {
+      console.error('Email validation error:', validationError);
+      // On validation error, still allow signup - they'll verify via code
+      // Only reject if validation explicitly fails (format/disposable/domain errors)
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
@@ -67,8 +141,36 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
       
       const result = await register(userData);
       console.log("Sign up successful:", result);
-      // Show terms and conditions modal after successful signup
-      setShowTermsModal(true);
+      
+      // Store pending user data for verification
+      if (result.needsVerification && result.userData) {
+        const pendingData = {
+          ...result.userData,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.contact,
+        };
+        setPendingUserData(pendingData);
+        
+        // Send verification code with user data
+        try {
+          await authService.sendVerificationCode(
+            formData.email, 
+            null,
+            pendingData.userId,
+            pendingData
+          );
+        } catch (codeError) {
+          console.error("Error sending verification code:", codeError);
+          // Still show modal, user can resend
+        }
+        
+        // Show verification modal instead of terms modal
+        setShowVerificationModal(true);
+      } else {
+        // Show terms and conditions modal after successful signup (fallback)
+        setShowTermsModal(true);
+      }
     } catch (error) {
       // Remove flag if signup fails
       localStorage.removeItem('isNewSignup');
@@ -77,6 +179,52 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleVerificationSuccess = async (verificationResult) => {
+    try {
+      console.log("Verification successful:", verificationResult);
+      
+      // Complete signup after verification (create profile)
+      if (pendingUserData && pendingUserData.userId) {
+        await authService.completeSignupAfterVerification(
+          pendingUserData.userId,
+          pendingUserData
+        );
+      }
+
+      // Close verification modal
+      setShowVerificationModal(false);
+      
+      // Show terms and conditions modal
+      setShowTermsModal(true);
+    } catch (error) {
+      console.error("Error completing signup:", error);
+      showError('Error', 'Failed to complete registration. Please try signing in.');
+      // Close verification modal on error
+      setShowVerificationModal(false);
+      // Reset form
+      setFormData({
+        email: "",
+        contact: "",
+        password: "",
+        confirmPassword: "",
+      });
+    }
+  };
+
+  const handleVerificationClose = () => {
+    setShowVerificationModal(false);
+    // Reset form when verification modal is closed
+    setFormData({
+      email: "",
+      contact: "",
+      password: "",
+      confirmPassword: "",
+    });
+    setPendingUserData(null);
+    // Remove signup flag
+    localStorage.removeItem('isNewSignup');
   };
 
   const handleSocial = async (provider) => {
@@ -170,14 +318,24 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
                 <input
                   type="email"
                   name="email"
-                  className={styles.signupInput}
+                  className={`${styles.signupInput} ${emailError ? styles.signupInputError : ''}`}
                   placeholder="Enter email"
                   value={formData.email}
                   onChange={handleInputChange}
+                  onBlur={handleEmailBlur}
                   required
-                  disabled={isLoading}
+                  disabled={isLoading || isValidatingEmail}
                 />
+                {isValidatingEmail && (
+                  <span className={styles.signupValidating}>Validating...</span>
+                )}
               </div>
+              {emailError && (
+                <div className={styles.signupFieldError}>
+                  <span className={styles.signupErrorIcon}>!</span>
+                  <span>{emailError}</span>
+                </div>
+              )}
             </div>
 
             {/* Phone Field */}
@@ -311,6 +469,15 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
           </div>
         </div>
       </div>
+
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        isOpen={showVerificationModal}
+        onClose={handleVerificationClose}
+        email={formData.email}
+        onVerified={handleVerificationSuccess}
+        userName={null}
+      />
 
       {/* Terms and Conditions Modal */}
       <TermsAndConditionsModal

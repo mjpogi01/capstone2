@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { supabase } from '../../lib/supabase';
@@ -7,14 +8,19 @@ import userService from '../../services/userService';
 import orderService from '../../services/orderService';
 import authService from '../../services/authService';
 import ChangePasswordModal from '../../components/customer/ChangePasswordModal';
+import DeleteAccountModal from '../../components/customer/DeleteAccountModal';
 import './Profile.css';
 
 const Profile = () => {
   const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
   const { showNotification } = useNotification();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteAccountSection, setShowDeleteAccountSection] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -40,7 +46,13 @@ const Profile = () => {
           profileData = await userProfileService.getUserProfile(user.id);
           console.log('✅ Loaded profile data from user_profiles:', profileData);
         } catch (profileError) {
-          console.log('No profile data found, will use defaults');
+          // Handle timeout and other errors gracefully
+          if (profileError.name === 'AbortError' || profileError.message?.includes('timeout')) {
+            console.warn('⚠️ Timeout loading profile data (non-critical)');
+          } else {
+            console.log('No profile data found, will use defaults');
+          }
+          // profileData will remain null, which is fine
         }
         
         // Try to get the user's saved address from checkout
@@ -49,7 +61,13 @@ const Profile = () => {
           savedAddress = await userService.getUserAddress();
           console.log('✅ Successfully loaded saved address from user_addresses:', savedAddress);
         } catch (addressError) {
-          console.log('ℹ️ No saved address found in user_addresses, trying to fetch from recent orders...');
+          // Handle timeout and other errors gracefully
+          if (addressError.name === 'AbortError' || addressError.message?.includes('timeout')) {
+            console.warn('⚠️ Timeout loading address (non-critical)');
+          } else {
+            console.log('ℹ️ No saved address found in user_addresses, trying to fetch from recent orders...');
+          }
+          // savedAddress will remain null, which is fine
         }
         
         // If no saved address found, try to get from most recent order
@@ -112,7 +130,12 @@ const Profile = () => {
               }
             }
           } catch (orderError) {
-            console.log('ℹ️ Could not fetch address from orders:', orderError.message);
+            // Handle timeout and other errors gracefully
+            if (orderError.message?.includes('timeout') || orderError.name === 'AbortError') {
+              console.warn('⚠️ Timeout fetching orders:', orderError.message);
+            } else {
+              console.log('ℹ️ Could not fetch address from orders:', orderError.message);
+            }
           }
         }
         
@@ -399,7 +422,12 @@ const Profile = () => {
               }
             }
           } catch (orderError) {
-            console.log('ℹ️ Could not fetch address from orders:', orderError.message);
+            // Handle timeout and other errors gracefully
+            if (orderError.message?.includes('timeout') || orderError.name === 'AbortError') {
+              console.warn('⚠️ Timeout fetching orders:', orderError.message);
+            } else {
+              console.log('ℹ️ Could not fetch address from orders:', orderError.message);
+            }
           }
         }
         
@@ -434,6 +462,50 @@ const Profile = () => {
     } catch (error) {
       console.error('Error changing password:', error);
       throw error; // Re-throw to be handled by the modal
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) {
+      showNotification('Please log in to delete your account', 'error');
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      
+      // Delete the account
+      await userService.deleteAccount();
+      
+      // Sign out the user
+      await authService.signOut();
+      
+      // Show success message
+      showNotification('Account deleted successfully', 'success');
+      
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        navigate('/');
+        // Refresh the page to clear all state
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ [Profile] Error deleting account:', error);
+      console.error('❌ [Profile] Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+      setIsDeleting(false);
+      
+      // Show more detailed error message
+      let errorMessage = 'Failed to delete account. Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showNotification(errorMessage, 'error');
     }
   };
 
@@ -593,7 +665,7 @@ const Profile = () => {
                 {/* Password */}
                 <div className="yohanns-form-field">
                   <label>Password :</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, flexWrap: 'wrap' }}>
                     <span style={{ color: '#cccccc', fontSize: '14px' }}>••••••••••••••••</span>
                     <button 
                       className="yohanns-change-password-btn"
@@ -601,11 +673,34 @@ const Profile = () => {
                     >
                       Change Password
                     </button>
+                    <button 
+                      className="yohanns-delete-account-toggle-btn"
+                      onClick={() => setShowDeleteAccountSection(!showDeleteAccountSection)}
+                    >
+                      {showDeleteAccountSection ? 'Hide Delete Account' : 'Delete Account'}
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Delete Account Section - Only show when button is clicked */}
+          {showDeleteAccountSection && (
+            <div className="yohanns-delete-account-section">
+              <div className="yohanns-delete-account-content">
+                <p className="yohanns-delete-account-description">
+                  This will permanently delete your account and all your data. This action cannot be undone.
+                </p>
+                <button
+                  className="yohanns-delete-account-btn"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                >
+                  Delete My Account
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -614,6 +709,14 @@ const Profile = () => {
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
         onPasswordChange={handlePasswordChange}
+      />
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+        isDeleting={isDeleting}
       />
     </div>
   );

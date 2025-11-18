@@ -8,16 +8,31 @@ class UserProfileService {
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .single()
+        .abortSignal(AbortSignal.timeout(15000)); // Increased timeout to 15 seconds
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        // Check if it's a timeout/abort error
+        if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+          console.warn('⚠️ Timeout fetching user profile (non-critical)');
+          return null; // Return null instead of throwing for graceful handling
+        }
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
-      throw error;
+      // Handle timeout errors gracefully - don't throw, return null
+      if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+        console.warn('⚠️ Timeout fetching user profile (non-critical):', error);
+        return null; // Return null for graceful fallback
+      }
+      // Only throw non-timeout errors
+      if (error.code !== 'PGRST116') {
+        console.error('Error fetching user profile:', error);
+        throw error;
+      }
+      return null; // PGRST116 means no rows - return null
     }
   }
 

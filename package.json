@@ -75,6 +75,7 @@
     "nodemon": "^3.1.11",
     "postcss": "^8.5.6",
     "react-app-rewired": "^2.2.1",
+    "shapefile": "^0.6.6",
     "tailwindcss": "^4.1.15"
   }
 }

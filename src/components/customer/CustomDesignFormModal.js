@@ -124,8 +124,24 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     if (!pickupBranchId) {
       e.pickup = 'Please select a branch location';
     }
-    if (shippingMethod === 'delivery' && (!deliveryAddress.address || !deliveryAddress.receiver || !deliveryAddress.phone)) {
-      e.deliveryAddress = 'Delivery address is required';
+    // For delivery, check if address is selected and has all required fields
+    if (shippingMethod === 'delivery') {
+      // Check if user has addresses but none selected
+      if (hasAddress && !selectedAddressId && !showAddressForm) {
+        e.deliveryAddress = 'Please select a delivery address';
+      }
+      // Check if address form is shown but not saved
+      else if (showAddressForm && (!newAddress.province || !newAddress.city || !newAddress.barangay || !newAddress.streetAddress)) {
+        e.deliveryAddress = 'Please complete the delivery address form';
+      }
+      // Check if delivery address fields are missing
+      else if (!deliveryAddress.address || !deliveryAddress.receiver || !deliveryAddress.phone) {
+        e.deliveryAddress = 'Delivery address is required';
+      }
+      // Additional check: if address exists but is incomplete
+      else if (deliveryAddress.address && (!deliveryAddress.receiver || !deliveryAddress.phone)) {
+        e.deliveryAddress = 'Delivery address information is incomplete';
+      }
     }
 
     // Roster validation
@@ -133,15 +149,31 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     members.forEach((m, idx) => {
       if (!m.number) e[`member_number_${idx}`] = 'Required';
       if (!m.surname?.trim()) e[`member_surname_${idx}`] = 'Required';
-      if (!m.apparelType?.trim()) e[`member_apparel_type_${idx}`] = 'Required';
       // Validate sizes based on jerseyType
-      if (m.jerseyType === 'full') {
+      // Only validate sizes that are actually needed based on jerseyType
+      const memberJerseyType = m.jerseyType || 'full';
+      
+      // Debug logging for member 0 to help diagnose issues
+      if (idx === 0) {
+        console.log(`🔍 Member ${idx} validation - jerseyType: "${m.jerseyType}" (resolved to: "${memberJerseyType}"), size: "${m.size}", shortsSize: "${m.shortsSize}"`);
+      }
+      
+      // For full set: require both shirt and shorts sizes
+      if (memberJerseyType === 'full') {
         if (!m.size?.trim()) e[`member_size_${idx}`] = 'Required';
         if (!m.shortsSize?.trim()) e[`member_shorts_size_${idx}`] = 'Required';
-      } else if (m.jerseyType === 'shirt') {
+      } 
+      // For shirt only: require shirt size only (shorts size NOT required)
+      else if (memberJerseyType === 'shirt') {
         if (!m.size?.trim()) e[`member_size_${idx}`] = 'Required';
-      } else if (m.jerseyType === 'shorts') {
+        // shortsSize validation is intentionally skipped for shirt-only orders
+        console.log(`✅ Member ${idx}: Shirt-only order - skipping shortsSize validation`);
+      } 
+      // For shorts only: require shorts size only (shirt size NOT required)
+      else if (memberJerseyType === 'shorts') {
         if (!m.shortsSize?.trim()) e[`member_shorts_size_${idx}`] = 'Required';
+        // size validation is intentionally skipped for shorts-only orders
+        console.log(`✅ Member ${idx}: Shorts-only order - skipping size validation`);
       }
       if (!m.sizingType) e[`member_sizing_type_${idx}`] = 'Required';
       if (m.number) {
@@ -150,7 +182,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       }
     });
     return e;
-  }, [clientName, email, phone, teamName, apparelType, shippingMethod, pickupBranchId, deliveryAddress, members]);
+  }, [clientName, email, phone, teamName, apparelType, shippingMethod, pickupBranchId, deliveryAddress, members, hasAddress, selectedAddressId, showAddressForm, newAddress]);
 
   const hasErrors = Object.keys(errors).length > 0;
 
@@ -187,17 +219,69 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const updateMember = (index, field, value) => {
     setMembers(prev => prev.map((m, i) => {
       if (i === index) {
-        // Clear sizes when switching sizing type
+        // Clear sizes when switching sizing type and set new defaults
         if (field === 'sizingType') {
-          return { ...m, [field]: value, size: '', shortsSize: '' };
+          const memberJerseyType = m.jerseyType || 'full';
+          const memberShirtSizes = value === 'kids' ? kidsSizes : adultSizes;
+          const memberShortSizes = value === 'kids' ? kidsSizes : adultSizes;
+          const defaultShirtSize = memberShirtSizes.length > 0 ? memberShirtSizes[Math.floor(memberShirtSizes.length / 2)] : 'M';
+          const defaultShortSize = memberShortSizes.length > 0 ? memberShortSizes[Math.floor(memberShortSizes.length / 2)] : 'M';
+          
+          const updated = { ...m, [field]: value };
+          
+          // Set defaults based on jerseyType
+          if (memberJerseyType === 'full') {
+            updated.size = defaultShirtSize;
+            updated.shortsSize = defaultShortSize;
+          } else if (memberJerseyType === 'shirt') {
+            updated.size = defaultShirtSize;
+            updated.shortsSize = '';
+          } else if (memberJerseyType === 'shorts') {
+            updated.size = '';
+            updated.shortsSize = defaultShortSize;
+          } else {
+            updated.size = '';
+            updated.shortsSize = '';
+          }
+          
+          return updated;
         }
-        // Handle jerseyType changes - clear sizes based on type
+        // Handle jerseyType changes - clear sizes based on type and set defaults
         if (field === 'jerseyType') {
+          console.log(`🔄 Updating member ${index} jerseyType to: "${value}"`);
+          const memberSizingType = m.sizingType || 'adults';
+          const memberShirtSizes = memberSizingType === 'kids' ? kidsSizes : adultSizes;
+          const memberShortSizes = memberSizingType === 'kids' ? kidsSizes : adultSizes;
+          const defaultShirtSize = memberShirtSizes.length > 0 ? memberShirtSizes[Math.floor(memberShirtSizes.length / 2)] : 'M';
+          const defaultShortSize = memberShortSizes.length > 0 ? memberShortSizes[Math.floor(memberShortSizes.length / 2)] : 'M';
+          
           const updated = { ...m, [field]: value };
           if (value === 'shirt') {
             updated.shortsSize = '';
+            // Auto-set default shirt size if not set
+            if (!updated.size?.trim()) {
+              updated.size = defaultShirtSize;
+              console.log(`  ✅ Auto-set default shirt size: ${defaultShirtSize}`);
+            }
+            console.log(`  ✅ Cleared shortsSize for shirt-only order`);
           } else if (value === 'shorts') {
             updated.size = '';
+            // Auto-set default shorts size if not set
+            if (!updated.shortsSize?.trim()) {
+              updated.shortsSize = defaultShortSize;
+              console.log(`  ✅ Auto-set default shorts size: ${defaultShortSize}`);
+            }
+            console.log(`  ✅ Cleared size for shorts-only order`);
+          } else if (value === 'full') {
+            // Auto-set default sizes for full set if not set
+            if (!updated.size?.trim()) {
+              updated.size = defaultShirtSize;
+              console.log(`  ✅ Auto-set default shirt size: ${defaultShirtSize}`);
+            }
+            if (!updated.shortsSize?.trim()) {
+              updated.shortsSize = defaultShortSize;
+              console.log(`  ✅ Auto-set default shorts size: ${defaultShortSize}`);
+            }
           }
           return updated;
         }
@@ -253,6 +337,71 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       setAvailableBarangays([]);
     }
   }, [newAddress.province, newAddress.city]);
+
+  // Ensure delivery address is set when switching to delivery mode and address is selected
+  useEffect(() => {
+    if (shippingMethod === 'delivery' && selectedAddressId && allAddresses.length > 0) {
+      const selectedAddress = allAddresses.find(addr => addr.id === selectedAddressId);
+      if (selectedAddress) {
+        // Always sync when switching to delivery to ensure address is set
+        // Use functional update to avoid dependency on deliveryAddress
+        setDeliveryAddress(prev => {
+          // Only update if address is missing or different
+          if (!prev.address || 
+              !prev.receiver || 
+              !prev.phone ||
+              prev.address !== selectedAddress.address ||
+              prev.receiver !== selectedAddress.full_name ||
+              prev.phone !== selectedAddress.phone) {
+            console.log('🔄 Syncing delivery address from selected address:', selectedAddress);
+            return {
+              address: selectedAddress.address || '',
+              receiver: selectedAddress.full_name || '',
+              phone: selectedAddress.phone || '',
+              province: selectedAddress.province || '',
+              city: selectedAddress.city || '',
+              barangay: selectedAddress.barangay || '',
+              postalCode: selectedAddress.postal_code || '',
+              streetAddress: selectedAddress.street_address || ''
+            };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [shippingMethod, selectedAddressId, allAddresses]);
+
+  // Auto-set default sizes when member customization is expanded and sizes are missing
+  useEffect(() => {
+    setMembers(prev => prev.map((m, idx) => {
+      const isExpanded = expandedMembers.has(idx);
+      if (!isExpanded) return m; // Only process expanded members
+      
+      const memberJerseyType = m.jerseyType || 'full';
+      const memberSizingType = m.sizingType || 'adults';
+      const memberShirtSizes = memberSizingType === 'kids' ? kidsSizes : adultSizes;
+      const memberShortSizes = memberSizingType === 'kids' ? kidsSizes : adultSizes;
+      const defaultShirtSize = memberShirtSizes.length > 0 ? memberShirtSizes[Math.floor(memberShirtSizes.length / 2)] : 'M';
+      const defaultShortSize = memberShortSizes.length > 0 ? memberShortSizes[Math.floor(memberShortSizes.length / 2)] : 'M';
+      
+      const updated = { ...m };
+      let changed = false;
+      
+      // Auto-set shirt size if needed (for full set or shirt only)
+      if ((memberJerseyType === 'full' || memberJerseyType === 'shirt') && !m.size?.trim()) {
+        updated.size = defaultShirtSize;
+        changed = true;
+      }
+      
+      // Auto-set shorts size if needed (for full set or shorts only)
+      if ((memberJerseyType === 'full' || memberJerseyType === 'shorts') && !m.shortsSize?.trim()) {
+        updated.shortsSize = defaultShortSize;
+        changed = true;
+      }
+      
+      return changed ? updated : m;
+    }));
+  }, [expandedMembers]); // Only depend on expandedMembers to avoid loops
 
   // Check for user address when modal opens
   const checkUserAddress = async () => {
@@ -515,8 +664,26 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     setInstantErrors({});
     setShowErrors(true);
     
+    // Debug: Log validation state
+    console.log('🔍 Validation check:', {
+      hasErrors,
+      errors,
+      shippingMethod,
+      selectedAddressId,
+      hasAddress,
+      deliveryAddress,
+      pickupBranchId,
+      clientName: !!clientName.trim(),
+      email: !!email.trim(),
+      phone: !!phone.trim(),
+      teamName: !!teamName.trim(),
+      apparelType: !!apparelType,
+      membersCount: members.length
+    });
+    
     // Check for errors before submission
     if (hasErrors) {
+      console.log('❌ Validation errors found:', errors);
       // Scroll to top to show inline errors
       document.querySelector('.cdfm-form')?.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -1135,32 +1302,6 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                     {/* Per-Member Customization Section */}
                     {isExpanded && (
                       <div className="cdfm-member-customization-section">
-                        {/* Apparel Type Selector */}
-                        <div className="cdfm-member-customization-group">
-                          <label className="cdfm-member-customization-label">Apparel Type <span className="cdfm-required">*</span></label>
-                          <select
-                            value={m.apparelType || ''}
-                            onChange={(e) => {
-                              updateMember(idx, 'apparelType', e.target.value);
-                              if (showErrors && e.target.value) {
-                                setShowErrors(false);
-                              }
-                            }}
-                            className={`cdfm-member-select ${showErrors && errors[`member_apparel_type_${idx}`] ? 'error' : ''}`}
-                          >
-                            <option value="">Select Apparel Type</option>
-                            <option value="basketball_jersey">Basketball Jersey</option>
-                            <option value="volleyball_jersey">Volleyball Jersey</option>
-                            <option value="hoodie">Hoodie</option>
-                            <option value="tshirt">T-shirt</option>
-                            <option value="longsleeves">Longsleeves</option>
-                            <option value="uniforms">Uniforms</option>
-                          </select>
-                          {showErrors && errors[`member_apparel_type_${idx}`] && (
-                            <span className="cdfm-error-message">{errors[`member_apparel_type_${idx}`]}</span>
-                          )}
-                        </div>
-
                         {/* Jersey Type Selector */}
                         <div className="cdfm-member-customization-group">
                           <label className="cdfm-member-customization-label">Jersey Type</label>

@@ -208,7 +208,7 @@ body.sidebar-collapsed .accounts-container {
   border-radius: 16px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(226, 232, 240, 0.8);
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 2rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
@@ -222,7 +222,7 @@ body.sidebar-collapsed .accounts-container {
 .section-header {
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #f1f5f9;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -303,10 +303,27 @@ body.sidebar-collapsed .accounts-container {
 
 .accounts-table-container {
   overflow-x: auto;
+  overflow-y: visible;
   background: white;
   position: relative;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Remove horizontal scroll on desktop for customer table */
+@media (min-width: 1024px) {
+  /* Hide overflow for container with customer table */
+  .accounts-table-container:has(.customer-table) {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+  }
+  
+  /* Ensure customer table fits container */
+  .accounts-table-container .customer-table {
+    min-width: 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 /* Ensure admin and artist table containers don't restrict width */
@@ -362,6 +379,11 @@ body.sidebar-collapsed .accounts-container {
   min-width: 100% !important;
 }
 
+/* Override for customer table to ensure full width */
+.accounts-table-container .customer-table {
+  min-width: 100% !important;
+}
+
 /* Ensure table columns distribute evenly across full width */
 .admin-table {
   width: 100% !important;
@@ -377,10 +399,20 @@ body.sidebar-collapsed .accounts-container {
   max-width: 100% !important;
 }
 
+.customer-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
 .admin-table th,
 .admin-table td,
 .artist-table th,
-.artist-table td {
+.artist-table td,
+.customer-table th,
+.customer-table td {
   box-sizing: border-box;
 }
 
@@ -468,6 +500,42 @@ body.sidebar-collapsed .accounts-container {
   width: 12% !important;
   min-width: 12%;
   max-width: 12%;
+}
+
+/* Distribute column widths for customer table - must total 100% (5 columns) */
+.customer-table th:nth-child(1),
+.customer-table td:nth-child(1) {
+  width: 20% !important;
+  min-width: 20%;
+  max-width: 20%;
+}
+
+.customer-table th:nth-child(2),
+.customer-table td:nth-child(2) {
+  width: 25% !important;
+  min-width: 25%;
+  max-width: 25%;
+}
+
+.customer-table th:nth-child(3),
+.customer-table td:nth-child(3) {
+  width: 15% !important;
+  min-width: 15%;
+  max-width: 15%;
+}
+
+.customer-table th:nth-child(4),
+.customer-table td:nth-child(4) {
+  width: 30% !important;
+  min-width: 30%;
+  max-width: 30%;
+}
+
+.customer-table th:nth-child(5),
+.customer-table td:nth-child(5) {
+  width: 10% !important;
+  min-width: 10%;
+  max-width: 10%;
 }
 
 .accounts-table thead {
@@ -907,6 +975,11 @@ body.sidebar-collapsed .accounts-container {
     min-width: 800px; /* Slightly wider for 7 columns */
   }
   
+  .customer-table {
+    width: 100% !important;
+    min-width: 100% !important; /* Fit container width instead of forcing scroll */
+  }
+  
   .accounts-table th,
   .accounts-table td {
     padding: 1.25rem 0.75rem;
@@ -971,6 +1044,10 @@ body.sidebar-collapsed .accounts-container {
     min-width: 700px; /* Wider for 7 columns */
   }
   
+  .customer-table {
+    min-width: 650px; /* 5 columns */
+  }
+  
   .accounts-table th,
   .accounts-table td {
     padding: 1rem 0.5rem;
@@ -988,6 +1065,15 @@ body.sidebar-collapsed .accounts-container {
   /* Artist table: Make email and name wrap on very small screens */
   .artist-table td:nth-child(1),
   .artist-table td:nth-child(2) {
+    white-space: normal;
+    word-break: break-word;
+    max-width: 150px;
+  }
+  
+  /* Customer table: Make email, name, and address wrap on very small screens */
+  .customer-table td:nth-child(1),
+  .customer-table td:nth-child(2),
+  .customer-table td:nth-child(4) {
     white-space: normal;
     word-break: break-word;
     max-width: 150px;
@@ -1052,6 +1138,32 @@ body.sidebar-collapsed .accounts-container {
   
   .artist-table th:nth-child(7),
   .artist-table td:nth-child(7) {
+    min-width: 60px;
+  }
+  
+  /* Customer table: Adjust column widths for mobile */
+  .customer-table th:nth-child(1),
+  .customer-table td:nth-child(1) {
+    min-width: 100px;
+  }
+  
+  .customer-table th:nth-child(2),
+  .customer-table td:nth-child(2) {
+    min-width: 130px;
+  }
+  
+  .customer-table th:nth-child(3),
+  .customer-table td:nth-child(3) {
+    min-width: 100px;
+  }
+  
+  .customer-table th:nth-child(4),
+  .customer-table td:nth-child(4) {
+    min-width: 150px;
+  }
+  
+  .customer-table th:nth-child(5),
+  .customer-table td:nth-child(5) {
     min-width: 60px;
   }
   
@@ -1132,6 +1244,10 @@ body.sidebar-collapsed .accounts-container {
     min-width: 650px; /* Wider for 7 columns */
   }
   
+  .customer-table {
+    min-width: 600px; /* 5 columns */
+  }
+  
   .accounts-table th,
   .accounts-table td {
     padding: 0.875rem 0.375rem;
@@ -1200,6 +1316,36 @@ body.sidebar-collapsed .accounts-container {
   
   .artist-table th:nth-child(7),
   .artist-table td:nth-child(7) {
+    min-width: 50px;
+  }
+  
+  /* Customer table: Further optimize for small screens */
+  .customer-table th:nth-child(1),
+  .customer-table td:nth-child(1) {
+    min-width: 90px;
+    max-width: 110px;
+  }
+  
+  .customer-table th:nth-child(2),
+  .customer-table td:nth-child(2) {
+    min-width: 120px;
+    max-width: 140px;
+  }
+  
+  .customer-table th:nth-child(3),
+  .customer-table td:nth-child(3) {
+    min-width: 90px;
+    max-width: 110px;
+  }
+  
+  .customer-table th:nth-child(4),
+  .customer-table td:nth-child(4) {
+    min-width: 140px;
+    max-width: 180px;
+  }
+  
+  .customer-table th:nth-child(5),
+  .customer-table td:nth-child(5) {
     min-width: 50px;
   }
   
@@ -1448,5 +1594,155 @@ body.sidebar-collapsed .accounts-container {
   .accounts-table th,
   .accounts-table td {
     padding: 1.5rem 1.25rem;
+  }
+}
+
+/* ===========================================
+   PAGINATION CONTROLS
+   =========================================== */
+
+.accounts-pagination {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1.5rem;
+  border-radius: 0 0 12px 12px;
+}
+
+.pagination-info {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.page-number {
+  min-width: 36px;
+  height: 36px;
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-number:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.page-number.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-per-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-per-page label {
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pagination-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #475569;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-select:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.pagination-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+@media (max-width: 768px) {
+  .accounts-pagination {
+    padding: 1rem;
+  }
+  
+  .pagination-buttons {
+    gap: 0.75rem;
+  }
+  
+  .pagination-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+  
+  .page-number {
+    min-width: 32px;
+    height: 32px;
+    font-size: 0.8125rem;
+  }
+  
+  .pagination-per-page {
+    justify-content: center;
   }
 }

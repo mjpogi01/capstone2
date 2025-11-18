@@ -28,9 +28,15 @@ class CartService {
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false }) // Last added item appears first
-        .abortSignal(AbortSignal.timeout(10000)); // Add timeout to prevent hanging
+        .abortSignal(AbortSignal.timeout(15000)); // Increased timeout to 15 seconds
 
       if (error) {
+        // Handle timeout/abort errors gracefully - return empty array
+        if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+          console.warn('⚠️ Timeout fetching cart (non-critical)');
+          return []; // Return empty array for graceful fallback
+        }
+        
         console.error('Supabase error fetching cart:', error);
         
         // Check for network errors

@@ -106,12 +106,41 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       return res.status(400).json({ error: 'At least one team member is required' });
     }
 
-    // Validate each member
+    // Validate each member based on jerseyType
     for (const member of membersArray) {
-      if (!member.number || !member.surname || !member.size || !member.shortsSize || !member.sizingType) {
+      // Basic required fields for all members
+      if (!member.number || !member.surname || !member.sizingType) {
         return res.status(400).json({ 
-          error: 'All team members must have number, surname, jersey size, shorts size, and sizing type' 
+          error: 'All team members must have number, surname, and sizing type' 
         });
+      }
+      
+      // Validate sizes based on jerseyType (default to 'full' if not specified)
+      const jerseyType = member.jerseyType || 'full';
+      
+      if (jerseyType === 'full') {
+        // Full set requires both sizes
+        if (!member.size || !member.shortsSize) {
+          return res.status(400).json({ 
+            error: 'Full set orders require both shirt size and shorts size for all members' 
+          });
+        }
+      } else if (jerseyType === 'shirt') {
+        // Shirt only requires shirt size, not shorts size
+        if (!member.size) {
+          return res.status(400).json({ 
+            error: 'Shirt-only orders require shirt size for all members' 
+          });
+        }
+        // shortsSize is not required for shirt-only orders
+      } else if (jerseyType === 'shorts') {
+        // Shorts only requires shorts size, not shirt size
+        if (!member.shortsSize) {
+          return res.status(400).json({ 
+            error: 'Shorts-only orders require shorts size for all members' 
+          });
+        }
+        // size is not required for shorts-only orders
       }
     }
 

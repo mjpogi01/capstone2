@@ -686,6 +686,171 @@ class EmailService {
     return { html, text };
   }
 
+  // Send email verification code
+  async sendVerificationCode(email, verificationCode, userName = null) {
+    try {
+      const mailOptions = {
+        from: {
+          name: 'Yohanns - Email Verification',
+          address: process.env.EMAIL_USER
+        },
+        to: email,
+        subject: 'Verify Your Email - Yohanns',
+        html: this.getVerificationCodeEmailTemplate(verificationCode, userName),
+        text: this.getVerificationCodeEmailTextTemplate(verificationCode, userName)
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Verification code email sent successfully:', result.messageId);
+      return { success: true, messageId: result.messageId };
+
+    } catch (error) {
+      console.error('❌ Failed to send verification code email:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Get verification code email HTML template
+  getVerificationCodeEmailTemplate(code, userName = null) {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Verification</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f8f9fa;
+            }
+            .container {
+                background-color: white;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            .header {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }
+            .header h1 {
+                margin: 0;
+                font-size: 28px;
+                font-weight: bold;
+            }
+            .content {
+                padding: 30px;
+            }
+            .code-container {
+                background-color: #f8f9fa;
+                border: 2px dashed #1a1a2e;
+                border-radius: 8px;
+                padding: 30px;
+                margin: 30px 0;
+                text-align: center;
+            }
+            .verification-code {
+                font-size: 36px;
+                font-weight: bold;
+                color: #1a1a2e;
+                letter-spacing: 8px;
+                font-family: 'Courier New', monospace;
+                margin: 10px 0;
+            }
+            .code-label {
+                color: #666;
+                font-size: 14px;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+            }
+            .footer {
+                background-color: #1a1a2e;
+                color: white;
+                padding: 20px;
+                text-align: center;
+                font-size: 14px;
+            }
+            .warning {
+                background-color: #fff3cd;
+                border-left: 4px solid #ffc107;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 5px;
+                color: #856404;
+            }
+            .warning strong {
+                display: block;
+                margin-bottom: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏀 YOHANNS</h1>
+                <p>Email Verification</p>
+            </div>
+            
+            <div class="content">
+                <h2>Hello ${userName || 'there'}!</h2>
+                
+                <p>Thank you for signing up with Yohanns. Please use the verification code below to complete your registration:</p>
+                
+                <div class="code-container">
+                    <div class="code-label">Your Verification Code</div>
+                    <div class="verification-code">${code}</div>
+                </div>
+                
+                <div class="warning">
+                    <strong>⚠️ Important:</strong>
+                    This code will expire in 10 minutes. Please enter it in the verification popup to activate your account.
+                </div>
+                
+                <p>If you didn't create an account with Yohanns, please ignore this email.</p>
+                
+                <p>Thank you for choosing Yohanns!</p>
+            </div>
+            
+            <div class="footer">
+                <p><strong>Yohanns - Premium Sports Apparel</strong></p>
+                <p>This is an automated message. Please do not reply to this email.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+  }
+
+  // Get verification code email text template
+  getVerificationCodeEmailTextTemplate(code, userName = null) {
+    return `
+    Email Verification - Yohanns
+    
+    Hello ${userName || 'there'}!
+    
+    Thank you for signing up with Yohanns. Please use the verification code below to complete your registration:
+    
+    Your Verification Code: ${code}
+    
+    ⚠️ Important: This code will expire in 10 minutes. Please enter it in the verification popup to activate your account.
+    
+    If you didn't create an account with Yohanns, please ignore this email.
+    
+    Thank you for choosing Yohanns!
+    
+    This is an automated message. Please do not reply to this email.
+    `;
+  }
+
   // Test email functionality
   async sendTestEmail(toEmail) {
     try {
