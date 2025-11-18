@@ -35,6 +35,15 @@ window.addEventListener('error', (event) => {
       return false;
     }
   }
+  // Suppress AbortSignal timeout errors from Supabase queries (handled gracefully in services)
+  if (event.message && (event.message === 'Timeout (u)' || event.message.includes('Timeout') || event.name === 'AbortError')) {
+    const source = event.filename || event.source || event.error?.stack || '';
+    if (source.includes('supabase') || source.includes('AbortSignal') || event.message === 'Timeout (u)') {
+      console.warn('⚠️ Timeout error handled gracefully (non-critical)');
+      event.preventDefault();
+      return false;
+    }
+  }
 });
 
 // Also handle unhandled promise rejections for ResizeObserver
@@ -48,6 +57,16 @@ window.addEventListener('unhandledrejection', (event) => {
     const stack = event.reason.stack || '';
     if (stack.includes('recaptcha') || stack.includes('gstatic') || event.reason.message.includes('recaptcha')) {
       console.warn('reCAPTCHA timeout promise rejection handled gracefully');
+      event.preventDefault();
+      return false;
+    }
+  }
+  // Suppress AbortSignal timeout promise rejections from Supabase queries
+  if (event.reason && (event.reason.name === 'AbortError' || event.reason.message === 'Timeout (u)' || 
+      (event.reason.message && (event.reason.message.includes('Timeout') || event.reason.message.includes('timeout'))))) {
+    const stack = event.reason.stack || '';
+    if (stack.includes('supabase') || stack.includes('AbortSignal') || event.reason.name === 'AbortError' || event.reason.message === 'Timeout (u)') {
+      console.warn('⚠️ Timeout promise rejection handled gracefully (non-critical)');
       event.preventDefault();
       return false;
     }

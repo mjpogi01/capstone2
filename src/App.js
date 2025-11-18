@@ -11,9 +11,11 @@ import FAQs from './pages/customer/FAQs';
 import Contacts from './pages/customer/Contacts';
 import PrivacyPolicy from './pages/customer/PrivacyPolicy';
 import TermsAndConditions from './pages/customer/TermsAndConditions';
+import DataDeletion from './pages/customer/DataDeletion';
 import Profile from './pages/customer/Profile';
 import LogoutPage from './pages/customer/LogoutPage';
 import AuthCallback from './pages/customer/AuthCallback';
+import ResetPassword from './pages/customer/ResetPassword';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import ArtistDashboard from './pages/artist/ArtistDashboard';
@@ -53,8 +55,10 @@ const AppContent = () => {
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/data-deletion" element={<DataDeletion />} />
         <Route path="/logout" element={<LogoutPage />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route 
           path="/profile" 
           element={

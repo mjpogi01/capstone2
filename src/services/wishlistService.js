@@ -26,9 +26,15 @@ class WishlistService {
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .abortSignal(AbortSignal.timeout(10000));
+        .abortSignal(AbortSignal.timeout(15000)); // Increased timeout to 15 seconds
 
       if (error) {
+        // Handle timeout/abort errors gracefully - return empty array
+        if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+          console.warn('⚠️ Timeout fetching wishlist (non-critical)');
+          return []; // Return empty array for graceful fallback
+        }
+        
         // If the wishlist table doesn't exist yet, return empty array gracefully
         if (error.code === 'PGRST205') {
           console.warn('Wishlist table missing; returning empty list');

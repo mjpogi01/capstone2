@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import logo from "../../images/yohanns_logo-removebg-preview 3.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
 const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
   const [error, setError] = useState("");
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [captchaError, setCaptchaError] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const captchaRef = useRef(null);
   const errorShownRef = useRef(false);
   const { login, signInWithProvider } = useAuth();
@@ -229,9 +231,16 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
             <div className={styles.signinFormGroup}>
               <div className={styles.signinPasswordHeader}>
                 <label className={styles.signinLabel}>Password</label>
-                <a href="#forgot" className={styles.signinForgotLink}>
+                <button
+                  type="button"
+                  className={styles.signinForgotLink}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowForgotPassword(true);
+                  }}
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
               <div className={styles.signinInputWrapper}>
                 <AiOutlineLock className={styles.signinInputIcon} />
@@ -339,6 +348,13 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        initialEmail={formData.email}
+      />
     </div>
   );
 };

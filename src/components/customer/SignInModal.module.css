@@ -252,11 +252,20 @@
   text-decoration: none;
   padding: 0;
   margin: 0 3px;
+  outline: none;
 }
 
 .signinForgotLink:hover {
   color: #00aaff;
   text-decoration: underline;
+}
+
+.signinForgotLink:focus {
+  color: #00aaff;
+  text-decoration: underline;
+  outline: 2px solid rgba(0, 153, 255, 0.3);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* ============================================

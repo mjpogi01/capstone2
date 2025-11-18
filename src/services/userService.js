@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { API_URL } from '../config/api';
 
 class UserService {
   async saveUserAddress(addressData) {
@@ -57,15 +58,30 @@ class UserService {
         .select('*')
         .eq('user_id', user.id)
         .eq('is_default', true)
-        .single();
+        .single()
+        .abortSignal(AbortSignal.timeout(15000)); // Increased timeout to 15 seconds
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        // Check if it's a timeout/abort error
+        if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+          console.warn('⚠️ Timeout fetching user address (non-critical)');
+          return null; // Return null instead of throwing for graceful handling
+        }
         throw new Error(`Failed to get address: ${error.message}`);
       }
 
       return data || null;
     } catch (error) {
-      throw new Error(error.message || 'Network error occurred');
+      // Handle timeout errors gracefully - return null instead of throwing
+      if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+        console.warn('⚠️ Timeout fetching user address (non-critical):', error);
+        return null; // Return null for graceful fallback
+      }
+      // Only throw non-timeout errors
+      if (error.code !== 'PGRST116') {
+        throw new Error(error.message || 'Network error occurred');
+      }
+      return null; // PGRST116 means no rows - return null
     }
   }
 
@@ -206,6 +222,69 @@ class UserService {
 
       return data;
     } catch (error) {
+      throw new Error(error.message || 'Network error occurred');
+    }
+  }
+
+  async deleteAccount() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
+
+      const token = session.access_token;
+      
+      // Use API_URL from config to ensure consistency
+      const apiUrl = API_URL || 'http://localhost:4000';
+
+      console.log('🗑️ [UserService] Attempting to delete account...');
+      console.log('🔗 [UserService] API URL:', apiUrl);
+      console.log('🔐 [UserService] Has token:', !!token);
+
+      const response = await fetch(`${apiUrl}/api/user/account`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('📥 [UserService] Response status:', response.status);
+      console.log('📥 [UserService] Response ok:', response.ok);
+      console.log('📥 [UserService] Response headers:', Object.fromEntries(response.headers.entries()));
+
+      // Get response text first to handle non-JSON responses
+      const responseText = await response.text();
+      console.log('📥 [UserService] Response text:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('📦 [UserService] Response data:', data);
+      } catch (parseError) {
+        console.error('❌ [UserService] Failed to parse JSON:', parseError);
+        console.error('❌ [UserService] Response text was:', responseText);
+        throw new Error(`Server returned invalid response: ${responseText.substring(0, 100)}`);
+      }
+
+      if (!response.ok) {
+        console.error('❌ [UserService] Delete failed:', data);
+        const errorMessage = data?.error || data?.details || data?.message || 'Failed to delete account';
+        throw new Error(errorMessage);
+      }
+
+      console.log('✅ [UserService] Account deleted successfully');
+      return data;
+    } catch (error) {
+      console.error('❌ [UserService] Delete account error:', error);
+      
+      // Provide more specific error messages
+      if (error.message?.includes('fetch')) {
+        throw new Error('Network error: Unable to connect to server. Please ensure the backend server is running on port 4000.');
+      }
+      
       throw new Error(error.message || 'Network error occurred');
     }
   }

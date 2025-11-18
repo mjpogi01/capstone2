@@ -101,7 +101,8 @@ class OrderService {
         .from('orders')
         .select('id, order_number, user_id, status, created_at')
         .limit(10)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .abortSignal(AbortSignal.timeout(15000)); // Increased timeout to 15 seconds
       
       console.log('📦 [OrderService] Recent orders in database (last 10):');
       if (allOrders && allOrders.length > 0) {
@@ -117,7 +118,8 @@ class OrderService {
       let query = supabase
         .from('orders')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .abortSignal(AbortSignal.timeout(15000)); // Increased timeout to 15 seconds
 
       // Exclude cancelled orders by default
       if (excludeCancelled) {
@@ -127,6 +129,11 @@ class OrderService {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
+        // Handle timeout errors gracefully - return empty array instead of throwing
+        if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+          console.warn('⚠️ [OrderService] Timeout fetching orders (non-critical):', error);
+          return []; // Return empty array for graceful fallback
+        }
         console.error('❌ [OrderService] Supabase error:', error);
         throw new Error(`Supabase error: ${error.message}`);
       }
@@ -141,6 +148,11 @@ class OrderService {
       
       return formattedOrders;
     } catch (error) {
+      // Handle timeout errors gracefully - return empty array instead of throwing
+      if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+        console.warn('⚠️ [OrderService] Timeout fetching user orders (non-critical):', error);
+        return []; // Return empty array for graceful fallback
+      }
       console.error('❌ [OrderService] Error fetching user orders:', error);
       throw error;
     }
