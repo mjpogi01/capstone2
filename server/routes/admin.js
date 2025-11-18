@@ -314,38 +314,311 @@ router.delete('/users/:id', requireOwner, async (req, res) => {
 // Get all customer accounts (admin or owner)
 router.get('/customers', requireAdminOrOwner, async (req, res) => {
   try {
-    // Use Supabase client to fetch users with cache busting
-    const { data: users, error } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000
-    });
+    // Get pagination parameters from query string
+    const page = parseInt(req.query.page) || 1;
+    const perPage = parseInt(req.query.perPage) || 50; // Default 50 per page
+    const searchTerm = req.query.search || '';
     
-    if (error) {
-      console.error('Supabase error fetching users:', error);
-      return res.status(500).json({ error: 'Failed to fetch customers' });
+    // Fetch all users to get accurate total count
+    // We need to fetch all pages to get accurate count, but we'll optimize by:
+    // 1. Fetching in batches
+    // 2. Only processing what we need for display
+    let allUsers = [];
+    let currentPage = 1;
+    const fetchPerPage = 1000;
+    let hasMore = true;
+    
+    // Fetch all users (needed for accurate total count)
+    while (hasMore) {
+      const { data: usersData, error } = await supabase.auth.admin.listUsers({
+        page: currentPage,
+        perPage: fetchPerPage
+      });
+      
+      if (error) {
+        console.error(`Supabase error fetching users (page ${currentPage}):`, error);
+        break;
+      }
+      
+      const users = usersData?.users || (Array.isArray(usersData) ? usersData : []);
+      
+      if (users && Array.isArray(users) && users.length > 0) {
+        allUsers = allUsers.concat(users);
+        hasMore = users.length === fetchPerPage;
+        currentPage++;
+      } else {
+        hasMore = false;
+      }
     }
 
     // Filter for customer users
-    const customerUsers = users.users.filter(user => {
+    const customerUsers = allUsers.filter(user => {
       const role = user.user_metadata?.role;
       return role === 'customer';
     });
     
-    console.log('👥 Total users found:', users.users.length);
-    console.log('👤 Customer users found:', customerUsers.length);
+    console.log(`👥 Fetched ${allUsers.length} total users, found ${customerUsers.length} customers`);
+    
+    // Apply search filter if provided
+    let filteredCustomers = customerUsers;
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredCustomers = customerUsers.filter(user => {
+        const email = user.email?.toLowerCase() || '';
+        const firstName = user.user_metadata?.first_name?.toLowerCase() || '';
+        const lastName = user.user_metadata?.last_name?.toLowerCase() || '';
+        const fullName = `${firstName} ${lastName}`.trim().toLowerCase();
+        return email.includes(searchLower) || fullName.includes(searchLower);
+      });
+    }
+    
+    // Get accurate total count from filtered customers
+    const totalCustomers = filteredCustomers.length;
 
-    // Format customer data
-    const customers = customerUsers.map(user => ({
-      id: user.id,
-      email: user.email,
-      first_name: user.user_metadata?.first_name || null,
-      last_name: user.user_metadata?.last_name || null,
-      contact_number: user.user_metadata?.contact_number || null,
-      address: user.user_metadata?.address || null,
-      created_at: user.created_at
-    }));
+    // Get user IDs for batch profile lookup (only for customers we're displaying)
+    // Note: We use filteredCustomers (before pagination) to get addresses for all customers on current page
+    const userIds = filteredCustomers.map(user => user.id);
+    console.log(`👥 Processing ${userIds.length} customers for address lookup`);
+    
+    // Fetch user profiles from user_profiles table (only for customers on current page)
+    let userProfilesMap = {};
+    if (userIds.length > 0) {
+      // Supabase has a limit on IN clause, so batch if needed
+      const batchSize = 100;
+      for (let i = 0; i < userIds.length; i += batchSize) {
+        const batch = userIds.slice(i, i + batchSize);
+        const { data: profiles, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('user_id, full_name, phone, address')
+          .in('user_id', batch);
+        
+        if (!profilesError && profiles) {
+          profiles.forEach(profile => {
+            userProfilesMap[profile.user_id] = profile;
+          });
+        } else if (profilesError) {
+          console.warn(`⚠️ Error fetching user profiles batch ${Math.floor(i / batchSize) + 1}:`, profilesError.message);
+        }
+      }
+      console.log(`✅ Fetched ${Object.keys(userProfilesMap).length} user profiles`);
+    }
+    
+    // Fetch user addresses from user_addresses table (prefer default, fallback to any address)
+    let userAddressesMap = {};
+    if (userIds.length > 0) {
+      const batchSize = 100;
+      for (let i = 0; i < userIds.length; i += batchSize) {
+        const batch = userIds.slice(i, i + batchSize);
+        // First try to get default addresses
+        const { data: defaultAddresses, error: defaultError } = await supabase
+          .from('user_addresses')
+          .select('user_id, address, is_default')
+          .in('user_id', batch)
+          .eq('is_default', true);
+        
+        if (!defaultError && defaultAddresses) {
+          defaultAddresses.forEach(addr => {
+            if (addr.address && addr.address.trim() !== '') {
+              userAddressesMap[addr.user_id] = addr;
+            }
+          });
+        }
+        
+        // For users without default addresses, get any address
+        const usersWithoutDefault = batch.filter(id => !userAddressesMap[id]);
+        if (usersWithoutDefault.length > 0) {
+          const { data: anyAddresses, error: anyError } = await supabase
+            .from('user_addresses')
+            .select('user_id, address, is_default')
+            .in('user_id', usersWithoutDefault)
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(usersWithoutDefault.length);
+          
+          if (!anyError && anyAddresses) {
+            anyAddresses.forEach(addr => {
+              // Only add if we don't have an address for this user yet and address is not empty
+              if (!userAddressesMap[addr.user_id] && addr.address && addr.address.trim() !== '') {
+                userAddressesMap[addr.user_id] = addr;
+              }
+            });
+          }
+        }
+      }
+      console.log(`✅ Fetched ${Object.keys(userAddressesMap).length} user addresses`);
+    }
+    
+    // Fetch addresses from most recent orders (for customers without addresses in user_addresses)
+    let orderAddressesMap = {};
+    const usersWithoutAddress = userIds.filter(id => !userAddressesMap[id]);
+    if (usersWithoutAddress.length > 0) {
+      console.log(`🔍 Looking for addresses in orders for ${usersWithoutAddress.length} users without addresses`);
+      const batchSize = 50; // Smaller batch for orders query
+      for (let i = 0; i < usersWithoutAddress.length; i += batchSize) {
+        const batch = usersWithoutAddress.slice(i, i + batchSize);
+        // Get most recent order with delivery address for each user
+        // Use a different approach to filter out null delivery_address
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select('user_id, delivery_address, created_at')
+          .in('user_id', batch)
+          .order('created_at', { ascending: false });
+        
+        if (!ordersError && orders) {
+          // Filter out orders with null delivery_address
+          const ordersWithAddress = orders.filter(order => order.delivery_address != null);
+          console.log(`📦 Found ${ordersWithAddress.length} orders with delivery_address (out of ${orders.length} total) for batch ${Math.floor(i / batchSize) + 1}`);
+          // Group by user_id and take the most recent order for each user
+          const userOrderMap = {};
+          ordersWithAddress.forEach(order => {
+            if (!userOrderMap[order.user_id]) {
+              userOrderMap[order.user_id] = order;
+            }
+          });
+          
+          // Extract addresses from delivery_address
+          Object.keys(userOrderMap).forEach(userId => {
+            const order = userOrderMap[userId];
+            let deliveryAddr = order.delivery_address;
+            
+            // Debug: log the structure
+            if (i === 0 && Object.keys(userOrderMap).indexOf(userId) === 0) {
+              console.log('🔍 Sample delivery_address structure:', JSON.stringify(deliveryAddr, null, 2));
+            }
+            
+            // Parse if delivery address is a JSON string
+            if (typeof deliveryAddr === 'string') {
+              try {
+                deliveryAddr = JSON.parse(deliveryAddr);
+              } catch (e) {
+                // If parsing fails, use as string
+                if (deliveryAddr && deliveryAddr.trim() !== '') {
+                  orderAddressesMap[userId] = { address: deliveryAddr.trim() };
+                }
+                return;
+              }
+            }
+            
+            // Extract address from delivery_address object
+            if (deliveryAddr && typeof deliveryAddr === 'object') {
+              // Check for address field first (this is what generate script uses)
+              if (deliveryAddr.address && typeof deliveryAddr.address === 'string' && deliveryAddr.address.trim() !== '') {
+                orderAddressesMap[userId] = { address: deliveryAddr.address.trim() };
+              } 
+              // Check for streetAddress (camelCase) or street_address (snake_case) or street
+              else if ((deliveryAddr.streetAddress || deliveryAddr.street_address || deliveryAddr.street) && deliveryAddr.city) {
+                // Build address from components - check both camelCase and snake_case
+                const street = deliveryAddr.streetAddress || deliveryAddr.street_address || deliveryAddr.street || '';
+                const barangay = deliveryAddr.barangay || '';
+                const city = deliveryAddr.city || '';
+                const province = deliveryAddr.province || '';
+                const postalCode = deliveryAddr.postalCode || deliveryAddr.postal_code || '';
+                
+                const parts = [street, barangay, city, province, postalCode].filter(Boolean);
+                if (parts.length > 0) {
+                  orderAddressesMap[userId] = { address: parts.join(', ') };
+                }
+              }
+              // If we still don't have an address, log it for debugging (only for first user in first batch)
+              else if (i === 0 && Object.keys(userOrderMap).indexOf(userId) === 0) {
+                console.log('⚠️ Could not extract address from delivery_address. Keys:', Object.keys(deliveryAddr));
+                console.log('⚠️ Sample delivery_address:', JSON.stringify(deliveryAddr, null, 2));
+              }
+            } else if (deliveryAddr && typeof deliveryAddr !== 'string') {
+              // If it's not a string and not an object, log it
+              if (i === 0 && Object.keys(userOrderMap).indexOf(userId) === 0) {
+                console.log('⚠️ Unexpected delivery_address type:', typeof deliveryAddr, deliveryAddr);
+              }
+            }
+          });
+        } else if (ordersError) {
+          console.warn(`⚠️ Error fetching order addresses batch ${Math.floor(i / batchSize) + 1}:`, ordersError.message);
+        } else {
+          console.log(`ℹ️ No orders found for batch ${Math.floor(i / batchSize) + 1}`);
+        }
+      }
+      console.log(`✅ Fetched ${Object.keys(orderAddressesMap).length} addresses from orders`);
+    }
 
-    console.log('📤 Sending customer users to frontend:', customers.length);
+    // Format customer data with priority: user_profiles > user_metadata
+    // Process all customers first, then filter and paginate
+    const allFormattedCustomers = filteredCustomers.map(user => {
+      const profile = userProfilesMap[user.id];
+      const userAddress = userAddressesMap[user.id];
+      const orderAddress = orderAddressesMap[user.id];
+      
+      // Get name: priority is user_profiles.full_name > user_metadata (first_name + last_name) > email
+      let name = null;
+      if (profile?.full_name) {
+        name = profile.full_name;
+      } else {
+        const firstName = user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || '';
+        const lastName = user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || '';
+        name = `${firstName} ${lastName}`.trim() || user.email || 'N/A';
+      }
+      
+      // Get contact number: priority is user_profiles.phone > user_metadata.phone > user_metadata.contact_number
+      // Check if phone is not null, not undefined, and not empty string
+      let contact_number = null;
+      if (profile?.phone && profile.phone.trim() !== '') {
+        contact_number = profile.phone.trim();
+      } else if (user.user_metadata?.phone && user.user_metadata.phone.trim() !== '') {
+        contact_number = user.user_metadata.phone.trim();
+      } else if (user.raw_user_meta_data?.phone && user.raw_user_meta_data.phone.trim() !== '') {
+        contact_number = user.raw_user_meta_data.phone.trim();
+      } else if (user.user_metadata?.contact_number && user.user_metadata.contact_number.trim() !== '') {
+        contact_number = user.user_metadata.contact_number.trim();
+      } else if (user.raw_user_meta_data?.contact_number && user.raw_user_meta_data.contact_number.trim() !== '') {
+        contact_number = user.raw_user_meta_data.contact_number.trim();
+      }
+      
+      // Get address: priority is user_addresses.address > orders.delivery_address > user_profiles.address > user_metadata.address
+      let address = null;
+      if (userAddress?.address && userAddress.address.trim() !== '') {
+        address = userAddress.address.trim();
+      } else if (orderAddress?.address && orderAddress.address.trim() !== '') {
+        address = orderAddress.address.trim();
+      } else if (profile?.address && profile.address.trim() !== '') {
+        address = profile.address.trim();
+      } else if (user.user_metadata?.address && user.user_metadata.address.trim() !== '') {
+        address = user.user_metadata.address.trim();
+      } else if (user.raw_user_meta_data?.address && user.raw_user_meta_data.address.trim() !== '') {
+        address = user.raw_user_meta_data.address.trim();
+      }
+      
+      // Debug: Log first customer's address sources (only for first customer)
+      if (filteredCustomers.indexOf(user) === 0) {
+        console.log('🔍 Address lookup for user:', user.id);
+        console.log('  - userAddress:', userAddress?.address || 'N/A');
+        console.log('  - orderAddress:', orderAddress?.address || 'N/A');
+        console.log('  - profile.address:', profile?.address || 'N/A');
+        console.log('  - Final address:', address || 'N/A');
+      }
+      
+      return {
+        id: user.id,
+        email: user.email,
+        name: name,
+        contact_number: contact_number,
+        address: address,
+        created_at: user.created_at
+      };
+    });
+
+    // Apply pagination
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    const paginatedCustomers = allFormattedCustomers.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(totalCustomers / perPage);
+
+    console.log(`📤 Sending paginated customers: Page ${page}/${totalPages}, Showing ${paginatedCustomers.length} of ${totalCustomers} customers`);
+    
+    // Debug: Log sample customers to see contact numbers
+    if (paginatedCustomers.length > 0) {
+      const customersWithPhone = paginatedCustomers.filter(c => c.contact_number);
+      const customersWithoutPhone = paginatedCustomers.filter(c => !c.contact_number);
+      console.log(`📞 Customers with phone: ${customersWithPhone.length}, without phone: ${customersWithoutPhone.length}`);
+    }
     
     // Add cache-busting headers
     res.set({
@@ -354,10 +627,22 @@ router.get('/customers', requireAdminOrOwner, async (req, res) => {
       'Expires': '0'
     });
     
-    res.json(customers);
+    // Return paginated results with metadata
+    res.json({
+      customers: paginatedCustomers,
+      pagination: {
+        page,
+        perPage,
+        total: totalCustomers,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
-    console.error('Error fetching customers:', error);
-    res.status(500).json({ error: 'Failed to fetch customers' });
+    console.error('❌ Error fetching customers:', error);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ error: 'Failed to fetch customers', details: error.message });
   }
 });
 

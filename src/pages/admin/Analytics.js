@@ -19,7 +19,7 @@ import { API_URL } from '../../config/api';
 import { authFetch, authJsonFetch } from '../../services/apiClient';
 import branchService from '../../services/branchService';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaSearch, FaPlay, FaFilter, FaStore, FaClipboardList, FaTshirt, FaMap, FaChartLine, FaChartArea, FaUsers, FaUserPlus, FaShoppingCart, FaMoneyBillWave, FaRobot } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaStore, FaClipboardList, FaTshirt, FaMap, FaChartLine, FaChartArea, FaUsers, FaUserPlus, FaShoppingCart, FaMoneyBillWave, FaRobot } from 'react-icons/fa';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import './Analytics.css';
@@ -336,9 +336,8 @@ const Analytics = () => {
           const initialSeries = hasInitialMonthly ? initialMonthlySeries : fallbackYearlySeries;
           const initialGranularity = hasInitialMonthly ? 'monthly' : (fallbackYearlySeries.length > 0 ? 'yearly' : 'monthly');
           const topProductsRaw = Array.isArray(result.data.topProducts) ? result.data.topProducts : [];
-          const maxTopProductQuantity = topProductsRaw.length > 0
-            ? Math.max(...topProductsRaw.map(p => p.quantity || 0))
-            : 0;
+          // Calculate total quantity for percentage calculation (should add up to 100%)
+          const totalTopProductsQuantity = topProductsRaw.reduce((sum, p) => sum + (p.quantity || 0), 0);
           const hasData = initialSeries.length > 0 && initialSeries.some(item => Number(item.sales || item.total || 0) > 0);
           
           // Store raw data for filtering
@@ -366,8 +365,8 @@ const Analytics = () => {
                   quantity: product.quantity || 0,
                   orders: product.orders || 0,
                   revenue: product.revenue || 0,
-                  percentage: maxTopProductQuantity > 0
-                    ? Math.round(((product.quantity || 0) / maxTopProductQuantity) * 100)
+                  percentage: totalTopProductsQuantity > 0
+                    ? Math.round(((product.quantity || 0) / totalTopProductsQuantity) * 100)
                     : 0
                 }))
               : [],
@@ -806,10 +805,11 @@ const Analytics = () => {
 
     let topProducts = rawData.topProducts ? rawData.topProducts.map(product => ({ ...product })) : [];
     if (topProducts.length > 0) {
-      const maxQuantity = Math.max(...topProducts.map(p => p.quantity || 0));
+      // Calculate total quantity for percentage calculation (should add up to 100%)
+      const totalQuantity = topProducts.reduce((sum, p) => sum + (p.quantity || 0), 0);
       topProducts = topProducts.map(product => ({
         ...product,
-        percentage: maxQuantity > 0 ? Math.round(((product.quantity || 0) / maxQuantity) * 100) : 0
+        percentage: totalQuantity > 0 ? Math.round(((product.quantity || 0) / totalQuantity) * 100) : 0
       }));
     }
 
@@ -1519,19 +1519,6 @@ const Analytics = () => {
           )}
         </div>
         <div className="header-right">
-          <button
-            className="analyze-btn"
-            type="button"
-            onClick={() =>
-              handleAnalyzeClick('totalSales', {
-                filters,
-                question: 'Give me a quick overview of overall sales performance.'
-              })
-            }
-          >
-            <FaPlay className="btn-icon" />
-            Analyze
-          </button>
           <div className="search-container">
             <FaSearch className="search-icon" />
             <input

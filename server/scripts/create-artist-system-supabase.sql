@@ -556,6 +556,11 @@ BEGIN
   ORDER BY COUNT(at.id) ASC, ap.artist_name ASC
   LIMIT 1;
 
+  -- Check if an artist was found
+  IF v_artist_id IS NULL THEN
+    RAISE EXCEPTION 'No active artist available to assign task';
+  END IF;
+
   -- Create the task
   INSERT INTO artist_tasks (
     artist_id,

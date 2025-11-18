@@ -90,20 +90,50 @@ function determineProductGroup(item = {}) {
   
   const rawCategory = (item.category || item.product_type || '').toString().toLowerCase();
   const rawName = (item.name || '').toString().toLowerCase();
+  // Also check cut_type and fabric_option/fabric fields for additional context
+  const rawCutType = (item.cutType || item.cut_type || '').toString().toLowerCase();
+  const rawFabric = (item.fabricOption || item.fabric_option || item.fabric || '').toString().toLowerCase();
+  const rawSport = (item.sport || '').toString().toLowerCase();
 
-  // For jersey category products, check the product name to differentiate basketball vs volleyball
+  // Check for T-shirts (handle various formats: t-shirt, tshirt, t-shirts, tshirts)
+  // Also check cut_type and fabric fields for additional context
+  if (rawCategory.includes('t-shirt') || rawCategory.includes('tshirt') || 
+      rawName.includes('t-shirt') || rawName.includes('tshirt') ||
+      rawCutType.includes('t-shirt') || rawFabric.includes('t-shirt')) {
+    return 'T-shirts';
+  }
+
+  // Check for Long Sleeves (handle various formats: long sleeve, longsleeve, long sleeves, longsleeves)
+  // Also check cut_type and fabric fields for additional context
+  if (rawCategory.includes('long sleeve') || rawCategory.includes('longsleeve') ||
+      rawName.includes('long sleeve') || rawName.includes('longsleeve') ||
+      rawCutType.includes('long sleeve') || rawFabric.includes('long sleeve')) {
+    return 'Long Sleeves';
+  }
+
+  // Check for Uniforms (handle various formats)
+  // Also check cut_type and fabric fields for additional context
+  if (rawCategory.includes('uniform') || rawName.includes('uniform') ||
+      rawCutType.includes('uniform') || rawFabric.includes('uniform')) {
+    return 'Uniforms';
+  }
+
+  // For jersey category products, check the product name, sport field, cut_type, and fabric to differentiate basketball vs volleyball
   if (rawCategory === 'jerseys' || rawCategory === 'jersey') {
-    if (rawName.includes('basketball')) {
+    const combinedText = `${rawName} ${rawSport} ${rawCutType} ${rawFabric}`;
+    
+    if (combinedText.includes('basketball') || rawSport === 'basketball') {
       return 'Basketball Jerseys';
     }
-    if (rawName.includes('volleyball')) {
+    if (combinedText.includes('volleyball') || rawSport === 'volleyball') {
       return 'Volleyball Jerseys';
     }
     // If it's a jersey but name doesn't specify, default to generic
     return 'Custom Jerseys';
   }
 
-  const text = `${rawCategory} ${rawName}`;
+  // Combine all fields for comprehensive matching
+  const text = `${rawCategory} ${rawName} ${rawCutType} ${rawFabric} ${rawSport}`;
 
   if (text.includes('basketball')) {
     return 'Basketball Jerseys';
@@ -115,10 +145,6 @@ function determineProductGroup(item = {}) {
 
   if (text.includes('hoodie')) {
     return 'Hoodies';
-  }
-
-  if (text.includes('uniform')) {
-    return 'Uniforms';
   }
 
   if (text.includes('jersey')) {
@@ -1212,7 +1238,8 @@ router.get('/dashboard', async (req, res) => {
                 const group = determineProductGroup(item);
                 const category = item?.category || 'Other';
                 const quantity = parseInt(item?.quantity || 0, 10);
-                const price = parseFloat(item?.price || 0);
+                // Try price, pricePerUnit, or totalPrice/quantity as fallback
+                const price = parseFloat(item?.price || item?.pricePerUnit || (item?.totalPrice && quantity > 0 ? item.totalPrice / quantity : 0) || 0);
                 
                 if (!productGroupSales[group]) {
                   productGroupSales[group] = { quantity: 0, revenue: 0, orders: new Set() };
@@ -1497,7 +1524,20 @@ router.get('/dashboard', async (req, res) => {
       [thirtyDaysAgoIso, ...recentOrdersFilter.params]
     );
 
-    let statusResult, monthlyResult, salesByBranchResult, uniqueCustomersResult, recentOrdersResult;
+    // Query for ALL orders (not just recent) to calculate top products from historical data
+    const allOrdersForProductsPromise = executeSql(
+      `
+        SELECT id,
+               order_items
+        FROM orders
+        WHERE LOWER(status) NOT IN ('cancelled', 'canceled')
+          AND created_at < $1
+        ${monthlyFilter.clause}
+      `,
+      [startOfCurrentMonthIso, ...monthlyFilter.params]
+    );
+
+    let statusResult, monthlyResult, salesByBranchResult, uniqueCustomersResult, recentOrdersResult, allOrdersForProductsResult;
     
     try {
       [
@@ -1505,13 +1545,15 @@ router.get('/dashboard', async (req, res) => {
         monthlyResult,
         salesByBranchResult,
         uniqueCustomersResult,
-        recentOrdersResult
+        recentOrdersResult,
+        allOrdersForProductsResult
       ] = await Promise.all([
         statusQueryPromise,
         monthlySalesPromise,
         salesByBranchPromise,
         uniqueCustomersPromise,
-        recentOrdersPromise
+        recentOrdersPromise,
+        allOrdersForProductsPromise
       ]);
     } catch (sqlError) {
       console.error('❌ SQL query execution error:', sqlError);
@@ -1617,6 +1659,10 @@ router.get('/dashboard', async (req, res) => {
     if (!recentOrdersResult || !recentOrdersResult.rows) {
       console.error('❌ recentOrdersResult is null or missing rows');
       recentOrdersResult = { rows: [] };
+    }
+    if (!allOrdersForProductsResult || !allOrdersForProductsResult.rows) {
+      console.error('❌ allOrdersForProductsResult is null or missing rows');
+      allOrdersForProductsResult = { rows: [] };
     }
 
     const CANCELLED_STATUSES = new Set(['cancelled', 'canceled']);
@@ -1738,7 +1784,11 @@ router.get('/dashboard', async (req, res) => {
     const productGroupSales = {};
     const categorySales = {};
 
-    recentOrdersRows.forEach(order => {
+    // Process ALL historical orders for top products (not just recent ones)
+    const allOrdersForProductsRows = allOrdersForProductsResult.rows || [];
+    console.log(`📊 Processing ${allOrdersForProductsRows.length} historical orders for top products calculation`);
+    
+    allOrdersForProductsRows.forEach(order => {
       try {
         let orderItems = order.order_items;
         if (!orderItems) {
@@ -1769,7 +1819,8 @@ router.get('/dashboard', async (req, res) => {
             }
 
             const quantity = parseInt(item?.quantity || 0, 10);
-            const price = parseFloat(item?.price || 0);
+            // Try price, pricePerUnit, or totalPrice/quantity as fallback
+            const price = parseFloat(item?.price || item?.pricePerUnit || (item?.totalPrice && quantity > 0 ? item.totalPrice / quantity : 0) || 0);
             const groupName = determineProductGroup(item);
 
             if (!productGroupSales[groupName]) {

@@ -318,3 +318,5 @@ When plotting a customer location, coordinates are determined in this order:
 - Frontend displays as heatmap overlay and red dot markers
 - Auto-refreshes every 30 seconds to show new customers immediately
 
+
+

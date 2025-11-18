@@ -44,6 +44,16 @@ window.addEventListener('error', (event) => {
       return false;
     }
   }
+  // Suppress geolocation timeout errors (handled gracefully in component)
+  if (event.message && (event.message.includes('Timeout') || event.message.includes('timeout'))) {
+    const source = event.filename || event.source || '';
+    const stack = event.error?.stack || '';
+    if (source.includes('bundle.js') || stack.includes('geolocation') || stack.includes('getCurrentPosition') || stack.includes('watchPosition')) {
+      console.warn('Geolocation timeout error handled gracefully');
+      event.preventDefault();
+      return false;
+    }
+  }
 });
 
 // Also handle unhandled promise rejections for ResizeObserver
@@ -67,6 +77,15 @@ window.addEventListener('unhandledrejection', (event) => {
     const stack = event.reason.stack || '';
     if (stack.includes('supabase') || stack.includes('AbortSignal') || event.reason.name === 'AbortError' || event.reason.message === 'Timeout (u)') {
       console.warn('⚠️ Timeout promise rejection handled gracefully (non-critical)');
+      event.preventDefault();
+      return false;
+    }
+  }
+  // Suppress geolocation timeout promise rejections
+  if (event.reason && (event.reason.message && (event.reason.message.includes('Timeout') || event.reason.message.includes('timeout')))) {
+    const stack = event.reason.stack || '';
+    if (stack.includes('geolocation') || stack.includes('getCurrentPosition') || stack.includes('watchPosition') || event.reason.message.includes('geolocation')) {
+      console.warn('Geolocation timeout promise rejection handled gracefully');
       event.preventDefault();
       return false;
     }

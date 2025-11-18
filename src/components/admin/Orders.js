@@ -82,11 +82,77 @@ const Orders = () => {
   const [orderDetailsActiveTab, setOrderDetailsActiveTab] = useState('details'); // 'details' | 'status'
   const [showAllDesignFiles, setShowAllDesignFiles] = useState(false);
   const [serverRevisionNotes, setServerRevisionNotes] = useState({}); // { [identifier]: Note[] }
+  const [imageGallery, setImageGallery] = useState({ isOpen: false, images: [], currentIndex: 0 }); // Image gallery modal state
   
   // Reset "view all" when switching expanded order
   useEffect(() => {
     setShowAllDesignFiles(false);
   }, [expandedOrder]);
+
+  // Image gallery functions
+  const openImageGallery = useCallback((images, startIndex = 0) => {
+    if (!images || images.length === 0) return;
+    setImageGallery({
+      isOpen: true,
+      images: images.map(img => ({
+        url: img.url || img,
+        filename: img.filename || img.originalname || `image-${images.indexOf(img) + 1}.jpg`
+      })),
+      currentIndex: startIndex
+    });
+  }, []);
+
+  const closeImageGallery = useCallback(() => {
+    setImageGallery({ isOpen: false, images: [], currentIndex: 0 });
+  }, []);
+
+  const goToNextImage = useCallback(() => {
+    setImageGallery(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex + 1) % prev.images.length
+    }));
+  }, []);
+
+  const goToPrevImage = useCallback(() => {
+    setImageGallery(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex - 1 + prev.images.length) % prev.images.length
+    }));
+  }, []);
+
+  const downloadImage = useCallback((imageUrl, filename) => {
+    fetch(imageUrl)
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'image.jpg';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      })
+      .catch(error => {
+        console.error('Error downloading image:', error);
+        // Fallback: open in new tab
+        window.open(imageUrl, '_blank');
+      });
+  }, []);
+
+  // Keyboard navigation for image gallery
+  useEffect(() => {
+    if (!imageGallery.isOpen) return;
+    
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') closeImageGallery();
+      if (e.key === 'ArrowLeft') goToPrevImage();
+      if (e.key === 'ArrowRight') goToNextImage();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [imageGallery.isOpen, closeImageGallery, goToPrevImage, goToNextImage]);
 
   // Fetch server-side revision notes for the expanded order (artist_tasks.revision_notes)
   useEffect(() => {
@@ -1176,7 +1242,23 @@ const Orders = () => {
                           Address:
                         </span>
                         <span className="yh-customer-value yh-customer-value-address">
-                          {order.deliveryAddress?.address || 'N/A'}
+                          {(() => {
+                            // Check both naming conventions (snake_case and camelCase)
+                            const deliveryAddr = order.delivery_address || order.deliveryAddress;
+                            
+                            // Show delivery address if it exists
+                            if (deliveryAddr?.address) {
+                              return deliveryAddr.address;
+                            }
+                            
+                            // If no delivery address, show pickup location (nearest branch used as drop point)
+                            const pickupLoc = order.pickup_location || order.pickupLocation;
+                            if (pickupLoc) {
+                              return pickupLoc;
+                            }
+                            
+                            return 'N/A';
+                          })()}
                         </span>
                       </div>
                       {assignedArtists[expandedOrder] && (
@@ -1351,204 +1433,116 @@ const Orders = () => {
                         <FaPrint /> Print Order Items
                       </button>
                     </div>
-                    {(Array.isArray(order.orderItems) ? order.orderItems : []).map((item, index) => (
-                      <div key={index} className="order-item">
-                        {item.product_type === 'custom_design' ? (
-                          <div className="custom-design-item">
-                            <div className="custom-design-header">
-                              <div className="custom-design-icon">🎨</div>
-                              <div className="custom-design-info">
-                                <div className="custom-design-title">Custom Design Order</div>
-                                <div className="custom-design-subtitle">Team: {item.team_name}</div>
+                    {(Array.isArray(order.orderItems) ? order.orderItems : []).map((item, index) => {
+                      // Helper function to map apparel type to display name
+                      const getApparelDisplayName = (apparelType) => {
+                        const apparelTypeMap = {
+                          'basketball_jersey': 'Custom Basketball Jersey',
+                          'volleyball_jersey': 'Custom Volleyball Jersey',
+                          'hoodie': 'Custom Hoodie',
+                          'tshirt': 'Custom T-shirt',
+                          'longsleeves': 'Custom Long Sleeves',
+                          'uniforms': 'Custom Uniforms'
+                        };
+                        return apparelTypeMap[apparelType] || 'Custom Design';
+                      };
+
+                      // Get first design image as product image
+                      const designImage = item.design_images && item.design_images.length > 0 
+                        ? item.design_images[0].url 
+                        : null;
+
+                      return (
+                        <div key={index} className="order-item">
+                          {item.product_type === 'custom_design' ? (
+                            <div className="custom-design-item">
+                              {/* Use same header structure as regular orders with unique class names */}
+                              <div className="cd-order-item-header">
+                                <div 
+                                  className="cd-order-item-image-wrapper"
+                                  onClick={() => {
+                                    const images = item.design_images || [];
+                                    if (images.length > 0) {
+                                      openImageGallery(images, 0);
+                                    }
+                                  }}
+                                  style={{ position: 'relative', cursor: (item.design_images && item.design_images.length > 0) ? 'pointer' : 'default' }}
+                                >
+                                  <img 
+                                    src={designImage || '/placeholder-image.png'} 
+                                    alt={getApparelDisplayName(item.apparel_type)} 
+                                    className="cd-order-item-image"
+                                    onError={(e) => {
+                                      e.target.src = '/placeholder-image.png';
+                                    }}
+                                  />
+                                  {item.design_images && item.design_images.length > 1 && (
+                                    <div className="cd-order-item-image-badge">
+                                      +{item.design_images.length - 1}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="cd-order-item-info">
+                                  <div className="cd-order-item-name">{getApparelDisplayName(item.apparel_type)}</div>
+                                  <div className="cd-order-item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} × {item.quantity || 1}</div>
+                                </div>
                               </div>
-                            </div>
                             
                             {/* Submitted Design Files section removed - using existing design files section near bottom */}
 
-                            {/* Admin/Owner Design Review */}
-                            {['admin', 'owner'].includes(userRole) && (
-                              <div className="design-review-section">
-                                <h5 className="custom-design-section-title">
-                                  <FaCheck className="section-icon" />
-                                  Design Review
-                                </h5>
-                                <div className="design-review-content">
+                            {/* Team Details - Same structure as regular team orders */}
+                            {item.team_members && item.team_members.length > 0 && (
+                              <div className="team-details">
+                                <div className="team-name">Team: {item.team_name || 'N/A'}</div>
+                                <div className="team-members-table">
                                   {(() => {
                                     const members = item.team_members || [];
-                                    const images = item.design_images || [];
-
-                                    // Simple inference: match member number in filename, and jersey/shorts keywords
-                                    const normalize = (s) => (s || '').toString().toLowerCase();
-                                    const hasPiece = (num, piece) => {
-                                      const numberStr = String(num);
-                                      return images.some(img => {
-                                        const name = normalize(img.originalname || img.url);
-                                        return name.includes(numberStr) && name.includes(piece);
-                                      });
+                                    const fallbackVisibility = {
+                                      jersey: members.some(member => Boolean(member?.size)),
+                                      shorts: members.some(member => Boolean(member?.shortsSize))
                                     };
-
-                                    const rows = members.map(m => {
-                                      const num = m.number || m.jerseyNo || m.jerseyNumber;
-                                      const jerseyOk = hasPiece(num, 'jersey') || hasPiece(num, 'shirt');
-                                      const shortsOk = hasPiece(num, 'shorts') || hasPiece(num, 'short');
-                                      return {
-                                        num,
-                                        surname: m.surname || m.lastName || '',
-                                        jerseyOk,
-                                        shortsOk
-                                      };
-                                    });
-
-                                    const allCovered = rows.length > 0 && rows.every(r => r.jerseyOk && r.shortsOk);
-
+                                    const { showJersey: showTeamJerseySize, showShorts: showTeamShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
                                     return (
-                                      <>
-                                        <div className="design-review-summary" style={{ marginBottom: '0.75rem' }}>
-                                          <strong>Coverage:</strong>{' '}
-                                          {rows.length} members •{' '}
-                                          {rows.filter(r => r.jerseyOk).length}/{rows.length} jerseys •{' '}
-                                          {rows.filter(r => r.shortsOk).length}/{rows.length} shorts •{' '}
-                                          <span style={{ color: allCovered ? '#16a34a' : '#dc2626' }}>
-                                            {allCovered ? 'Complete' : 'Incomplete'}
-                                          </span>
-                                        </div>
-                                        <div className="design-review-table-wrapper" style={{ overflowX: 'auto' }}>
-                                          <table className="design-review-table">
-                                            <thead>
-                                              <tr>
-                                                <th>#</th>
-                                                <th>Surname</th>
-                                                <th>Jersey</th>
-                                                <th>Shorts</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {rows.map((r, i) => (
-                                                <tr key={i}>
-                                                  <td>#{r.num || '—'}</td>
-                                                  <td>{(r.surname || '').toUpperCase()}</td>
-                                                  <td style={{ color: r.jerseyOk ? '#16a34a' : '#dc2626' }}>{r.jerseyOk ? 'Yes' : 'No'}</td>
-                                                  <td style={{ color: r.shortsOk ? '#16a34a' : '#dc2626' }}>{r.shortsOk ? 'Yes' : 'No'}</td>
-                                                </tr>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                        <div className="design-review-actions" style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
-                                          <button
-                                type="button"
-                                            className="approve-design-btn"
-                                            disabled={!allCovered}
-                                            onClick={() => {
-                                              setConfirmDialog({
-                                                show: true,
-                                                title: 'Approve Designs?',
-                                                message: 'This will move the order status to Sizing.',
-                                                currentStatus: getStatusDisplayName(order.status),
-                                                newStatus: getStatusDisplayName('sizing'),
-                                                onConfirm: async () => {
-                                                  try {
-                                                    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
-                                                    const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}/design-review`, {
-                                                      method: 'PATCH',
-                                                      headers: {
-                                                        'Content-Type': 'application/json'
-                                                      },
-                                                      body: JSON.stringify({ action: 'approve' })
-                                                    });
-                                                    if (!res.ok) {
-                                                      const err = await res.json().catch(() => ({}));
-                                                      throw new Error(err.error || 'Approval failed');
-                                                    }
-                                                    setRefreshKey(prev => prev + 1);
-                                                    setExpandedOrder(null);
-                                                  } catch (e) {
-                                                    alert(e.message || 'Failed to approve designs');
-                                                  } finally {
-                                                    setConfirmDialog(null);
-                                                  }
-                                                },
-                                                onCancel: () => setConfirmDialog(null)
-                                              });
-                                            }}
-                                          >
-                                            Approve Designs
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="revise-design-btn"
-                                            onClick={async () => {
-                                              const notes = window.prompt('Provide revision notes for the artist:', 'Please revise the following members...');
-                                              if (!notes || !notes.trim()) return;
-                                              try {
-                                                console.log('[Orders] Legacy flow: sending revision notes via prompt', {
-                                                  orderId: order.id,
-                                                  orderNumber: order.orderNumber,
-                                                  notesPreview: (notes || '').slice(0, 80),
-                                                  notesLength: (notes || '').length
-                                                });
-                                              } catch (_) {}
-                                              // Use app-styled confirmation dialog
-                                              setConfirmDialog({
-                                                show: true,
-                                                title: 'Send Revision Request?',
-                                                message: 'This will send the notes to the artist and move the task back to Layout/In Progress.',
-                                                currentStatus: getStatusDisplayName(order.status),
-                                                newStatus: getStatusDisplayName('layout'),
-                                                onConfirm: async () => {
-                                                  try {
-                                                    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
-                                                    const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}/design-review`, {
-                                                      method: 'PATCH',
-                                                      headers: { 'Content-Type': 'application/json' },
-                                                      body: JSON.stringify({ action: 'revision_required', notes })
-                                                    });
-                                                    if (!res.ok) {
-                                                      const err = await res.json().catch(() => ({}));
-                                                      throw new Error(err.error || 'Revision request failed');
-                                                    }
-                                                    // Also persist note to dedicated endpoint (best-effort)
-                                                    try {
-                                                      await fetch(`${API_BASE_URL}/api/orders/${order.orderNumber || order.id}/revision-notes`, {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ message: notes })
-                                                      });
-                                                    } catch (_) {}
-                                                    // Optimistically add to local notes state so artists see it immediately
-                                                    try {
-                                                      const key = order.orderNumber || order.id;
-                                                      setServerRevisionNotes(prev => {
-                                                        const existing = Array.isArray(prev[key]) ? prev[key] : [];
-                                                        const optimistic = {
-                                                          message: notes,
-                                                          author: (user?.user_metadata?.role || 'Admin'),
-                                                          createdAt: new Date().toISOString()
-                                                        };
-                                                        return { ...prev, [key]: [optimistic, ...existing] };
-                                                      });
-                                                    } catch (_) {}
-                                                    const result = await res.json().catch(() => ({}));
-                                                    if (result && (result.order_status || result.task_status)) {
-                                                      const pretty = JSON.stringify(result, null, 2);
-                                                      window.alert(`Revise request id=${order.id} (${res.status}):\n${pretty}`);
-                                                    }
-                                                    setRefreshKey(prev => prev + 1);
-                                                    setExpandedOrder(null);
-                                                  } catch (e) {
-                                                    alert(e.message || 'Failed to request revisions');
-                                                  } finally {
-                                                    setConfirmDialog(null);
-                                                  }
-                                                },
-                                                onCancel: () => setConfirmDialog(null)
-                                              });
-                                            }}
-                                          >
-                                            Request Revisions
-                                          </button>
-                                        </div>
-                                      </>
+                                     <table className="jersey-details-table">
+                                       <thead>
+                                         <tr>
+                                           <th>Surname</th>
+                                           <th>Jersey #</th>
+                                           <th>Jersey Type</th>
+                                           <th>Fabric</th>
+                                           <th>Cut Type</th>
+                                           <th>Size Type</th>
+                                           {(showTeamJerseySize || members.some(m => Boolean(m?.size))) && <th>Jersey Size</th>}
+                                           {(showTeamShortsSize || members.some(m => Boolean(m?.shortsSize))) && <th>Shorts Size</th>}
+                                         </tr>
+                                       </thead>
+                                       <tbody>
+                                         {members.map((member, memberIndex) => {
+                                           const memberJerseyType = member.jerseyType || 'full';
+                                           const memberFabricOption = member.fabricOption || '';
+                                           const memberCutType = member.cutType || '';
+                                           const memberSizingType = member.sizingType || 'adults';
+                                           const jerseyTypeLabel = memberJerseyType === 'shirt' ? 'Shirt Only' : memberJerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                           
+                                           return (
+                                             <tr key={memberIndex}>
+                                               <td>{(member.surname || 'N/A').toUpperCase()}</td>
+                                               <td>{member.number || 'N/A'}</td>
+                                               <td>{jerseyTypeLabel}</td>
+                                               <td>{memberFabricOption || 'N/A'}</td>
+                                               <td>{memberCutType || 'N/A'}</td>
+                                               <td>{memberSizingType === 'kids' ? 'Kids' : 'Adult'}</td>
+                                               {(showTeamJerseySize || members.some(m => Boolean(m?.size))) && (
+                                                 <td>{(memberJerseyType === 'full' || memberJerseyType === 'shirt') ? (member.size || 'N/A') : '-'}</td>
+                                               )}
+                                               {(showTeamShortsSize || members.some(m => Boolean(m?.shortsSize))) && (
+                                                 <td>{(memberJerseyType === 'full' || memberJerseyType === 'shorts') ? (member.shortsSize || 'N/A') : '-'}</td>
+                                               )}
+                                             </tr>
+                                           );
+                                         })}
+                                       </tbody>
+                                     </table>
                                     );
                                   })()}
                                 </div>
@@ -1816,7 +1810,8 @@ const Orders = () => {
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   
                   {/* Redesigned Order Summary */}
@@ -2601,6 +2596,71 @@ const Orders = () => {
         <FaShoppingCart />
         <span className="btn-text">Walk-in Order</span>
       </button>
+
+      {/* Image Gallery Modal */}
+      {imageGallery.isOpen && imageGallery.images.length > 0 && (
+        <div 
+          className="cd-image-gallery-overlay"
+          onClick={closeImageGallery}
+        >
+          <div 
+            className="cd-image-gallery-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="cd-image-gallery-close"
+              onClick={closeImageGallery}
+              aria-label="Close gallery"
+            >
+              <FaTimes />
+            </button>
+
+            <button
+              className="cd-image-gallery-nav cd-image-gallery-prev"
+              onClick={goToPrevImage}
+              aria-label="Previous image"
+              disabled={imageGallery.images.length <= 1}
+            >
+              <FaChevronLeft />
+            </button>
+
+            <div className="cd-image-gallery-main">
+              <img
+                src={imageGallery.images[imageGallery.currentIndex].url}
+                alt={`Design ${imageGallery.currentIndex + 1}`}
+                className="cd-image-gallery-image"
+                onError={(e) => {
+                  e.target.src = '/placeholder-image.png';
+                }}
+              />
+              <div className="cd-image-gallery-info">
+                <span className="cd-image-gallery-counter">
+                  {imageGallery.currentIndex + 1} / {imageGallery.images.length}
+                </span>
+                <button
+                  className="cd-image-gallery-download"
+                  onClick={() => downloadImage(
+                    imageGallery.images[imageGallery.currentIndex].url,
+                    imageGallery.images[imageGallery.currentIndex].filename
+                  )}
+                  aria-label="Download image"
+                >
+                  <FaDownload />
+                </button>
+              </div>
+            </div>
+
+            <button
+              className="cd-image-gallery-nav cd-image-gallery-next"
+              onClick={goToNextImage}
+              aria-label="Next image"
+              disabled={imageGallery.images.length <= 1}
+            >
+              <FaChevronRight />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

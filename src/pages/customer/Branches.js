@@ -526,7 +526,13 @@ const Branches = () => {
     };
 
     const handleError = (error) => {
-      console.log('Geolocation error:', error.message);
+      // Handle timeout errors gracefully - don't log as errors
+      // error.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+      if (error.code === 3 || error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+        console.log('Geolocation timeout - location service is taking longer than expected');
+      } else {
+        console.log('Geolocation error:', error.message);
+      }
       
       // If we have a best location from previous attempts, use it
       if (bestLocation) {
@@ -537,28 +543,37 @@ const Branches = () => {
       }
 
       // Fallback: Try getCurrentPosition with longer timeout and better options
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const userPos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          const accuracy = position.coords.accuracy || Infinity;
-          setUserLocation(userPos);
-          setLocationAccuracy(accuracy);
-          setIsUpdatingLocation(false);
-          console.log(`📍 Fallback location: Accuracy ${accuracy.toFixed(0)}m`);
-        },
-        (fallbackError) => {
-          console.log('Unable to get user location:', fallbackError.message);
-          // Don't set fallback location - let user know location is unavailable
-        },
-        { 
-          enableHighAccuracy: true, 
-          timeout: 20000, 
-          maximumAge: 0 // Always get fresh location
-        }
-      );
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const userPos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            const accuracy = position.coords.accuracy || Infinity;
+            setUserLocation(userPos);
+            setLocationAccuracy(accuracy);
+            setIsUpdatingLocation(false);
+            console.log(`📍 Fallback location: Accuracy ${accuracy.toFixed(0)}m`);
+          },
+          (fallbackError) => {
+            // Silently handle timeout errors in fallback
+            // error.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+            if (fallbackError.code !== 3 && !fallbackError.message?.includes('timeout')) {
+              console.log('Unable to get user location:', fallbackError.message);
+            }
+            // Don't set fallback location - let user know location is unavailable
+          },
+          { 
+            enableHighAccuracy: true, 
+            timeout: 20000, 
+            maximumAge: 0 // Always get fresh location
+          }
+        );
+      } catch (err) {
+        // Silently catch any errors from getCurrentPosition call
+        console.log('Error calling getCurrentPosition fallback');
+      }
     };
 
     // Use watchPosition for continuous updates and better accuracy
@@ -654,30 +669,46 @@ const Branches = () => {
     };
 
     const handleError = (error) => {
-      console.log('Location refresh error:', error.message);
+      // Handle timeout errors gracefully - don't log as errors
+      // error.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+      if (error.code === 3 || error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+        console.log('Location refresh timeout - location service is taking longer than expected');
+      } else {
+        console.log('Location refresh error:', error.message);
+      }
       setIsUpdatingLocation(false);
       
       // Fallback: Try getCurrentPosition
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const accuracy = position.coords.accuracy || Infinity;
-          const userPos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          setUserLocation(userPos);
-          setLocationAccuracy(accuracy);
-          setIsUpdatingLocation(false);
-        },
-        () => {
-          setIsUpdatingLocation(false);
-        },
-        { 
-          enableHighAccuracy: true, 
-          timeout: 15000, 
-          maximumAge: 0 
-        }
-      );
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const accuracy = position.coords.accuracy || Infinity;
+            const userPos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            setUserLocation(userPos);
+            setLocationAccuracy(accuracy);
+            setIsUpdatingLocation(false);
+          },
+          (fallbackError) => {
+            // Silently handle timeout errors in fallback
+            // error.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+            if (fallbackError.code !== 3 && !fallbackError.message?.includes('timeout')) {
+              console.log('Unable to refresh location:', fallbackError.message);
+            }
+            setIsUpdatingLocation(false);
+          },
+          { 
+            enableHighAccuracy: true, 
+            timeout: 15000, 
+            maximumAge: 0 
+          }
+        );
+      } catch (err) {
+        // Silently catch any errors from getCurrentPosition call
+        setIsUpdatingLocation(false);
+      }
     };
 
     try {
@@ -955,7 +986,11 @@ const Branches = () => {
           window.open(url, '_blank');
           setIsRouting(false);
         },
-        () => {
+        (error) => {
+          // Silently handle timeout errors - just fallback to web URL without origin
+          if (error.code !== 3 && !error.message?.includes('timeout')) {
+            console.log('Unable to get location for directions:', error.message);
+          }
           window.open(webUrl, '_blank');
           setIsRouting(false);
         },

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faTrash, faUsers, faUserShield, faPalette, faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import Sidebar from '../../components/admin/Sidebar';
 import '../admin/AdminDashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -18,6 +19,11 @@ const Accounts = () => {
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [artistSearchTerm, setArtistSearchTerm] = useState('');
   const [forceUpdate, setForceUpdate] = useState(0);
+  // Customer pagination state
+  const [customerPage, setCustomerPage] = useState(1);
+  const [customerPerPage, setCustomerPerPage] = useState(50);
+  const [customerTotal, setCustomerTotal] = useState(0);
+  const [customerTotalPages, setCustomerTotalPages] = useState(0);
   const [editingArtist, setEditingArtist] = useState(null);
   const [editFormData, setEditFormData] = useState({
     artist_name: '',
@@ -37,13 +43,20 @@ const Accounts = () => {
 
   // Fetch all accounts
   const fetchAccounts = useCallback(async () => {
+    const isInitialLoad = adminAccounts.length === 0 && customerAccounts.length === 0 && artistAccounts.length === 0;
+    
     try {
-      setLoading(true);
+      // Only show loading on initial load, not on pagination/search changes
+      if (isInitialLoad) {
+        setLoading(true);
+      }
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.error('No active session');
-        setLoading(false);
+        if (isInitialLoad) {
+          setLoading(false);
+        }
         return;
       }
 
@@ -87,9 +100,20 @@ const Accounts = () => {
         console.log('⚠️ Skipping admin accounts fetch - user is not owner');
       }
 
-      // Fetch customer accounts
+      // Fetch customer accounts with pagination
       try {
-        const customerResponse = await fetch(`http://localhost:4000/api/admin/customers?t=${Date.now()}`, {
+        // If searching, fetch all customers; otherwise use pagination
+        const searchParams = new URLSearchParams({
+          t: Date.now().toString(),
+          page: customerPage.toString(),
+          perPage: customerPerPage.toString()
+        });
+        
+        if (customerSearchTerm) {
+          searchParams.append('search', customerSearchTerm);
+        }
+        
+        const customerResponse = await fetch(`http://localhost:4000/api/admin/customers?${searchParams.toString()}`, {
           headers: {
             ...headers,
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -99,9 +123,28 @@ const Accounts = () => {
         });
         
         if (customerResponse.ok) {
-          const customerData = await customerResponse.json();
-          console.log('📋 FETCHED CUSTOMER ACCOUNTS:', customerData.map(acc => ({ id: acc.id, email: acc.email, name: acc.name })));
-          setCustomerAccounts(customerData);
+          const responseData = await customerResponse.json();
+          
+          // Handle both old format (array) and new format (object with pagination)
+          if (Array.isArray(responseData)) {
+            // Old format - backward compatibility
+            console.log('📋 FETCHED CUSTOMER ACCOUNTS (old format):', responseData.length);
+            setCustomerAccounts(responseData);
+            setCustomerTotal(responseData.length);
+            setCustomerTotalPages(1);
+          } else {
+            // New format with pagination
+            const { customers, pagination } = responseData;
+            console.log('📋 FETCHED CUSTOMER ACCOUNTS:', {
+              count: customers.length,
+              page: pagination.page,
+              total: pagination.total,
+              totalPages: pagination.totalPages
+            });
+            setCustomerAccounts(customers);
+            setCustomerTotal(pagination.total);
+            setCustomerTotalPages(pagination.totalPages);
+          }
         } else {
           const errorText = await customerResponse.text();
           console.error('❌ Failed to fetch customer accounts:', customerResponse.status, errorText);
@@ -140,9 +183,13 @@ const Accounts = () => {
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
-      setLoading(false);
+      // Only set loading to false if this was the initial load
+      const isInitialLoad = adminAccounts.length === 0 && customerAccounts.length === 0 && artistAccounts.length === 0;
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
-  }, [user]);
+  }, [user, adminAccounts.length, customerAccounts.length, artistAccounts.length]);
 
   // Delete admin account
   const handleDeleteAdmin = async (adminId) => {
@@ -417,17 +464,83 @@ const Accounts = () => {
     }
   }, [fetchAccounts, user?.id]); // Only depend on user ID, not the whole user object
 
-  // Filter accounts based on search terms
+  // Refetch customers when pagination or search changes (without showing loading spinner)
+  useEffect(() => {
+    if (user && activeTab === 'customer' && hasFetchedRef.current) {
+      // Extract customer fetching logic to avoid dependency on fetchAccounts
+      const fetchCustomers = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+
+          const headers = {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          };
+
+          const searchParams = new URLSearchParams({
+            t: Date.now().toString(),
+            page: customerPage.toString(),
+            perPage: customerPerPage.toString()
+          });
+          
+          if (customerSearchTerm) {
+            searchParams.append('search', customerSearchTerm);
+          }
+          
+          const customerResponse = await fetch(`http://localhost:4000/api/admin/customers?${searchParams.toString()}`, {
+            headers: {
+              ...headers,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (customerResponse.ok) {
+            const responseData = await customerResponse.json();
+            
+            if (Array.isArray(responseData)) {
+              setCustomerAccounts(responseData);
+              setCustomerTotal(responseData.length);
+              setCustomerTotalPages(1);
+            } else {
+              const { customers, pagination } = responseData;
+              setCustomerAccounts(customers);
+              setCustomerTotal(pagination.total);
+              setCustomerTotalPages(pagination.totalPages);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error fetching customer accounts:', error);
+        }
+      };
+
+      // Debounce search to avoid too many requests
+      const timeoutId = setTimeout(() => {
+        fetchCustomers();
+      }, customerSearchTerm ? 300 : 0); // 300ms debounce for search
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [customerPage, customerPerPage, customerSearchTerm, activeTab, user]);
+
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    if (customerPage !== 1) {
+      setCustomerPage(1);
+    }
+  }, [customerSearchTerm]);
+
+  // Filter accounts based on search terms (only for admin and artist, customer search is server-side)
   const filteredAdminAccounts = adminAccounts.filter(admin =>
     admin.name?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
     admin.email?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
     admin.role?.toLowerCase().includes(adminSearchTerm.toLowerCase())
   );
 
-  const filteredCustomerAccounts = customerAccounts.filter(customer =>
-    customer.name?.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(customerSearchTerm.toLowerCase())
-  );
+  // Customer accounts are already filtered server-side, so use them directly
+  const filteredCustomerAccounts = customerAccounts;
 
   const filteredArtistAccounts = artistAccounts.filter(artist =>
     artist.artist_name?.toLowerCase().includes(artistSearchTerm.toLowerCase()) ||
@@ -702,7 +815,7 @@ const Accounts = () => {
         <div className="section-header">
           <h2>
             <FontAwesomeIcon icon={faUsers} />
-            Customer Accounts ({filteredCustomerAccounts.length})
+            Customer Accounts ({customerTotal > 0 ? customerTotal : filteredCustomerAccounts.length})
           </h2>
           <div className="accounts-search-container">
             <input
@@ -723,13 +836,14 @@ const Accounts = () => {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Contact Number</th>
+                <th>Address</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredCustomerAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="no-data">
+                  <td colSpan="5" className="no-data">
                     {customerSearchTerm ? 'No customer accounts match your search.' : 'No customer accounts found.'}
                   </td>
                 </tr>
@@ -739,6 +853,7 @@ const Accounts = () => {
                     <td>{customer.name || 'N/A'}</td>
                     <td>{customer.email || 'N/A'}</td>
                     <td>{customer.contact_number || 'N/A'}</td>
+                    <td>{customer.address || 'N/A'}</td>
                     <td>
                       <button
                         onClick={() => handleDeleteCustomer(customer.id)}
@@ -755,6 +870,72 @@ const Accounts = () => {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {customerTotalPages > 1 && (
+            <div className="accounts-pagination">
+              <div className="pagination-info">
+                Showing page {customerPage} of {customerTotalPages} ({customerTotal} total customers)
+              </div>
+              <div className="pagination-buttons">
+                <button
+                  className="pagination-btn prev-btn"
+                  onClick={() => setCustomerPage(prev => Math.max(1, prev - 1))}
+                  disabled={customerPage === 1}
+                >
+                  <FaChevronLeft /> Previous
+                </button>
+                
+                <div className="page-numbers">
+                  {Array.from({length: Math.min(5, customerTotalPages)}, (_, i) => {
+                    let pageNum;
+                    if (customerTotalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (customerPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (customerPage >= customerTotalPages - 2) {
+                      pageNum = customerTotalPages - 4 + i;
+                    } else {
+                      pageNum = customerPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        className={`page-number ${customerPage === pageNum ? 'active' : ''}`}
+                        onClick={() => setCustomerPage(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  className="pagination-btn next-btn"
+                  onClick={() => setCustomerPage(prev => Math.min(customerTotalPages, prev + 1))}
+                  disabled={customerPage === customerTotalPages}
+                >
+                  Next <FaChevronRight />
+                </button>
+              </div>
+              <div className="pagination-per-page">
+                <label>Per page:</label>
+                <select
+                  value={customerPerPage}
+                  onChange={(e) => {
+                    setCustomerPerPage(Number(e.target.value));
+                    setCustomerPage(1);
+                  }}
+                  className="pagination-select"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
       )}
       </div>
