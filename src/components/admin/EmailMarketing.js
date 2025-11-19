@@ -289,8 +289,10 @@ const EmailMarketing = () => {
   };
 
   const buildEmailPreviewHTML = () => {
-    const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl } = formData;
+    const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl, logoUrl } = formData;
     const clientUrl = window.location.origin;
+    // Use logoUrl from form, or get default
+    const logoUrlToUse = logoUrl || getDefaultLogoUrl();
     
     // Build discount section
     let discountSection = '';
