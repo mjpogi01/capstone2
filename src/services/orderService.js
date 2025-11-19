@@ -41,7 +41,11 @@ class OrderService {
       
       // Check for network/connection errors
       if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
-        const networkError = new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const errorMessage = isProduction 
+          ? `Network error: Unable to connect to backend server at ${API_URL}. Please check if the backend service is running.`
+          : 'Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat';
+        const networkError = new Error(errorMessage);
         networkError.isNetworkError = true;
         throw networkError;
       }
@@ -80,7 +84,11 @@ class OrderService {
       
       // Check for network/connection errors
       if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
-        const networkError = new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const errorMessage = isProduction 
+          ? `Network error: Unable to connect to backend server at ${API_URL}. Please check if the backend service is running.`
+          : 'Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat';
+        const networkError = new Error(errorMessage);
         networkError.isNetworkError = true;
         throw networkError;
       }
@@ -286,7 +294,11 @@ class OrderService {
       
       // Check for network/connection errors
       if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
-        const networkError = new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const errorMessage = isProduction 
+          ? `Network error: Unable to connect to backend server at ${API_URL}. Please check if the backend service is running.`
+          : 'Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat';
+        const networkError = new Error(errorMessage);
         networkError.isNetworkError = true;
         throw networkError;
       }
@@ -308,7 +320,11 @@ class OrderService {
 
       // Handle network errors before checking response
       if (!response) {
-        throw new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const errorMessage = isProduction 
+          ? `Network error: Unable to connect to backend server at ${API_URL}. Please check if the backend service is running.`
+          : 'Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat';
+        throw new Error(errorMessage);
       }
 
       if (!response.ok) {
@@ -337,7 +353,11 @@ class OrderService {
       
       // Check for network/connection errors
       if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('network'))) {
-        const networkError = new Error('Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat');
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const errorMessage = isProduction 
+          ? `Network error: Unable to connect to backend server at ${API_URL}. Please check if the backend service is running.`
+          : 'Network error: Unable to connect to backend server. Please ensure the backend server is running on port 4000. Start it with: npm run server:dev or double-click start-backend.bat';
+        const networkError = new Error(errorMessage);
         networkError.isNetworkError = true;
         throw networkError;
       }
