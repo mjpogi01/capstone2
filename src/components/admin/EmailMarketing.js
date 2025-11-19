@@ -655,12 +655,12 @@ const EmailMarketing = () => {
               <div className="email-preview">
                 <h4>Email Preview</h4>
                 <div className="preview-iframe-container">
-                  <iframe
-                    title="Email Preview"
-                    srcDoc={buildEmailPreviewHTML()}
-                    className="preview-iframe"
-                    sandbox="allow-same-origin"
-                  />
+                        <iframe
+                          title="Email Preview"
+                          srcDoc={buildEmailPreviewHTML()}
+                          className="preview-iframe"
+                          sandbox="allow-same-origin allow-scripts"
+                        />
                 </div>
               </div>
             )}
