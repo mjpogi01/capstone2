@@ -134,6 +134,9 @@ class EmailService {
   // Send custom design order confirmation email
   async sendCustomDesignConfirmation(orderData, customerEmail, customerName) {
     try {
+      if (!this._checkTransporter()) {
+        return { success: false, error: 'Email service not configured' };
+      }
       const emailTemplate = this.getCustomDesignConfirmationEmailTemplate(orderData, customerName);
 
       const mailOptions = {
