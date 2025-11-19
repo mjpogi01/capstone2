@@ -3,6 +3,7 @@ import { AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { FaShoppingCart, FaTimes, FaCreditCard, FaUsers, FaPlus, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import CheckoutModal from './CheckoutModal';
 import SizeChartModal from './SizeChartModal';
+import OrderProcessingModal from './OrderProcessingModal';
 import { useCart } from '../../contexts/CartContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
@@ -191,6 +192,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
   const [expandedMembers, setExpandedMembers] = useState(new Set());
   const [showCheckout, setShowCheckout] = useState(false);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const [buyNowItem, setBuyNowItem] = useState(null);
   const [showSizeChart, setShowSizeChart] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -1719,7 +1721,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         return;
       }
 
-      console.log('≡ƒ¢Æ Creating order with data:', orderData);
+      // Note: Processing modal is now handled by CheckoutModal
+      // Only show processing modal if not coming from checkout
+      const isFromCheckout = orderData._fromCheckout;
+      if (!isFromCheckout) {
+        setIsProcessingOrder(true);
+      }
+
+      console.log('🛒 Creating order with data:', orderData);
 
       // Format order data for database
       const formattedOrderData = {
@@ -1738,12 +1747,17 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         order_items: orderData.items
       };
 
-      console.log('≡ƒ¢Æ Formatted order data:', formattedOrderData);
+      console.log('🛒 Formatted order data:', formattedOrderData);
 
       // Create order in database
       const createdOrder = await orderService.createOrder(formattedOrderData);
       
-      console.log('Γ£à Order created successfully:', createdOrder);
+      console.log('✅ Order created successfully:', createdOrder);
+      
+      // Hide processing modal (if we showed it)
+      if (!isFromCheckout) {
+        setIsProcessingOrder(false);
+      }
       
       // Show success notification
       showOrderConfirmation(createdOrder.order_number, orderData.totalAmount);
@@ -1760,6 +1774,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
     } catch (error) {
       console.error('❌ Error creating order:', error);
+      
+      // Hide processing modal (if we showed it)
+      const isFromCheckout = orderData?._fromCheckout;
+      if (!isFromCheckout) {
+        setIsProcessingOrder(false);
+      }
       
       // Check if it's a network error (backend not running)
       if (error.isNetworkError || error.message?.includes('backend server')) {
@@ -2788,6 +2808,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         </div>
       </div>
       
+      {/* Order Processing Modal */}
+      <OrderProcessingModal 
+        isOpen={isProcessingOrder}
+        onClose={() => setIsProcessingOrder(false)}
+        onError={(error) => {
+          setIsProcessingOrder(false);
+          showError('Order Failed', error.message);
+        }}
+      />
+
       {/* Checkout Modal */}
       <CheckoutModal
         isOpen={showCheckout}

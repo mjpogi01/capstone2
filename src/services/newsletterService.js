@@ -124,3 +124,4 @@ class NewsletterService {
 
 export default new NewsletterService();
 
+

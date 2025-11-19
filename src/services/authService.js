@@ -5,12 +5,22 @@ import { API_URL } from '../config/api';
 class AuthService {
   async signUp(userData) {
     try {
+      // Determine redirect URL for email confirmation
+      let baseUrl;
+      if (typeof window !== 'undefined') {
+        const envUrl = process.env.REACT_APP_CLIENT_URL || process.env.REACT_APP_FRONTEND_URL;
+        baseUrl = envUrl || window.location.origin;
+      } else {
+        baseUrl = process.env.REACT_APP_CLIENT_URL || process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000';
+      }
+      baseUrl = baseUrl.replace(/\/$/, '');
+      
       // Create user account first (but don't auto-confirm email)
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${baseUrl}/auth/callback`,
           data: {
             first_name: userData.firstName,
             last_name: userData.lastName,
@@ -250,13 +260,33 @@ class AuthService {
   // Sign in with OAuth provider (Google, Facebook)
   async signInWithProvider(provider) {
     try {
-      // Get the current origin (works for both localhost and production)
-      // Redirect to /auth/callback route which handles the OAuth callback
-      const baseUrl = typeof window !== 'undefined' 
-        ? window.location.origin
-        : process.env.REACT_APP_CLIENT_URL || 'http://localhost:3000';
+      // Determine the redirect URL - prioritize environment variable, then use current origin
+      let baseUrl;
       
+      if (typeof window !== 'undefined') {
+        // Check if we have an environment variable set (for production builds)
+        // React apps need REACT_APP_ prefix for environment variables
+        const envUrl = process.env.REACT_APP_CLIENT_URL || process.env.REACT_APP_FRONTEND_URL;
+        
+        if (envUrl) {
+          // Use environment variable if set (for production)
+          baseUrl = envUrl;
+          console.log(`🔗 Using environment URL for OAuth redirect: ${baseUrl}`);
+        } else {
+          // Fall back to current origin (works in both dev and prod)
+          baseUrl = window.location.origin;
+          console.log(`🔗 Using current origin for OAuth redirect: ${baseUrl}`);
+        }
+      } else {
+        // Server-side rendering fallback
+        baseUrl = process.env.REACT_APP_CLIENT_URL || process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000';
+      }
+      
+      // Ensure we have a valid URL (remove trailing slash if present)
+      baseUrl = baseUrl.replace(/\/$/, '');
       const redirectTo = `${baseUrl}/auth/callback`;
+      
+      console.log(`🔐 Initiating ${provider} OAuth with redirect to: ${redirectTo}`);
       
       // Supabase automatically handles scopes for OAuth providers
       // No need to manually specify scopes as Supabase adds them automatically
@@ -271,10 +301,12 @@ class AuthService {
         },
       });
       if (error) {
+        console.error(`❌ ${provider} OAuth error:`, error);
         throw new Error(error.message || `Sign in with ${provider} failed`);
       }
       return { data };
     } catch (error) {
+      console.error(`❌ ${provider} OAuth sign-in failed:`, error);
       throw new Error(error.message || `Sign in with ${provider} failed`);
     }
   }
@@ -282,10 +314,16 @@ class AuthService {
   // Reset password (forgot password)
   async resetPasswordForEmail(email) {
     try {
-      const baseUrl = typeof window !== 'undefined' 
-        ? window.location.origin
-        : process.env.REACT_APP_CLIENT_URL || 'http://localhost:3000';
+      let baseUrl;
       
+      if (typeof window !== 'undefined') {
+        const envUrl = process.env.REACT_APP_CLIENT_URL || process.env.REACT_APP_FRONTEND_URL;
+        baseUrl = envUrl || window.location.origin;
+      } else {
+        baseUrl = process.env.REACT_APP_CLIENT_URL || process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000';
+      }
+      
+      baseUrl = baseUrl.replace(/\/$/, '');
       const redirectTo = `${baseUrl}/auth/reset-password`;
       
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {

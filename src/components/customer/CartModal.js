@@ -7,6 +7,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import orderService from '../../services/orderService';
 import CheckoutModal from './CheckoutModal';
 import ProductModal from './ProductModal';
+import OrderProcessingModal from './OrderProcessingModal';
 import productService from '../../services/productService';
 import './CartModal.css';
 
@@ -36,6 +37,7 @@ const CartModal = () => {
   const [expandedOrderIndex, setExpandedOrderIndex] = useState(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
   const toggleItemExpansion = (index) => {
     setExpandedOrderIndex((prev) => (prev === index ? null : index));
@@ -130,6 +132,13 @@ const CartModal = () => {
         return;
       }
 
+      // Note: Processing modal is now handled by CheckoutModal
+      // Only show processing modal if not coming from checkout
+      const isFromCheckout = orderData._fromCheckout;
+      if (!isFromCheckout) {
+        setIsProcessingOrder(true);
+      }
+
       console.log('🛒 Creating order from cart with data:', orderData);
 
       // Format order data for database
@@ -156,6 +165,11 @@ const CartModal = () => {
       
       console.log('✅ Order created successfully:', createdOrder);
       
+      // Hide processing modal (if we showed it)
+      if (!isFromCheckout) {
+        setIsProcessingOrder(false);
+      }
+      
       // Show success notification
       showOrderConfirmation(createdOrder.order_number, orderData.totalAmount);
       
@@ -176,6 +190,12 @@ const CartModal = () => {
       
     } catch (error) {
       console.error('❌ Error creating order:', error);
+      
+      // Hide processing modal (if we showed it)
+      const isFromCheckout = orderData?._fromCheckout;
+      if (!isFromCheckout) {
+        setIsProcessingOrder(false);
+      }
       
       // Check if it's a network error (backend not running)
       if (error.isNetworkError || error.message?.includes('backend server')) {
@@ -596,6 +616,15 @@ const CartModal = () => {
           }}
         />
       )}
+
+      <OrderProcessingModal 
+        isOpen={isProcessingOrder}
+        onClose={() => setIsProcessingOrder(false)}
+        onError={(error) => {
+          setIsProcessingOrder(false);
+          showError('Order Failed', error.message);
+        }}
+      />
 
       {showProductModal && selectedProduct && (
         <>

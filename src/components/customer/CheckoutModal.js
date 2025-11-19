@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { FaTimes, FaTruck, FaUsers, FaChevronDown, FaBasketballBall, FaTrophy, FaUserFriends, FaUser, FaMapMarkerAlt, FaChevronUp, FaTshirt, FaArrowLeft } from 'react-icons/fa';
 import userService from '../../services/userService';
 import branchService from '../../services/branchService';
+import OrderProcessingModal from './OrderProcessingModal';
 import './CheckoutModal.css';
 import { getApparelSizeVisibility } from '../../utils/orderSizing';
 import { getProvinces, getCitiesByProvince, getBarangaysByCity } from '../../utils/locationData';
@@ -87,6 +88,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   const [addressToDelete, setAddressToDelete] = useState(null); // Address ID to delete
   const [showCancelReason, setShowCancelReason] = useState(false); // Cancel reason dialog
   const [cancelReason, setCancelReason] = useState(''); // Selected cancellation reason
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false); // Order processing modal
 
   // Check for user address when modal opens
   useEffect(() => {
@@ -284,6 +286,9 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     // Close confirmation dialog immediately for faster UI response
     setShowConfirmation(false);
     
+    // Show processing modal immediately
+    setIsProcessingOrder(true);
+    
     // Get full address details if an address is selected
     let fullDeliveryAddress = deliveryAddress;
     if (shippingMethod === 'cod' && selectedAddressId) {
@@ -328,13 +333,19 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
       totalAmount,
       totalItems,
       orderDate: new Date().toISOString(),
+      _fromCheckout: true // Flag to indicate this is coming from CheckoutModal
     };
     
     try {
-      // Proceed with order placement after closing dialog
+      // Proceed with order placement - processing modal is handled here in CheckoutModal
       await onPlaceOrder(orderData);
+      
+      // Hide processing modal on success
+      setIsProcessingOrder(false);
       setShowOrderComplete(true);
     } catch (error) {
+      // Hide processing modal on error
+      setIsProcessingOrder(false);
       // Error is already handled by onPlaceOrder (CartModal)
       console.error('Order placement failed:', error);
       // Don't show success if order failed
@@ -1581,6 +1592,16 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
           </div>
         </div>
       )}
+
+      {/* Order Processing Modal */}
+      <OrderProcessingModal 
+        isOpen={isProcessingOrder}
+        onClose={() => setIsProcessingOrder(false)}
+        onError={(error) => {
+          setIsProcessingOrder(false);
+          console.error('Order processing error:', error);
+        }}
+      />
     </div>
   );
 };

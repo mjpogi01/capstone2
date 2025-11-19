@@ -139,3 +139,4 @@ Example: `backups/supabase-backup-2024-01-15T10-30-00.sql`
 - **Connection**: Using `DATABASE_URL` from `.env`
 - **Backup Script**: `server/scripts/backup-database.js`
 
+

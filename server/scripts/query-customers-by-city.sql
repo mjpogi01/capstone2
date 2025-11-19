@@ -87,3 +87,4 @@ SELECT
 FROM city_stats cs
 ORDER BY cs.customer_count DESC, cs.city ASC;
 
+

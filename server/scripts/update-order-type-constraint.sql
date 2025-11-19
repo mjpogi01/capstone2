@@ -12,3 +12,4 @@ CHECK (order_type IN ('regular', 'custom_design', 'walk_in'));
 
 -- Success! Orders can now have order_type: 'regular', 'custom_design', or 'walk_in'
 
+

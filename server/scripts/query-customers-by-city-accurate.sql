@@ -51,3 +51,4 @@ WHERE city != ''
 GROUP BY city, province
 ORDER BY customer_count DESC, city ASC;
 
+

@@ -68,3 +68,4 @@ LEFT JOIN user_profiles up ON up.user_id = cc.user_id
 ORDER BY total_spent DESC, total_orders DESC, cc.user_id;
 
 
+

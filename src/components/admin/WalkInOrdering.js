@@ -28,6 +28,7 @@ import {
 } from 'react-icons/fa';
 import ProductModal from '../customer/ProductModal';
 import CheckoutModal from '../customer/CheckoutModal';
+import OrderProcessingModal from '../customer/OrderProcessingModal';
 import productService from '../../services/productService';
 import orderService from '../../services/orderService';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -49,6 +50,7 @@ const WalkInOrdering = ({ onClose }) => {
   const [sortBy, setSortBy] = useState('name'); // 'name', 'price', 'category'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
   const [showFilters, setShowFilters] = useState(true);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const { showOrderConfirmation, showError } = useNotification();
   const { user } = useAuth();
 
@@ -220,6 +222,9 @@ const WalkInOrdering = ({ onClose }) => {
         return;
       }
 
+      // Show processing modal
+      setIsProcessingOrder(true);
+
       const formattedOrderData = {
         user_id: user.id,
         order_number: `WALKIN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -238,6 +243,9 @@ const WalkInOrdering = ({ onClose }) => {
 
       const createdOrder = await orderService.createOrder(formattedOrderData);
       
+      // Hide processing modal
+      setIsProcessingOrder(false);
+      
       showOrderConfirmation(createdOrder.order_number, orderData.totalAmount);
       
       setCartItems([]);
@@ -246,6 +254,10 @@ const WalkInOrdering = ({ onClose }) => {
       
     } catch (error) {
       console.error('Error creating walk-in order:', error);
+      
+      // Hide processing modal
+      setIsProcessingOrder(false);
+      
       showError('Order Failed', `Failed to place order: ${error.message}. Please try again.`);
     }
   };
@@ -645,6 +657,16 @@ const WalkInOrdering = ({ onClose }) => {
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
+        />
+
+        {/* Order Processing Modal */}
+        <OrderProcessingModal 
+          isOpen={isProcessingOrder}
+          onClose={() => setIsProcessingOrder(false)}
+          onError={(error) => {
+            setIsProcessingOrder(false);
+            showError('Order Failed', error.message);
+          }}
         />
 
         {/* Checkout Modal */}

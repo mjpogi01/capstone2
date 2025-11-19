@@ -48,3 +48,4 @@ WHERE city != ''
 GROUP BY city, province
 ORDER BY total_customers DESC, city ASC;
 
+
