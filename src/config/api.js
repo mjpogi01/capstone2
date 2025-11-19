@@ -26,14 +26,16 @@ const getApiUrl = () => {
     return 'http://localhost:4000';
   }
   
-  // In production without explicit URL, try to auto-detect
+  // In production without explicit URL, use the same domain
+  // The backend API is on the same domain (Render handles routing)
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
-    // If on main domain, assume API is on api subdomain
-    if (hostname && !hostname.startsWith('api.')) {
-      return `${window.location.protocol}//api.${hostname}${window.location.port ? ':' + window.location.port : ''}`;
+    // Use the same origin (same domain) for API calls
+    // Render will route /api/* requests to the backend service
+    if (hostname && hostname.includes('onrender.com')) {
+      return window.location.origin;
     }
-    // If already on api subdomain, use current origin
+    // For other production domains, use the same origin
     return window.location.origin;
   }
   
