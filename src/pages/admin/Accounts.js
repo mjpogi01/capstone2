@@ -12,7 +12,7 @@ import './Accounts.css';
 import './admin-shared.css';
 
 const Accounts = () => {
-  const { user } = useAuth();
+  const { user, hasAdminAccess } = useAuth();
   const location = useLocation();
   const [adminAccounts, setAdminAccounts] = useState([]);
   const [customerAccounts, setCustomerAccounts] = useState([]);
@@ -35,6 +35,8 @@ const Accounts = () => {
 
   // Make isOwner reactive to user changes
   const isOwner = useMemo(() => user?.user_metadata?.role === 'owner', [user?.user_metadata?.role]);
+  // Check if user has admin or owner access (for Email Marketing feature)
+  const canAccessEmailMarketing = useMemo(() => hasAdminAccess(), [hasAdminAccess]);
   
   // Initialize activeTab from location state if available, otherwise default
   const [activeTab, setActiveTab] = useState(() => {
@@ -616,7 +618,7 @@ const Accounts = () => {
           <FontAwesomeIcon icon={faUsers} className="tab-icon" />
           Customer Accounts
         </button>
-        {isOwner && (
+        {canAccessEmailMarketing && (
           <button
             className={`accounts-tab ${activeTab === 'email-marketing' ? 'active' : ''}`}
             onClick={() => setActiveTab('email-marketing')}
@@ -963,8 +965,8 @@ const Accounts = () => {
         </div>
       )}
 
-      {/* Email Marketing Section - Only for Owners */}
-      {isOwner && activeTab === 'email-marketing' && (
+      {/* Email Marketing Section - For Admins and Owners */}
+      {canAccessEmailMarketing && activeTab === 'email-marketing' && (
         <div className="accounts-section">
           <EmailMarketing />
         </div>

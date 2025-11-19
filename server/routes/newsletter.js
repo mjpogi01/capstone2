@@ -145,7 +145,7 @@ router.post('/subscribe', async (req, res) => {
   }
 });
 
-// Unsubscribe from newsletter
+// Unsubscribe from newsletter (POST - for API calls)
 router.post('/unsubscribe', async (req, res) => {
   try {
     const { email } = req.body;
@@ -204,6 +204,69 @@ router.post('/unsubscribe', async (req, res) => {
   }
 });
 
+// Unsubscribe from newsletter (GET - for email link clicks)
+router.get('/unsubscribe', async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email address is required' 
+      });
+    }
+
+    // Decode and normalize email to lowercase
+    const decodedEmail = decodeURIComponent(email);
+    const normalizedEmail = decodedEmail.toLowerCase().trim();
+
+    console.log('📧 Newsletter unsubscribe request (GET):', normalizedEmail);
+
+    // Update subscription to inactive
+    const { data: updatedSub, error: updateError } = await supabase
+      .from('newsletter_subscriptions')
+      .update({
+        is_active: false,
+        unsubscribed_at: new Date().toISOString()
+      })
+      .eq('email', normalizedEmail)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('❌ Error unsubscribing:', updateError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to unsubscribe. Please try again.'
+      });
+    }
+
+    if (!updatedSub) {
+      console.log('ℹ️ Email not found in subscription list:', normalizedEmail);
+      return res.json({
+        success: true,
+        message: 'Email not found in our subscription list.',
+        alreadyUnsubscribed: true
+      });
+    }
+
+    console.log('✅ Newsletter unsubscribe successful:', normalizedEmail);
+
+    res.json({
+      success: true,
+      message: 'You have been successfully unsubscribed from our newsletter.',
+      email: normalizedEmail
+    });
+
+  } catch (error) {
+    console.error('❌ Error in newsletter unsubscribe (GET):', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error. Please try again later.'
+    });
+  }
+});
+
 // Get all active subscribers (admin only)
 router.get('/subscribers', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
@@ -235,7 +298,7 @@ router.get('/subscribers', authenticateSupabaseToken, requireAdminOrOwner, async
 router.post('/send-marketing', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
 
-    const { title, message, products, ctaText, ctaLink, imageUrl } = req.body;
+    const { title, message, products, ctaText, ctaLink, imageUrl, discountType, discountValue, promoCode } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ 
@@ -278,7 +341,10 @@ router.post('/send-marketing', authenticateSupabaseToken, requireAdminOrOwner, a
       products: products || [],
       ctaText: ctaText || 'Shop Now',
       ctaLink: ctaLink || process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com',
-      imageUrl
+      imageUrl,
+      discountType: discountType || 'none',
+      discountValue: discountValue || '',
+      promoCode: promoCode || ''
     };
 
     // Send emails to all subscribers

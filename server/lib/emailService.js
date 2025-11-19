@@ -883,7 +883,7 @@ class EmailService {
   // Send newsletter welcome email
   async sendNewsletterWelcomeEmail(subscriberEmail) {
     try {
-      const emailTemplate = this.getNewsletterWelcomeEmailTemplate();
+      const emailTemplate = this.getNewsletterWelcomeEmailTemplate(subscriberEmail);
 
       const mailOptions = {
         from: {
@@ -909,7 +909,7 @@ class EmailService {
   // Send marketing email to subscribers
   async sendMarketingEmail(subscriberEmail, marketingData) {
     try {
-      const emailTemplate = this.getMarketingEmailTemplate(marketingData);
+      const emailTemplate = this.getMarketingEmailTemplate(marketingData, subscriberEmail);
 
       const mailOptions = {
         from: {
@@ -933,7 +933,12 @@ class EmailService {
   }
 
   // Get newsletter welcome email template
-  getNewsletterWelcomeEmailTemplate() {
+  getNewsletterWelcomeEmailTemplate(subscriberEmail = '') {
+    // Encode email for unsubscribe link
+    const unsubscribeLink = subscriberEmail 
+      ? `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
+      : `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe`;
+    
     const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -1038,7 +1043,7 @@ class EmailService {
             <div class="footer">
                 <p><strong>Yohanns - Premium Sports Apparel</strong></p>
                 <p>This is an automated message. Please do not reply to this email.</p>
-                <p><a href="${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe" style="color: #00bfff;">Unsubscribe</a></p>
+                <p><a href="${unsubscribeLink}" style="color: #00bfff;">Unsubscribe</a></p>
             </div>
         </div>
     </body>
@@ -1071,8 +1076,12 @@ class EmailService {
   }
 
   // Get marketing email template
-  getMarketingEmailTemplate(marketingData) {
+  getMarketingEmailTemplate(marketingData, subscriberEmail = '') {
     const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl } = marketingData;
+    // Encode email for unsubscribe link
+    const unsubscribeLink = subscriberEmail 
+      ? `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
+      : `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe`;
     
     let discountSection = '';
     if (discountType === 'percentage' && discountValue) {
@@ -1189,7 +1198,7 @@ class EmailService {
             <div class="footer">
                 <p><strong>Yohanns - Premium Sports Apparel</strong></p>
                 <p>This is an automated message. Please do not reply to this email.</p>
-                <p><a href="${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe" style="color: #00bfff;">Unsubscribe</a></p>
+                <p><a href="${unsubscribeLink}" style="color: #00bfff;">Unsubscribe</a></p>
             </div>
         </div>
     </body>
