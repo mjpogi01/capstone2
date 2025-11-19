@@ -1,8 +1,79 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaEnvelope, FaTag, FaPercent, FaPaperPlane, FaUsers, FaSpinner } from 'react-icons/fa';
 import newsletterService from '../../services/newsletterService';
 import { useNotification } from '../../contexts/NotificationContext';
 import './EmailMarketing.css';
+
+// Confirmation Modal Component
+const EmailConfirmModal = ({ subscriberCount, formData, sending, onConfirm, onCancel }) => {
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && !sending) {
+        onCancel();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onCancel, sending]);
+
+  return (
+    <div className="email-confirm-modal-overlay" onClick={onCancel}>
+      <div className="email-confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="email-confirm-header">
+          <h3>Confirm Email Send</h3>
+        </div>
+        <div className="email-confirm-content">
+          <p>Are you sure you want to send this marketing email?</p>
+          <div className="email-confirm-details">
+            <p><strong>Recipients:</strong> {subscriberCount} Active Subscriber{subscriberCount !== 1 ? 's' : ''}</p>
+            <p><strong>Title:</strong> {formData.title || 'N/A'}</p>
+            {formData.discountType !== 'none' && formData.discountValue && (
+              <p>
+                <strong>Discount:</strong> 
+                {formData.discountType === 'percentage' 
+                  ? ` ${formData.discountValue}% OFF`
+                  : ` ₱${formData.discountValue} OFF`}
+                {formData.promoCode && ` (Code: ${formData.promoCode})`}
+              </p>
+            )}
+          </div>
+          <p className="email-confirm-warning">
+            ⚠️ This action cannot be undone. The email will be sent to all active subscribers.
+          </p>
+        </div>
+        <div className="email-confirm-actions">
+          <button
+            type="button"
+            className="email-confirm-cancel"
+            onClick={onCancel}
+            disabled={sending}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="email-confirm-send"
+            onClick={onConfirm}
+            disabled={sending}
+          >
+            {sending ? (
+              <>
+                <FaSpinner className="spinner" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <FaPaperPlane />
+                Send Email
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const EmailMarketing = () => {
   const { showSuccess, showError } = useNotification();
@@ -21,26 +92,99 @@ const EmailMarketing = () => {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [countUpdating, setCountUpdating] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const intervalRef = useRef(null);
+  const previousCountRef = useRef(0);
+  const subscriberInfoRef = useRef(null);
 
-  useEffect(() => {
-    fetchSubscribers();
-  }, []);
-
-  const fetchSubscribers = async () => {
+  // Fetch subscribers function with optional silent refresh
+  const fetchSubscribers = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      } else {
+        setCountUpdating(true);
+      }
+      
       const result = await newsletterService.getSubscribers();
       if (result.success) {
-        setSubscribers(result.subscribers || []);
-        setSubscriberCount(result.count || 0);
+        const newCount = result.count || 0;
+        const newSubscribers = result.subscribers || [];
+        const oldCount = previousCountRef.current || subscriberCount;
+        
+        // Visual feedback when count changes
+        if (oldCount !== newCount && subscriberInfoRef.current) {
+          subscriberInfoRef.current.classList.add('count-update');
+          setTimeout(() => {
+            if (subscriberInfoRef.current) {
+              subscriberInfoRef.current.classList.remove('count-update');
+            }
+          }, 500);
+        }
+        
+        setSubscribers(newSubscribers);
+        setSubscriberCount(newCount);
+        
+        // Show notification if count increased (new subscriber)
+        if (!silent && oldCount > 0 && newCount > oldCount) {
+          const difference = newCount - oldCount;
+          showSuccess(
+            'New Subscriber!', 
+            `${difference} new subscriber${difference > 1 ? 's' : ''} joined! Total: ${newCount}`
+          );
+        }
+        
+        previousCountRef.current = newCount;
       }
     } catch (error) {
       console.error('Error fetching subscribers:', error);
-      showError('Failed to load subscribers', error.message);
+      if (!silent) {
+        showError('Failed to load subscribers', error.message);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      } else {
+        setTimeout(() => setCountUpdating(false), 300);
+      }
     }
   };
+
+  useEffect(() => {
+    // Initial fetch
+    fetchSubscribers(false);
+    
+    // Poll for updates every 5 seconds (real-time updates)
+    intervalRef.current = setInterval(() => {
+      fetchSubscribers(true); // Silent refresh
+    }, 5000);
+    
+    // Refetch when window gains focus (user switches back to tab)
+    const handleFocus = () => {
+      fetchSubscribers(true); // Silent refresh on focus
+    };
+    
+    // Refetch when visibility changes (user switches tabs)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchSubscribers(true); // Silent refresh when tab becomes visible
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - we only want this to run once on mount
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -68,11 +212,13 @@ const EmailMarketing = () => {
       return;
     }
 
-    const confirmMessage = `Are you sure you want to send this email to ${subscriberCount} subscriber${subscriberCount > 1 ? 's' : ''}?`;
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+    // Show confirmation modal instead of window.confirm
+    setShowConfirmModal(true);
+  };
 
+  const handleConfirmSend = async () => {
+    setShowConfirmModal(false);
+    
     try {
       setSending(true);
       
@@ -95,6 +241,9 @@ const EmailMarketing = () => {
           'Email Sent Successfully', 
           `Marketing email sent to ${result.sent} subscriber${result.sent > 1 ? 's' : ''}${result.failed > 0 ? ` (${result.failed} failed)` : ''}`
         );
+        
+        // Refresh subscriber count after sending (in case of unsubscribes)
+        fetchSubscribers(true);
         
         // Reset form
         setFormData({
@@ -143,7 +292,10 @@ const EmailMarketing = () => {
           <FaEnvelope className="header-icon" />
           Email Marketing
         </h2>
-        <div className="subscriber-info">
+        <div 
+          ref={subscriberInfoRef}
+          className={`subscriber-info ${countUpdating ? 'updating' : ''}`}
+        >
           <FaUsers className="subscriber-icon" />
           <span>{subscriberCount} Active Subscriber{subscriberCount !== 1 ? 's' : ''}</span>
         </div>
@@ -346,7 +498,7 @@ const EmailMarketing = () => {
                 ) : (
                   <>
                     <FaPaperPlane />
-                    Send to {subscriberCount} Subscriber{subscriberCount !== 1 ? 's' : ''}
+                    Send to Subscribers
                   </>
                 )}
               </button>
@@ -358,6 +510,17 @@ const EmailMarketing = () => {
             </div>
           </form>
         </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <EmailConfirmModal
+          subscriberCount={subscriberCount}
+          formData={formData}
+          sending={sending}
+          onConfirm={handleConfirmSend}
+          onCancel={() => setShowConfirmModal(false)}
+        />
       )}
     </div>
   );

@@ -40,6 +40,31 @@
   border-radius: 8px;
   font-weight: 600;
   color: var(--text-secondary, #6b7280);
+  transition: all 0.3s ease;
+}
+
+.subscriber-info.updating {
+  background: var(--primary-blue, #2563eb);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.subscriber-info.updating .subscriber-icon {
+  color: white;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.subscriber-info .count-update {
+  animation: pulse 0.5s ease;
 }
 
 .subscriber-icon {
@@ -189,17 +214,25 @@
 
 .preview-btn {
   padding: 0.75rem 1.5rem;
-  background: var(--bg-secondary, #f3f4f6);
-  border: 2px solid var(--border-color, #e5e7eb);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: 2px solid #2563eb;
   border-radius: 8px;
   font-weight: 600;
-  color: var(--text-primary, #1f2937);
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  display: inline-block;
 }
 
 .preview-btn:hover {
-  background: var(--border-color, #e5e7eb);
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.preview-btn:active {
+  transform: translateY(0);
 }
 
 .email-preview {
@@ -322,6 +355,166 @@
   }
 
   .send-email-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Confirmation Modal */
+.email-confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.email-confirm-modal {
+  background: var(--bg-primary, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 100%;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.email-confirm-header {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.email-confirm-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.email-confirm-content {
+  padding: 2rem 1.5rem;
+}
+
+.email-confirm-content > p {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.email-confirm-details {
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.email-confirm-details p {
+  margin: 0.75rem 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #4b5563);
+  line-height: 1.6;
+}
+
+.email-confirm-details strong {
+  color: var(--text-primary, #1f2937);
+  font-weight: 600;
+}
+
+.email-confirm-warning {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 1rem;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 0.9rem;
+  margin: 1.5rem 0 0 0;
+  line-height: 1.5;
+}
+
+.email-confirm-actions {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  justify-content: flex-end;
+}
+
+.email-confirm-cancel,
+.email-confirm-send {
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.email-confirm-cancel {
+  background: var(--bg-secondary, #f3f4f6);
+  color: var(--text-primary, #1f2937);
+  border: 2px solid var(--border-color, #e5e7eb);
+}
+
+.email-confirm-cancel:hover {
+  background: var(--border-color, #e5e7eb);
+}
+
+.email-confirm-send {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.email-confirm-send:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.email-confirm-send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .email-confirm-modal {
+    max-width: 100%;
+    margin: 1rem;
+  }
+
+  .email-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .email-confirm-cancel,
+  .email-confirm-send {
     width: 100%;
     justify-content: center;
   }
