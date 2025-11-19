@@ -10,6 +10,7 @@ import logo from "../../images/yohanns_logo-removebg-preview 3.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import ForgotPasswordModal from "./ForgotPasswordModal";
+import { API_URL } from "../../config/api";
 
 const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
   const [formData, setFormData] = useState({
@@ -22,6 +23,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [captchaError, setCaptchaError] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
   const captchaRef = useRef(null);
   const errorShownRef = useRef(false);
   const { login, signInWithProvider } = useAuth();
@@ -120,6 +122,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
       document.body.classList.add("yohannModalOpen");
       // Reset CAPTCHA when modal opens
       setCaptchaVerified(false);
+      setCaptchaToken(null);
       errorShownRef.current = false;
       // Don't reset captchaError here - let the check above handle it
       setError("");
@@ -136,14 +139,57 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
     }
   }, [isOpen]);
 
-  const handleCaptchaChange = (value) => {
-    setCaptchaVerified(!!value);
+  const handleCaptchaChange = async (value) => {
     if (value) {
-      // Clear error when CAPTCHA is successfully verified
-      errorShownRef.current = false;
-      if (error && error.includes("CAPTCHA")) {
-        setError("");
+      // Store the token
+      setCaptchaToken(value);
+      
+      // Verify the token with the backend
+      try {
+        const response = await fetch(`${API_URL}/api/auth/verify-recaptcha`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: value }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Server-side verification successful
+          setCaptchaVerified(true);
+          errorShownRef.current = false;
+          if (error && error.includes("CAPTCHA")) {
+            setError("");
+          }
+          setCaptchaError(false);
+        } else {
+          // Server-side verification failed
+          console.error('reCAPTCHA verification failed:', data.error);
+          setCaptchaVerified(false);
+          setCaptchaError(true);
+          setError("reCAPTCHA verification failed. Please try again.");
+          // Reset the captcha widget
+          if (captchaRef.current) {
+            captchaRef.current.reset();
+          }
+        }
+      } catch (verifyError) {
+        // Network or server error during verification
+        console.error('Error verifying reCAPTCHA:', verifyError);
+        setCaptchaVerified(false);
+        setCaptchaError(true);
+        setError("Failed to verify reCAPTCHA. Please try again.");
+        // Reset the captcha widget
+        if (captchaRef.current) {
+          captchaRef.current.reset();
+        }
       }
+    } else {
+      // Token is null (captcha reset)
+      setCaptchaToken(null);
+      setCaptchaVerified(false);
     }
   };
 
@@ -160,6 +206,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
 
   const handleCaptchaExpired = () => {
     setCaptchaVerified(false);
+    setCaptchaToken(null);
     setError("reCAPTCHA expired. Please verify again.");
   };
 
@@ -182,9 +229,18 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
           return;
         }
 
-        // If CAPTCHA has error, allow login but show warning
+        // Require reCAPTCHA verification for login
+        if (!captchaVerified) {
+          setError("Please complete the reCAPTCHA verification to continue");
+          setIsLoading(false);
+          return;
+        }
+
+        // If CAPTCHA verification failed, don't allow login
         if (captchaError) {
-          console.warn('Login proceeding without CAPTCHA verification due to error');
+          setError("reCAPTCHA verification is required. Please complete the verification.");
+          setIsLoading(false);
+          return;
         }
 
     try {
@@ -206,6 +262,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
       if (captchaRef.current) {
         captchaRef.current.reset();
         setCaptchaVerified(false);
+        setCaptchaToken(null);
       }
     } finally {
       setIsLoading(false);
