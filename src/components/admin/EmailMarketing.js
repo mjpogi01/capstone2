@@ -77,6 +77,19 @@ const EmailConfirmModal = ({ subscriberCount, formData, sending, onConfirm, onCa
 
 const EmailMarketing = () => {
   const { showSuccess, showError } = useNotification();
+  // Load default logo URL from localStorage
+  const getDefaultLogoUrl = () => {
+    const saved = localStorage.getItem('emailMarketing_logoUrl');
+    if (saved) return saved;
+    // Auto-construct Cloudinary URL if cloud name is available
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+    if (cloudName) {
+      return `https://res.cloudinary.com/${cloudName}/image/upload/yohanns-logo.png`;
+    }
+    // Fallback to client URL
+    return `${window.location.origin}/yohanns-logo.png`;
+  };
+
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -85,7 +98,8 @@ const EmailMarketing = () => {
     promoCode: '',
     ctaText: 'Shop Now',
     ctaLink: '',
-    imageUrl: ''
+    imageUrl: '',
+    logoUrl: getDefaultLogoUrl()
   });
   const [subscribers, setSubscribers] = useState([]);
   const [subscriberCount, setSubscriberCount] = useState(0);
@@ -192,6 +206,11 @@ const EmailMarketing = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Save logoUrl to localStorage when it changes
+    if (name === 'logoUrl' && value) {
+      localStorage.setItem('emailMarketing_logoUrl', value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -229,6 +248,7 @@ const EmailMarketing = () => {
         ctaText: formData.ctaText || 'Shop Now',
         ctaLink: formData.ctaLink || window.location.origin,
         imageUrl: formData.imageUrl || '',
+        logoUrl: formData.logoUrl || getDefaultLogoUrl(),
         discountType: formData.discountType,
         discountValue: formData.discountValue,
         promoCode: formData.promoCode
@@ -245,8 +265,8 @@ const EmailMarketing = () => {
         // Refresh subscriber count after sending (in case of unsubscribes)
         fetchSubscribers(true);
         
-        // Reset form
-        setFormData({
+        // Reset form (keep logoUrl as it's a default setting)
+        setFormData(prev => ({
           title: '',
           message: '',
           discountType: 'none',
@@ -254,8 +274,9 @@ const EmailMarketing = () => {
           promoCode: '',
           ctaText: 'Shop Now',
           ctaLink: '',
-          imageUrl: ''
-        });
+          imageUrl: '',
+          logoUrl: prev.logoUrl // Keep the logo URL
+        }));
       } else {
         throw new Error(result.error || 'Failed to send email');
       }
@@ -375,7 +396,7 @@ const EmailMarketing = () => {
     <body>
         <div class="container">
             <div class="header">
-                <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" />
+                <img src="${logoUrlToUse}" alt="YOHANNS" class="header-logo" />
                 <p>${title || 'Special Offer'}</p>
             </div>
             
@@ -583,7 +604,27 @@ const EmailMarketing = () => {
               </h3>
               
               <div className="form-group">
-                <label htmlFor="imageUrl">Image URL (Optional)</label>
+                <label htmlFor="logoUrl">
+                  Logo URL (Header) *
+                </label>
+                <input
+                  type="url"
+                  id="logoUrl"
+                  name="logoUrl"
+                  value={formData.logoUrl}
+                  onChange={handleInputChange}
+                  placeholder="https://res.cloudinary.com/your-cloud/image/upload/yohanns-logo.png"
+                  required
+                />
+                <small className="form-help-text">
+                  Logo displayed in email header. This will be saved as your default logo URL.
+                  <br />
+                  Recommended: Use Cloudinary CDN URL for better email deliverability.
+                </small>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="imageUrl">Promotional Image URL (Optional)</label>
                 <input
                   type="url"
                   id="imageUrl"

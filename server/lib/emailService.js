@@ -1152,11 +1152,12 @@ class EmailService {
 
   // Get marketing email template
   getMarketingEmailTemplate(marketingData, subscriberEmail = '') {
-    const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl } = marketingData;
+    const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl, logoUrl: providedLogoUrl } = marketingData;
     // Use localhost for development, otherwise use CLIENT_URL or production URL
     const clientUrl = process.env.CLIENT_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://yohanns-sportswear.onrender.com');
-    // Get logo URL from Cloudinary or fallback to client URL
-    const logoUrl = process.env.EMAIL_LOGO_URL || 
+    // Get logo URL: use provided logoUrl, then EMAIL_LOGO_URL env var, then Cloudinary auto-construct, then fallback
+    const logoUrl = providedLogoUrl || 
+                    process.env.EMAIL_LOGO_URL || 
                     (process.env.CLOUDINARY_CLOUD_NAME 
                       ? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/yohanns-logo.png`
                       : `${clientUrl}/yohanns-logo.png`);
