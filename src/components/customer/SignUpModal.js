@@ -439,7 +439,7 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
               onClick={() => handleSocial("Facebook")}
               aria-label="Sign up with Facebook"
             >
-              <FaFacebook />
+              <FaFacebook style={{ color: '#1877f2' }} />
               <span>Sign up with Facebook</span>
             </button>
           </div>

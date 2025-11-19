@@ -112,6 +112,14 @@ export const NotificationProvider = ({ children }) => {
     );
   }, [showSuccess]);
 
+  const showWelcome = useCallback((userName) => {
+    return showSuccess(
+      'Welcome!',
+      `Hello ${userName}, welcome to Yohann's Sportswear House!`,
+      { duration: 1000 }
+    );
+  }, [showSuccess]);
+
   const showLogoutSuccess = useCallback(() => {
     return showInfo(
       'Logged Out',
@@ -148,7 +156,8 @@ export const NotificationProvider = ({ children }) => {
     showOrderConfirmation,
     showCartUpdate,
     showLoginSuccess,
-    showLogoutSuccess
+    showLogoutSuccess,
+    showWelcome
   };
 
   return (

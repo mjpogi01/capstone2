@@ -55,7 +55,15 @@ class ProductService {
       const response = await fetch(`${API_URL}/api/products`);
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch products: ${response.statusText}`);
+        // Check for specific error codes
+        if (response.status === 502) {
+          throw new Error(`502 Bad Gateway: Backend server is down or starting up`);
+        } else if (response.status === 503) {
+          throw new Error(`503 Service Unavailable: Backend server is temporarily unavailable`);
+        } else if (response.status === 504) {
+          throw new Error(`504 Gateway Timeout: Backend server took too long to respond`);
+        }
+        throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -99,10 +107,24 @@ class ProductService {
         };
       });
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching products from API:', error);
+      
+      // Check if it's a 502 Bad Gateway error (server down/unavailable)
+      if (error.message && error.message.includes('502')) {
+        console.warn('Backend server returned 502 (Bad Gateway). Server may be down or starting up.');
+        console.warn('Falling back to direct Supabase access...');
+      } else {
+        console.warn('API request failed. Falling back to direct Supabase access...');
+      }
+      
       // Fallback to Supabase direct access if API fails (for backwards compatibility)
-      console.warn('Falling back to direct Supabase access...');
-      return this.getAllProductsFromSupabase();
+      try {
+        return await this.getAllProductsFromSupabase();
+      } catch (fallbackError) {
+        console.error('Fallback to Supabase also failed:', fallbackError);
+        // Return empty array as last resort to prevent app crash
+        return [];
+      }
     }
   }
 
@@ -141,13 +163,26 @@ class ProductService {
         }
       }
 
-      const { data: orderLevelReviews, error: orderLevelError } = await supabase
-        .from('order_reviews')
-        .select('order_id, rating')
-        .is('product_id', null);
+      // Fetch order-level reviews (where product_id is null)
+      // Fetch all reviews and filter in JavaScript to avoid CORS/null filtering issues
+      let orderLevelReviews = [];
+      try {
+        const { data: allReviews, error: orderLevelError } = await supabase
+          .from('order_reviews')
+          .select('order_id, rating, product_id');
 
-      if (orderLevelError) {
-        console.error('Error fetching order-level reviews:', orderLevelError);
+        if (orderLevelError) {
+          console.error('Error fetching order-level reviews:', orderLevelError);
+          // Continue without order-level reviews - product-specific reviews will still work
+        } else if (allReviews) {
+          // Filter for reviews where product_id is null/undefined
+          orderLevelReviews = allReviews
+            .filter(review => review.product_id === null || review.product_id === undefined)
+            .map(({ order_id, rating }) => ({ order_id, rating }));
+        }
+      } catch (error) {
+        console.error('Error fetching order-level reviews:', error);
+        // Continue without order-level reviews - product-specific reviews will still work
       }
 
       const relevantOrderIds = (orderLevelReviews || [])

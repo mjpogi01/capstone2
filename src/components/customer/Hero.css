@@ -110,20 +110,29 @@
   background: #0088bb;
 }
 
-.btn-secondary {
-  background: transparent;
-  color: #00bfff;
-  border: 2px solid #00bfff !important;
+/* Scoped to hero section only - customer page */
+.hero .btn-secondary,
+.hero-buttons .btn-secondary {
+  background: rgba(0, 191, 255, 0.2) !important;
+  color: #00bfff !important;
+  border: none !important;
+  font-weight: 600 !important;
 }
 
-.btn-secondary:hover {
-  background: #00bfff;
-  color: #000;
+.hero .btn-secondary:hover,
+.hero-buttons .btn-secondary:hover {
+  background: #00bfff !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
 }
 
-.btn-secondary:active {
-  background: #0099cc;
-  color: #000;
+.hero .btn-secondary:active,
+.hero-buttons .btn-secondary:active {
+  background: #0099cc !important;
+  color: #000 !important;
+  border: none !important;
 }
 
 .hero-image {
@@ -244,6 +253,9 @@
     font-size: 0.85rem !important;
     min-height: 48px !important;
     height: 48px !important;
+    background: rgba(0, 191, 255, 0.2) !important;
+    color: #00bfff !important;
+    border: none !important;
   }
   
   .btn:active {
@@ -335,6 +347,9 @@
     font-size: 0.82rem !important;
     min-height: 46px !important;
     height: 46px !important;
+    background: rgba(0, 191, 255, 0.2) !important;
+    color: #00bfff !important;
+    border: none !important;
   }
   
   .hero-image {
@@ -513,6 +528,12 @@
     min-height: 46px !important;
     height: 46px !important;
   }
+
+  .hero-buttons .btn.btn-secondary {
+    background: rgba(0, 191, 255, 0.2) !important;
+    color: #00bfff !important;
+    border: none !important;
+  }
   
   .hero-photo {
     max-width: 85%;
@@ -574,6 +595,12 @@
     min-height: 44px !important;
     height: 44px !important;
   }
+
+  .hero-buttons .btn.btn-secondary {
+    background: rgba(0, 191, 255, 0.2) !important;
+    color: #00bfff !important;
+    border: none !important;
+  }
   
   .hero-photo {
     max-width: 80%;
@@ -634,6 +661,12 @@
     font-size: 0.7rem !important;
     min-height: 42px !important;
     height: 42px !important;
+  }
+
+  .hero-buttons .btn.btn-secondary {
+    background: rgba(0, 191, 255, 0.2) !important;
+    color: #00bfff !important;
+    border: none !important;
   }
   
   .hero-photo {
