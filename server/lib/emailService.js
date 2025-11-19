@@ -1324,6 +1324,9 @@ class EmailService {
                     <div class="footer">
                         <p><strong>Yohanns - Premium Sports Apparel</strong></p>
                         <p>This is an automated message. Please do not reply to this email.</p>
+                        <p style="font-size: 11px; opacity: 0.8; margin-top: 10px;">
+                            💡 <strong>Can't see images?</strong> Click "Display images" at the top of this email, or add us to your contacts to always show images.
+                        </p>
                         <p><a href="${unsubscribeLink}" style="color: #00bfff; text-decoration: underline;">Unsubscribe</a></p>
                     </div>
                 </div>
