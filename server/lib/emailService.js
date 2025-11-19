@@ -1071,7 +1071,7 @@ class EmailService {
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto;">
                     <tr>
                         <td align="center" style="padding-bottom: 15px;">
-                            <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+                            <img src="${logoUrl}" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
                         </td>
                     </tr>
                     <tr>
@@ -1150,6 +1150,11 @@ class EmailService {
     const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl } = marketingData;
     // Use localhost for development, otherwise use CLIENT_URL or production URL
     const clientUrl = process.env.CLIENT_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://yohanns-sportswear.onrender.com');
+    // Get logo URL from Cloudinary or fallback to client URL
+    const logoUrl = process.env.EMAIL_LOGO_URL || 
+                    (process.env.CLOUDINARY_CLOUD_NAME 
+                      ? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/yohanns-logo.png`
+                      : `${clientUrl}/yohanns-logo.png`);
     // Encode email for unsubscribe link
     const unsubscribeLink = subscriberEmail 
       ? `${clientUrl}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
@@ -1372,7 +1377,7 @@ class EmailService {
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto;">
                             <tr>
                                 <td align="center" style="padding-bottom: 15px;">
-                                    <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+                                    <img src="${logoUrl}" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
                                 </td>
                             </tr>
                             <tr>
