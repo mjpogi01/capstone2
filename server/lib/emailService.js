@@ -1063,7 +1063,8 @@ class EmailService {
                 margin: 20px 0;
             }
             .header-logo {
-                max-width: 200px;
+                max-width: 150px;
+                width: 150px;
                 height: auto;
                 margin: 0 auto 15px;
                 display: block;
@@ -1076,7 +1077,7 @@ class EmailService {
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto;">
                     <tr>
                         <td align="center" style="padding-bottom: 15px;">
-                            <img src="${logoUrl}" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+                            <img src="${logoUrl}" alt="YOHANNS" class="header-logo" width="150" style="max-width: 150px; width: 150px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
                         </td>
                     </tr>
                     <tr>
@@ -1268,8 +1269,8 @@ class EmailService {
                 line-height: 1.3;
             }
             .header-logo {
-                max-width: 200px;
-                width: 200px;
+                max-width: 150px;
+                width: 150px;
                 height: auto;
                 margin: 0 auto;
                 display: block;
@@ -1378,7 +1379,7 @@ class EmailService {
                             ${logoUrl ? `
                             <tr>
                                 <td align="center" style="padding-bottom: 15px;">
-                                    <img src="${escapeHtml(logoUrl)}" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+                                    <img src="${escapeHtml(logoUrl)}" alt="YOHANNS" class="header-logo" width="150" style="max-width: 150px; width: 150px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
                                 </td>
                             </tr>
                             ` : ''}

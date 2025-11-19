@@ -347,7 +347,8 @@ const EmailMarketing = () => {
                 text-align: center;
             }
             .header-logo {
-                max-width: 200px;
+                max-width: 150px;
+                width: 150px;
                 height: auto;
                 margin: 0 auto 15px;
                 display: block;
