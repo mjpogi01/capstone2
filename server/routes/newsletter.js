@@ -298,7 +298,7 @@ router.get('/subscribers', authenticateSupabaseToken, requireAdminOrOwner, async
 router.post('/send-marketing', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
 
-    const { title, message, products, ctaText, ctaLink, imageUrl, discountType, discountValue, promoCode } = req.body;
+    const { title, message, products, ctaText, ctaLink, imageUrl, logoUrl, discountType, discountValue, promoCode } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ 
@@ -342,6 +342,7 @@ router.post('/send-marketing', authenticateSupabaseToken, requireAdminOrOwner, a
       ctaText: ctaText || 'Shop Now',
       ctaLink: ctaLink || process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com',
       imageUrl,
+      logoUrl,
       discountType: discountType || 'none',
       discountValue: discountValue || '',
       promoCode: promoCode || ''
