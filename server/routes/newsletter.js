@@ -301,6 +301,13 @@ router.post('/send-marketing', authenticateSupabaseToken, requireAdminOrOwner, a
     const { title, message, products, ctaText, ctaLink, imageUrl, logoUrl, discountType, discountValue, promoCode } = req.body;
 
     if (!title || !message) {
+      // Ensure CORS headers are set on error responses
+      const origin = req.headers.origin;
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+      }
+      
       return res.status(400).json({ 
         success: false,
         error: 'Title and message are required' 
@@ -317,6 +324,14 @@ router.post('/send-marketing', authenticateSupabaseToken, requireAdminOrOwner, a
 
     if (fetchError) {
       console.error('❌ Error fetching subscribers:', fetchError);
+      
+      // Ensure CORS headers are set on error responses
+      const origin = req.headers.origin;
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+      }
+      
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch subscribers'
@@ -400,6 +415,14 @@ router.post('/send-marketing', authenticateSupabaseToken, requireAdminOrOwner, a
 
   } catch (error) {
     console.error('❌ Error in send marketing email:', error);
+    
+    // Ensure CORS headers are set on error responses
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    
     res.status(500).json({
       success: false,
       error: 'Internal server error. Please try again later.'

@@ -39,6 +39,7 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       process.env.CLIENT_URL,
+      'https://yohanns-sportswear.onrender.com', // Production frontend URL
       'http://localhost:3000' // for local testing
     ].filter(Boolean); // Remove undefined values
     
@@ -46,9 +47,15 @@ const corsOptions = {
     if (!origin) return callback(null, true);
     
     // Check if origin is allowed
-    if (allowedOrigins.length === 0 || allowedOrigins.some(allowed => {
+    if (allowedOrigins.length === 0) {
+      // If no origins configured, allow all in production (not ideal but prevents blocking)
+      console.warn('⚠️  No CORS origins configured, allowing all origins');
+      callback(null, true);
+    } else if (allowedOrigins.some(allowed => {
       const allowedDomain = allowed.replace(/^https?:\/\//, '').replace(/^www\./, '');
-      return origin.includes(allowedDomain) || origin === allowed;
+      const originDomain = origin.replace(/^https?:\/\//, '').replace(/^www\./, '');
+      // Check exact match or if origin contains allowed domain
+      return origin === allowed || originDomain === allowedDomain || originDomain.includes(allowedDomain) || allowedDomain.includes(originDomain);
     })) {
       callback(null, true);
     } else {
