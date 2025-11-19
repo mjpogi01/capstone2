@@ -10,6 +10,13 @@ class EmailService {
 
   initializeTransporter() {
     try {
+      // Check if email credentials are configured
+      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+        console.warn('⚠️ Email service not configured: EMAIL_USER or EMAIL_PASSWORD not set');
+        this.transporter = null;
+        return;
+      }
+
       // Create transporter using Gmail SMTP (you can change this to other providers)
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -17,6 +24,10 @@ class EmailService {
           user: process.env.EMAIL_USER, // Your Gmail address
           pass: process.env.EMAIL_PASSWORD // Your Gmail app password
         },
+        // Connection timeout settings
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 10000, // 10 seconds
+        socketTimeout: 10000, // 10 seconds
         // For development: ignore SSL certificate errors
         // Remove this in production or use proper certificates
         tls: {
@@ -24,22 +35,36 @@ class EmailService {
         }
       });
 
-      // Verify connection configuration
+      // Verify connection configuration (non-blocking, with timeout)
+      // Don't block server startup if email verification fails
+      const verifyTimeout = setTimeout(() => {
+        console.warn('⚠️ Email service verification timed out - will retry on first use');
+      }, 8000); // 8 second timeout
+
       this.transporter.verify((error, success) => {
+        clearTimeout(verifyTimeout);
         if (error) {
-          console.error('❌ Email service configuration error:', error);
+          console.error('❌ Email service configuration error:', error.message || error);
+          console.warn('⚠️ Email service will be unavailable. Emails will fail silently.');
         } else {
           console.log('✅ Email service ready to send messages');
         }
       });
     } catch (error) {
-      console.error('❌ Failed to initialize email service:', error);
+      console.error('❌ Failed to initialize email service:', error.message || error);
+      this.transporter = null;
     }
   }
 
   // Send order status update email
   async sendOrderStatusUpdate(orderData, customerEmail, customerName, newStatus, previousStatus = null) {
     try {
+      // Check if transporter is available
+      if (!this.transporter) {
+        console.warn('⚠️ Email service not available - skipping order status update email');
+        return { success: false, error: 'Email service not configured' };
+      }
+
       const emailTemplate = this.getOrderStatusEmailTemplate(
         orderData, 
         customerName, 
@@ -68,9 +93,21 @@ class EmailService {
     }
   }
 
+  // Helper method to check if email service is available
+  _checkTransporter() {
+    if (!this.transporter) {
+      console.warn('⚠️ Email service not available - transporter not initialized');
+      return false;
+    }
+    return true;
+  }
+
   // Send order confirmation email
   async sendOrderConfirmation(orderData, customerEmail, customerName) {
     try {
+      if (!this._checkTransporter()) {
+        return { success: false, error: 'Email service not configured' };
+      }
       const emailTemplate = this.getOrderConfirmationEmailTemplate(orderData, customerName);
 
       const mailOptions = {
@@ -689,6 +726,9 @@ class EmailService {
   // Send email verification code
   async sendVerificationCode(email, verificationCode, userName = null) {
     try {
+      if (!this._checkTransporter()) {
+        return { success: false, error: 'Email service not configured' };
+      }
       const mailOptions = {
         from: {
           name: 'Yohanns - Email Verification',
@@ -854,6 +894,9 @@ class EmailService {
   // Test email functionality
   async sendTestEmail(toEmail) {
     try {
+      if (!this._checkTransporter()) {
+        return { success: false, error: 'Email service not configured' };
+      }
       const mailOptions = {
         from: {
           name: 'Yohanns - Test',
@@ -883,6 +926,9 @@ class EmailService {
   // Send newsletter welcome email
   async sendNewsletterWelcomeEmail(subscriberEmail) {
     try {
+      if (!this._checkTransporter()) {
+        return { success: false, error: 'Email service not configured' };
+      }
       const emailTemplate = this.getNewsletterWelcomeEmailTemplate(subscriberEmail);
 
       const mailOptions = {
@@ -909,6 +955,9 @@ class EmailService {
   // Send marketing email to subscribers
   async sendMarketingEmail(subscriberEmail, marketingData) {
     try {
+      if (!this._checkTransporter()) {
+        return { success: false, error: 'Email service not configured' };
+      }
       const emailTemplate = this.getMarketingEmailTemplate(marketingData, subscriberEmail);
 
       const mailOptions = {
