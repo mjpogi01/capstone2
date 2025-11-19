@@ -1152,15 +1152,9 @@ class EmailService {
 
   // Get marketing email template
   getMarketingEmailTemplate(marketingData, subscriberEmail = '') {
-    const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl, logoUrl: providedLogoUrl } = marketingData;
+    const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl, logoUrl } = marketingData;
     // Use localhost for development, otherwise use CLIENT_URL or production URL
     const clientUrl = process.env.CLIENT_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://yohanns-sportswear.onrender.com');
-    // Get logo URL: use provided logoUrl, then EMAIL_LOGO_URL env var, then Cloudinary auto-construct, then fallback
-    const logoUrl = providedLogoUrl || 
-                    process.env.EMAIL_LOGO_URL || 
-                    (process.env.CLOUDINARY_CLOUD_NAME 
-                      ? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/yohanns-logo.png`
-                      : `${clientUrl}/yohanns-logo.png`);
     // Encode email for unsubscribe link
     const unsubscribeLink = subscriberEmail 
       ? `${clientUrl}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
@@ -1381,11 +1375,13 @@ class EmailService {
                 <div class="container">
                     <div class="header">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto;">
+                            ${logoUrl ? `
                             <tr>
                                 <td align="center" style="padding-bottom: 15px;">
-                                    <img src="${logoUrl}" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+                                    <img src="${escapeHtml(logoUrl)}" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
                                 </td>
                             </tr>
+                            ` : ''}
                             <tr>
                                 <td align="center">
                                     <p>${safeTitle}</p>
