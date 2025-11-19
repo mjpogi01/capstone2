@@ -403,7 +403,7 @@ const EmailMarketing = () => {
             </div>
             
             <div class="content">
-                ${imageUrl ? `<div class="image-container"><img src="${imageUrl}" alt="Promo Image" /></div>` : ''}
+                ${imageUrl ? `<div class="image-container"><img src="${imageUrl}" alt="Promo Image" style="max-width: 100%; height: auto;" /></div>` : ''}
                 
                 ${discountSection}
                 
