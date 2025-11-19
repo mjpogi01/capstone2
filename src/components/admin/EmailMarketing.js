@@ -625,6 +625,25 @@ const EmailMarketing = () => {
                   Logo displayed in email header. This will be saved as your default logo URL.
                   <br />
                   Recommended: Use Cloudinary CDN URL for better email deliverability.
+                  <br />
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      localStorage.removeItem('emailMarketing_logoUrl');
+                      setFormData(prev => ({ ...prev, logoUrl: getDefaultLogoUrl() }));
+                    }}
+                    style={{ 
+                      marginTop: '8px', 
+                      padding: '4px 8px', 
+                      fontSize: '12px', 
+                      background: '#f3f4f6', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Clear Saved Logo URL
+                  </button>
                 </small>
               </div>
               
