@@ -14,6 +14,7 @@ import TermsAndConditions from './pages/customer/TermsAndConditions';
 import DataDeletion from './pages/customer/DataDeletion';
 import Profile from './pages/customer/Profile';
 import LogoutPage from './pages/customer/LogoutPage';
+import Unsubscribe from './pages/customer/Unsubscribe';
 import AuthCallback from './pages/customer/AuthCallback';
 import ResetPassword from './pages/customer/ResetPassword';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -57,6 +58,7 @@ const AppContent = () => {
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/data-deletion" element={<DataDeletion />} />
         <Route path="/logout" element={<LogoutPage />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route 

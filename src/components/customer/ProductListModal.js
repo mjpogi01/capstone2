@@ -79,6 +79,16 @@ const ProductListModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       fetchProducts();
+      
+      // Set up real-time polling to refresh products every 30 seconds
+      // This ensures reviews and sold counts update in real-time
+      const pollInterval = setInterval(() => {
+        fetchProducts();
+      }, 30000); // Refresh every 30 seconds
+      
+      return () => {
+        clearInterval(pollInterval);
+      };
     }
   }, [isOpen]);
 
@@ -567,15 +577,18 @@ const ProductListModal = ({ isOpen, onClose }) => {
                             })()}
                           </div>
                           
-                          {/* Review Count and Sold Quantity - Same as Homepage */}
+                          {/* Review Count and Sold Quantity - Public for all users */}
                           <div className="product-stats">
-                            {product.average_rating > 0 && (
+                            {(product.average_rating > 0 || product.review_count > 0) && (
                               <span className="stat-item">
-                                <span className="rating-number">{product.average_rating}</span>
+                                <span className="rating-number">{product.average_rating || 0}</span>
                                 <FaStar className="star-icon" />
+                                {product.review_count > 0 && (
+                                  <span className="review-count-text"> ({product.review_count})</span>
+                                )}
                               </span>
                             )}
-                            {product.sold_quantity > 0 && (
+                            {product.sold_quantity !== undefined && product.sold_quantity > 0 && (
                               <span className="stat-item">{product.sold_quantity} sold</span>
                             )}
                           </div>

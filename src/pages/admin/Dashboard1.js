@@ -37,7 +37,9 @@ import {
   faStore,
   faUserShield,
   faEye,
-  faEyeSlash
+  faEyeSlash,
+  faComments,
+  faClipboardList
 } from '@fortawesome/free-solid-svg-icons';
 import { authFetch } from '../../services/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
@@ -365,6 +367,16 @@ echarts.use([
   const handleManageAccounts = () => {
     const accountsPath = isOwner ? '/owner/accounts' : '/admin/accounts';
     navigate(accountsPath);
+  };
+
+  const handleReadChats = () => {
+    const chatsPath = isOwner ? '/owner/support' : '/admin/support';
+    navigate(chatsPath);
+  };
+
+  const handleViewOrders = () => {
+    const ordersPath = isOwner ? '/owner/orders' : '/admin/orders';
+    navigate(ordersPath);
   };
 
   const handleAddProduct = (newProduct) => {
@@ -1324,6 +1336,20 @@ echarts.use([
                 >
                   <FontAwesomeIcon icon={faUserShield} className="quick-action-icon" />
                   <span>Manage Accounts</span>
+                </button>
+                <button 
+                  className="dashboard1-quick-action-btn dashboard1-read-chats-btn"
+                  onClick={handleReadChats}
+                >
+                  <FontAwesomeIcon icon={faComments} className="quick-action-icon" />
+                  <span>Read Chats</span>
+                </button>
+                <button 
+                  className="dashboard1-quick-action-btn dashboard1-view-orders-btn"
+                  onClick={handleViewOrders}
+                >
+                  <FontAwesomeIcon icon={faClipboardList} className="quick-action-icon" />
+                  <span>View Orders</span>
                 </button>
               </div>
             </div>

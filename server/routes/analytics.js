@@ -2851,45 +2851,18 @@ router.get('/customer-locations', async (req, res) => {
       
       const cityStatsQuery = `
         WITH customer_cities AS (
-          -- Get cities from user_addresses (only for users with orders from this branch if filtered)
+          -- Get cities from user_addresses (primary source)
           SELECT DISTINCT
             ua.user_id,
-            COALESCE(ua.city, '') as city,
-            COALESCE(ua.province, '') as province
+            TRIM(ua.city) as city,
+            TRIM(ua.province) as province
           FROM user_addresses ua
           WHERE ua.city IS NOT NULL 
-            AND ua.city != ''
+            AND TRIM(ua.city) != ''
+            AND ua.province IS NOT NULL
+            AND TRIM(ua.province) != ''
             AND ua.province IN ('Batangas', 'Oriental Mindoro')
             ${userAddressFilter}
-          
-          UNION
-          
-          -- Get cities from orders.delivery_address
-          SELECT DISTINCT
-            o.user_id,
-            COALESCE(
-              CASE 
-                WHEN o.delivery_address->>'city' IS NOT NULL 
-                THEN o.delivery_address->>'city'
-                ELSE NULL
-              END,
-              ''
-            ) as city,
-            COALESCE(
-              CASE 
-                WHEN o.delivery_address->>'province' IS NOT NULL 
-                THEN o.delivery_address->>'province'
-                ELSE NULL
-              END,
-              ''
-            ) as province
-          FROM orders o
-          WHERE o.delivery_address IS NOT NULL
-            AND o.delivery_address->>'city' IS NOT NULL
-            AND o.delivery_address->>'city' != ''
-            AND o.delivery_address->>'province' IN ('Batangas', 'Oriental Mindoro')
-            AND LOWER(o.status) NOT IN ('cancelled', 'canceled')
-            ${branchFilter}
         )
         SELECT 
           city,

@@ -879,6 +879,358 @@ class EmailService {
       return { success: false, error: error.message };
     }
   }
+
+  // Send newsletter welcome email
+  async sendNewsletterWelcomeEmail(subscriberEmail) {
+    try {
+      const emailTemplate = this.getNewsletterWelcomeEmailTemplate(subscriberEmail);
+
+      const mailOptions = {
+        from: {
+          name: 'Yohanns - Newsletter',
+          address: process.env.EMAIL_USER
+        },
+        to: subscriberEmail,
+        subject: 'Welcome to Yohanns Newsletter! 🏀',
+        html: emailTemplate.html,
+        text: emailTemplate.text
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Newsletter welcome email sent successfully:', result.messageId);
+      return { success: true, messageId: result.messageId };
+
+    } catch (error) {
+      console.error('❌ Failed to send newsletter welcome email:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Send marketing email to subscribers
+  async sendMarketingEmail(subscriberEmail, marketingData) {
+    try {
+      const emailTemplate = this.getMarketingEmailTemplate(marketingData, subscriberEmail);
+
+      const mailOptions = {
+        from: {
+          name: 'Yohanns - Special Offers',
+          address: process.env.EMAIL_USER
+        },
+        to: subscriberEmail,
+        subject: marketingData.title || 'Special Offer from Yohanns',
+        html: emailTemplate.html,
+        text: emailTemplate.text
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Marketing email sent successfully:', result.messageId);
+      return { success: true, messageId: result.messageId };
+
+    } catch (error) {
+      console.error('❌ Failed to send marketing email:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Get newsletter welcome email template
+  getNewsletterWelcomeEmailTemplate(subscriberEmail = '') {
+    // Encode email for unsubscribe link
+    const unsubscribeLink = subscriberEmail 
+      ? `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
+      : `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe`;
+    
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Yohanns Newsletter</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f8f9fa;
+            }
+            .container {
+                background-color: white;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            .header {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }
+            .header h1 {
+                margin: 0;
+                font-size: 28px;
+                font-weight: bold;
+            }
+            .content {
+                padding: 30px;
+            }
+            .welcome-badge {
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                color: white;
+                padding: 20px;
+                text-align: center;
+                font-size: 18px;
+                font-weight: bold;
+                border-radius: 8px;
+                margin-bottom: 20px;
+            }
+            .footer {
+                background-color: #1a1a2e;
+                color: white;
+                padding: 20px;
+                text-align: center;
+                font-size: 14px;
+            }
+            .cta-button {
+                display: inline-block;
+                padding: 12px 30px;
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                margin: 20px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏀 YOHANNS</h1>
+                <p>Welcome to Our Newsletter!</p>
+            </div>
+            
+            <div class="content">
+                <div class="welcome-badge">
+                    🎉 Thank You for Subscribing!
+                </div>
+                
+                <h2>Welcome to the Yohanns Family!</h2>
+                
+                <p>We're thrilled to have you join our community of sports enthusiasts and athletes!</p>
+                
+                <p>As a subscriber, you'll be the first to know about:</p>
+                <ul>
+                    <li>🔥 Exclusive discounts and special promotions</li>
+                    <li>🆕 New product launches and collections</li>
+                    <li>🏆 Sports tips and updates</li>
+                    <li>🎁 Early access to sales and events</li>
+                </ul>
+                
+                <p>Stay tuned for exciting updates and exclusive offers coming your way!</p>
+                
+                <div style="text-align: center;">
+                    <a href="${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}" class="cta-button">
+                        Visit Our Store
+                    </a>
+                </div>
+                
+                <p>Thank you for choosing Yohanns - where quality meets passion!</p>
+            </div>
+            
+            <div class="footer">
+                <p><strong>Yohanns - Premium Sports Apparel</strong></p>
+                <p>This is an automated message. Please do not reply to this email.</p>
+                <p><a href="${unsubscribeLink}" style="color: #00bfff;">Unsubscribe</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    const text = `
+    Welcome to Yohanns Newsletter!
+    
+    Thank you for subscribing!
+    
+    We're thrilled to have you join our community of sports enthusiasts and athletes!
+    
+    As a subscriber, you'll be the first to know about:
+    - Exclusive discounts and special promotions
+    - New product launches and collections
+    - Sports tips and updates
+    - Early access to sales and events
+    
+    Stay tuned for exciting updates and exclusive offers coming your way!
+    
+    Visit our store: ${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}
+    
+    Thank you for choosing Yohanns - where quality meets passion!
+    
+    This is an automated message. Please do not reply to this email.
+    `;
+
+    return { html, text };
+  }
+
+  // Get marketing email template
+  getMarketingEmailTemplate(marketingData, subscriberEmail = '') {
+    const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl } = marketingData;
+    // Encode email for unsubscribe link
+    const unsubscribeLink = subscriberEmail 
+      ? `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
+      : `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe`;
+    
+    let discountSection = '';
+    if (discountType === 'percentage' && discountValue) {
+      discountSection = `
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 25px; text-align: center; border-radius: 10px; margin: 20px 0;">
+          <h2 style="margin: 0 0 10px 0; font-size: 32px;">${discountValue}% OFF</h2>
+          <p style="margin: 0; font-size: 18px; font-weight: bold;">Special Discount!</p>
+          ${promoCode ? `<p style="margin: 10px 0 0 0; font-size: 16px;">Use code: <strong>${promoCode}</strong></p>` : ''}
+        </div>
+      `;
+    } else if (discountType === 'fixed' && discountValue) {
+      discountSection = `
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 25px; text-align: center; border-radius: 10px; margin: 20px 0;">
+          <h2 style="margin: 0 0 10px 0; font-size: 32px;">₱${discountValue} OFF</h2>
+          <p style="margin: 0; font-size: 18px; font-weight: bold;">Special Discount!</p>
+          ${promoCode ? `<p style="margin: 10px 0 0 0; font-size: 16px;">Use code: <strong>${promoCode}</strong></p>` : ''}
+        </div>
+      `;
+    }
+
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title || 'Special Offer from Yohanns'}</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f8f9fa;
+            }
+            .container {
+                background-color: white;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            .header {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }
+            .header h1 {
+                margin: 0;
+                font-size: 28px;
+                font-weight: bold;
+            }
+            .content {
+                padding: 30px;
+            }
+            .image-container {
+                text-align: center;
+                margin: 20px 0;
+            }
+            .image-container img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 8px;
+            }
+            .message {
+                white-space: pre-wrap;
+                margin: 20px 0;
+                line-height: 1.8;
+            }
+            .cta-button {
+                display: inline-block;
+                padding: 15px 40px;
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 16px;
+                margin: 20px 0;
+                text-align: center;
+            }
+            .footer {
+                background-color: #1a1a2e;
+                color: white;
+                padding: 20px;
+                text-align: center;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏀 YOHANNS</h1>
+                <p>${title || 'Special Offer'}</p>
+            </div>
+            
+            <div class="content">
+                ${imageUrl ? `<div class="image-container"><img src="${imageUrl}" alt="Promo Image" /></div>` : ''}
+                
+                ${discountSection}
+                
+                <div class="message">${message || ''}</div>
+                
+                <div style="text-align: center;">
+                    <a href="${ctaLink || (process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com')}" class="cta-button">
+                        ${ctaText || 'Shop Now'}
+                    </a>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p><strong>Yohanns - Premium Sports Apparel</strong></p>
+                <p>This is an automated message. Please do not reply to this email.</p>
+                <p><a href="${unsubscribeLink}" style="color: #00bfff;">Unsubscribe</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    let textMessage = message || '';
+    if (discountType === 'percentage' && discountValue) {
+      textMessage += `\n\n🎉 Special Offer: Get ${discountValue}% OFF on your next purchase!`;
+      if (promoCode) {
+        textMessage += `\nUse promo code: ${promoCode}`;
+      }
+    } else if (discountType === 'fixed' && discountValue) {
+      textMessage += `\n\n🎉 Special Offer: Get ₱${discountValue} OFF on your next purchase!`;
+      if (promoCode) {
+        textMessage += `\nUse promo code: ${promoCode}`;
+      }
+    }
+
+    const text = `
+    ${title || 'Special Offer from Yohanns'}
+    
+    ${textMessage}
+    
+    ${ctaText || 'Shop Now'}: ${ctaLink || (process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com')}
+    
+    Yohanns - Premium Sports Apparel
+    This is an automated message. Please do not reply to this email.
+    `;
+
+    return { html, text };
+  }
 }
 
 module.exports = new EmailService();

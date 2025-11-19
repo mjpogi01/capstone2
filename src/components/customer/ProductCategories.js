@@ -203,6 +203,16 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
     };
 
     fetchProducts();
+    
+    // Set up real-time polling to refresh products every 30 seconds
+    // This ensures reviews and sold counts update in real-time
+    const pollInterval = setInterval(() => {
+      fetchProducts();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => {
+      clearInterval(pollInterval);
+    };
   }, []);
 
   // Load ratings asynchronously without blocking the main product load
@@ -408,13 +418,15 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                       })()}
                     </div>
                     <div className="sportswear-product-stats">
-                      {productRatings[product.id] && (
+                      {(product.average_rating > 0 || productRatings[product.id]) && (
                         <span className="sportswear-stat-item">
-                          <span className="rating-number">{productRatings[product.id]}</span>
+                          <span className="rating-number">
+                            {product.average_rating > 0 ? product.average_rating : (productRatings[product.id] || 0)}
+                          </span>
                           <FaStar className="star-icon" />
                         </span>
                       )}
-                      {product.sold_quantity > 0 && (
+                      {product.sold_quantity !== undefined && product.sold_quantity > 0 && (
                         <span className="sportswear-stat-item">{product.sold_quantity} sold</span>
                       )}
                     </div>

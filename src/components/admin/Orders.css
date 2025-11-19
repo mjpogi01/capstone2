@@ -1409,7 +1409,7 @@ body.sidebar-collapsed .orders-container {
 }
 
 .item-price {
-  color: var(--text-secondary);
+  color: #ffffff;
   font-size: 0.875rem;
 }
 
@@ -1425,6 +1425,8 @@ body.sidebar-collapsed .orders-container {
   min-width: 0;
   overflow-x: hidden;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 
@@ -1449,6 +1451,14 @@ body.sidebar-collapsed .orders-container {
   padding: var(--spacing-md);
   border: 2px solid var(--border-hover);
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* Remove gap between children */
 }
 
 .single-detail {
@@ -3202,7 +3212,7 @@ body.sidebar-collapsed .orders-container {
 }
 
 .cd-order-item-price {
-  color: var(--text-secondary);
+  color: #ffffff;
   font-size: 0.875rem;
 }
 
@@ -3673,68 +3683,75 @@ body.sidebar-collapsed .orders-container {
   width: 100%;
   border-collapse: collapse;
   margin-top: 12px;
+  margin-left: 0;
+  margin-right: 0;
   background: var(--bg-primary);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   border: 2px solid var(--border-hover);
-  table-layout: auto; /* Use auto layout for responsive columns */
+  table-layout: fixed; /* Use fixed layout for balanced column distribution */
+  box-sizing: border-box; /* Include border in width calculation */
+  display: table; /* Ensure proper table display */
 }
 
-/* Responsive column widths - flexible based on content */
+/* Responsive column widths - balanced distribution (must total 100%) */
 .jersey-details-table th:nth-child(1),
 .jersey-details-table td:nth-child(1) {
   /* Surname */
   min-width: 70px;
-  width: auto;
+  width: 20%;
 }
 
 .jersey-details-table th:nth-child(2),
 .jersey-details-table td:nth-child(2) {
   /* Jersey # */
   min-width: 60px;
-  width: auto;
+  width: 15%;
 }
 
 .jersey-details-table th:nth-child(3),
 .jersey-details-table td:nth-child(3) {
   /* Jersey Type */
   min-width: 80px;
-  width: auto;
+  width: 20%;
 }
 
 .jersey-details-table th:nth-child(4),
 .jersey-details-table td:nth-child(4) {
   /* Fabric */
   min-width: 80px;
-  width: auto;
+  width: 20%;
 }
 
 .jersey-details-table th:nth-child(5),
 .jersey-details-table td:nth-child(5) {
   /* Cut Type */
   min-width: 90px;
-  width: auto;
+  width: 25%;
 }
 
+/* For tables with 6 columns (Size Type added) */
 .jersey-details-table th:nth-child(6),
 .jersey-details-table td:nth-child(6) {
   /* Size Type */
   min-width: 70px;
-  width: auto;
+  width: 16.66%;
 }
 
+/* For tables with 7 columns (Jersey Size added) */
 .jersey-details-table th:nth-child(7),
 .jersey-details-table td:nth-child(7) {
   /* Jersey Size */
   min-width: 80px;
-  width: auto;
+  width: 14.28%;
 }
 
+/* For tables with 8 columns (Shorts Size added) */
 .jersey-details-table th:nth-child(8),
 .jersey-details-table td:nth-child(8) {
   /* Shorts Size */
   min-width: 80px;
-  width: auto;
+  width: 14.28%;
 }
 
 .jersey-details-table thead {
@@ -3793,7 +3810,7 @@ body.sidebar-collapsed .orders-container {
 .team-members-table,
 .single-details-table {
   margin-top: 8px;
-  overflow-x: auto;
+  overflow-x: hidden; /* Hide horizontal overflow to prevent white space */
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   width: 100%;
@@ -3801,10 +3818,10 @@ body.sidebar-collapsed .orders-container {
   min-width: 0;
   position: relative;
   border-radius: var(--radius-sm);
-  /* Add visible scrollbar styling */
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-hover) var(--bg-secondary);
   box-sizing: border-box;
+  flex: 1; /* Take available space */
+  display: block; /* Ensure it's a block element */
+  padding: 0; /* Remove any padding that might cause imbalance */
 }
 
 .team-members-table::-webkit-scrollbar,
@@ -3833,7 +3850,9 @@ body.sidebar-collapsed .orders-container {
 .single-details-table .jersey-details-table {
   width: 100%;
   margin: 0;
-  table-layout: fixed; /* Use fixed layout for responsive fitting */
+  table-layout: fixed; /* Use fixed layout for balanced column distribution */
+  display: table; /* Ensure it displays as a table */
+  border-spacing: 0; /* Remove default spacing */
 }
 
 .team-name {

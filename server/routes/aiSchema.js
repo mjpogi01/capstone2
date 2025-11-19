@@ -138,6 +138,7 @@ router.post('/assistant', async (req, res) => {
       'Only propose SQL you are confident will run. Wrap SQL in <SQL>...</SQL>.',
       'If the question cannot be answered without querying the data, ALWAYS provide a SELECT statement inside <SQL>...</SQL> first, then wait for query results before presenting conclusions.',
       'Branch information lives in orders.pickup_location (text) rather than a branch_id column; join to the branches table by name when needed.',
+      'Customer location data: orders.delivery_address is a JSONB field containing city, province, barangay, and other address fields. Access with delivery_address->>\'province\', delivery_address->>\'city\', etc. For location queries, check both user_addresses table and orders.delivery_address JSONB field. Use UNION to combine results from both sources.',
       'After receiving query results, explain them using the same bold heading format as before.',
       'Never attempt to modify the database. Return informative errors if a query would fail.'
     ].join('\n\n');

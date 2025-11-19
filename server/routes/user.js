@@ -76,7 +76,7 @@ router.get('/addresses', authenticateSupabaseToken, async (req, res) => {
 // Save user's address
 router.post('/address', authenticateSupabaseToken, async (req, res) => {
   try {
-    const { fullName, phone, streetAddress, barangay, barangay_code, city, province, postalCode, address, isDefault = true } = req.body;
+    const { fullName, email, phone, streetAddress, barangay, barangay_code, city, province, postalCode, address, isDefault = true } = req.body;
 
     // Check if user already has an address
     const { data: existingAddresses, error: checkError } = await supabase
@@ -89,24 +89,32 @@ router.post('/address', authenticateSupabaseToken, async (req, res) => {
       return res.status(500).json({ error: 'Failed to check existing addresses' });
     }
 
+    // Build update/insert data object
+    const addressUpdateData = {
+      full_name: fullName,
+      phone: phone,
+      street_address: streetAddress,
+      barangay: barangay,
+      barangay_code: barangay_code || null, // Include barangay code for coordinate lookup
+      city: city,
+      province: province,
+      postal_code: postalCode,
+      address: address,
+      is_default: isDefault
+    };
+    
+    // Include email if provided
+    if (email) {
+      addressUpdateData.email = email;
+    }
+
     let result;
     if (existingAddresses && existingAddresses.length > 0) {
       // Update existing address
+      addressUpdateData.updated_at = new Date().toISOString();
       const { data, error } = await supabase
         .from('user_addresses')
-        .update({
-          full_name: fullName,
-          phone: phone,
-          street_address: streetAddress,
-          barangay: barangay,
-          barangay_code: barangay_code || null, // Include barangay code for coordinate lookup
-          city: city,
-          province: province,
-          postal_code: postalCode,
-          address: address,
-          is_default: isDefault,
-          updated_at: new Date().toISOString()
-        })
+        .update(addressUpdateData)
         .eq('user_id', req.user.id)
         .select()
         .single();
@@ -119,21 +127,14 @@ router.post('/address', authenticateSupabaseToken, async (req, res) => {
       result = data;
     } else {
       // Create new address
+      const insertData = {
+        user_id: req.user.id,
+        ...addressUpdateData
+      };
+      
       const { data, error } = await supabase
         .from('user_addresses')
-        .insert({
-          user_id: req.user.id,
-          full_name: fullName,
-          phone: phone,
-          street_address: streetAddress,
-          barangay: barangay,
-          barangay_code: barangay_code || null, // Include barangay code for coordinate lookup
-          city: city,
-          province: province,
-          postal_code: postalCode,
-          address: address,
-          is_default: isDefault
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -156,23 +157,35 @@ router.post('/address', authenticateSupabaseToken, async (req, res) => {
 router.put('/address/:id', authenticateSupabaseToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, phone, streetAddress, barangay, barangay_code, city, province, postalCode, address, isDefault } = req.body;
+    const { fullName, email, phone, streetAddress, barangay, barangay_code, city, province, postalCode, address, isDefault } = req.body;
+
+    // Build update data object
+    const updateData = {
+      full_name: fullName,
+      phone: phone,
+      street_address: streetAddress,
+      barangay: barangay,
+      barangay_code: barangay_code || null, // Include barangay code for coordinate lookup
+      city: city,
+      province: province,
+      postal_code: postalCode,
+      address: address,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Include email if provided
+    if (email !== undefined) {
+      updateData.email = email;
+    }
+    
+    // Include is_default if provided
+    if (isDefault !== undefined) {
+      updateData.is_default = isDefault;
+    }
 
     const { data, error } = await supabase
       .from('user_addresses')
-      .update({
-        full_name: fullName,
-        phone: phone,
-        street_address: streetAddress,
-        barangay: barangay,
-        barangay_code: barangay_code || null, // Include barangay code for coordinate lookup
-        city: city,
-        province: province,
-        postal_code: postalCode,
-        address: address,
-        is_default: isDefault,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('user_id', req.user.id)
       .select()

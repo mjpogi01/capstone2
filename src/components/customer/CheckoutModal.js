@@ -281,6 +281,9 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   };
 
   const handleConfirmOrder = async () => {
+    // Close confirmation dialog immediately for faster UI response
+    setShowConfirmation(false);
+    
     // Get full address details if an address is selected
     let fullDeliveryAddress = deliveryAddress;
     if (shippingMethod === 'cod' && selectedAddressId) {
@@ -328,22 +331,25 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
     };
     
     try {
-      // Wait for order to be placed before showing success
+      // Proceed with order placement after closing dialog
       await onPlaceOrder(orderData);
-      setShowConfirmation(false);
       setShowOrderComplete(true);
     } catch (error) {
-      // Error is already handled by onPlaceOrder (CartModal), just close confirmation
+      // Error is already handled by onPlaceOrder (CartModal)
       console.error('Order placement failed:', error);
-      setShowConfirmation(false);
       // Don't show success if order failed
     }
   };
 
   const handleCancelOrder = () => {
-    setShowConfirmation(false);
-    setShowCancelReason(true);
-    setCancelReason(''); // Reset reason
+    // Use requestAnimationFrame for instant UI update
+    requestAnimationFrame(() => {
+      setShowConfirmation(false);
+      setCancelReason(''); // Reset reason
+      requestAnimationFrame(() => {
+        setShowCancelReason(true);
+      });
+    });
   };
 
   const handleSubmitCancellation = () => {
@@ -366,8 +372,11 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
   };
 
   const handleCloseComplete = () => {
+    // Close immediately for faster response
     setShowOrderComplete(false);
-    onClose();
+    requestAnimationFrame(() => {
+      onClose();
+    });
   };
 
   // Check if user has addresses from database
@@ -1329,7 +1338,7 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                 </div>
               </div>
               <div className="shipping-method">
-                <label className="shipping-option">
+                <label className={`shipping-option ${shippingMethod === 'pickup' ? 'selected' : ''}`}>
                   <input
                     type="radio"
                     name="shipping"
@@ -1340,14 +1349,13 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       setOrderErrors(prev => ({ ...prev, address: '' }));
                     }}
                   />
-                  <span className="checkmark"></span>
                   <div className="option-content">
                     <div className="option-title">Pick Up</div>
                     <div className="option-subtitle">Free</div>
                   </div>
                 </label>
                 
-                <label className="shipping-option">
+                <label className={`shipping-option ${shippingMethod === 'cod' ? 'selected' : ''}`}>
                   <input
                     type="radio"
                     name="shipping"
@@ -1358,7 +1366,6 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                       setOrderErrors(prev => ({ ...prev, address: '' }));
                     }}
                   />
-                  <span className="checkmark"></span>
                   <div className="option-content">
                     <div className="option-title">Cash on Delivery</div>
                     <div className="option-subtitle">₱50.00</div>

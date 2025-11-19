@@ -223,6 +223,13 @@ router.get('/rooms/admin', authenticateSupabaseToken, async (req, res) => {
     const statusFilter = req.query.status;
     const branchFilter = req.query.branchId ? parseInt(req.query.branchId, 10) : null;
 
+    console.log('[Branch Chat Admin] Request filters:', { 
+      role, 
+      statusFilter, 
+      branchFilter, 
+      queryParams: req.query 
+    });
+
     const query = supabase
       .from('branch_chat_rooms')
       .select(`${DEFAULT_SELECT_FIELDS}`)
@@ -233,24 +240,36 @@ router.get('/rooms/admin', authenticateSupabaseToken, async (req, res) => {
         return res.status(400).json({ error: 'Admin account is not linked to a branch' });
       }
       query.eq('branch_id', req.user.branch_id);
+      console.log('[Branch Chat Admin] Filtering by admin branch_id:', req.user.branch_id);
     } else if (branchFilter) {
       query.eq('branch_id', branchFilter);
+      console.log('[Branch Chat Admin] Filtering by branch_id:', branchFilter);
+    } else {
+      console.log('[Branch Chat Admin] No branch filter (owner viewing all branches)');
     }
 
     if (statusFilter) {
       query.eq('status', statusFilter);
+      console.log('[Branch Chat Admin] Filtering by status:', statusFilter);
+    } else {
+      console.log('[Branch Chat Admin] No status filter (showing all statuses)');
     }
 
     const { data, error } = await query;
 
     if (error) {
+      console.error('[Branch Chat Admin] Query error:', error);
       return res.status(500).json({ error: error.message });
     }
+
+    console.log(`[Branch Chat Admin] Query returned ${data?.length || 0} rooms`);
 
     // Fetch customer names from user_profiles and auth.users
     // Note: customer_id in branch_chat_rooms = user_id in user_profiles = id in auth.users
     if (data && data.length > 0) {
       const customerIds = [...new Set(data.map(room => room.customer_id).filter(Boolean))];
+      
+      console.log(`[Branch Chat] Fetching names for ${customerIds.length} customers`);
       
       if (customerIds.length > 0) {
         const profileMap = new Map();
@@ -262,93 +281,160 @@ router.get('/rooms/admin', authenticateSupabaseToken, async (req, res) => {
             .select('user_id, full_name')
             .in('user_id', customerIds);
 
-          if (!profilesError && profiles && profiles.length > 0) {
+          if (profilesError) {
+            console.error('[Branch Chat] Error fetching user_profiles:', profilesError);
+          } else if (profiles && profiles.length > 0) {
+            console.log(`[Branch Chat] Found ${profiles.length} profiles in user_profiles`);
             profiles.forEach(p => {
               if (p.full_name) {
                 profileMap.set(p.user_id, p.full_name);
+                console.log(`[Branch Chat] Mapped ${p.user_id} -> ${p.full_name} (from user_profiles)`);
               }
             });
+          } else {
+            console.log('[Branch Chat] No profiles found in user_profiles');
           }
         } catch (profileErr) {
-          console.warn('Error fetching user_profiles:', profileErr.message);
-        }
-
-        // Try 2: For ALL customers, fetch from auth.users to get real names
-        // Priority: full_name > first_name + last_name > username > display_name > email (as last resort)
-        try {
-          await Promise.all(
-            customerIds.map(async (userId) => {
-              try {
-                const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
-                if (!userError && user) {
-                  // Only set if we don't already have a name from user_profiles
-                  if (!profileMap.has(userId)) {
-                    const metadata = user.user_metadata || user.raw_user_meta_data || {};
-                    
-                    // Priority 1: full_name from metadata
-                    let customerName = metadata.full_name || null;
-                    
-                    // Priority 2: Combine first_name + last_name
-                    if (!customerName) {
-                      const firstName = metadata.first_name || '';
-                      const lastName = metadata.last_name || '';
-                      if (firstName && lastName) {
-                        customerName = `${firstName} ${lastName}`.trim();
-                      } else if (firstName) {
-                        customerName = firstName.trim();
-                      } else if (lastName) {
-                        customerName = lastName.trim();
-                      }
-                    }
-                    
-                    // Priority 3: username or display_name
-                    if (!customerName) {
-                      customerName = metadata.username || metadata.display_name || metadata.name || null;
-                    }
-                    
-                    // Priority 4: Extract name from email (e.g., "john.doe@email.com" -> "John Doe")
-                    if (!customerName && user.email) {
-                      const emailParts = user.email.split('@')[0];
-                      // Try to extract name if email format is "firstname.lastname" or "firstname_lastname"
-                      if (emailParts.includes('.') || emailParts.includes('_')) {
-                        const separator = emailParts.includes('.') ? '.' : '_';
-                        const parts = emailParts.split(separator);
-                        if (parts.length >= 2) {
-                          // Capitalize first letter of each part
-                          customerName = parts.map(part => 
-                            part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-                          ).join(' ');
-                        }
-                      }
-                    }
-                    
-                    // Last resort: Use email (but format it nicely)
-                    if (!customerName && user.email) {
-                      // Extract the part before @ and capitalize it
-                      const emailName = user.email.split('@')[0];
-                      customerName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-                    }
-                    
-                    if (customerName) {
-                      profileMap.set(userId, customerName);
-                    }
-                  }
-                } else if (userError) {
-                  console.warn(`Could not fetch user ${userId}:`, userError.message);
-                }
-              } catch (authError) {
-                console.warn(`Error fetching user data for ${userId}:`, authError.message);
-              }
-            })
-          );
-        } catch (authErr) {
-          console.warn('Error in auth.users lookup:', authErr.message);
+          console.error('[Branch Chat] Exception fetching user_profiles:', profileErr);
         }
         
-        // Add customer name to each room - should always have at least email now
+        // Try 1.5: Get customer names from orders.delivery_address.receiver (for customers without profiles)
+        const stillMissingIds = customerIds.filter(id => !profileMap.has(id));
+        if (stillMissingIds.length > 0) {
+          try {
+            console.log(`[Branch Chat] Checking orders for ${stillMissingIds.length} missing customer names`);
+            // Get the most recent order per customer that has a delivery address
+            const { data: orders, error: ordersError } = await supabase
+              .from('orders')
+              .select('user_id, delivery_address, created_at')
+              .in('user_id', stillMissingIds)
+              .not('delivery_address', 'is', null)
+              .order('created_at', { ascending: false })
+              .limit(1000); // Limit to avoid huge queries
+            
+            if (!ordersError && orders && orders.length > 0) {
+              console.log(`[Branch Chat] Found ${orders.length} orders with delivery addresses`);
+              // Use a Map to track which users we've already processed (to get most recent order per user)
+              const processedUsers = new Set();
+              orders.forEach(order => {
+                if (!profileMap.has(order.user_id) && !processedUsers.has(order.user_id) && order.delivery_address) {
+                  // Try multiple possible fields in delivery_address
+                  const receiver = order.delivery_address?.receiver || 
+                                  order.delivery_address?.receiver_name ||
+                                  order.delivery_address?.name ||
+                                  order.delivery_address?.full_name ||
+                                  order.delivery_address?.contact_name;
+                  if (receiver && typeof receiver === 'string' && receiver.trim()) {
+                    profileMap.set(order.user_id, receiver.trim());
+                    processedUsers.add(order.user_id);
+                    console.log(`[Branch Chat] Mapped ${order.user_id} -> ${receiver.trim()} (from orders.delivery_address)`);
+                  }
+                }
+              });
+            } else if (ordersError) {
+              console.error('[Branch Chat] Error fetching orders:', ordersError);
+            }
+          } catch (ordersErr) {
+            console.error('[Branch Chat] Exception fetching orders:', ordersErr);
+          }
+        }
+
+        // Try 2: For customers without names, fetch from auth.users
+        // Priority: full_name > first_name + last_name > username > display_name > email (as last resort)
+        const missingIds = customerIds.filter(id => !profileMap.has(id));
+        console.log(`[Branch Chat] Fetching ${missingIds.length} missing names from auth.users`);
+        
+        if (missingIds.length > 0) {
+          try {
+            await Promise.all(
+              missingIds.map(async (userId) => {
+                try {
+                  const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+                  if (userError) {
+                    console.warn(`[Branch Chat] Error fetching user ${userId}:`, userError.message);
+                    return;
+                  }
+                  
+                  if (!user) {
+                    console.warn(`[Branch Chat] User ${userId} not found in auth.users`);
+                    return;
+                  }
+                  
+                  const metadata = user.user_metadata || user.raw_user_meta_data || {};
+                  
+                  // Priority 1: full_name from metadata
+                  let customerName = metadata.full_name || null;
+                  
+                  // Priority 2: Combine first_name + last_name
+                  if (!customerName) {
+                    const firstName = metadata.first_name || '';
+                    const lastName = metadata.last_name || '';
+                    if (firstName && lastName) {
+                      customerName = `${firstName} ${lastName}`.trim();
+                    } else if (firstName) {
+                      customerName = firstName.trim();
+                    } else if (lastName) {
+                      customerName = lastName.trim();
+                    }
+                  }
+                  
+                  // Priority 3: username or display_name
+                  if (!customerName) {
+                    customerName = metadata.username || metadata.display_name || metadata.name || null;
+                  }
+                  
+                  // Priority 4: Extract name from email (e.g., "john.doe@email.com" -> "John Doe")
+                  if (!customerName && user.email) {
+                    const emailParts = user.email.split('@')[0];
+                    // Try to extract name if email format is "firstname.lastname" or "firstname_lastname"
+                    if (emailParts.includes('.') || emailParts.includes('_')) {
+                      const separator = emailParts.includes('.') ? '.' : '_';
+                      const parts = emailParts.split(separator);
+                      if (parts.length >= 2) {
+                        // Capitalize first letter of each part
+                        customerName = parts.map(part => 
+                          part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+                        ).join(' ');
+                      }
+                    }
+                  }
+                  
+                  // Last resort: Use email (but format it nicely)
+                  if (!customerName && user.email) {
+                    // Extract the part before @ and capitalize it
+                    const emailName = user.email.split('@')[0];
+                    customerName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+                  }
+                  
+                  if (customerName) {
+                    profileMap.set(userId, customerName);
+                    console.log(`[Branch Chat] Mapped ${userId} -> ${customerName} (from auth.users)`);
+                  } else {
+                    console.warn(`[Branch Chat] Could not extract name for user ${userId}, email: ${user.email || 'N/A'}`);
+                  }
+                } catch (authError) {
+                  console.error(`[Branch Chat] Exception fetching user ${userId}:`, authError);
+                }
+              })
+            );
+          } catch (authErr) {
+            console.error('[Branch Chat] Exception in auth.users lookup:', authErr);
+          }
+        }
+        
+        // Add customer name to each room
         data.forEach(room => {
-          room.customer_name = profileMap.get(room.customer_id) || null;
+          const customerName = profileMap.get(room.customer_id);
+          if (customerName) {
+            room.customer_name = customerName;
+            console.log(`[Branch Chat] Room ${room.id}: Set customer_name to "${customerName}"`);
+          } else {
+            room.customer_name = 'Customer';
+            console.warn(`[Branch Chat] Room ${room.id}: No name found for customer ${room.customer_id}, using fallback`);
+          }
         });
+        
+        console.log(`[Branch Chat] Name mapping complete. ${profileMap.size} of ${customerIds.length} customers have names`);
       }
     }
 

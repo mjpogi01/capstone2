@@ -1,3 +1,24 @@
+/**
+ * Remove Customer Accounts Without Orders
+ * 
+ * This script scans all customer accounts and removes those that have no orders.
+ * It also cleans up associated user_profiles entries.
+ * 
+ * Usage:
+ *   node server/scripts/remove-orphaned-customers.js --dry-run    # Preview what would be deleted
+ *   node server/scripts/remove-orphaned-customers.js --confirm  # Actually delete the accounts
+ * 
+ * Safety Features:
+ *   - Dry-run mode to preview deletions without actually deleting
+ *   - Requires --confirm flag to proceed with actual deletion
+ *   - Shows preview of customers to be deleted
+ *   - Provides detailed statistics and error reporting
+ * 
+ * Note: This script only removes customers created by the data generation script.
+ * Real customers who signed up but haven't placed orders yet will also be removed.
+ * Use with caution!
+ */
+
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
@@ -14,6 +35,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const PAGE_SIZE = 1000;
 const REQUEST_DELAY_MS = 50;
+
+// Check for dry-run flag
+const DRY_RUN = process.argv.includes('--dry-run') || process.argv.includes('-d');
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -117,6 +141,18 @@ async function hasOrders(userId) {
 }
 
 async function removeCustomer(userId) {
+  // First, try to delete from user_profiles if it exists
+  try {
+    await supabase
+      .from('user_profiles')
+      .delete()
+      .eq('user_id', userId);
+  } catch (profileErr) {
+    // Ignore profile deletion errors - user might not have a profile
+    // This is not critical, we can still delete the auth user
+  }
+
+  // Delete the auth user
   const { error } = await supabase.auth.admin.deleteUser(userId);
   if (error) {
     throw new Error(`Failed to delete user ${userId}: ${error.message}`);
@@ -171,6 +207,38 @@ async function main() {
     return;
   }
 
+  // Show preview of customers to be deleted
+  console.log(`\n📋 Found ${orphaned.length} customer accounts without orders:`);
+  if (orphaned.length <= 10) {
+    orphaned.forEach((customer, idx) => {
+      console.log(`   ${idx + 1}. ${customer.email || customer.id} (${customer.fullName || 'No name'})`);
+    });
+  } else {
+    orphaned.slice(0, 5).forEach((customer, idx) => {
+      console.log(`   ${idx + 1}. ${customer.email || customer.id} (${customer.fullName || 'No name'})`);
+    });
+    console.log(`   ... and ${orphaned.length - 5} more customers`);
+  }
+
+  if (DRY_RUN) {
+    console.log('\n🔍 DRY RUN MODE - No customers will be deleted.');
+    console.log(`   Would remove ${orphaned.length} customer accounts.`);
+    console.log('\n   To actually remove these customers, run the script without --dry-run flag.');
+    return;
+  }
+
+  // Confirmation prompt
+  console.log(`\n⚠️  WARNING: This will permanently delete ${orphaned.length} customer accounts!`);
+  console.log('   This action cannot be undone.');
+  console.log('\n   To proceed, run the script with --confirm flag:');
+  console.log('   node server/scripts/remove-orphaned-customers.js --confirm');
+  console.log('\n   Or use --dry-run to see what would be deleted without actually deleting.');
+  
+  if (!process.argv.includes('--confirm')) {
+    console.log('\n❌ Aborted. Use --confirm flag to proceed with deletion.');
+    return;
+  }
+
   console.log(`\n🧹 Removing ${orphaned.length} customer accounts with zero orders...`);
 
   const failedDeletes = [];
@@ -192,15 +260,26 @@ async function main() {
 
   removalSpinner.stop('   Removal pass complete.');
 
-  console.log(`\n✅ Removed ${orphaned.length - failedDeletes.length} orphaned customers.`);
+  const removedCount = orphaned.length - failedDeletes.length;
+  console.log(`\n✅ Successfully removed ${removedCount} orphaned customer accounts.`);
+
+  // Summary statistics
+  console.log('\n📊 Summary:');
+  console.log(`   • Total customer accounts scanned: ${customers.length}`);
+  console.log(`   • Customers with orders: ${customers.length - orphaned.length}`);
+  console.log(`   • Customers without orders: ${orphaned.length}`);
+  console.log(`   • Successfully removed: ${removedCount}`);
+  if (failedDeletes.length > 0) {
+    console.log(`   • Failed to remove: ${failedDeletes.length}`);
+  }
 
   if (failedDeletes.length) {
-    console.log(`⚠️ Failed to remove ${failedDeletes.length} customers:`);
+    console.log(`\n⚠️ Failed to remove ${failedDeletes.length} customers:`);
     failedDeletes.slice(0, 10).forEach((failure) => {
       console.log(`   • ${failure.customerId}: ${failure.reason}`);
     });
     if (failedDeletes.length > 10) {
-      console.log('   • ... additional failures not shown');
+      console.log(`   • ... and ${failedDeletes.length - 10} more failures`);
     }
   }
 
@@ -210,9 +289,11 @@ async function main() {
       console.log(`   • ${failure.customerId}: ${failure.reason}`);
     });
     if (errors.length > 10) {
-      console.log('   • ... additional errors not shown');
+      console.log(`   • ... and ${errors.length - 10} more errors`);
     }
   }
+
+  console.log('\n✨ Cleanup complete!');
 }
 
 main().catch((error) => {

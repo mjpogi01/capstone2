@@ -676,6 +676,66 @@
   text-decoration: line-through;
 }
 
+/* Walk-in Product Stats - Reviews and Sold Count */
+.walkin-product-stats {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: 'Oswald', sans-serif;
+  line-height: 1.2;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  flex-direction: row;
+  overflow: visible;
+}
+
+.walkin-product-stats .walkin-stat-item {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-family: 'Oswald', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+.walkin-product-stats .walkin-stat-item .walkin-rating-number {
+  display: inline-block;
+  line-height: 1;
+  background: transparent;
+  padding: 0;
+}
+
+.walkin-product-stats .walkin-stat-item .walkin-star-icon {
+  color: #fbbf24;
+  font-size: 12px;
+  display: inline-block;
+  flex-shrink: 0;
+  line-height: 1;
+  background: transparent;
+  padding: 0;
+}
+
+.walkin-product-stats .walkin-stat-item .walkin-review-count {
+  display: inline-block;
+  line-height: 1;
+  background: transparent;
+  padding: 0 0 0 2px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 .quick-add-cart-btn {
   display: flex;
   align-items: center;
@@ -1281,6 +1341,30 @@
   .walkin-cart {
     max-height: 25rem;
   }
+
+  .walkin-product-stats {
+    gap: 6px;
+    margin-bottom: 2px;
+    font-size: 10px;
+    min-height: 16px;
+  }
+
+  .walkin-product-stats .walkin-stat-item {
+    font-size: 10px;
+    gap: 2px;
+  }
+
+  .walkin-product-stats .walkin-stat-item .walkin-star-icon {
+    font-size: 10px;
+  }
+
+  .walkin-product-stats .walkin-stat-item .walkin-rating-number {
+    font-size: 10px;
+  }
+
+  .walkin-product-stats .walkin-stat-item .walkin-review-count {
+    font-size: 9px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1375,5 +1459,29 @@
   
   .walkin-product-image {
     height: 10rem;
+  }
+
+  .walkin-product-stats {
+    gap: 5px;
+    margin-bottom: 2px;
+    font-size: 9px;
+    min-height: 14px;
+  }
+
+  .walkin-product-stats .walkin-stat-item {
+    font-size: 9px;
+    gap: 2px;
+  }
+
+  .walkin-product-stats .walkin-stat-item .walkin-star-icon {
+    font-size: 9px;
+  }
+
+  .walkin-product-stats .walkin-stat-item .walkin-rating-number {
+    font-size: 9px;
+  }
+
+  .walkin-product-stats .walkin-stat-item .walkin-review-count {
+    font-size: 8px;
   }
 }

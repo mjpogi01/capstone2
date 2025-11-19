@@ -67,6 +67,12 @@ window.addEventListener('error', (event) => {
       return false;
     }
   }
+  // Suppress TronLink/TronWeb extension warnings (harmless browser extension)
+  if (event.message && (event.message.includes('TronWeb') || event.message.includes('TronLink') || event.message.includes('already initiated'))) {
+    // This is a harmless warning from the TronLink browser extension
+    event.preventDefault();
+    return false;
+  }
 });
 
 // Also handle unhandled promise rejections for ResizeObserver
@@ -206,6 +212,7 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
 // Suppress React error overlay for timeout errors
 // Intercept console.error before React uses it
 const originalError = console.error;
+const originalWarn = console.warn;
 console.error = (...args) => {
   // Filter out timeout errors from console.error
   const message = args.join(' ');
@@ -233,7 +240,22 @@ console.error = (...args) => {
     return;
   }
   
+  // Suppress TronLink/TronWeb extension warnings
+  if (message && (message.includes('TronWeb') || message.includes('TronLink') || message.includes('already initiated'))) {
+    return; // Suppress silently
+  }
+  
   originalError.apply(console, args);
+};
+
+// Also suppress console.warn for TronLink/TronWeb warnings
+console.warn = (...args) => {
+  const message = args.join(' ');
+  // Suppress TronLink/TronWeb extension warnings
+  if (message && (message.includes('TronWeb') || message.includes('TronLink') || message.includes('already initiated'))) {
+    return; // Suppress silently
+  }
+  originalWarn.apply(console, args);
 };
 
 // Also intercept React's error overlay directly if possible
@@ -244,6 +266,10 @@ if (typeof window !== 'undefined') {
     if (message === 'Timeout (u)' || 
         (error && (error.name === 'AbortError' || error.message === 'Timeout (u)'))) {
       console.warn('⚠️ Timeout error caught by window.onerror (suppressed):', message);
+      return true; // Prevent default error handling
+    }
+    // Suppress TronLink/TronWeb extension warnings
+    if (message && (message.includes('TronWeb') || message.includes('TronLink') || message.includes('already initiated'))) {
       return true; // Prevent default error handling
     }
     if (originalOnError) {

@@ -1,7 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
-const shapefile = require('shapefile');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -18,7 +17,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 let barangayDataset = null;
 let barangayCentroidPath = null;
 try {
-  barangayDataset = require('./data/barangays-calabarzon-oriental-mindoro.json');
+  const barangayJsonPath = path.join(__dirname, 'data', 'barangays-calabarzon-oriental-mindoro.json');
+  if (fs.existsSync(barangayJsonPath)) {
+    const fileContent = fs.readFileSync(barangayJsonPath, 'utf8');
+    barangayDataset = JSON.parse(fileContent);
+  }
 } catch (e) {
   console.warn('⚠️  Barangay dataset not found, using fallback address generation');
 }
@@ -83,184 +86,46 @@ function parseCsv(content) {
 
 function loadBarangayCentroids(csvPath) {
   try {
-    if (!csvPath || !fs.existsSync(csvPath)) {
+    if (!fs.existsSync(csvPath)) {
       console.warn('⚠️ Barangay centroid file not found:', csvPath);
-      return { byCode: new Map(), byName: new Map() };
+      return new Map();
     }
 
     const raw = fs.readFileSync(csvPath, 'utf8').trim();
     if (!raw) {
-      return { byCode: new Map(), byName: new Map() };
+      return new Map();
     }
 
     const records = parseCsv(raw);
-    const mapByCode = new Map();
-    const mapByName = new Map(); // Key: "city|barangay_name" -> {latitude, longitude, ...}
+    const map = new Map();
 
     records.forEach((row) => {
       const code = (row.barangay_psgc || '').trim();
-      const barangayName = (row.barangay_name || '').trim();
-      const cityCode = (row.city_muni_psgc || '').trim();
-      const provinceCode = (row.province_psgc || '').trim();
-      
-      if (!code && !barangayName) {
+      if (!code) {
         return;
       }
-      
       const latitude = Number(row.latitude);
       const longitude = Number(row.longitude);
       if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
         return;
       }
-      
-      const centroidData = {
+      map.set(code, {
         latitude,
         longitude,
         regionCode: (row.region_psgc || '').trim() || null,
-        provinceCode: provinceCode || null,
-        cityCode: cityCode || null,
-        barangayName: barangayName || null
-      };
-      
-      // Store by code if available
-      if (code) {
-        mapByCode.set(code, centroidData);
-      }
-      
-      // Store by name for lookup (normalized key: "cityCode|barangayName")
-      if (barangayName && cityCode) {
-        const nameKey = `${cityCode}|${normaliseKey(barangayName)}`;
-        // Store multiple entries if same name exists (use first one found)
-        if (!mapByName.has(nameKey)) {
-          mapByName.set(nameKey, centroidData);
-        }
-      }
-      
-      // Also store by just barangay name (normalized) for fallback matching
-      if (barangayName) {
-        const normalizedName = normaliseKey(barangayName);
-        if (!mapByName.has(normalizedName)) {
-          mapByName.set(normalizedName, centroidData);
-        }
-      }
+        provinceCode: (row.province_psgc || '').trim() || null,
+        cityCode: (row.city_muni_psgc || '').trim() || null
+      });
     });
 
-    console.log(`✅ Loaded ${mapByCode.size} barangay centroids by code, ${mapByName.size} by name`);
-    return { byCode: mapByCode, byName: mapByName };
+    return map;
   } catch (error) {
     console.warn('⚠️ Unable to load barangay centroid data:', error.message);
-    return { byCode: new Map(), byName: new Map() };
+    return new Map();
   }
 }
 
 const BARANGAY_COORDINATES = loadBarangayCentroids(barangayCentroidPath);
-const BARANGAY_COORDINATES_BY_CODE = BARANGAY_COORDINATES.byCode || new Map();
-const BARANGAY_COORDINATES_BY_NAME = BARANGAY_COORDINATES.byName || new Map();
-
-// Load barangay names from CSV as fallback when JSON is missing
-function loadBarangaysFromCSV(csvPath) {
-  const barangayMap = new Map(); // city -> Set of barangay names
-  
-  try {
-    if (!csvPath || !fs.existsSync(csvPath)) {
-      return barangayMap;
-    }
-
-    const raw = fs.readFileSync(csvPath, 'utf8').trim();
-    if (!raw) {
-      return barangayMap;
-    }
-
-    const records = parseCsv(raw);
-    
-    records.forEach((row) => {
-      const cityName = (row.city_muni_psgc || '').trim();
-      const barangayName = (row.barangay_name || '').trim();
-      
-      if (!cityName || !barangayName) {
-        return;
-      }
-      
-      // We need to map city codes to city names - for now, we'll use a different approach
-      // Store by province + city code pattern
-      const provinceCode = (row.province_psgc || '').trim();
-      const key = `${provinceCode}|${cityName}`;
-      
-      if (!barangayMap.has(key)) {
-        barangayMap.set(key, new Set());
-      }
-      barangayMap.get(key).add(barangayName);
-    });
-
-    return barangayMap;
-  } catch (error) {
-    console.warn('⚠️ Unable to load barangays from CSV:', error.message);
-    return barangayMap;
-  }
-}
-
-// Alternative: Load barangays by city name pattern from CSV
-function loadBarangaysByCityName(csvPath, targetCityName, targetProvince) {
-  const barangays = new Set();
-  
-  try {
-    if (!csvPath || !fs.existsSync(csvPath)) {
-      return Array.from(barangays);
-    }
-
-    const raw = fs.readFileSync(csvPath, 'utf8').trim();
-    if (!raw) {
-      return Array.from(barangays);
-    }
-
-    const records = parseCsv(raw);
-    const normalizedTargetCity = normaliseKey(targetCityName);
-    const normalizedTargetProvince = normaliseKey(targetProvince);
-    
-    // Try to find city code for target city
-    let targetCityCode = null;
-    let targetProvinceCode = null;
-    
-    // First pass: find city and province codes
-    for (const row of records) {
-      const provinceCode = (row.province_psgc || '').trim();
-      const cityCode = (row.city_muni_psgc || '').trim();
-      const barangayName = (row.barangay_name || '').trim();
-      
-      // We'll use a heuristic: if we find many barangays with same city code in same province,
-      // that's likely our city
-      if (barangayName && provinceCode) {
-        if (!targetCityCode) {
-          // Check if this province matches
-          // Since we don't have province names in CSV, we'll collect all unique city codes
-          // and use the one with most barangays as our target
-        }
-      }
-    }
-    
-    // For now, return empty - we'll use a simpler approach
-    return Array.from(barangays);
-  } catch (error) {
-    return Array.from(barangays);
-  }
-}
-
-// Since CSV doesn't have city names, we'll expand the hardcoded list significantly
-const EXPANDED_BATANGAS_CITY_BARANGAYS = [
-  'Alangilan', 'Balagtas', 'Barangay 1 (Poblacion)', 'Barangay 2 (Poblacion)', 
-  'Barangay 3 (Poblacion)', 'Barangay 4 (Poblacion)', 'Barangay 5 (Poblacion)',
-  'Barangay 6 (Poblacion)', 'Barangay 7 (Poblacion)', 'Barangay 8 (Poblacion)',
-  'Barangay 9 (Poblacion)', 'Barangay 10 (Poblacion)', 'Barangay 11 (Poblacion)',
-  'Barangay 12 (Poblacion)', 'Bolbok', 'Concepcion', 'Concepcion Ibaba',
-  'Concepcion Ilaya', 'Cuta', 'Gulod Labac', 'Kumintang Ibaba', 'Kumintang Ilaya',
-  'Malitam', 'Pallocan West', 'Pallocan East', 'San Agapito', 'San Isidro',
-  'San Jose Sico', 'San Pedro', 'Santa Clara', 'Santa Rita Aplaya',
-  'Santo Domingo', 'Sinala', 'Tabangao', 'Tabangao Aplaya', 'Tabangao Ambulong',
-  'Talahib Pandayan', 'Talahib Payapa', 'Talahib Payapa Ibaba', 'Talahib Payapa Ilaya',
-  'Talahib Payapa Proper', 'Talahib Payapa West', 'Talahib Payapa East',
-  'Talahib Payapa North', 'Talahib Payapa South', 'Talahib Payapa Central',
-  'Wawa', 'Wawa Ibaba', 'Wawa Ilaya', 'Wawa Proper', 'Wawa East', 'Wawa West'
-];
 
 // Philippine names
 const firstNames = [
@@ -326,7 +191,7 @@ function buildBarangayLookups(dataset) {
           .filter(Boolean)
           .map((barangay) => {
             const code = barangay.code || null;
-            const centroid = code ? BARANGAY_COORDINATES_BY_CODE.get(barangay.code) : null;
+            const centroid = code ? BARANGAY_COORDINATES.get(barangay.code) : null;
             return {
               code,
               name: barangay.name,
@@ -809,11 +674,13 @@ const CITY_LOOKUP = new Map(CITY_DATA.map(city => [city.city.toUpperCase(), city
 const FAR_CITY_LOOKUP = new Map(FAR_CITY_DATA.map(city => [city.city.toUpperCase(), city]));
 
 function generateYearlyCustomerTargets() {
+  // Target ~900 total customers with orders, maintaining growth pattern
+  // Distribution: ~200 (2022), ~250 (2023), ~300 (2024), ~250 (2025 - 10 months through October)
   return [
-    getRandomInt(703, 840),  // 2022 foundation year
-    getRandomInt(1005, 1260), // 2023 growth
-    getRandomInt(1408, 1760), // 2024 expansion
-    getRandomInt(680, 960)    // 2025 partial year through October
+    getRandomInt(180, 220),  // 2022 foundation year (~200)
+    getRandomInt(230, 270),  // 2023 growth (~250)
+    getRandomInt(280, 320),  // 2024 expansion (~300)
+    getRandomInt(230, 270)   // 2025 partial year through October (~250, proportional to 10 months)
   ];
 }
 
@@ -860,367 +727,6 @@ const BRANCH_FOCUS_BARANGAYS = new Map(
   ].map(([branch, barangays]) => [normaliseKey(branch), barangays])
 );
 
-// Nearby cities for each branch (within Calabarzon and Mindoro)
-const BRANCH_NEARBY_CITIES = new Map(
-  [
-    ['BATANGAS CITY BRANCH', ['Lipa', 'Tanauan', 'Sto. Tomas', 'Bauan', 'San Pascual', 'Nasugbu', 'Balayan']],
-    ['SAN PASCUAL (MAIN BRANCH)', ['Batangas City', 'Bauan', 'Lipa', 'Tanauan', 'Sto. Tomas', 'Calaca']],
-    ['CALAPAN BRANCH', ['Pinamalayan', 'Naujan', 'Victoria', 'Baco', 'Socorro']],
-    ['LEMERY BRANCH', ['Calaca', 'Bauan', 'Taal', 'Agoncillo', 'San Nicolas']],
-    ['BAUAN BRANCH', ['Batangas City', 'San Pascual', 'Lemery', 'Calaca', 'Lipa']],
-    ['CALACA BRANCH', ['Lemery', 'Bauan', 'Balayan', 'Nasugbu', 'Calatagan']],
-    ['PINAMALAYAN BRANCH', ['Calapan', 'Naujan', 'Victoria', 'Bansud', 'Gloria']],
-    ['ROSARIO BRANCH', ['Lipa', 'Tanauan', 'Sto. Tomas', 'Alaminos', 'Tiaong']],
-    ['MUZON BRANCH', ['San Luis', 'Bauan', 'Batangas City', 'San Pascual']],
-    ['SAN LUIS BRANCH', ['Muzon', 'Bauan', 'Batangas City', 'San Pascual', 'Calaca']]
-  ].map(([branch, cities]) => [normaliseKey(branch), cities])
-);
-
-// Track customer distribution for better scattering
-const CUSTOMER_LOCATION_TRACKER = {
-  branchCityCounts: new Map(), // branch -> count
-  barangayCounts: new Map(), // "city|barangay" -> count
-  cityCounts: new Map(), // city -> count
-  usedBarangays: new Set(), // "city|barangay" for tracking
-  provinceBarangayCounts: new Map(), // "province|barangay" -> count (for province-wide distribution)
-  allBatangasBarangays: [], // All barangays in Batangas Province loaded from CSV
-  batangasCityCodeToName: new Map(), // Map city code to city name for Batangas Province
-  allOrientalMindoroBarangays: [], // All barangays in Oriental Mindoro Province loaded from CSV
-  orientalMindoroCityCodeToName: new Map() // Map city code to city name for Oriental Mindoro Province
-};
-
-// Load city data from shapefile
-async function loadCityShapefile(shpPath) {
-  const cityMap = new Map(); // cityCode -> { name, geometry, ... }
-  
-  try {
-    if (!shpPath || !fs.existsSync(shpPath)) {
-      console.warn('⚠️ Shapefile not found:', shpPath);
-      return cityMap;
-    }
-
-    const source = await shapefile.open(shpPath);
-    let count = 0;
-    
-    while (true) {
-      const result = await source.read();
-      if (result.done) break;
-      
-      const feature = result.value;
-      if (feature && feature.properties) {
-        const props = feature.properties;
-        
-        // Debug: log first feature's properties to see what attributes are available
-        if (count === 0) {
-          console.log('🔍 Sample shapefile properties:', Object.keys(props));
-          console.log('🔍 Sample property values:', Object.entries(props).slice(0, 10).map(([k, v]) => `${k}: ${v}`).join(', '));
-        }
-        
-        // Shapefile uses: adm3_psgc (city code), adm3_en (city name), adm2_psgc (province code)
-        const cityCode = (props.adm3_psgc || props.ADM3_PCODE || props.PSGC || '').toString().trim();
-        const cityName = (props.adm3_en || props.NAME || props.NAME_2 || '').toString().trim();
-        const provinceCode = (props.adm2_psgc || props.ADM2_PCODE || '').toString().trim();
-        
-        if (cityCode && cityName && feature.geometry) {
-          cityMap.set(cityCode, {
-            name: cityName,
-            provinceCode: provinceCode,
-            geometry: feature.geometry,
-            properties: props
-          });
-          count++;
-        } else if (count === 0) {
-          // Debug first failure
-          console.log('⚠️ First feature skipped - cityCode:', cityCode, 'cityName:', cityName, 'hasGeometry:', !!feature.geometry);
-        }
-      }
-    }
-
-    console.log(`✅ Loaded ${count} cities from shapefile`);
-    return cityMap;
-  } catch (error) {
-    console.warn('⚠️ Unable to load shapefile:', error.message);
-    return cityMap;
-  }
-}
-
-// Point-in-polygon test for GeoJSON geometry
-function pointInPolygon(point, geometry) {
-  const [lng, lat] = point;
-  
-  if (geometry.type === 'Polygon') {
-    return pointInPolygonCoordinates([lng, lat], geometry.coordinates);
-  } else if (geometry.type === 'MultiPolygon') {
-    return geometry.coordinates.some(polygon => 
-      pointInPolygonCoordinates([lng, lat], polygon)
-    );
-  }
-  return false;
-}
-
-function pointInPolygonCoordinates(point, coordinates) {
-  const [lng, lat] = point;
-  let inside = false;
-  
-  for (const ring of coordinates) {
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const [xi, yi] = ring[i];
-      const [xj, yj] = ring[j];
-      
-      const intersect = ((yi > lat) !== (yj > lat)) &&
-        (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
-      if (intersect) inside = !inside;
-    }
-  }
-  
-  return inside;
-}
-
-// Load all province barangays from CSV for wide distribution
-// Also create a mapping from city code to city name using shapefile
-async function loadProvinceBarangays(csvPath, provinceCode, provinceName, cityShapefileMap, shapefileProvinceCode) {
-  const barangays = [];
-  const cityCodeToName = new Map(); // Map city code to city name
-  
-  try {
-    if (!csvPath || !fs.existsSync(csvPath)) {
-      return { barangays, cityCodeToName };
-    }
-
-    const raw = fs.readFileSync(csvPath, 'utf8').trim();
-    if (!raw) {
-      return { barangays, cityCodeToName };
-    }
-
-    const records = parseCsv(raw);
-    
-    // Pre-filter cities from shapefile by province for faster lookup
-    // Use the shapefile province code format (e.g., 401000000 for Batangas, 1705200000 for Oriental Mindoro)
-    const provinceCities = new Map();
-    let sampleProvinceCode = null;
-    
-    for (const [code, cityData] of cityShapefileMap.entries()) {
-      if (cityData.provinceCode) {
-        if (!sampleProvinceCode) {
-          sampleProvinceCode = cityData.provinceCode;
-        }
-        // Match by exact province code or normalized codes
-        const normalizedShpProvinceCode = cityData.provinceCode.replace(/^0+/, '') || cityData.provinceCode;
-        const normalizedTargetCode = shapefileProvinceCode.replace(/^0+/, '') || shapefileProvinceCode;
-        
-        if (cityData.provinceCode === shapefileProvinceCode || normalizedShpProvinceCode === normalizedTargetCode) {
-          provinceCities.set(code, cityData);
-        }
-      }
-    }
-    
-    if (sampleProvinceCode && provinceCities.size === 0) {
-      console.log(`   ⚠️ No cities found for province code ${shapefileProvinceCode}, sample shapefile province code: ${sampleProvinceCode}`);
-      console.log(`   🔍 Trying to match by province name: ${provinceName}`);
-      // Try matching by province name instead (fallback)
-      for (const [code, cityData] of cityShapefileMap.entries()) {
-        // Check if any property contains the province name
-        const props = cityData.properties || {};
-        const allProps = Object.values(props).map(v => (v || '').toString().toLowerCase());
-        if (allProps.some(v => v.includes(provinceName.toLowerCase()))) {
-          provinceCities.set(code, cityData);
-        }
-      }
-    }
-    
-    console.log(`   🔍 Filtered ${provinceCities.size} cities from shapefile for ${provinceName}`);
-    
-    let directMatches = 0;
-    let polygonMatches = 0;
-    
-    records.forEach((row) => {
-      const rowProvinceCode = (row.province_psgc || '').trim();
-      const barangayName = (row.barangay_name || '').trim();
-      const cityCode = (row.city_muni_psgc || '').trim();
-      const latitude = Number(row.latitude);
-      const longitude = Number(row.longitude);
-      
-      // Only include barangays from the specified province
-      if (rowProvinceCode === provinceCode && barangayName && 
-          !Number.isNaN(latitude) && !Number.isNaN(longitude)) {
-        barangays.push({
-          name: barangayName,
-          cityCode: cityCode,
-          latitude: latitude,
-          longitude: longitude,
-          provinceCode: rowProvinceCode
-        });
-        
-        // Try to find city name from shapefile using point-in-polygon
-        if (provinceCities.size > 0 && !cityCodeToName.has(cityCode)) {
-          const point = [longitude, latitude]; // GeoJSON format: [lng, lat]
-          
-          // First try direct city code match (normalize codes by removing leading zeros for comparison)
-          const normalizedCityCode = cityCode.replace(/^0+/, '') || cityCode;
-          let foundMatch = false;
-          
-          // Debug first few attempts
-          if (directMatches + polygonMatches < 3) {
-            console.log(`   🔍 Sample: CSV cityCode=${cityCode}, normalized=${normalizedCityCode}`);
-            const sampleShpCodes = Array.from(provinceCities.keys()).slice(0, 3);
-            console.log(`   🔍 Sample shapefile codes: ${sampleShpCodes.join(', ')}`);
-          }
-          
-          for (const [shpCode, cityData] of provinceCities.entries()) {
-            const normalizedShpCode = shpCode.replace(/^0+/, '') || shpCode;
-            
-            // Try direct code match (with normalization)
-            // CSV format: 000401005, shapefile format: 401005000 (last 3 digits might be different)
-            // Try matching first 6 digits or full normalized match
-            const csvPrefix = normalizedCityCode.substring(0, 6);
-            const shpPrefix = normalizedShpCode.substring(0, 6);
-            
-            if (normalizedCityCode === normalizedShpCode || cityCode === shpCode || csvPrefix === shpPrefix) {
-              cityCodeToName.set(cityCode, cityData.name);
-              foundMatch = true;
-              directMatches++;
-              if (directMatches <= 3) {
-                console.log(`   ✅ Direct match: ${cityCode} -> ${cityData.name} (shapefile code: ${shpCode})`);
-              }
-              break;
-            }
-          }
-          
-          // If no direct match, try point-in-polygon (only check province cities)
-          if (!foundMatch) {
-            for (const [shpCode, cityData] of provinceCities.entries()) {
-              if (pointInPolygon(point, cityData.geometry)) {
-                cityCodeToName.set(cityCode, cityData.name);
-                foundMatch = true;
-                polygonMatches++;
-                if (polygonMatches <= 3) {
-                  console.log(`   ✅ Polygon match: ${cityCode} -> ${cityData.name} (shapefile code: ${shpCode})`);
-                }
-                break; // Found the city, no need to check others
-              }
-            }
-          }
-        }
-      }
-    });
-
-    // Build city code to name mapping by matching with CITY_DATA
-    // Group barangays by city code and try to match with known cities
-    const cityCodeGroups = new Map();
-    barangays.forEach(b => {
-      if (!cityCodeGroups.has(b.cityCode)) {
-        cityCodeGroups.set(b.cityCode, []);
-      }
-      cityCodeGroups.get(b.cityCode).push(b);
-    });
-    
-    // Try to match city codes with CITY_DATA cities
-    // Use a more comprehensive matching strategy
-    CITY_DATA.forEach(city => {
-      if (city.province === provinceName) {
-        let bestMatch = null;
-        let bestMatchScore = 0;
-        
-        // Find city code by matching barangay names
-        for (const [code, cityBarangays] of cityCodeGroups.entries()) {
-          const matchingBarangays = cityBarangays.filter(b => 
-            city.barangays.some(cb => normaliseKey(cb) === normaliseKey(b.name))
-          );
-          // Calculate match score: higher if more matches or higher percentage
-          const matchScore = matchingBarangays.length * 2 + (matchingBarangays.length / cityBarangays.length) * 100;
-          if (matchScore > bestMatchScore && (matchingBarangays.length >= 2 || matchingBarangays.length >= cityBarangays.length * 0.2)) {
-            bestMatch = code;
-            bestMatchScore = matchScore;
-          }
-        }
-        
-        if (bestMatch) {
-          cityCodeToName.set(bestMatch, city.city);
-        }
-      }
-    });
-    
-    // Also try to match by checking if any barangay name contains the city name
-    // This helps catch cities that might not be in CITY_DATA but have recognizable names
-    CITY_DATA.forEach(city => {
-      if (city.province === provinceName && !Array.from(cityCodeToName.values()).includes(city.city)) {
-        const normalizedCityName = normaliseKey(city.city);
-        for (const [code, cityBarangays] of cityCodeGroups.entries()) {
-          if (cityCodeToName.has(code)) continue; // Already mapped
-          
-          // Check if any barangay name contains the city name
-          const hasCityNameInBarangay = cityBarangays.some(b => 
-            normaliseKey(b.name).includes(normalizedCityName) || 
-            normalizedCityName.includes(normaliseKey(b.name))
-          );
-          
-          if (hasCityNameInBarangay && cityBarangays.length >= 5) {
-            cityCodeToName.set(code, city.city);
-            break;
-          }
-        }
-      }
-    });
-
-    console.log(`✅ Loaded ${barangays.length} barangays from ${provinceName} for wide distribution`);
-    console.log(`✅ Mapped ${cityCodeToName.size} city codes to city names (${directMatches} direct matches, ${polygonMatches} polygon matches)`);
-    return { barangays, cityCodeToName };
-  } catch (error) {
-    console.warn(`⚠️ Unable to load ${provinceName} barangays:`, error.message);
-    return { barangays: [], cityCodeToName: new Map() };
-  }
-}
-
-// Load province CSV to build province code mapping
-function loadProvinceMapping(csvPath) {
-  const provinceMap = new Map(); // province name -> { csvCode, shapefileCode, name }
-  
-  try {
-    if (!csvPath || !fs.existsSync(csvPath)) {
-      console.warn('⚠️ Province CSV not found:', csvPath);
-      return provinceMap;
-    }
-
-    const raw = fs.readFileSync(csvPath, 'utf8').trim();
-    if (!raw) {
-      return provinceMap;
-    }
-
-    const records = parseCsv(raw);
-    
-    records.forEach((row) => {
-      const shapefileCode = (row.adm2_psgc || '').trim();
-      const provinceName = (row.adm2_en || '').trim();
-      
-      if (shapefileCode && provinceName) {
-        // Normalize the code (remove leading zeros) for matching
-        const normalizedCode = shapefileCode.replace(/^0+/, '') || shapefileCode;
-        provinceMap.set(provinceName.toLowerCase(), {
-          name: provinceName,
-          shapefileCode: shapefileCode,
-          normalizedCode: normalizedCode
-        });
-      }
-    });
-
-    console.log(`✅ Loaded ${provinceMap.size} provinces from CSV`);
-    return provinceMap;
-  } catch (error) {
-    console.warn('⚠️ Unable to load province CSV:', error.message);
-    return provinceMap;
-  }
-}
-
-// Load city shapefile
-const shapefilePath = path.join(__dirname, 'data', 'PH_Adm3_MuniCities.shp.shp');
-const provinceCsvPath = path.join(__dirname, 'data', 'PH_Adm2_ProvDists.csv');
-let cityShapefileMap = new Map();
-let provinceMapping = new Map();
-
-// Initialize province barangays (will be loaded asynchronously in generateAndInsertData)
-let batangasDataPromise = null;
-let mindoroDataPromise = null;
-
 const CUSTOMER_JERSEY_DESIGNS = new Map();
 const GLOBAL_JERSEY_DESIGNS = new Set();
 let syntheticProductCounter = 0;
@@ -1259,7 +765,7 @@ const CATEGORY_MAP = {
 
 const APPAREL_CATEGORY_KEYS = ['jerseys', 'hoodies', 'uniforms', 'tshirts', 'longsleeves'];
 
-const BALL_BRANDS = ['Molten', 'Spalding', 'Wilson', "Yohann's", 'Mikasa', 'Meteor'];
+const BALL_BRANDS = ['Molten', 'Spalding', 'Wilson', 'Yohanns', 'Mikasa', 'Meteor'];
 const BALL_MATERIALS = ['Composite Leather', 'Synthetic Leather', 'Rubber', 'Microfiber', 'PU Leather'];
 const BALL_SIZES = ['4', '5', '6', '7'];
 
@@ -1765,18 +1271,9 @@ function toBarangayObject(entry, fallback = {}) {
 function generateAddress(branchName) {
   const cityData = selectCityForBranch(branchName);
   const enrichedBarangays = getBarangaysForLocation(cityData.city, cityData.province);
-  
-  // Use expanded list for Batangas City if dataset is missing
-  let fallbackBarangays = cityData.barangays && cityData.barangays.length
+  const fallbackBarangays = (cityData.barangays && cityData.barangays.length
     ? cityData.barangays
-    : DEFAULT_BARANGAYS;
-  
-  // Expand Batangas City barangays significantly if dataset is missing
-  if (cityData.city.toUpperCase() === 'BATANGAS CITY' && (!enrichedBarangays || enrichedBarangays.length === 0)) {
-    fallbackBarangays = EXPANDED_BATANGAS_CITY_BARANGAYS;
-  }
-  
-  const fallbackBarangaysObjects = fallbackBarangays.map((entry) => toBarangayObject(entry, {
+    : DEFAULT_BARANGAYS).map((entry) => toBarangayObject(entry, {
     provinceCode: null,
     cityCode: null,
     regionCode: null
@@ -1788,275 +1285,29 @@ function generateAddress(branchName) {
       cityCode: entry?.cityCode || null,
       regionCode: entry?.regionCode || null
     }))
-    : fallbackBarangaysObjects;
-
-  // Check if this is a branch city
-  const upperBranch = (branchName || '').toUpperCase();
-  const branchCityName = BRANCH_TO_CITY.get(upperBranch);
-  const isBranchCity = branchCityName && branchCityName.toUpperCase() === cityData.city.toUpperCase();
-  const isBatangasCity = cityData.city.toUpperCase() === 'BATANGAS CITY';
+    : fallbackBarangays;
 
   const focusBarangays = BRANCH_FOCUS_BARANGAYS.get(normaliseKey(branchName)) || null;
   let selectionPool = resolvedBarangays;
-  let selectedBarangay = null;
 
-  // Strategy for better distribution
-  // Special handling for Batangas and Oriental Mindoro Provinces: spread across ALL barangays in the province
-  if (cityData.province === 'Batangas' || cityData.province === 'Oriental Mindoro') {
-    // For Batangas/Oriental Mindoro Province: prioritize unused barangays across the ENTIRE province
-    const provinceBarangayKey = (barangayName) => `${cityData.province}|${barangayName}`;
-    const cityBarangayKey = (barangay) => `${cityData.city}|${barangay.name}`;
-    
-    // Get all province barangays from CSV if available
-    const allProvinceBarangaysList = cityData.province === 'Batangas' 
-      ? CUSTOMER_LOCATION_TRACKER.allBatangasBarangays || []
-      : CUSTOMER_LOCATION_TRACKER.allOrientalMindoroBarangays || [];
-    
-    // Convert CSV barangays to barangay objects for selection
-    // IMPORTANT: Preserve the cityCode from CSV so we can map it correctly
-    const allProvinceBarangays = allProvinceBarangaysList.map(b => {
-      const barangayObj = toBarangayObject({
-        name: b.name,
-        cityCode: b.cityCode,
-        latitude: b.latitude,
-        longitude: b.longitude
-      }, {
-        provinceCode: cityData.province === 'Batangas' ? '041000000' : '175200000',
-        cityCode: b.cityCode
-      });
-      // Ensure cityCode is preserved
-      if (b.cityCode && !barangayObj.cityCode) {
-        barangayObj.cityCode = b.cityCode;
-      }
-      return barangayObj;
-    });
-    
-    // Combine resolved barangays (from current city) with all province barangays
-    // Use a Set to avoid duplicates based on normalized name
-    const allBarangaysMap = new Map();
-    resolvedBarangays.forEach(b => {
-      const key = normaliseKey(b.name);
-      if (!allBarangaysMap.has(key)) {
-        allBarangaysMap.set(key, b);
-      }
-    });
-    allProvinceBarangays.forEach(b => {
-      const key = normaliseKey(b.name);
-      if (!allBarangaysMap.has(key)) {
-        allBarangaysMap.set(key, b);
-      }
-    });
-    const combinedBarangays = Array.from(allBarangaysMap.values());
-    
-    // Get all barangays with their usage counts (province-wide)
-    const barangaysWithCounts = combinedBarangays.map(b => ({
-      barangay: b,
-      cityKey: cityBarangayKey(b),
-      provinceKey: provinceBarangayKey(b.name),
-      cityCount: CUSTOMER_LOCATION_TRACKER.barangayCounts.get(cityBarangayKey(b)) || 0,
-      provinceCount: CUSTOMER_LOCATION_TRACKER.provinceBarangayCounts.get(provinceBarangayKey(b.name)) || 0,
-      isFocus: focusBarangays && focusBarangays.some(fb => normaliseKey(fb) === normaliseKey(b.name)),
-      isFromCurrentCity: resolvedBarangays.some(rb => normaliseKey(rb.name) === normaliseKey(b.name))
-    }));
-
-    // Separate into categories
-    const unusedProvinceBarangays = barangaysWithCounts.filter(b => b.provinceCount === 0);
-    const unusedCityBarangays = barangaysWithCounts.filter(b => b.cityCount === 0 && b.isFromCurrentCity);
-    const lowCountBarangays = barangaysWithCounts.filter(b => b.provinceCount > 0 && b.provinceCount <= 1);
-    const mediumCountBarangays = barangaysWithCounts.filter(b => b.provinceCount > 1 && b.provinceCount <= 2);
-    const focusBarangaysList = barangaysWithCounts.filter(b => b.isFocus);
-
-    const roll = Math.random();
-    
-    // HEAVILY prioritize unused barangays across the entire province
-    if (roll < 0.60 && unusedProvinceBarangays.length > 0) {
-      // 60% chance: unused barangays across entire province (HIGHEST PRIORITY for wide distribution)
-      selectionPool = unusedProvinceBarangays.map(b => b.barangay);
-    } else if (roll < 0.70 && unusedCityBarangays.length > 0) {
-      // 10% chance: unused barangays in this city
-      selectionPool = unusedCityBarangays.map(b => b.barangay);
-    } else if (roll < 0.80 && focusBarangaysList.length > 0) {
-      // 10% chance: focus barangays (concentration around branch)
-      selectionPool = focusBarangaysList.map(b => b.barangay);
-    } else if (roll < 0.90 && lowCountBarangays.length > 0) {
-      // 10% chance: low count barangays (1 customer in province)
-      selectionPool = lowCountBarangays.map(b => b.barangay);
-    } else if (roll < 0.95 && mediumCountBarangays.length > 0) {
-      // 5% chance: medium count barangays (2 customers in province)
-      selectionPool = mediumCountBarangays.map(b => b.barangay);
-    } else {
-      // 5% chance: all barangays (ensure coverage)
-      selectionPool = combinedBarangays;
-    }
-
-    selectedBarangay = selectionPool.length > 0
-      ? getRandomElement(selectionPool)
-      : getRandomElement(combinedBarangays);
-    
-    // Update city data if we selected a barangay from a different city
-    // Find the city for this barangay from CSV
-    const selectedBarangayFromCSV = allProvinceBarangaysList.find(b => 
-      normaliseKey(b.name) === normaliseKey(selectedBarangay.name)
+  if (focusBarangays && focusBarangays.length) {
+    const focusSet = new Set(focusBarangays.map(normaliseKey));
+    const prioritized = resolvedBarangays.filter(entry =>
+      entry && entry.name && focusSet.has(normaliseKey(entry.name))
     );
-    
-    // Get the city code - prefer from CSV, then from selectedBarangay
-    const barangayCityCode = selectedBarangayFromCSV?.cityCode || selectedBarangay.cityCode;
-    
-    if (barangayCityCode) {
-      // Try to find the city name from the city code mapping
-      const cityCodeMap = cityData.province === 'Batangas'
-        ? CUSTOMER_LOCATION_TRACKER.batangasCityCodeToName
-        : CUSTOMER_LOCATION_TRACKER.orientalMindoroCityCodeToName;
-      const mappedCityName = cityCodeMap.get(barangayCityCode);
-      if (mappedCityName) {
-        const newCityData = findCityData(mappedCityName);
-        if (newCityData) {
-          // Always update city data when we have a match
-          const oldCity = cityData.city;
-          cityData.city = newCityData.city;
-          cityData.lat = newCityData.lat;
-          cityData.lng = newCityData.lng;
-          cityData.postalCode = newCityData.postalCode;
-          // Debug: log city updates (first few only)
-          if (Math.random() < 0.001) { // Log ~0.1% of updates to avoid spam
-            console.log(`   🔄 City updated: ${oldCity} -> ${newCityData.city} (barangay: ${selectedBarangay.name}, code: ${barangayCityCode})`);
-          }
-        }
+    if (prioritized.length > 0) {
+      // Strong bias towards focus barangays while keeping global coverage
+      if (Math.random() < 0.75) {
+        selectionPool = prioritized;
       } else {
-        // If mapping fails, try to find city by checking all CITY_DATA cities in the province
-        // and see if any of their barangays match this barangay name
-        const provinceCities = CITY_DATA.filter(c => c.province === cityData.province);
-        let foundMatch = false;
-        for (const city of provinceCities) {
-          const matchingBarangay = city.barangays.find(cb => 
-            normaliseKey(cb) === normaliseKey(selectedBarangay.name)
-          );
-          if (matchingBarangay) {
-            // Found a match! Update city data
-            cityData.city = city.city;
-            cityData.lat = city.lat;
-            cityData.lng = city.lng;
-            cityData.postalCode = city.postalCode;
-            // Also update the mapping for future use
-            if (barangayCityCode) {
-              cityCodeMap.set(barangayCityCode, city.city);
-            }
-            foundMatch = true;
-            break;
-          }
-        }
-        
-        // If still no match, try to find the closest city by coordinates
-        if (!foundMatch && selectedBarangay.latitude && selectedBarangay.longitude) {
-          let closestCity = null;
-          let closestDistance = Infinity;
-          
-          for (const city of provinceCities) {
-            const distance = Math.sqrt(
-              Math.pow(city.lat - selectedBarangay.latitude, 2) +
-              Math.pow(city.lng - selectedBarangay.longitude, 2)
-            );
-            if (distance < closestDistance) {
-              closestDistance = distance;
-              closestCity = city;
-            }
-          }
-          
-          if (closestCity && closestDistance < 0.5) { // Within ~50km
-            cityData.city = closestCity.city;
-            cityData.lat = closestCity.lat;
-            cityData.lng = closestCity.lng;
-            cityData.postalCode = closestCity.postalCode;
-            // Update the mapping for future use
-            if (barangayCityCode) {
-              cityCodeMap.set(barangayCityCode, closestCity.city);
-            }
-          }
-        }
+        selectionPool = prioritized.concat(resolvedBarangays);
       }
     }
-    
-    // Track usage at both city and province levels
-    const cityKey = cityBarangayKey(selectedBarangay);
-    const provinceKey = provinceBarangayKey(selectedBarangay.name);
-    const cityCount = CUSTOMER_LOCATION_TRACKER.barangayCounts.get(cityKey) || 0;
-    const provinceCount = CUSTOMER_LOCATION_TRACKER.provinceBarangayCounts.get(provinceKey) || 0;
-    CUSTOMER_LOCATION_TRACKER.barangayCounts.set(cityKey, cityCount + 1);
-    CUSTOMER_LOCATION_TRACKER.provinceBarangayCounts.set(provinceKey, provinceCount + 1);
-    CUSTOMER_LOCATION_TRACKER.usedBarangays.add(cityKey);
-  } else if (isBranchCity || isBatangasCity) {
-    // For branch cities: scatter across almost all barangays with concentration near branch
-    const barangayKey = (barangay) => `${cityData.city}|${barangay.name}`;
-    
-    // Get all barangays with their usage counts
-    const barangaysWithCounts = resolvedBarangays.map(b => ({
-      barangay: b,
-      key: barangayKey(b),
-      count: CUSTOMER_LOCATION_TRACKER.barangayCounts.get(barangayKey(b)) || 0,
-      isFocus: focusBarangays && focusBarangays.some(fb => normaliseKey(fb) === normaliseKey(b.name))
-    }));
-
-    // Separate into categories
-    const unusedBarangays = barangaysWithCounts.filter(b => b.count === 0);
-    const lowCountBarangays = barangaysWithCounts.filter(b => b.count > 0 && b.count <= 1);
-    const mediumCountBarangays = barangaysWithCounts.filter(b => b.count > 1 && b.count <= 3);
-    const focusBarangaysList = barangaysWithCounts.filter(b => b.isFocus);
-    const otherBarangays = barangaysWithCounts.filter(b => !b.isFocus && b.count > 3);
-
-    const roll = Math.random();
-    
-    // Prioritize unused barangays more heavily to ensure wide distribution
-    if (roll < 0.30 && unusedBarangays.length > 0) {
-      // 30% chance: unused barangays (wide distribution - HIGHEST PRIORITY)
-      selectionPool = unusedBarangays.map(b => b.barangay);
-    } else if (roll < 0.50 && focusBarangaysList.length > 0) {
-      // 20% chance: focus barangays (concentration around branch)
-      selectionPool = focusBarangaysList.map(b => b.barangay);
-    } else if (roll < 0.70 && lowCountBarangays.length > 0) {
-      // 20% chance: low count barangays (fill gaps - 1 customer)
-      selectionPool = lowCountBarangays.map(b => b.barangay);
-    } else if (roll < 0.85 && mediumCountBarangays.length > 0) {
-      // 15% chance: medium count barangays (2-3 customers)
-      selectionPool = mediumCountBarangays.map(b => b.barangay);
-    } else {
-      // 15% chance: all barangays (ensure coverage)
-      selectionPool = resolvedBarangays;
-    }
-
-    selectedBarangay = selectionPool.length > 0
-      ? getRandomElement(selectionPool)
-      : getRandomElement(resolvedBarangays);
-    
-    // Track usage
-    const key = barangayKey(selectedBarangay);
-    const currentCount = CUSTOMER_LOCATION_TRACKER.barangayCounts.get(key) || 0;
-    CUSTOMER_LOCATION_TRACKER.barangayCounts.set(key, currentCount + 1);
-    CUSTOMER_LOCATION_TRACKER.usedBarangays.add(key);
-  } else {
-    // For non-branch cities: use focus barangays if available, otherwise random
-    if (focusBarangays && focusBarangays.length) {
-      const focusSet = new Set(focusBarangays.map(normaliseKey));
-      const prioritized = resolvedBarangays.filter(entry =>
-        entry && entry.name && focusSet.has(normaliseKey(entry.name))
-      );
-      if (prioritized.length > 0) {
-        if (Math.random() < 0.60) {
-          selectionPool = prioritized;
-        } else {
-          selectionPool = prioritized.concat(resolvedBarangays);
-        }
-      }
-    }
-
-    selectedBarangay = selectionPool.length > 0
-      ? getRandomElement(selectionPool)
-      : getRandomElement(resolvedBarangays);
-    
-    // Track usage for non-branch cities too
-    const key = `${cityData.city}|${selectedBarangay.name}`;
-    const currentCount = CUSTOMER_LOCATION_TRACKER.barangayCounts.get(key) || 0;
-    CUSTOMER_LOCATION_TRACKER.barangayCounts.set(key, currentCount + 1);
   }
+
+  const selectedBarangay = selectionPool.length > 0
+    ? getRandomElement(selectionPool)
+    : getRandomElement(resolvedBarangays);
 
   const barangayEntry = toBarangayObject(selectedBarangay, {
     provinceCode: null,
@@ -2067,55 +1318,10 @@ function generateAddress(branchName) {
   const streetName = getRandomElement(['Rizal', 'Bonifacio', 'Aguinaldo', 'Luna', 'Mabini', 'Del Pilar', 'Burgos', 'Gomez']);
   const postalCode = cityData.postalCode ? cityData.postalCode + getRandomInt(0, 12) : getRandomInt(4000, 4500);
   const fullAddress = `${streetNumber} ${streetName} STREET, ${barangayEntry.name}, ${cityData.city}, ${cityData.province} ${postalCode}`;
-  
-  // Try to find centroid by code first, then by name
-  let centroidFromLookup = null;
-  if (barangayEntry.code) {
-    centroidFromLookup = BARANGAY_COORDINATES_BY_CODE.get(barangayEntry.code);
-  }
-  
-  // If not found by code, try to find by normalized barangay name
-  if (!centroidFromLookup && barangayEntry.name) {
-    const normalizedName = normaliseKey(barangayEntry.name);
-    
-    // Try with city code first (most specific)
-    if (barangayEntry.cityCode) {
-      const nameKey = `${barangayEntry.cityCode}|${normalizedName}`;
-      centroidFromLookup = BARANGAY_COORDINATES_BY_NAME.get(nameKey);
-    }
-    
-    // Fallback to just normalized name
-    if (!centroidFromLookup) {
-      centroidFromLookup = BARANGAY_COORDINATES_BY_NAME.get(normalizedName);
-    }
-    
-    // Try partial matches (remove common suffixes like "(Poblacion)", "Barangay", etc.)
-    if (!centroidFromLookup) {
-      const cleanedName = normalizedName
-        .replace(/BARANGAY\d+/g, '')
-        .replace(/POBLACION/g, '')
-        .replace(/\(.*?\)/g, '')
-        .trim();
-      if (cleanedName && cleanedName !== normalizedName) {
-        if (barangayEntry.cityCode) {
-          const nameKey = `${barangayEntry.cityCode}|${cleanedName}`;
-          centroidFromLookup = BARANGAY_COORDINATES_BY_NAME.get(nameKey);
-        }
-        if (!centroidFromLookup) {
-          centroidFromLookup = BARANGAY_COORDINATES_BY_NAME.get(cleanedName);
-        }
-      }
-    }
-  }
-  
-  // Use centroid if found, otherwise use barangay entry coordinates, otherwise city coordinates with small jitter
+  const centroidFromLookup = barangayEntry.code ? BARANGAY_COORDINATES.get(barangayEntry.code) : null;
   const latitudeBase = centroidFromLookup?.latitude ?? barangayEntry.latitude;
   const longitudeBase = centroidFromLookup?.longitude ?? barangayEntry.longitude;
-  
-  // Small jitter to scatter addresses within barangay (about 200-400 meters)
-  // If we have a centroid, use smaller jitter. If using city coordinates, use larger jitter.
-  const hasCentroid = !!centroidFromLookup;
-  const jitter = hasCentroid ? 0.003 : 0.01; // ~300m with centroid, ~1km without
+  const jitter = cityData.region === 'CALABARZON' || cityData.region === 'MIMAROPA' ? 0.004 : 0.02;
   const latitude = (
     latitudeBase ?? (cityData.lat + (Math.random() - 0.5) * jitter)
   ).toFixed(6);
@@ -2144,39 +1350,32 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Add business days to a date (excluding weekends)
-function addBusinessDays(date, days) {
-  const result = new Date(date);
-  let daysAdded = 0;
+function getFabricType(category, productType) {
+  // Use the actual fabric types from the system
+  // Fabric options: Polydex (default, 0), Microcool (100), Aircool (100), Drifit (100), Square Mesh (100)
+  const fabricTypes = ['Polydex', 'Microcool', 'Aircool', 'Drifit', 'Square Mesh'];
   
-  while (daysAdded < days) {
-    result.setDate(result.getDate() + 1);
-    const dayOfWeek = result.getDay();
-    // Skip weekends (0 = Sunday, 6 = Saturday)
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      daysAdded++;
-    }
+  // Weighted selection: 60% Polydex (default), 40% others (10% each)
+  const roll = Math.random();
+  if (roll < 0.6) {
+    return 'Polydex'; // Default, most common
+  } else if (roll < 0.7) {
+    return 'Microcool';
+  } else if (roll < 0.8) {
+    return 'Aircool';
+  } else if (roll < 0.9) {
+    return 'Drifit';
+  } else {
+    return 'Square Mesh';
   }
-  
-  return result;
 }
 
-// Check if order contains apparel products
-function hasApparelProducts(orderItems) {
-  if (!Array.isArray(orderItems) || orderItems.length === 0) {
-    return false;
-  }
-  
-  const apparelTypes = ['jersey', 'jerseys', 'uniform', 'uniforms', 'hoodie', 'hoodies', 'tshirt', 'tshirts', 'longsleeve', 'longsleeves'];
-  const apparelCategories = ['jerseys', 'uniforms', 'hoodies', 'tshirts', 'longsleeves', 'apparel'];
-  
-  return orderItems.some(item => {
-    const productType = (item.product_type || '').toLowerCase();
-    const category = (item.category || '').toLowerCase();
-    
-    return apparelTypes.some(type => productType.includes(type)) ||
-           apparelCategories.some(cat => category.includes(cat));
-  });
+function getCutType(category, productType) {
+  // Use the actual cut types from the system
+  // Cut type options: Normal Cut (default, 0), NBA Cut (100)
+  // Weighted selection: 80% Normal Cut (default), 20% NBA Cut
+  const roll = Math.random();
+  return roll < 0.8 ? 'Normal Cut' : 'NBA Cut';
 }
 
 function generatePersonIdentity() {
@@ -2199,7 +1398,6 @@ async function createCustomerAccount() {
   const email = buildCustomerEmail(first, last);
   const password = `${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
   const fullName = `${first} ${last}`;
-  const phone = generatePhoneNumber();
 
   const { data, error } = await supabase.auth.admin.createUser({
     email,
@@ -2207,11 +1405,7 @@ async function createCustomerAccount() {
     email_confirm: false,
     user_metadata: {
       role: 'customer',
-      full_name: fullName,
-      first_name: first,
-      last_name: last,
-      phone: phone,
-      contact_number: phone
+      full_name: fullName
     }
   });
 
@@ -2219,26 +1413,54 @@ async function createCustomerAccount() {
     throw error;
   }
 
-  // Also create/update user_profiles entry with phone number
+  return { id: data.user.id, fullName };
+}
+
+async function saveUserAddress(userId, fullName, deliveryAddress) {
   try {
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .upsert({
-        user_id: data.user.id,
-        full_name: fullName,
-        phone: phone
-      }, {
-        onConflict: 'user_id'
+    // Check if address already exists
+    const { data: existing, error: checkError } = await supabase
+      .from('user_addresses')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1);
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.warn(`⚠️  Error checking existing address for user ${userId}:`, checkError.message);
+      return false;
+    }
+
+    if (existing && existing.length > 0) {
+      // Address already exists, skip
+      return true;
+    }
+
+    // Insert new address
+    const { error: insertError } = await supabase
+      .from('user_addresses')
+      .insert({
+        user_id: userId,
+        full_name: fullName || deliveryAddress.receiver || 'Customer',
+        phone: deliveryAddress.phone || generatePhoneNumber(),
+        street_address: deliveryAddress.street || deliveryAddress.streetAddress || '',
+        barangay: deliveryAddress.barangay || '',
+        city: deliveryAddress.city || '',
+        province: deliveryAddress.province || '',
+        postal_code: deliveryAddress.postal_code || deliveryAddress.postalCode || '',
+        address: deliveryAddress.address || '',
+        is_default: true
       });
 
-    if (profileError) {
-      console.warn(`⚠️ Failed to create user_profile for ${email}:`, profileError.message);
+    if (insertError) {
+      console.warn(`⚠️  Error saving address for user ${userId}:`, insertError.message);
+      return false;
     }
-  } catch (profileErr) {
-    console.warn(`⚠️ Error creating user_profile for ${email}:`, profileErr.message);
-  }
 
-  return { id: data.user.id, fullName, phone };
+    return true;
+  } catch (error) {
+    console.warn(`⚠️  Exception saving address for user ${userId}:`, error.message);
+    return false;
+  }
 }
 
 function findCityData(cityName) {
@@ -2254,135 +1476,22 @@ function selectCityForBranch(branchName) {
   const preferredCityName = BRANCH_TO_CITY.get(upperBranch);
   const baseCity = findCityData(preferredCityName);
   const roll = Math.random();
-  
-  // Get nearby cities for this branch
-  const nearbyCities = BRANCH_NEARBY_CITIES.get(normaliseKey(branchName)) || [];
-  const nearbyCityData = nearbyCities
-    .map(cityName => findCityData(cityName))
-    .filter(city => city !== null);
 
-  if (baseCity && baseCity.province === 'Batangas') {
-    // For Batangas Province branches: spread more widely across the province
-    // 35% chance: branch city (concentration)
-    if (roll < 0.35) {
-      const branchCityCount = CUSTOMER_LOCATION_TRACKER.branchCityCounts.get(upperBranch) || 0;
-      CUSTOMER_LOCATION_TRACKER.branchCityCounts.set(upperBranch, branchCityCount + 1);
+  if (baseCity) {
+    if (roll < 0.72) {
       return baseCity;
     }
-    
-    // 30% chance: nearby cities (within same province/region)
-    if (roll < 0.65 && nearbyCityData.length > 0) {
-      // Prefer nearby cities with fewer customers
-      const nearbyWithCounts = nearbyCityData.map(city => ({
-        city,
-        count: CUSTOMER_LOCATION_TRACKER.cityCounts.get(city.city) || 0
-      }));
-      nearbyWithCounts.sort((a, b) => a.count - b.count);
-      const selected = nearbyWithCounts[0].city;
-      const cityCount = CUSTOMER_LOCATION_TRACKER.cityCounts.get(selected.city) || 0;
-      CUSTOMER_LOCATION_TRACKER.cityCounts.set(selected.city, cityCount + 1);
-      return selected;
-    }
-    
-    // 25% chance: other cities in Batangas Province (wide distribution)
-    if (roll < 0.90) {
-      const sameProvince = CITY_DATA.filter(city => 
-        city.city !== baseCity.city && 
-        city.province === 'Batangas' &&
-        !nearbyCityData.some(nc => nc.city === city.city)
-      );
-      if (sameProvince.length) {
-        // Prefer cities with fewer customers
-        const provinceWithCounts = sameProvince.map(city => ({
-          city,
-          count: CUSTOMER_LOCATION_TRACKER.cityCounts.get(city.city) || 0
-        }));
-        provinceWithCounts.sort((a, b) => a.count - b.count);
-        const selected = provinceWithCounts[0].city;
-        const cityCount = CUSTOMER_LOCATION_TRACKER.cityCounts.get(selected.city) || 0;
-        CUSTOMER_LOCATION_TRACKER.cityCounts.set(selected.city, cityCount + 1);
-        return selected;
-      }
-    }
-    
-    // 8% chance: other Calabarzon/Mindoro cities
-    if (roll < 0.98) {
-      const calabarzonMindoro = CITY_DATA.filter(city => 
-        (city.region === 'CALABARZON' || city.region === 'MIMAROPA') &&
-        city.city !== baseCity.city &&
-        city.province !== 'Batangas' &&
-        !nearbyCityData.some(nc => nc.city === city.city)
-      );
-      if (calabarzonMindoro.length) {
-        const selected = getRandomElement(calabarzonMindoro);
-        const cityCount = CUSTOMER_LOCATION_TRACKER.cityCounts.get(selected.city) || 0;
-        CUSTOMER_LOCATION_TRACKER.cityCounts.set(selected.city, cityCount + 1);
-        return selected;
-      }
-    }
-  } else if (baseCity) {
-    // For non-Batangas branches: original logic
-    // 50% chance: branch city (concentration)
-    if (roll < 0.50) {
-      const branchCityCount = CUSTOMER_LOCATION_TRACKER.branchCityCounts.get(upperBranch) || 0;
-      CUSTOMER_LOCATION_TRACKER.branchCityCounts.set(upperBranch, branchCityCount + 1);
-      return baseCity;
-    }
-    
-    // 25% chance: nearby cities (within same province/region)
-    if (roll < 0.75 && nearbyCityData.length > 0) {
-      const nearbyWithCounts = nearbyCityData.map(city => ({
-        city,
-        count: CUSTOMER_LOCATION_TRACKER.cityCounts.get(city.city) || 0
-      }));
-      nearbyWithCounts.sort((a, b) => a.count - b.count);
-      const selected = nearbyWithCounts[0].city;
-      const cityCount = CUSTOMER_LOCATION_TRACKER.cityCounts.get(selected.city) || 0;
-      CUSTOMER_LOCATION_TRACKER.cityCounts.set(selected.city, cityCount + 1);
-      return selected;
-    }
-    
-    // 15% chance: other cities in same province
-    if (roll < 0.90) {
-      const sameProvince = CITY_DATA.filter(city => 
-        city.city !== baseCity.city && 
-        city.province === baseCity.province &&
-        !nearbyCityData.some(nc => nc.city === city.city)
-      );
-      if (sameProvince.length) {
-        const selected = getRandomElement(sameProvince);
-        const cityCount = CUSTOMER_LOCATION_TRACKER.cityCounts.get(selected.city) || 0;
-        CUSTOMER_LOCATION_TRACKER.cityCounts.set(selected.city, cityCount + 1);
-        return selected;
-      }
-    }
-    
-    // 8% chance: other Calabarzon/Mindoro cities
-    if (roll < 0.98) {
-      const calabarzonMindoro = CITY_DATA.filter(city => 
-        (city.region === 'CALABARZON' || city.region === 'MIMAROPA') &&
-        city.city !== baseCity.city &&
-        !nearbyCityData.some(nc => nc.city === city.city)
-      );
-      if (calabarzonMindoro.length) {
-        const selected = getRandomElement(calabarzonMindoro);
-        const cityCount = CUSTOMER_LOCATION_TRACKER.cityCounts.get(selected.city) || 0;
-        CUSTOMER_LOCATION_TRACKER.cityCounts.set(selected.city, cityCount + 1);
-        return selected;
-      }
+    const sameProvince = CITY_DATA.filter(city => city.city !== baseCity.city && city.province === baseCity.province);
+    if (roll < 0.92 && sameProvince.length) {
+      return getRandomElement(sameProvince);
     }
   }
 
-  // 2% chance: far cities (rare)
-  if (roll > 0.98) {
+  if (roll > 0.97) {
     return getRandomElement(FAR_CITY_DATA);
   }
 
-  // Fallback: random from CITY_DATA
-  const selected = getRandomElement(CITY_DATA);
-  const cityCount = CUSTOMER_LOCATION_TRACKER.cityCounts.get(selected.city) || 0;
-  CUSTOMER_LOCATION_TRACKER.cityCounts.set(selected.city, cityCount + 1);
-  return selected;
+  return getRandomElement(CITY_DATA);
 }
 
 async function loadExistingCustomers() {
@@ -2414,98 +1523,6 @@ async function loadExistingCustomers() {
   }
 
   return customerUsers;
-}
-
-/**
- * Load existing city counts from database to initialize CUSTOMER_LOCATION_TRACKER
- * Uses the same query logic as query-customers-by-city-simple.sql
- */
-async function loadExistingCityCounts() {
-  console.log('📍 Loading existing city counts from database...');
-  
-  try {
-    // Query cities from user_addresses
-    const { data: addressCities, error: addressError } = await supabase
-      .from('user_addresses')
-      .select('user_id, city, province')
-      .not('city', 'is', null)
-      .neq('city', '')
-      .in('province', ['Batangas', 'Oriental Mindoro']);
-
-    if (addressError) {
-      console.warn('   ⚠️  Error loading cities from user_addresses:', addressError.message);
-    }
-
-    // Query cities from orders.delivery_address
-    // Note: We need to fetch all orders and filter in JavaScript since Supabase client
-    // doesn't easily support JSONB field filtering for nested properties
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('user_id, delivery_address, status')
-      .not('delivery_address', 'is', null);
-
-    if (ordersError) {
-      console.warn('   ⚠️  Error loading cities from orders:', ordersError.message);
-    }
-
-    // Combine and count cities
-    const cityUserMap = new Map(); // "city|province" -> Set of user_ids
-
-    // Process user_addresses
-    if (addressCities) {
-      for (const addr of addressCities) {
-        const city = (addr.city || '').trim();
-        const province = (addr.province || '').trim();
-        if (city && province) {
-          const key = `${city}|${province}`;
-          if (!cityUserMap.has(key)) {
-            cityUserMap.set(key, new Set());
-          }
-          cityUserMap.get(key).add(addr.user_id);
-        }
-      }
-    }
-
-    // Process orders.delivery_address
-    if (orders) {
-      for (const order of orders) {
-        // Skip cancelled orders
-        const status = (order.status || '').toLowerCase();
-        if (status === 'cancelled' || status === 'canceled') {
-          continue;
-        }
-        
-        const deliveryAddr = order.delivery_address;
-        if (deliveryAddr && typeof deliveryAddr === 'object') {
-          const city = (deliveryAddr.city || '').trim();
-          const province = (deliveryAddr.province || '').trim();
-          if (city && province && 
-              (province === 'Batangas' || province === 'Oriental Mindoro')) {
-            const key = `${city}|${province}`;
-            if (!cityUserMap.has(key)) {
-              cityUserMap.set(key, new Set());
-            }
-            cityUserMap.get(key).add(order.user_id);
-          }
-        }
-      }
-    }
-
-    // Initialize CUSTOMER_LOCATION_TRACKER.cityCounts
-    let loadedCount = 0;
-    for (const [key, userIds] of cityUserMap.entries()) {
-      const [city, province] = key.split('|');
-      const count = userIds.size;
-      CUSTOMER_LOCATION_TRACKER.cityCounts.set(city, count);
-      loadedCount++;
-    }
-
-    console.log(`   ✅ Loaded ${loadedCount} cities with existing customer counts`);
-    return true;
-  } catch (error) {
-    console.error('   ❌ Error loading existing city counts:', error.message);
-    return false;
-  }
 }
 
 async function prepareCustomers(targetCount) {
@@ -2936,7 +1953,9 @@ function generateSingleOrderLegacy(date) {
       jersey_type: jerseyType.toLowerCase().replace(/\s+/g, '_'),
       is_full_set: isFullSet,
       is_shirt_only: isShirtOnly,
-      is_short_only: isShortOnly
+      is_short_only: isShortOnly,
+      fabric_type: getFabricType('sublimation', 'jersey'),
+      cut_type: getCutType('sublimation', 'jersey')
     });
   } else if (orderType < 0.90) {
     // Hoodie order
@@ -2954,7 +1973,9 @@ function generateSingleOrderLegacy(date) {
       category: 'hoodie',
       quantity: quantity,
       pricePerUnit: pricePerUnit,
-      totalPrice: itemTotal
+      totalPrice: itemTotal,
+      fabric_type: getFabricType('hoodie', 'hoodie'),
+      cut_type: getCutType('hoodie', 'hoodie')
     });
   } else {
     // Sports materials order
@@ -3025,6 +2046,9 @@ function generateSingleOrderLegacy(date) {
   // Pickup location - distributed across all branches with weighted priority
   const pickupLocation = global.pickBranch ? global.pickBranch() : getRandomElement(branches);
 
+  // Historical status distribution: fulfilled vs cancelled
+  const orderStatus = Math.random() < 0.97 ? 'picked_up_delivered' : 'cancelled';
+
   // Walk-in orders only (store pickup)
   const shippingMethod = 'pickup';
 
@@ -3033,48 +2057,9 @@ function generateSingleOrderLegacy(date) {
 
   // Historical walk-in orders have no shipping charges
   const shippingCost = 0;
-
-  // Determine order status and delivery date based on product type
-  // Legacy function mostly generates jerseys (apparel), so apply processing time
-  const orderDate = new Date(date);
-  const isApparelOrder = hasApparelProducts(orderItems);
-  let orderStatus;
-  let deliveryDate = orderDate;
-  let updatedAt = orderDate;
-
-  if (Math.random() < 0.97) {
-    // 97% of orders are fulfilled
-    if (isApparelOrder) {
-      // Apparel orders: 5-7 business days processing time
-      const businessDays = getRandomInt(5, 8); // 5-7 business days (inclusive)
-      deliveryDate = addBusinessDays(orderDate, businessDays);
-      
-      // For historical data, if delivery date is in the past, mark as delivered
-      const now = new Date();
-      if (deliveryDate <= now) {
-        orderStatus = 'picked_up_delivered';
-        updatedAt = deliveryDate;
-      } else {
-        // Future order - start as pending (though this shouldn't happen in historical data)
-        orderStatus = 'pending';
-        updatedAt = orderDate;
-      }
-    } else {
-      // Non-apparel orders (balls, trophies): can be delivered same day
-      orderStatus = 'picked_up_delivered';
-      deliveryDate = orderDate;
-      updatedAt = orderDate;
-    }
-  } else {
-    // 3% of orders are cancelled
-    orderStatus = 'cancelled';
-    deliveryDate = orderDate;
-    updatedAt = orderDate;
-  }
   
   return {
-    orderDate: orderDate,
-    deliveryDate: deliveryDate, // Date when order becomes a sale (for apparel: 5-7 business days later)
+    orderDate: new Date(date),
     status: orderStatus,
     shippingMethod: shippingMethod,
     pickupLocation: pickupLocation,
@@ -3084,8 +2069,7 @@ function generateSingleOrderLegacy(date) {
     shippingCost: shippingCost,
     totalAmount: totalAmount + shippingCost,
     totalItems: totalItems,
-    orderItems: orderItems,
-    isApparelOrder: isApparelOrder
+    orderItems: orderItems
   };
 }
 
@@ -3103,50 +2087,22 @@ function generateSingleOrder(date) {
   const teamName = getRandomElement(teamNames);
   const orderCategoryRoll = Math.random();
 
-  // Product distribution:
-  // 32% Basketball jerseys, 22% Volleyball jerseys, 13% T-shirts, 13% Hoodies, 10% Long Sleeves, 11% Uniforms
-  // 3% Trophies, 6% Medals, 3% Balls
-  // Total: 113%, normalized to 100%
-  
-  let productCategory = null;
-  let sportType = null;
-  
+  // Product distribution: 32% Basketball, 22% Volleyball, 13% T-shirts, 13% Hoodies, 
+  // 10% Long Sleeves, 11% Uniforms, 3% Trophies, 6% Medals, 3% Balls
+  // Using exact percentages as cumulative thresholds (they sum to 113%, treating as proportions):
+  // Basketball: 0 to 0.32 (32%)
+  // Volleyball: 0.32 to 0.54 (22%)
+  // T-shirts: 0.54 to 0.67 (13%)
+  // Hoodies: 0.67 to 0.80 (13%)
+  // Long Sleeves: 0.80 to 0.90 (10%)
+  // Uniforms: 0.90 to 1.01 (11%) - but Math.random() max is 1.0, so we use 0.90 to 1.0
+  // For the remaining 12% (Trophies 3%, Medals 6%, Balls 3%), we'll use the remaining 10% of range
+  // and scale proportionally: Trophies 3/12, Medals 6/12, Balls 3/12 of the 0.90-1.0 range
   if (orderCategoryRoll < 0.32) {
-    // 32% Basketball jerseys
-    productCategory = 'jersey';
-    sportType = 'Basketball';
-  } else if (orderCategoryRoll < 0.54) {
-    // 22% Volleyball jerseys
-    productCategory = 'jersey';
-    sportType = 'Volleyball';
-  } else if (orderCategoryRoll < 0.67) {
-    // 13% T-shirts
-    productCategory = 'tshirt';
-  } else if (orderCategoryRoll < 0.80) {
-    // 13% Hoodies
-    productCategory = 'hoodie';
-  } else if (orderCategoryRoll < 0.90) {
-    // 10% Long Sleeves
-    productCategory = 'longsleeve';
-  } else if (orderCategoryRoll < 1.01) {
-    // 11% Uniforms
-    productCategory = 'uniform';
-  } else if (orderCategoryRoll < 1.04) {
-    // 3% Trophies (normalized: 2.65%)
-    productCategory = 'trophy';
-  } else if (orderCategoryRoll < 1.10) {
-    // 6% Medals (normalized: 5.31%)
-    productCategory = 'medal';
-  } else {
-    // 3% Balls (normalized: 2.65%)
-    productCategory = 'ball';
-  }
-
-  // Handle jerseys
-  if (productCategory === 'jersey') {
+    // Basketball: 32% of orders
+    const sportType = 'Basketball';
     let product = pickProductFromCatalog('jerseys', APPAREL_CATEGORY_KEYS);
     isTeamOrder = Math.random() < 0.85;
-    // Distribute jersey variants: 50% Full Set, 30% Shirt Only, 20% Shorts Only
     const variantRoll = Math.random();
     let variantKey = 'fullSet';
     let variantLabel = 'Full Set';
@@ -3196,26 +2152,13 @@ function generateSingleOrder(date) {
         }
       }
 
-    // Adjust quantity to meet spending target (7k-15k for apparel)
-    const targetMin = 7000;
-    const targetMax = 15000;
-    let quantity;
-    
     if (isTeamOrder) {
-      // For team orders, calculate quantity to reach target range
-      const targetAmount = getRandomInt(targetMin, targetMax);
-      const teamSize = Math.max(8, Math.min(20, Math.round(targetAmount / pricePerUnit)));
+      const teamSize = getRandomInt(8, 15);
       const teamMembers = buildTeamMembers(teamName, teamSize, sizeType, variantKey);
-      quantity = teamMembers.length;
+      const quantity = teamMembers.length;
       orderTeamName = teamName;
       totalAmount += pricePerUnit * quantity;
       totalItems += quantity;
-      // Generate cut type and fabric for variety
-      const cutTypes = ['Normal Cut', 'NBA Cut'];
-      const fabrics = ['Polyester', 'Dri-Fit', 'Mesh', 'Sublimation'];
-      const cutType = getRandomElement(cutTypes);
-      const fabric = getRandomElement(fabrics);
-      
       orderItems.push({
         id: product.id,
         name: product.name,
@@ -3227,115 +2170,181 @@ function generateSingleOrder(date) {
         totalPrice: pricePerUnit * quantity,
         product_type: 'jersey',
         jerseyType: variantLabel,
-        variantKey: variantKey, // fullSet, shirtOnly, shortsOnly
         sport: sportType,
-        cut_type: cutType,
-        cutType: cutType,
-        fabric: fabric,
-        fabric_option: fabric,
-        fabricOption: fabric,
         isTeamOrder: true,
         teamName,
         team_name: teamName,
         teamMembers,
         team_members: teamMembers,
-        sizeType
+        sizeType,
+        fabric_type: getFabricType(product.category, 'jersey'),
+        cut_type: getCutType(product.category, 'jersey')
       });
     } else {
-      // Single jersey orders - if price is too low, make it a small team order to meet target
-      if (pricePerUnit < targetMin) {
-        const targetAmount = getRandomInt(targetMin, targetMax);
-        const teamSize = Math.max(2, Math.min(10, Math.round(targetAmount / pricePerUnit)));
-        isTeamOrder = true;
-        const teamMembers = buildTeamMembers(teamName, teamSize, sizeType, variantKey);
-        quantity = teamMembers.length;
-        orderTeamName = teamName;
-        totalAmount += pricePerUnit * quantity;
-        totalItems += quantity;
-        // Generate cut type and fabric for variety
-        const cutTypes = ['Normal Cut', 'NBA Cut'];
-        const fabrics = ['Polyester', 'Dri-Fit', 'Mesh', 'Sublimation'];
-        const cutType = getRandomElement(cutTypes);
-        const fabric = getRandomElement(fabrics);
-        
-        orderItems.push({
-          id: product.id,
-          name: product.name,
-          image: product.main_image,
-          category: product.category,
-          price: pricePerUnit,
-          pricePerUnit,
-          quantity,
-          totalPrice: pricePerUnit * quantity,
-          product_type: 'jersey',
-          jerseyType: variantLabel,
-          variantKey: variantKey, // fullSet, shirtOnly, shortsOnly
-          sport: sportType,
-          cut_type: cutType,
-          cutType: cutType,
-          fabric: fabric,
-          fabric_option: fabric,
-          fabricOption: fabric,
-          isTeamOrder: true,
-          teamName,
-          team_name: teamName,
-          teamMembers,
-          team_members: teamMembers,
-          sizeType
-        });
-      } else {
-        // Single order with sufficient value
+      // Individual orders: 1-3 jerseys (15% of orders)
+      const individualQuantity = getRandomInt(1, 3);
+      const teamMembers = [];
+      for (let i = 0; i < individualQuantity; i++) {
         const singleDetails = buildSingleOrderDetails(teamName, sizeType, variantKey);
-        orderTeamName = singleDetails.teamName || teamName;
-        totalAmount += pricePerUnit;
-        totalItems += 1;
-        // Generate cut type and fabric for variety
-        const cutTypes = ['Normal Cut', 'NBA Cut'];
-        const fabrics = ['Polyester', 'Dri-Fit', 'Mesh', 'Sublimation'];
-        const cutType = getRandomElement(cutTypes);
-        const fabric = getRandomElement(fabrics);
-        
-        orderItems.push({
-          id: product.id,
-          name: product.name,
-          image: product.main_image,
-          category: product.category,
-          price: pricePerUnit,
-          pricePerUnit,
-          quantity: 1,
-          totalPrice: pricePerUnit,
-          product_type: 'jersey',
-          jerseyType: variantLabel,
-          variantKey: variantKey, // fullSet, shirtOnly, shortsOnly
-          sport: sportType,
-          cut_type: cutType,
-          cutType: cutType,
-          fabric: fabric,
-          fabric_option: fabric,
-          fabricOption: fabric,
-          isTeamOrder: false,
-          teamName: singleDetails.teamName,
-          team_name: singleDetails.teamName,
-          singleOrderDetails: singleDetails,
-          single_order_details: singleDetails,
-          sizeType
+        teamMembers.push({
+          ...singleDetails,
+          firstName: singleDetails.firstName || getRandomElement(firstNames),
+          surname: singleDetails.surname || getRandomElement(lastNames)
         });
       }
+      orderTeamName = teamName;
+      totalAmount += pricePerUnit * individualQuantity;
+      totalItems += individualQuantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity: individualQuantity,
+        totalPrice: pricePerUnit * individualQuantity,
+        product_type: 'jersey',
+        jerseyType: variantLabel,
+        sport: sportType,
+        isTeamOrder: false,
+        teamName,
+        team_name: teamName,
+        teamMembers,
+        team_members: teamMembers,
+        sizeType,
+        fabric_type: getFabricType(product.category, 'jersey'),
+        cut_type: getCutType(product.category, 'jersey')
+      });
     }
-  } else if (productCategory === 'tshirt' || productCategory === 'hoodie' || productCategory === 'longsleeve' || productCategory === 'uniform') {
-    // Handle other apparel (T-shirts, Hoodies, Long Sleeves, Uniforms)
-    const categoryMap = {
-      'tshirt': 'tshirts',
-      'hoodie': 'hoodies',
-      'longsleeve': 'longsleeves',
-      'uniform': 'uniforms'
-    };
-    
-    const apparelCategories = categoryMap[productCategory] ? [categoryMap[productCategory]] : ['tshirts'];
+  } else if (orderCategoryRoll < 0.54) {
+    // Volleyball: 22% of orders (0.32 to 0.54)
+    const sportType = 'Volleyball';
+    let product = pickProductFromCatalog('jerseys', APPAREL_CATEGORY_KEYS);
+    isTeamOrder = Math.random() < 0.85;
+    const variantRoll = Math.random();
+    let variantKey = 'fullSet';
+    let variantLabel = 'Full Set';
+
+    if (variantRoll >= 0.50 && variantRoll < 0.80) {
+      variantKey = 'shirtOnly';
+      variantLabel = 'Shirt Only';
+    } else if (variantRoll >= 0.80) {
+      variantKey = 'shortsOnly';
+      variantLabel = 'Short Only';
+    }
+
+    if (!product) {
+      product = createSyntheticProduct('jersey', {
+        sportType,
+        teamName,
+        fullSetPrice: getRandomInt(1180, 1420),
+        shirtOnlyPrice: getRandomInt(690, 890),
+        shortsOnlyPrice: getRandomInt(520, 680)
+      });
+    }
+
+      const jerseyPrices = product.jersey_prices || {};
+      let pricePerUnit = parsePrice(jerseyPrices[variantKey], parsePrice(product.price, 1000));
+      const sizeType = isTeamOrder
+        ? (Math.random() < 0.7 ? 'kids' : 'adult')
+        : (Math.random() < 0.6 ? 'kids' : 'adult');
+      const sportKey = sportType.toLowerCase();
+
+      if (sizeType === 'kids' && productCategories.sublimation[sportKey]) {
+        const pricing = productCategories.sublimation[sportKey];
+        if (variantKey === 'fullSet') {
+          pricePerUnit = pricing.kids;
+        } else if (variantKey === 'shirtOnly') {
+          pricePerUnit = pricing.upper_kids;
+        } else if (variantKey === 'shortsOnly') {
+          pricePerUnit = Math.max(400, Math.round(pricing.kids * 0.45));
+        }
+      } else if (sizeType === 'adult' && productCategories.sublimation[sportKey]) {
+        const pricing = productCategories.sublimation[sportKey];
+        if (variantKey === 'fullSet') {
+          pricePerUnit = pricing.adult;
+        } else if (variantKey === 'shirtOnly') {
+          pricePerUnit = pricing.upper_adult;
+        } else if (variantKey === 'shortsOnly') {
+          pricePerUnit = Math.max(520, Math.round(pricing.adult * 0.5));
+        }
+      }
+
+    if (isTeamOrder) {
+      const teamSize = getRandomInt(8, 15);
+      const teamMembers = buildTeamMembers(teamName, teamSize, sizeType, variantKey);
+      const quantity = teamMembers.length;
+      orderTeamName = teamName;
+      totalAmount += pricePerUnit * quantity;
+      totalItems += quantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity,
+        totalPrice: pricePerUnit * quantity,
+        product_type: 'jersey',
+        jerseyType: variantLabel,
+        sport: sportType,
+        isTeamOrder: true,
+        teamName,
+        team_name: teamName,
+        teamMembers,
+        team_members: teamMembers,
+        sizeType,
+        fabric_type: getFabricType(product.category, 'jersey'),
+        cut_type: getCutType(product.category, 'jersey')
+      });
+    } else {
+      // Individual orders: 1-3 jerseys (15% of orders)
+      const individualQuantity = getRandomInt(1, 3);
+      const teamMembers = [];
+      for (let i = 0; i < individualQuantity; i++) {
+        const singleDetails = buildSingleOrderDetails(teamName, sizeType, variantKey);
+        teamMembers.push({
+          ...singleDetails,
+          firstName: singleDetails.firstName || getRandomElement(firstNames),
+          surname: singleDetails.surname || getRandomElement(lastNames)
+        });
+      }
+      orderTeamName = teamName;
+      totalAmount += pricePerUnit * individualQuantity;
+      totalItems += individualQuantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity: individualQuantity,
+        totalPrice: pricePerUnit * individualQuantity,
+        product_type: 'jersey',
+        jerseyType: variantLabel,
+        sport: sportType,
+        isTeamOrder: false,
+        teamName,
+        team_name: teamName,
+        teamMembers,
+        team_members: teamMembers,
+        sizeType,
+        fabric_type: getFabricType(product.category, 'jersey'),
+        cut_type: getCutType(product.category, 'jersey')
+      });
+    }
+  } else if (orderCategoryRoll < 0.67) {
+    // T-shirts: 13% of orders (0.54 to 0.67)
+    let apparelCategory = 'tshirts';
+    let fallbackCategory = 'tshirts';
+    const apparelCategories = [apparelCategory];
     let product = pickProductFromCatalog(apparelCategories, APPAREL_CATEGORY_KEYS);
 
     if (!product) {
-      product = createSyntheticProduct(productCategory, {
+      product = createSyntheticProduct(fallbackCategory, {
         teamName,
         basePrice: getRandomInt(720, 1080)
       });
@@ -3348,163 +2357,308 @@ function generateSingleOrder(date) {
 
     let pricePerUnit = parsePrice(product.price, sizeType === 'kids' ? 700 : 900);
     if (sizeType === 'kids') {
-      const cap = productCategory === 'uniform' ? 780 : 640;
+      const cap = fallbackCategory === 'uniforms' ? 780 : 640;
       pricePerUnit = Math.min(pricePerUnit, cap);
-    } else if (productCategory === 'uniform') {
+    } else if (fallbackCategory === 'uniforms') {
       pricePerUnit = Math.max(pricePerUnit, 920);
     }
 
-    // Adjust quantity to meet spending target (7k-15k for apparel)
-    const targetMin = 7000;
-    const targetMax = 15000;
-    let quantity;
-    
-    // Generate cut type and fabric for variety (applies to all apparel)
-    const cutTypes = ['Normal Cut', 'NBA Cut'];
-    const fabrics = ['Polyester', 'Dri-Fit', 'Mesh', 'Sublimation'];
-    const cutType = getRandomElement(cutTypes);
-    const fabric = getRandomElement(fabrics);
-    
     if (isTeamOrder) {
-      // For team orders, calculate quantity to reach target range
-      const targetAmount = getRandomInt(targetMin, targetMax);
-      quantity = Math.max(6, Math.min(20, Math.round(targetAmount / pricePerUnit)));
-      const teamMembers = buildTeamMembers(teamName, quantity, sizeType);
-      quantity = teamMembers.length;
+      const teamSize = getRandomInt(6, 12);
+      const teamMembers = buildTeamMembers(teamName, teamSize, sizeType);
+      const quantity = teamMembers.length;
       orderTeamName = teamName;
-    } else {
-      // Single orders - if price is too low, make it a small team order
-      if (pricePerUnit < targetMin) {
-        const targetAmount = getRandomInt(targetMin, targetMax);
-        quantity = Math.max(2, Math.min(10, Math.round(targetAmount / pricePerUnit)));
-        isTeamOrder = true;
-        const teamMembers = buildTeamMembers(teamName, quantity, sizeType);
-        quantity = teamMembers.length;
-        orderTeamName = teamName;
-      } else {
-        quantity = 1;
-        const singleDetails = buildSingleOrderDetails(teamName, sizeType);
-        orderTeamName = singleDetails.teamName || teamName;
-      }
-    }
-
-    totalAmount += pricePerUnit * quantity;
-    totalItems += quantity;
-    
-    if (isTeamOrder) {
-      const teamMembers = buildTeamMembers(teamName, quantity, sizeType);
-      orderItems.push({
-        id: product.id,
-        name: product.name,
-        image: product.main_image,
-        category: product.category || productCategory,
-        price: pricePerUnit,
-        pricePerUnit,
-        quantity,
-        totalPrice: pricePerUnit * quantity,
-        product_type: (product.category || productCategory).toLowerCase(),
-        cut_type: cutType,
-        cutType: cutType,
-        fabric: fabric,
-        fabric_option: fabric,
-        fabricOption: fabric,
-        isTeamOrder: true,
-        teamName,
-        team_name: teamName,
-        teamMembers,
-        team_members: teamMembers,
-        sizeType
-      });
-    } else {
-      const singleDetails = buildSingleOrderDetails(teamName, sizeType);
-      orderItems.push({
-        id: product.id,
-        name: product.name,
-        image: product.main_image,
-        category: product.category || productCategory,
-        price: pricePerUnit,
-        pricePerUnit,
-        quantity: 1,
-        totalPrice: pricePerUnit,
-        product_type: (product.category || productCategory).toLowerCase(),
-        cut_type: cutType,
-        cutType: cutType,
-        fabric: fabric,
-        fabric_option: fabric,
-        fabricOption: fabric,
-        isTeamOrder: false,
-        teamName: singleDetails.teamName,
-        team_name: singleDetails.teamName,
-        singleOrderDetails: singleDetails,
-        single_order_details: singleDetails,
-        sizeType
-      });
-    }
-  }
-
-  // Handle non-apparel products (Trophies, Medals, Balls)
-  if (productCategory === 'trophy' || productCategory === 'medal' || productCategory === 'ball') {
-    // Clear any apparel items if we're generating non-apparel
-    orderItems = [];
-    totalAmount = 0;
-    totalItems = 0;
-    isTeamOrder = false;
-    orderTeamName = null;
-
-    if (productCategory === 'ball') {
-      let product = pickProductFromCatalog('balls', 'others');
-      if (!product) {
-        const ballType = getRandomElement(['basketball', 'volleyball', 'football']);
-        product = createSyntheticProduct('ball', {
-          ballType,
-          basePrice: getRandomInt(1650, 2250)
-        });
-      }
-      // Target: 1k-5k for non-apparel
-      const targetMin = 1000;
-      const targetMax = 5000;
-      const targetAmount = getRandomInt(targetMin, targetMax);
-      const pricePerUnit = parsePrice(product.price, 1800);
-      const quantity = Math.max(1, Math.min(15, Math.round(targetAmount / pricePerUnit)));
-      const ballDetails = buildBallDetails(product.name);
       totalAmount += pricePerUnit * quantity;
       totalItems += quantity;
       orderItems.push({
         id: product.id,
         name: product.name,
         image: product.main_image,
-        category: product.category || 'Balls',
+        category: product.category,
         price: pricePerUnit,
         pricePerUnit,
         quantity,
         totalPrice: pricePerUnit * quantity,
-        product_type: 'ball',
-        ballDetails,
-        ball_details: ballDetails
+        product_type: (product.category || fallbackCategory).toLowerCase(),
+        isTeamOrder: true,
+        teamName,
+        team_name: teamName,
+        teamMembers,
+        team_members: teamMembers,
+        sizeType,
+        fabric_type: getFabricType(product.category || fallbackCategory, product.product_type),
+        cut_type: getCutType(product.category || fallbackCategory, product.product_type)
       });
-    } else if (productCategory === 'medal') {
-      // Medals
-      const medalType = getRandomElement(['gold', 'silver', 'bronze']);
-      const pricePerUnit = productCategories.sports_materials.medal[medalType];
-      // Target: 1k-5k for non-apparel
-      const targetMin = 1000;
-      const targetMax = 5000;
-      const targetAmount = getRandomInt(targetMin, targetMax);
-      const quantity = Math.max(5, Math.min(50, Math.round(targetAmount / pricePerUnit)));
-      const itemTotal = pricePerUnit * quantity;
-      totalAmount += itemTotal;
+    } else {
+      const singleDetails = buildSingleOrderDetails(teamName, sizeType);
+      orderTeamName = singleDetails.teamName || teamName;
+      totalAmount += pricePerUnit;
+      totalItems += 1;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity: 1,
+        totalPrice: pricePerUnit,
+        product_type: (product.category || fallbackCategory).toLowerCase(),
+        isTeamOrder: false,
+        teamName: singleDetails.teamName,
+        team_name: singleDetails.teamName,
+        singleOrderDetails: singleDetails,
+        single_order_details: singleDetails,
+        sizeType,
+        fabric_type: getFabricType(product.category || fallbackCategory, product.product_type),
+        cut_type: getCutType(product.category || fallbackCategory, product.product_type)
+      });
+    }
+  } else if (orderCategoryRoll < 0.80) {
+    // Hoodies: 13% of orders (0.67 to 0.80)
+    let apparelCategory = 'hoodies';
+    let fallbackCategory = 'hoodies';
+    const apparelCategories = [apparelCategory];
+    let product = pickProductFromCatalog(apparelCategories, APPAREL_CATEGORY_KEYS);
+
+    if (!product) {
+      product = createSyntheticProduct(fallbackCategory, {
+        teamName,
+        basePrice: getRandomInt(720, 1080)
+      });
+    }
+
+    isTeamOrder = Math.random() < 0.7;
+    const sizeType = isTeamOrder
+      ? (Math.random() < 0.65 ? 'kids' : 'adult')
+      : (Math.random() < 0.55 ? 'kids' : 'adult');
+
+    let pricePerUnit = parsePrice(product.price, sizeType === 'kids' ? 700 : 900);
+    if (sizeType === 'kids') {
+      const cap = fallbackCategory === 'uniforms' ? 780 : 640;
+      pricePerUnit = Math.min(pricePerUnit, cap);
+    } else if (fallbackCategory === 'uniforms') {
+      pricePerUnit = Math.max(pricePerUnit, 920);
+    }
+
+    if (isTeamOrder) {
+      const teamSize = getRandomInt(6, 12);
+      const teamMembers = buildTeamMembers(teamName, teamSize, sizeType);
+      const quantity = teamMembers.length;
+      orderTeamName = teamName;
+      totalAmount += pricePerUnit * quantity;
       totalItems += quantity;
       orderItems.push({
-        product_type: 'sports_material',
-        name: `${medalType.charAt(0).toUpperCase() + medalType.slice(1)} Medal`,
-        category: 'sports_materials',
-        material_type: 'medal',
-        medal_type: medalType,
-        quantity: quantity,
-        pricePerUnit: pricePerUnit,
-        totalPrice: itemTotal
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity,
+        totalPrice: pricePerUnit * quantity,
+        product_type: (product.category || fallbackCategory).toLowerCase(),
+        isTeamOrder: true,
+        teamName,
+        team_name: teamName,
+        teamMembers,
+        team_members: teamMembers,
+        sizeType,
+        fabric_type: getFabricType(product.category || fallbackCategory, product.product_type),
+        cut_type: getCutType(product.category || fallbackCategory, product.product_type)
       });
-    } else if (productCategory === 'trophy') {
+    } else {
+      const singleDetails = buildSingleOrderDetails(teamName, sizeType);
+      orderTeamName = singleDetails.teamName || teamName;
+      totalAmount += pricePerUnit;
+      totalItems += 1;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity: 1,
+        totalPrice: pricePerUnit,
+        product_type: (product.category || fallbackCategory).toLowerCase(),
+        isTeamOrder: false,
+        teamName: singleDetails.teamName,
+        team_name: singleDetails.teamName,
+        singleOrderDetails: singleDetails,
+        single_order_details: singleDetails,
+        sizeType,
+        fabric_type: getFabricType(product.category || fallbackCategory, product.product_type),
+        cut_type: getCutType(product.category || fallbackCategory, product.product_type)
+      });
+    }
+  } else if (orderCategoryRoll < 0.90) {
+    // Long Sleeves: 10% of orders (0.80 to 0.90)
+    let apparelCategory = 'longsleeves';
+    let fallbackCategory = 'longsleeves';
+    const apparelCategories = [apparelCategory];
+    let product = pickProductFromCatalog(apparelCategories, APPAREL_CATEGORY_KEYS);
+
+    if (!product) {
+      product = createSyntheticProduct(fallbackCategory, {
+        teamName,
+        basePrice: getRandomInt(720, 1080)
+      });
+    }
+
+    isTeamOrder = Math.random() < 0.7;
+    const sizeType = isTeamOrder
+      ? (Math.random() < 0.65 ? 'kids' : 'adult')
+      : (Math.random() < 0.55 ? 'kids' : 'adult');
+
+    let pricePerUnit = parsePrice(product.price, sizeType === 'kids' ? 700 : 900);
+    if (sizeType === 'kids') {
+      const cap = fallbackCategory === 'uniforms' ? 780 : 640;
+      pricePerUnit = Math.min(pricePerUnit, cap);
+    } else if (fallbackCategory === 'uniforms') {
+      pricePerUnit = Math.max(pricePerUnit, 920);
+    }
+
+    if (isTeamOrder) {
+      const teamSize = getRandomInt(6, 12);
+      const teamMembers = buildTeamMembers(teamName, teamSize, sizeType);
+      const quantity = teamMembers.length;
+      orderTeamName = teamName;
+      totalAmount += pricePerUnit * quantity;
+      totalItems += quantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity,
+        totalPrice: pricePerUnit * quantity,
+        product_type: (product.category || fallbackCategory).toLowerCase(),
+        isTeamOrder: true,
+        teamName,
+        team_name: teamName,
+        teamMembers,
+        team_members: teamMembers,
+        sizeType,
+        fabric_type: getFabricType(product.category || fallbackCategory, product.product_type),
+        cut_type: getCutType(product.category || fallbackCategory, product.product_type)
+      });
+    } else {
+      const singleDetails = buildSingleOrderDetails(teamName, sizeType);
+      orderTeamName = singleDetails.teamName || teamName;
+      totalAmount += pricePerUnit;
+      totalItems += 1;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category,
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity: 1,
+        totalPrice: pricePerUnit,
+        product_type: (product.category || fallbackCategory).toLowerCase(),
+        isTeamOrder: false,
+        teamName: singleDetails.teamName,
+        team_name: singleDetails.teamName,
+        singleOrderDetails: singleDetails,
+        single_order_details: singleDetails,
+        sizeType,
+        fabric_type: getFabricType(product.category || fallbackCategory, product.product_type),
+        cut_type: getCutType(product.category || fallbackCategory, product.product_type)
+      });
+    }
+  } else if (orderCategoryRoll < 1.0) {
+    // Remaining 10% of range (0.90 to 1.0) contains Uniforms 11%, Trophies 3%, Medals 6%, Balls 3% = 23% total
+    // We need to scale these to fit in the 10% range proportionally
+    // Uniforms: 11/23 of remaining = 11/23 * 0.10 = 0.0478, so 0.90 to 0.9478
+    // Trophies: 3/23 of remaining = 3/23 * 0.10 = 0.0130, so 0.9478 to 0.9608
+    // Medals: 6/23 of remaining = 6/23 * 0.10 = 0.0261, so 0.9608 to 0.9869
+    // Balls: 3/23 of remaining = 3/23 * 0.10 = 0.0131, so 0.9869 to 1.0
+    const remainingRoll = (orderCategoryRoll - 0.90) / 0.10; // Normalize 0.90-1.0 to 0-1
+    
+    if (remainingRoll < 11/23) {
+      // Uniforms: 11% of total orders
+      let apparelCategory = 'uniforms';
+      let fallbackCategory = 'uniforms';
+      const apparelCategories = [apparelCategory];
+      let product = pickProductFromCatalog(apparelCategories, APPAREL_CATEGORY_KEYS);
+
+      if (!product) {
+        product = createSyntheticProduct(fallbackCategory, {
+          teamName,
+          basePrice: getRandomInt(720, 1080)
+        });
+      }
+
+      isTeamOrder = Math.random() < 0.7;
+      const sizeType = isTeamOrder
+        ? (Math.random() < 0.65 ? 'kids' : 'adult')
+        : (Math.random() < 0.55 ? 'kids' : 'adult');
+
+      let pricePerUnit = parsePrice(product.price, sizeType === 'kids' ? 700 : 900);
+      if (sizeType === 'kids') {
+        const cap = fallbackCategory === 'uniforms' ? 780 : 640;
+        pricePerUnit = Math.min(pricePerUnit, cap);
+      } else if (fallbackCategory === 'uniforms') {
+        pricePerUnit = Math.max(pricePerUnit, 920);
+      }
+
+      if (isTeamOrder) {
+        const teamSize = getRandomInt(6, 12);
+        const teamMembers = buildTeamMembers(teamName, teamSize, sizeType);
+        const quantity = teamMembers.length;
+        orderTeamName = teamName;
+        totalAmount += pricePerUnit * quantity;
+        totalItems += quantity;
+        orderItems.push({
+          id: product.id,
+          name: product.name,
+          image: product.main_image,
+          category: product.category,
+          price: pricePerUnit,
+          pricePerUnit,
+          quantity,
+          totalPrice: pricePerUnit * quantity,
+          product_type: (product.category || fallbackCategory).toLowerCase(),
+          isTeamOrder: true,
+          teamName,
+          team_name: teamName,
+          teamMembers,
+          team_members: teamMembers,
+          sizeType,
+          fabric_type: getFabricType(product.category || fallbackCategory, product.product_type),
+          cut_type: getCutType(product.category || fallbackCategory, product.product_type)
+        });
+      } else {
+        const singleDetails = buildSingleOrderDetails(teamName, sizeType);
+        orderTeamName = singleDetails.teamName || teamName;
+        totalAmount += pricePerUnit;
+        totalItems += 1;
+        orderItems.push({
+          id: product.id,
+          name: product.name,
+          image: product.main_image,
+          category: product.category,
+          price: pricePerUnit,
+          pricePerUnit,
+          quantity: 1,
+          totalPrice: pricePerUnit,
+          product_type: (product.category || fallbackCategory).toLowerCase(),
+          isTeamOrder: false,
+          teamName: singleDetails.teamName,
+          team_name: singleDetails.teamName,
+          singleOrderDetails: singleDetails,
+          single_order_details: singleDetails,
+          sizeType,
+          fabric_type: getFabricType(product.category || fallbackCategory, product.product_type),
+          cut_type: getCutType(product.category || fallbackCategory, product.product_type)
+        });
+      }
+    } else if (remainingRoll < 14/23) {
+      // Trophies: 3% of total orders
       let product = pickProductFromCatalog('trophies', 'others');
       if (!product) {
         product = createSyntheticProduct('trophy', {
@@ -3512,12 +2666,8 @@ function generateSingleOrder(date) {
           basePrice: getRandomInt(820, 1450)
         });
       }
-      // Target: 1k-5k for non-apparel
-      const targetMin = 1000;
-      const targetMax = 5000;
-      const targetAmount = getRandomInt(targetMin, targetMax);
+      const quantity = getRandomInt(3, 8);
       const pricePerUnit = parsePrice(product.price, 900);
-      const quantity = Math.max(1, Math.min(8, Math.round(targetAmount / pricePerUnit)));
       const trophyDetails = buildTrophyDetails(product.name, teamName);
       totalAmount += pricePerUnit * quantity;
       totalItems += quantity;
@@ -3534,6 +2684,53 @@ function generateSingleOrder(date) {
         trophyDetails,
         trophy_details: trophyDetails
       });
+    } else if (remainingRoll < 20/23) {
+      // Medals: 6% of total orders
+      const medalType = getRandomElement(['gold', 'silver', 'bronze']);
+      const quantity = getRandomInt(10, 50);
+      const pricePerUnit = productCategories.sports_materials.medal[medalType];
+      const itemTotal = pricePerUnit * quantity;
+      
+      totalAmount += itemTotal;
+      totalItems += quantity;
+      orderItems.push({
+        product_type: 'sports_material',
+        name: `${medalType.charAt(0).toUpperCase() + medalType.slice(1)} Medal`,
+        category: 'sports_materials',
+        material_type: 'medal',
+        medal_type: medalType,
+        quantity: quantity,
+        pricePerUnit: pricePerUnit,
+        totalPrice: itemTotal
+      });
+    } else {
+      // Balls: 3% of total orders
+      let product = pickProductFromCatalog('balls', 'others');
+      if (!product) {
+        const ballType = getRandomElement(['basketball', 'volleyball', 'football']);
+        product = createSyntheticProduct('ball', {
+          ballType,
+          basePrice: getRandomInt(1650, 2250)
+        });
+      }
+      const quantity = getRandomInt(3, 12);
+      const pricePerUnit = parsePrice(product.price, 1800);
+      const ballDetails = buildBallDetails(product.name);
+      totalAmount += pricePerUnit * quantity;
+      totalItems += quantity;
+      orderItems.push({
+        id: product.id,
+        name: product.name,
+        image: product.main_image,
+        category: product.category || 'Balls',
+        price: pricePerUnit,
+        pricePerUnit,
+        quantity,
+        totalPrice: pricePerUnit * quantity,
+        product_type: 'ball',
+        ballDetails,
+        ball_details: ballDetails
+      });
     }
   }
 
@@ -3549,6 +2746,7 @@ function generateSingleOrder(date) {
       'CALACA BRANCH', 'PINAMALAYAN BRANCH', 'ROSARIO BRANCH'
     ]);
 
+  const orderStatus = Math.random() < 0.97 ? 'picked_up_delivered' : 'cancelled';
   const shippingMethod = 'pickup';
   const deliveryAddress = generateAddress(pickupLocation);
   const shippingCost = 0;
@@ -3564,47 +2762,8 @@ function generateSingleOrder(date) {
     orderNotes = 'Sports equipment order';
   }
 
-  // Determine order status and delivery date based on product type
-  const orderDate = new Date(date);
-  const isApparelOrder = hasApparelProducts(orderItems);
-  let orderStatus;
-  let deliveryDate = orderDate;
-  let updatedAt = orderDate;
-
-  if (Math.random() < 0.97) {
-    // 97% of orders are fulfilled
-    if (isApparelOrder) {
-      // Apparel orders: 5-7 business days processing time
-      const businessDays = getRandomInt(5, 8); // 5-7 business days (inclusive)
-      deliveryDate = addBusinessDays(orderDate, businessDays);
-      
-      // For historical data, if delivery date is in the past, mark as delivered
-      // Otherwise, start with pending status
-      const now = new Date();
-      if (deliveryDate <= now) {
-        orderStatus = 'picked_up_delivered';
-        updatedAt = deliveryDate;
-      } else {
-        // Future order - start as pending (though this shouldn't happen in historical data)
-        orderStatus = 'pending';
-        updatedAt = orderDate;
-      }
-    } else {
-      // Non-apparel orders (balls, trophies): can be delivered same day
-      orderStatus = 'picked_up_delivered';
-      deliveryDate = orderDate;
-      updatedAt = orderDate;
-    }
-  } else {
-    // 3% of orders are cancelled
-    orderStatus = 'cancelled';
-    deliveryDate = orderDate;
-    updatedAt = orderDate;
-  }
-
   return {
-    orderDate: orderDate,
-    deliveryDate: deliveryDate, // Date when order becomes a sale (for apparel: 5-7 business days later)
+    orderDate: new Date(date),
     status: orderStatus,
     shippingMethod,
     pickupLocation,
@@ -3614,8 +2773,7 @@ function generateSingleOrder(date) {
     shippingCost,
     totalAmount: totalAmount + shippingCost,
     totalItems,
-    orderItems,
-    isApparelOrder: isApparelOrder
+    orderItems
   };
 }
 
@@ -3626,35 +2784,6 @@ async function generateAndInsertData() {
   const endDate = new Date(2025, 9, 31, 23, 59, 59, 999);
   
   console.log(`📅 Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}\n`);
-  
-  // Load province mapping CSV
-  console.log('🗺️  Loading province mapping...');
-  provinceMapping = loadProvinceMapping(provinceCsvPath);
-  
-  // Load city shapefile for accurate city mapping
-  console.log('🗺️  Loading city shapefile...');
-  cityShapefileMap = await loadCityShapefile(shapefilePath);
-  
-  // Get correct province codes from mapping
-  const batangasProvince = provinceMapping.get('batangas');
-  const mindoroProvince = provinceMapping.get('oriental mindoro');
-  const batangasShapefileCode = batangasProvince ? batangasProvince.shapefileCode : '401000000';
-  const mindoroShapefileCode = mindoroProvince ? mindoroProvince.shapefileCode : '1705200000';
-  
-  console.log(`   📍 Batangas province code: ${batangasShapefileCode}`);
-  console.log(`   📍 Oriental Mindoro province code: ${mindoroShapefileCode}`);
-  
-  // Initialize Batangas Province barangays with shapefile data
-  console.log('📍 Loading Batangas Province barangays...');
-  const batangasData = await loadProvinceBarangays(barangayCentroidPath, '000004010', 'Batangas', cityShapefileMap, batangasShapefileCode);
-  CUSTOMER_LOCATION_TRACKER.allBatangasBarangays = batangasData.barangays || [];
-  CUSTOMER_LOCATION_TRACKER.batangasCityCodeToName = batangasData.cityCodeToName || new Map();
-  
-  // Initialize Oriental Mindoro Province barangays with shapefile data
-  console.log('📍 Loading Oriental Mindoro Province barangays...');
-  const mindoroData = await loadProvinceBarangays(barangayCentroidPath, '000017052', 'Oriental Mindoro', cityShapefileMap, mindoroShapefileCode);
-  CUSTOMER_LOCATION_TRACKER.allOrientalMindoroBarangays = mindoroData.barangays || [];
-  CUSTOMER_LOCATION_TRACKER.orientalMindoroCityCodeToName = mindoroData.cityCodeToName || new Map();
   
   // Fetch branches from database
   console.log('🏪 Fetching branches from database...');
@@ -3684,20 +2813,21 @@ async function generateAndInsertData() {
   PRODUCT_CATALOG = await loadProductCatalog();
   console.log(`   ✅ Products loaded: ${PRODUCT_CATALOG.all.length} total (jerseys: ${PRODUCT_CATALOG.jerseys.length}, apparel: ${PRODUCT_CATALOG.apparel.length}, balls: ${PRODUCT_CATALOG.balls.length}, trophies: ${PRODUCT_CATALOG.trophies.length})`);
   
-  // Load existing city counts from database to ensure accurate distribution
-  await loadExistingCityCounts();
-  
-  // Don't use existing customers - create all customers on-demand when they place orders
-  // This ensures every customer has at least one order
-  console.log('👥 Customer accounts will be created on-demand when orders are placed...\n');
-  
-  // Track customers that will be created on-demand when they place orders
-  const createdCustomersMap = new Map(); // Map of userId -> customer data
-  let onDemandCreatedCount = 0;
+  // Ensure a sufficient pool of real customer accounts
+  console.log('👥 Preparing customer accounts...');
+  const { customers, existingCount, createdCount, createdCustomerIds } = await prepareCustomers(TOTAL_CUSTOMER_TARGET);
+  configureCustomers(customers, YEARLY_CUSTOMER_TARGETS);
+  const customerSelector = buildCustomerSelector(customers, YEARLY_CUSTOMER_TARGETS, startDate.getFullYear());
+  const allCustomerIds = customerSelector.allCustomerIds;
+  console.log(`✅ Customer accounts ready: ${customers.length} (existing: ${existingCount}, new: ${createdCount})`);
+  console.log('🎯 Yearly customer targets:', YEARLY_CUSTOMER_TARGETS
+    .map((count, index) => `${startDate.getFullYear() + index}: ${count}`)
+    .join(' | '), '\n');
   
   let totalOrders = 0;
   const allOrders = [];
   const branchOrderCounts = new Map();
+  const customersWithAddresses = new Set(); // Track which customers have addresses saved
   
   const currentDate = new Date(startDate);
   let yearIndex = 0;
@@ -3722,53 +2852,22 @@ async function generateAndInsertData() {
     const ordersForDate = generateOrdersForDate(new Date(currentDate), growthMultiplier);
     
     for (const order of ordersForDate) {
-      // Get or create a customer for this order
-      let userId;
-      
-      // Get all previously created customers
-      const allCreatedCustomerIds = Array.from(createdCustomersMap.keys());
-      
-      // 70% chance to reuse an existing customer (if available), 30% chance to create new one
-      if (allCreatedCustomerIds.length > 0 && Math.random() < 0.7) {
-        // Reuse a previously created customer
-        userId = getRandomElement(allCreatedCustomerIds);
-      } else {
-        // Create new customer on-demand for this order
-        try {
-          const newCustomer = await createCustomerAccount();
-          userId = newCustomer.id;
-          createdCustomersMap.set(userId, {
-            id: newCustomer.id,
-            fullName: newCustomer.fullName,
-            phone: newCustomer.phone
-          });
-          onDemandCreatedCount++;
-          
-          if (onDemandCreatedCount % 50 === 0) {
-            console.log(`   📝 Created ${onDemandCreatedCount} customer accounts on-demand...`);
-          }
-        } catch (error) {
-          console.error(`   ⚠️ Failed to create customer account:`, error.message);
-          // Fallback to existing created customer if creation fails
-          if (allCreatedCustomerIds.length > 0) {
-            userId = getRandomElement(allCreatedCustomerIds);
-          } else {
-            // If no customers exist and creation failed, skip this order
-            console.warn(`   ⚠️ Skipping order - no customer available`);
-            continue;
-          }
-        }
-      }
-      
+      const selectedCustomerId = customerSelector.select(order.orderDate);
+      const userId = selectedCustomerId || getRandomElement(allCustomerIds);
       // Generate unique order number with counter and random string
       const orderNumber = `ORD-${currentDate.getTime()}-${orderCounter++}-${Math.random().toString(36).substring(7)}`;
       
       const enrichedOrderItems = assignUniqueJerseyDesigns(order.orderItems, userId, order.orderDate);
 
-      // For apparel orders: created_at is order date, updated_at is delivery date (when it becomes a sale)
-      // For non-apparel orders: both dates are the same (delivered same day)
-      const createdAt = order.orderDate.toISOString();
-      const updatedAt = order.deliveryDate ? order.deliveryDate.toISOString() : order.orderDate.toISOString();
+      // Save customer address to user_addresses if not already saved
+      if (!customersWithAddresses.has(userId) && order.deliveryAddress) {
+        const customer = customers.find(c => c.id === userId);
+        const fullName = customer?.fullName || order.deliveryAddress.receiver || 'Customer';
+        const saved = await saveUserAddress(userId, fullName, order.deliveryAddress);
+        if (saved) {
+          customersWithAddresses.add(userId);
+        }
+      }
 
       allOrders.push({
         user_id: userId,
@@ -3783,8 +2882,8 @@ async function generateAndInsertData() {
         total_amount: order.totalAmount.toString(),
         total_items: order.totalItems,
         order_items: enrichedOrderItems,
-        created_at: createdAt, // Order placed date
-        updated_at: updatedAt, // Delivery/pickup date (when it becomes a sale)
+        created_at: order.orderDate.toISOString(),
+        updated_at: order.orderDate.toISOString(),
         design_files: []
       });
 
@@ -3803,14 +2902,16 @@ async function generateAndInsertData() {
     }
   }
   
-  // Calculate unique customers used in orders
-  const uniqueCustomerIds = new Set(allOrders.map(o => o.user_id));
-  const uniqueCustomerCount = uniqueCustomerIds.size;
-  
-  console.log(`\n👥 Customer accounts summary:`);
-  console.log(`   - Customers created on-demand: ${onDemandCreatedCount}`);
-  console.log(`   - Total unique customers with orders: ${uniqueCustomerCount}`);
-  console.log(`   - Average orders per customer: ${(totalOrders / uniqueCustomerCount).toFixed(2)}`);
+  const customerStats = customerSelector.getStats();
+  console.log('🧑‍🤝‍🧑 Unique customers per year:');
+  customerStats.yearlyUniqueCounts.forEach((count, index) => {
+    const calendarYear = startDate.getFullYear() + index;
+    const target = YEARLY_CUSTOMER_TARGETS[Math.min(index, YEARLY_CUSTOMER_TARGETS.length - 1)];
+    console.log(`   ${calendarYear}: ${count} unique customers (target ≥ ${target})`);
+  });
+  console.log(`   Loyal segment orders: ${customerStats.segmentOrderCounts.loyal}`);
+  console.log(`   Engaged segment orders: ${customerStats.segmentOrderCounts.engaged}`);
+  console.log(`   Casual segment orders: ${customerStats.segmentOrderCounts.casual}\n`);
   
   // Calculate jersey production statistics
   const totalJerseys = allOrders.reduce((sum, o) => sum + o.total_items, 0);
@@ -3873,8 +2974,8 @@ async function generateAndInsertData() {
   console.log(`   - Average Orders/Month: ${Math.round(inserted / totalMonths)}`);
   console.log(`   - Average Jerseys/Order: ${(finalTotalJerseys / inserted).toFixed(1)}`);
   console.log(`   - Total Revenue: ₱${finalTotalRevenue.toLocaleString()}`);
-  console.log(`   - Total Unique Customers: ${uniqueCustomerCount}`);
-  console.log(`   - Average Spend per Customer: ₱${(finalTotalRevenue / uniqueCustomerCount).toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+  console.log(`   - Customer Accounts Used: ${customers.length}`);
+  console.log(`   - Unique Customers per Year: ${customerStats.yearlyUniqueCounts.map((count, index) => `Year ${index + 1}: ${count}`).join(' | ')}`);
   const sortedBranchCounts = Array.from(branchOrderCounts.entries()).sort((a, b) => b[1] - a[1]);
   if (sortedBranchCounts.length) {
     console.log('   - Branch Order Distribution:');
@@ -3882,8 +2983,28 @@ async function generateAndInsertData() {
       console.log(`     • ${name}: ${count} orders`);
     });
   }
-  
-  console.log('\n✅ All customer accounts have at least one order (created on-demand).');
+  const usedCustomerIds = new Set(allOrders.map(order => order.user_id));
+  const orphanedCustomerIds = createdCustomerIds.filter((id) => !usedCustomerIds.has(id));
+
+  if (orphanedCustomerIds.length > 0) {
+    console.log(`\n🧹 Cleaning up ${orphanedCustomerIds.length} newly created customers without orders...`);
+    const cleanupResult = await removeCustomersWithoutOrders(orphanedCustomerIds);
+    console.log(`   Removed: ${cleanupResult.removed}`);
+    if (cleanupResult.skipped.length) {
+      console.log(`   Skipped (already had orders): ${cleanupResult.skipped.length}`);
+    }
+    if (cleanupResult.failures.length) {
+      console.log(`   Failures: ${cleanupResult.failures.length}`);
+      cleanupResult.failures.slice(0, 10).forEach((failure) => {
+        console.log(`     • ${failure.customerId}: ${failure.reason}`);
+      });
+      if (cleanupResult.failures.length > 10) {
+        console.log('     • ... additional failures not shown');
+      }
+    }
+  } else {
+    console.log('\n✅ All newly created customers placed at least one order.');
+  }
 
   console.log(`   - Date Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
 }
@@ -3892,4 +3013,3 @@ generateAndInsertData().catch(err => {
   console.error('Fatal error:', err);
   process.exit(1);
 });
-

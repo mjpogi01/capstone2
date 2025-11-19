@@ -22,6 +22,7 @@ const productionWorkflowRouter = require('./routes/production-workflow');
 const chatRouter = require('./routes/chat');
 const artistRouter = require('./routes/artist');
 const branchChatRouter = require('./routes/branch-chat');
+const newsletterRouter = require('./routes/newsletter');
 // Using Supabase instead of local database
 
 const app = express();
@@ -82,7 +83,8 @@ if (process.env.NODE_ENV !== 'production') {
         ai: '/api/ai',
         productionWorkflow: '/api/production-workflow',
         chat: '/api/chat',
-        artist: '/api/artist'
+        artist: '/api/artist',
+        newsletter: '/api/newsletter'
       }
     });
   });
@@ -117,6 +119,7 @@ app.use('/api/production-workflow', productionWorkflowRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/artist', artistRouter);
 app.use('/api/branch-chat', branchChatRouter);
+app.use('/api/newsletter', newsletterRouter);
 
 // Serve static files from React build in production
 if (process.env.NODE_ENV === 'production') {

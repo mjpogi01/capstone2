@@ -13,9 +13,10 @@
 
 # misc
 .DS_Store
+C:\capstone2\capstone2\server\.env
 .env
 .env.local
-.env.development.local 
+.env.development.local                      
 .env.test.local
 .env.production.local
 server/.env

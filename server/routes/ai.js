@@ -17,10 +17,13 @@ if (!groqConfigured) {
 
 const SCHEMA_GUIDE = [
   'Database tables:',
-  "orders(id, user_id, order_number, status, shipping_method, pickup_location TEXT, delivery_address, order_notes, subtotal_amount, shipping_cost, total_amount, total_items, order_items JSONB, created_at, updated_at, design_files)",
+  "orders(id, user_id, order_number, status, shipping_method, pickup_location TEXT, delivery_address JSONB, order_notes, subtotal_amount, shipping_cost, total_amount, total_items, order_items JSONB, created_at, updated_at, design_files)",
   "branches(id, name, address, city, phone, email, is_main_manufacturing, created_at)",
+  "user_addresses(user_id, city, province, barangay, street_address, full_name)",
   'There is no branch_id column on orders; use orders.pickup_location (branch name) or join to branches.name when aggregating by branch.',
-  'When joining, match upper(trim(pickup_location)) to upper(trim(branches.name)).'
+  'When joining, match upper(trim(pickup_location)) to upper(trim(branches.name)).',
+  'Customer location data: orders.delivery_address is a JSONB field containing city, province, barangay, and other address fields. Access with delivery_address->>\'province\', delivery_address->>\'city\', etc.',
+  'For customer location queries, check both user_addresses table and orders.delivery_address JSONB field. Use UNION to combine results from both sources.'
 ].join('\n');
 
 const MAX_SQL_GENERATION_ATTEMPTS = 2;
@@ -479,19 +482,36 @@ async function getChartDataset(chartId, filters = {}, options = {}) {
       return { sql, rows: enrichedRows };
     }
     case 'customerLocations': {
+      // Use user_addresses as primary source, join with orders for order statistics
+      // Apply filters to orders in the JOIN condition
+      const orderFilterClause = where.clause ? where.clause.replace(/^WHERE\s+/i, 'AND ') : '';
       const sql = `
+        WITH customer_cities AS (
+          SELECT DISTINCT
+            ua.user_id,
+            TRIM(ua.city) AS city,
+            TRIM(ua.province) AS province
+          FROM user_addresses ua
+          WHERE ua.city IS NOT NULL
+            AND TRIM(ua.city) != ''
+            AND ua.province IS NOT NULL
+            AND TRIM(ua.province) != ''
+            AND ua.province IN ('Batangas', 'Oriental Mindoro')
+        )
         SELECT
-          COALESCE(NULLIF(TRIM(delivery_address->>'city'), ''), NULLIF(TRIM(pickup_location), ''), 'Unknown City') AS city,
-          COALESCE(NULLIF(TRIM(delivery_address->>'province'), ''), 'Unknown Province') AS province,
-          COUNT(*)::int AS orders,
-          COUNT(DISTINCT user_id)::int AS customers,
-          SUM(total_amount)::numeric AS total_revenue,
-          AVG(total_amount)::numeric AS average_order_value,
-          MAX(created_at) AS last_order
-        FROM orders
-        ${where.clause}
-        GROUP BY city, province
-        ORDER BY orders DESC
+          cc.city,
+          cc.province,
+          COUNT(DISTINCT cc.user_id)::int AS customers,
+          COUNT(DISTINCT o.id)::int AS orders,
+          COALESCE(SUM(o.total_amount), 0)::numeric AS total_revenue,
+          COALESCE(AVG(o.total_amount), 0)::numeric AS average_order_value,
+          MAX(o.created_at) AS last_order
+        FROM customer_cities cc
+        LEFT JOIN orders o ON o.user_id = cc.user_id
+          AND LOWER(o.status) NOT IN ('cancelled', 'canceled')
+          ${orderFilterClause}
+        GROUP BY cc.city, cc.province
+        ORDER BY customers DESC, orders DESC
         LIMIT 25;
       `;
       const { rows } = await executeSql(sql, where.params);
@@ -787,8 +807,9 @@ router.post('/analytics', async (req, res, next) => {
       'Branch information is stored in orders.pickup_location (text); there is no branch_id column in orders. Use pickup_location (or join to the branches table by name) when aggregating by branch.',
       'When analyzing top product groups, use the standardized categories returned by the dataset (Basketball Jerseys, Volleyball Jerseys, Hoodies, Uniforms, Custom Jerseys, Sports Balls, Trophies, Medals, Other Products) and discuss them explicitly rather than inventing new groupings.',
       'The business operates in the Philippines; refer to seasons as dry or rainy and never mention winter.',
-      'If the available dataset does not contain the information needed to answer the user, respond by proposing a SAFE SELECT query wrapped in <SQL>...</SQL> and wait for the query result before providing conclusions.',
-      'If a question cannot be answered with the provided data, state that explicitly and recommend what additional data is needed.',
+      'If the available dataset does not contain the information needed to answer the user question, you MUST respond by proposing a SAFE SELECT query wrapped in <SQL>...</SQL> and wait for the query result before providing conclusions. Do not just suggest a query - actually provide it wrapped in <SQL>...</SQL>.',
+      'Location-based questions (province, city, address) require querying user_addresses table and/or orders.delivery_address JSONB field. If the current dataset does not contain location data, generate SQL to fetch it.',
+      'If a question cannot be answered with the provided data, generate the appropriate SQL query to fetch the needed data.',
       'Respond using markdown formatting only.'
     ].join(' ');
 
@@ -832,10 +853,25 @@ router.post('/analytics', async (req, res, next) => {
       const datasetAnalysisConversation = [...conversation];
       const lastMessage = datasetAnalysisConversation.pop();
 
-      datasetAnalysisConversation.push({
-        role: 'system',
-        content: 'The dataset above already contains all values needed. Do not request or generate additional SQL. Provide insights and recommended actions based solely on the provided rows.'
-      });
+      // Check if the question requires data that might not be in the current dataset
+      const questionText = (lastMessage?.content || rawQuestion || '').toLowerCase();
+      const requiresLocationData = /(province|city|location|address|where|batangas|calaca|balayan|mindoro)/i.test(questionText);
+      const requiresDifferentData = requiresLocationData && 
+        (!dataset.rows[0] || (!dataset.rows[0].province && !dataset.rows[0].city && !dataset.rows[0].delivery_address));
+
+      if (requiresDifferentData) {
+        // Question needs different data - allow SQL generation
+        datasetAnalysisConversation.push({
+          role: 'system',
+          content: 'The provided dataset does not contain the information needed to answer this question. Generate a SAFE SELECT query wrapped in <SQL>...</SQL> to fetch the required data. The dataset context is provided for reference, but you should query the database directly for location/customer data.'
+        });
+      } else {
+        // Dataset should have the needed data
+        datasetAnalysisConversation.push({
+          role: 'system',
+          content: 'The dataset above already contains all values needed. Do not request or generate additional SQL. Provide insights and recommended actions based solely on the provided rows.'
+        });
+      }
 
       if (lastMessage) {
         datasetAnalysisConversation.push(lastMessage);
@@ -843,17 +879,109 @@ router.post('/analytics', async (req, res, next) => {
 
       const analysisResponse = await callGroq(datasetAnalysisConversation, { estimatedTokens: 2500 });
       const cleanedReply = stripSqlBlocks(analysisResponse.reply);
+      const proposedSql = extractSqlBlock(analysisResponse.reply);
 
-      return res.json({
-        success: true,
-        reply: cleanedReply,
-        sql: dataset.sql,
-        rows: dataset.rows,
-        rowCount: dataset.rows.length,
-        chartId,
-        model: analysisResponse.model,
-        usage: analysisResponse.usage || null
-      });
+      // If Nexus proposed SQL because the dataset doesn't have the needed data, execute it
+      if (proposedSql && requiresDifferentData && isSelectStatement(proposedSql)) {
+        // Continue with SQL execution flow - set up variables for the SQL execution below
+        let normalizedSql = proposedSql.replace(/;\s*$/g, '').trim();
+        let sqlResult;
+        let sqlAttempts = 0;
+
+        while (sqlAttempts < MAX_SQL_EXECUTION_ATTEMPTS) {
+          try {
+            sqlResult = await executeSql(normalizedSql);
+            break;
+          } catch (sqlError) {
+            console.error('SQL execution error for Nexus location query:', sqlError);
+            sqlAttempts += 1;
+
+            if (sqlAttempts >= MAX_SQL_EXECUTION_ATTEMPTS) {
+              return res.status(500).json({
+                success: false,
+                error: `SQL execution failed: ${sqlError.message}`
+              });
+            }
+
+            datasetAnalysisConversation.push({ role: 'assistant', content: analysisResponse.reply });
+            datasetAnalysisConversation.push({
+              role: 'user',
+              content: `The SQL failed with error: ${sqlError.message}. Provide a corrected SELECT query wrapped in <SQL>...</SQL> with no additional commentary.`
+            });
+
+            const retryResponse = await callGroq(datasetAnalysisConversation, { estimatedTokens: 4000 });
+            const retrySql = extractSqlBlock(retryResponse.reply);
+
+            if (!retrySql || !isSelectStatement(retrySql.replace(/;\s*$/g, '').trim())) {
+              return res.status(400).json({
+                success: false,
+                error: 'Nexus proposed an unsupported SQL statement after retry. Please adjust the request.'
+              });
+            }
+
+            normalizedSql = retrySql.replace(/;\s*$/g, '').trim();
+          }
+        }
+
+        // Execute the SQL and return results
+        const sampleLimit = 50;
+        const rows = Array.isArray(sqlResult?.rows) ? sqlResult.rows.slice(0, sampleLimit) : [];
+        const duration = typeof sqlResult?.durationMs === 'number' ? `${sqlResult.durationMs} ms` : 'n/a';
+        const columns = Array.isArray(sqlResult?.fields) ? sqlResult.fields.map((field) => field.name) : [];
+
+        const resultSummaryContent = [
+          'SQL query executed successfully.',
+          `Rows returned: ${sqlResult?.rowCount ?? rows.length}`,
+          `Columns: ${columns.join(', ') || 'n/a'}`,
+          `Execution time: ${duration}`,
+          `Sample rows:\n${JSON.stringify(rows, null, 2)}`,
+          'Provide a single consolidated analysis that incorporates these results. Do not restate prior interim responses, do not produce multiple executive summaries, and respond once using the required bold headings and bullet formatting.'
+        ].join('\n\n');
+
+        const followUpMessages = [
+          ...datasetAnalysisConversation,
+          { role: 'assistant', content: analysisResponse.reply },
+          { role: 'user', content: resultSummaryContent }
+        ];
+
+        let followUp;
+        try {
+          followUp = await callGroq(followUpMessages, { estimatedTokens: 3000 });
+        } catch (groqError) {
+          console.error('Groq API error during follow-up analysis:', groqError);
+          return res.status(500).json({
+            success: false,
+            error: `AI service error: ${groqError.message || 'Failed during follow-up analysis'}`
+          });
+        }
+
+        const finalReply = stripSqlBlocks(followUp.reply);
+
+        return res.json({
+          success: true,
+          reply: finalReply,
+          sql: normalizedSql,
+          rows,
+          rowCount: sqlResult?.rowCount ?? rows.length,
+          columns,
+          durationMs: sqlResult?.durationMs ?? null,
+          chartId,
+          model: followUp.model,
+          usage: followUp.usage || null
+        });
+      } else {
+        // Return dataset analysis
+        return res.json({
+          success: true,
+          reply: cleanedReply,
+          sql: dataset.sql,
+          rows: dataset.rows,
+          rowCount: dataset.rows.length,
+          chartId,
+          model: analysisResponse.model,
+          usage: analysisResponse.usage || null
+        });
+      }
     }
 
     let aiResponse;
