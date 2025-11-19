@@ -967,9 +967,10 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                               return calculatedTotal > 0 ? calculatedTotal : ((item.price || 0) * (item.quantity || item.team_members?.length || 1));
                                             })().toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                         </div>
-                                      </div>
+                                            </div>
                                         );
                                       })()}
+                                      </div>
                                     </div>
                                   </>
                                 ) : (

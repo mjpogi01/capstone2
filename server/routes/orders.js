@@ -804,7 +804,7 @@ router.post('/:id/revision-notes', authenticateSupabaseToken, requireAdminOrOwne
 });
 
 // Update order status
-router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
+router.patch('/:id/status', authenticateSupabaseToken, async (req, res) => {
   console.log('🚀 STATUS UPDATE ROUTE CALLED');
   console.log('🚀 Request params:', req.params);
   console.log('🚀 Request body:', req.body);
@@ -844,7 +844,30 @@ router.patch('/:id/status', authenticateSupabaseToken, requireAdminOrOwner, asyn
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    ensureOrderAccess(currentOrderData, branchContext);
+    // Authorization check: Allow customers to cancel their own pending orders
+    // Admin/Owner can change any status, customers can only cancel pending orders
+    if (!isAdminOrOwner) {
+      // Customer trying to update order status
+      const isOrderOwner = currentOrderData.user_id === req.user.id;
+      const isCancellingPending = status === 'cancelled' && currentOrderData.status === 'pending';
+      
+      if (!isOrderOwner || !isCancellingPending) {
+        console.log('❌ Customer unauthorized status update attempt:', {
+          isOrderOwner,
+          isCancellingPending,
+          currentStatus: currentOrderData.status,
+          requestedStatus: status
+        });
+        return res.status(403).json({ 
+          error: 'Admin or owner access required. Customers can only cancel their own pending orders.' 
+        });
+      }
+      
+      console.log('✅ Customer authorized to cancel their pending order');
+    } else {
+      // Admin/Owner: apply branch restrictions
+      ensureOrderAccess(currentOrderData, branchContext);
+    }
 
     // Get user data separately
     const { data: userData, error: userError } = await supabase.auth.admin.getUserById(currentOrderData.user_id);

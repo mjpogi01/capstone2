@@ -23,7 +23,8 @@ import {
   FaCartPlus,
   FaTh,
   FaThList,
-  FaFilter
+  FaFilter,
+  FaStar
 } from 'react-icons/fa';
 import ProductModal from '../customer/ProductModal';
 import CheckoutModal from '../customer/CheckoutModal';
@@ -450,6 +451,22 @@ const WalkInOrdering = ({ onClose }) => {
                             <p className="walkin-product-price">₱{parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                             {product.price < 500 && (
                               <span className="original-price">₱{parseFloat(product.price * 1.2).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                            )}
+                          </div>
+                          
+                          {/* Review Count and Sold Quantity - Public for all users */}
+                          <div className="walkin-product-stats">
+                            {(product.average_rating > 0 || product.review_count > 0) && (
+                              <span className="walkin-stat-item">
+                                <span className="walkin-rating-number">{product.average_rating || 0}</span>
+                                <FaStar className="walkin-star-icon" />
+                                {product.review_count > 0 && (
+                                  <span className="walkin-review-count"> ({product.review_count})</span>
+                                )}
+                              </span>
+                            )}
+                            {product.sold_quantity !== undefined && product.sold_quantity > 0 && (
+                              <span className="walkin-stat-item">{product.sold_quantity} sold</span>
                             )}
                           </div>
                         </div>

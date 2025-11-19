@@ -1,4 +1,81 @@
-/* Simple Order Review Component */
+/* Simple Order Review Component - Unique class names to avoid conflicts */
+.sor-simple-review-section {
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.sor-write-review-btn {
+  background: linear-gradient(135deg, #00bfff, #0099cc);
+  color: #000;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sor-write-review-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0099cc, #007aa3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.4);
+}
+
+.sor-write-review-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.sor-review-icon {
+  font-size: 1.1rem;
+}
+
+.sor-check-icon {
+  font-size: 1.1rem;
+}
+
+/* Disabled state for already reviewed products */
+.sor-write-review-btn.sor-review-already-submitted {
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.2), rgba(0, 153, 204, 0.2));
+  color: #00bfff;
+  border: 2px solid #00bfff;
+  cursor: not-allowed;
+  opacity: 1;
+  text-transform: none;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.2);
+}
+
+.sor-write-review-btn.sor-review-already-submitted:hover {
+  transform: none;
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.2), rgba(0, 153, 204, 0.2));
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.2);
+}
+
+.sor-write-review-btn.sor-review-already-submitted .sor-check-icon {
+  animation: sor-checkAnimation 0.5s ease-out;
+}
+
+@keyframes sor-checkAnimation {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Legacy class names for backward compatibility */
 .simple-review-section {
   margin: 1rem 0;
   text-align: center;
@@ -442,12 +519,14 @@
     touch-action: manipulation;
   }
 
+  .sor-write-review-btn,
   .write-review-btn {
     padding: 0.875rem 1.75rem;
     font-size: 0.95rem;
     min-height: 44px;
   }
 
+  .sor-write-review-btn.sor-review-already-submitted,
   .existing-review-badge {
     padding: 0.875rem 1.75rem;
     font-size: 0.9rem;
@@ -542,6 +621,7 @@
     border-radius: 10px;
   }
 
+  .sor-write-review-btn,
   .write-review-btn {
     padding: 0.75rem 1.5rem;
     font-size: 0.9rem;
@@ -549,6 +629,7 @@
     border-radius: 10px;
   }
 
+  .sor-write-review-btn.sor-review-already-submitted,
   .existing-review-badge {
     padding: 0.75rem 1.5rem;
     font-size: 0.85rem;
@@ -763,12 +844,14 @@
     touch-action: manipulation;
   }
 
+  .sor-write-review-btn,
   .write-review-btn {
     padding: 0.875rem 1.75rem;
     font-size: 0.95rem;
     min-height: 44px;
   }
 
+  .sor-write-review-btn.sor-review-already-submitted,
   .existing-review-badge {
     padding: 0.875rem 1.75rem;
     font-size: 0.9rem;

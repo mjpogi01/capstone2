@@ -64,6 +64,119 @@ router.get('/test', (req, res) => {
   res.json({ message: 'Backend is working!', timestamp: new Date().toISOString() });
 });
 
+// Helper function to calculate review stats for products
+async function calculateProductReviewStats(productIds) {
+  if (!productIds || productIds.length === 0) {
+    return new Map();
+  }
+
+  try {
+    // Get product-specific reviews
+    const { data: productReviews, error: productReviewsError } = await supabase
+      .from('order_reviews')
+      .select('product_id, rating')
+      .in('product_id', productIds)
+      .not('product_id', 'is', null);
+
+    if (productReviewsError) {
+      console.error('Error fetching product-specific reviews:', productReviewsError);
+    }
+
+    // Get order-level reviews (product_id is null)
+    const { data: orderReviews, error: orderReviewsError } = await supabase
+      .from('order_reviews')
+      .select('order_id, rating')
+      .is('product_id', null);
+
+    if (orderReviewsError) {
+      console.error('Error fetching order-level reviews:', orderReviewsError);
+    }
+
+    // Get delivered orders for order-level reviews
+    let deliveredOrders = [];
+    if (orderReviews && orderReviews.length > 0) {
+      const orderIds = [...new Set(orderReviews.map(r => r.order_id).filter(Boolean))];
+      if (orderIds.length > 0) {
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select('id, order_items')
+          .eq('status', 'picked_up_delivered')
+          .in('id', orderIds);
+
+        if (ordersError) {
+          console.error('Error fetching delivered orders:', ordersError);
+        } else {
+          deliveredOrders = ordersData || [];
+        }
+      }
+    }
+
+    // Build map of product ratings
+    const ratingsByProduct = new Map();
+
+    const addRating = (productId, rating) => {
+      if (!productId || rating === null || rating === undefined) return;
+      if (!ratingsByProduct.has(productId)) {
+        ratingsByProduct.set(productId, []);
+      }
+      ratingsByProduct.get(productId).push(rating);
+    };
+
+    // Add product-specific reviews
+    if (productReviews) {
+      for (const review of productReviews) {
+        if (review.product_id && review.rating) {
+          addRating(review.product_id, review.rating);
+        }
+      }
+    }
+
+    // Add order-level reviews to products in those orders
+    if (orderReviews && deliveredOrders.length > 0) {
+      const orderMap = new Map();
+      for (const order of deliveredOrders) {
+        let orderItems = [];
+        if (order.order_items) {
+          if (Array.isArray(order.order_items)) {
+            orderItems = order.order_items;
+          } else if (typeof order.order_items === 'string') {
+            try {
+              orderItems = JSON.parse(order.order_items);
+            } catch (e) {
+              console.warn('Failed to parse order_items:', e);
+            }
+          }
+        }
+        orderMap.set(order.id, orderItems);
+      }
+
+      for (const review of orderReviews) {
+        const items = orderMap.get(review.order_id) || [];
+        for (const item of items) {
+          if (item && item.id && productIds.includes(item.id)) {
+            addRating(item.id, review.rating);
+          }
+        }
+      }
+    }
+
+    // Calculate stats for each product
+    const statsMap = new Map();
+    for (const [productId, ratings] of ratingsByProduct.entries()) {
+      const count = ratings.length;
+      const average = count === 0 
+        ? 0 
+        : Math.round((ratings.reduce((sum, r) => sum + r, 0) / count) * 10) / 10;
+      statsMap.set(productId, { review_count: count, average_rating: average });
+    }
+
+    return statsMap;
+  } catch (error) {
+    console.error('Error calculating product review stats:', error);
+    return new Map();
+  }
+}
+
 // Get all products
 router.get('/', async (req, res) => {
   try {
@@ -82,12 +195,22 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    // Calculate review stats for all products
+    const productIds = data.map(p => p.id).filter(Boolean);
+    const reviewStats = await calculateProductReviewStats(productIds);
+
     // Transform the data to match the expected format
-    const transformedData = data.map(product => ({
-      ...product,
-      branch_name: product.branches?.name || null,
-      available_sizes: parseAvailableSizes(product.size)
-    }));
+    const transformedData = data.map(product => {
+      const stats = reviewStats.get(product.id) || { review_count: 0, average_rating: 0 };
+      return {
+        ...product,
+        branch_name: product.branches?.name || null,
+        available_sizes: parseAvailableSizes(product.size),
+        review_count: stats.review_count,
+        average_rating: stats.average_rating,
+        sold_quantity: product.sold_quantity || 0
+      };
+    });
 
     res.json(transformedData);
   } catch (error) {
@@ -100,15 +223,43 @@ router.get('/', async (req, res) => {
 router.get('/branch/:branchId', async (req, res) => {
   try {
     const { branchId } = req.params;
-    const { rows } = await query(`
-      SELECT p.*, b.name as branch_name 
-      FROM products p 
-      LEFT JOIN branches b ON p.branch_id = b.id 
-      WHERE p.branch_id = $1 
-      ORDER BY p.created_at DESC
-    `, [branchId]);
-    res.json(rows);
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        branches (
+          name
+        )
+      `)
+      .eq('branch_id', branchId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Calculate review stats for all products
+    const productIds = data.map(p => p.id).filter(Boolean);
+    const reviewStats = await calculateProductReviewStats(productIds);
+
+    // Transform the data
+    const transformedData = data.map(product => {
+      const stats = reviewStats.get(product.id) || { review_count: 0, average_rating: 0 };
+      return {
+        ...product,
+        branch_name: product.branches?.name || null,
+        available_sizes: parseAvailableSizes(product.size),
+        review_count: stats.review_count,
+        average_rating: stats.average_rating,
+        sold_quantity: product.sold_quantity || 0
+      };
+    });
+
+    res.json(transformedData);
   } catch (error) {
+    console.error('Error fetching products by branch:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -117,19 +268,38 @@ router.get('/branch/:branchId', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rows } = await query(`
-      SELECT p.*, b.name as branch_name 
-      FROM products p 
-      LEFT JOIN branches b ON p.branch_id = b.id 
-      WHERE p.id = $1
-    `, [id]);
     
-    if (rows.length === 0) {
+    const { data: product, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        branches (
+          name
+        )
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (error || !product) {
       return res.status(404).json({ error: 'Product not found' });
     }
+
+    // Calculate review stats for this product
+    const reviewStats = await calculateProductReviewStats([id]);
+    const stats = reviewStats.get(id) || { review_count: 0, average_rating: 0 };
+
+    const transformedData = {
+      ...product,
+      branch_name: product.branches?.name || null,
+      available_sizes: parseAvailableSizes(product.size),
+      review_count: stats.review_count,
+      average_rating: stats.average_rating,
+      sold_quantity: product.sold_quantity || 0
+    };
     
-    res.json(rows[0]);
+    res.json(transformedData);
   } catch (error) {
+    console.error('Error fetching product:', error);
     res.status(500).json({ error: error.message });
   }
 });

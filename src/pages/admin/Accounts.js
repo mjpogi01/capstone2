@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faTrash, faUsers, faUserShield, faPalette, faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faTrash, faUsers, faUserShield, faPalette, faEdit, faSave, faTimes, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import Sidebar from '../../components/admin/Sidebar';
+import EmailMarketing from '../../components/admin/EmailMarketing';
 import '../admin/AdminDashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -11,6 +13,7 @@ import './admin-shared.css';
 
 const Accounts = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [adminAccounts, setAdminAccounts] = useState([]);
   const [customerAccounts, setCustomerAccounts] = useState([]);
   const [artistAccounts, setArtistAccounts] = useState([]);
@@ -32,14 +35,26 @@ const Accounts = () => {
 
   // Make isOwner reactive to user changes
   const isOwner = useMemo(() => user?.user_metadata?.role === 'owner', [user?.user_metadata?.role]);
-  const [activeTab, setActiveTab] = useState(isOwner ? 'admin' : 'artist');
+  
+  // Initialize activeTab from location state if available, otherwise default
+  const [activeTab, setActiveTab] = useState(() => {
+    if (location.state?.activeTab) {
+      return location.state.activeTab;
+    }
+    return isOwner ? 'admin' : 'artist';
+  });
 
   // Update activeTab when isOwner changes (only on initial load)
+  // Also handle location state for navigation from dashboard
   useEffect(() => {
-    if (isOwner) {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+      // Clear the state to prevent it from persisting
+      window.history.replaceState({}, document.title);
+    } else if (isOwner && !location.state?.activeTab) {
       setActiveTab('admin');
     }
-  }, [isOwner]);
+  }, [isOwner, location.state]);
 
   // Fetch all accounts
   const fetchAccounts = useCallback(async () => {
@@ -601,6 +616,15 @@ const Accounts = () => {
           <FontAwesomeIcon icon={faUsers} className="tab-icon" />
           Customer Accounts
         </button>
+        {isOwner && (
+          <button
+            className={`accounts-tab ${activeTab === 'email-marketing' ? 'active' : ''}`}
+            onClick={() => setActiveTab('email-marketing')}
+          >
+            <FontAwesomeIcon icon={faEnvelope} className="tab-icon" />
+            Email Marketing
+          </button>
+        )}
       </div>
 
       {/* Admin Accounts Section - Only for Owners */}
@@ -938,8 +962,15 @@ const Accounts = () => {
           )}
         </div>
       )}
-      </div>
-      </div>
+
+      {/* Email Marketing Section - Only for Owners */}
+      {isOwner && activeTab === 'email-marketing' && (
+        <div className="accounts-section">
+          <EmailMarketing />
+        </div>
+      )}
+    </div>
+    </div>
     </div>
   );
 };

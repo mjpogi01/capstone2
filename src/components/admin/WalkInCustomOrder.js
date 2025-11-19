@@ -179,7 +179,7 @@ export default function WalkInCustomOrder({ onClose }) {
         const memberShortsSize = m.shortsSize !== null && m.shortsSize !== undefined && m.shortsSize !== '' ? String(m.shortsSize).trim() : '';
         if (!memberShortsSize) {
           e[`member_shorts_size_${idx}`] = 'Required';
-        }
+      }
       }
       
       // Validate sizing type
@@ -786,7 +786,7 @@ export default function WalkInCustomOrder({ onClose }) {
       }
     });
     
-      // Check for errors before submission
+    // Check for errors before submission
     if (Object.keys(currentErrors).length > 0) {
       console.log('❌ Validation errors found:', currentErrors);
       console.log('Form state:', {

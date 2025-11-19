@@ -30,6 +30,10 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, isOwner, isAdmin } = useAuth();
+  
+  // Safety check: ensure isOwner and isAdmin are functions
+  const checkIsOwner = isOwner && typeof isOwner === 'function' ? isOwner : () => false;
+  const checkIsAdmin = isAdmin && typeof isAdmin === 'function' ? isAdmin : () => false;
   const { 
     showSignInModal, 
     showSignUpModal, 
@@ -88,7 +92,7 @@ const Header = () => {
   // Load orders count when user changes
   useEffect(() => {
     const loadOrdersCount = async () => {
-      if (!user || isAdmin || isOwner) {
+      if (!user || checkIsAdmin() || checkIsOwner()) {
         setOrdersCount(0);
         return;
       }
@@ -108,7 +112,7 @@ const Header = () => {
   // Listen for order placed events to refresh orders count
   useEffect(() => {
     const handleOrderPlaced = async () => {
-      if (user && !isAdmin && !isOwner) {
+      if (user && !checkIsAdmin() && !checkIsOwner()) {
         try {
           const userOrders = await orderService.getUserOrders(user.id);
           setOrdersCount(userOrders.length);
@@ -119,7 +123,7 @@ const Header = () => {
     };
 
     const handleOrderCancelled = async () => {
-      if (user && !isAdmin && !isOwner) {
+      if (user && !checkIsAdmin() && !checkIsOwner()) {
         try {
           const userOrders = await orderService.getUserOrders(user.id);
           setOrdersCount(userOrders.length);
@@ -324,7 +328,7 @@ const Header = () => {
                 )}
               </button>
               
-              {isAuthenticated && !isAdmin() && !isOwner() && (
+              {isAuthenticated && !checkIsAdmin() && !checkIsOwner() && (
                 <button
                   className="mobile-action-link"
                   onClick={async (e) => {
@@ -497,7 +501,7 @@ const Header = () => {
                 <div className="profile-dropdown-content">
                   <div className="profile-menu">
                     {/* Dashboard Links for Admin/Owner */}
-                    {isOwner() && (
+                    {checkIsOwner() && (
                       <button 
                         className="profile-menu-item dashboard" 
                         onClick={() => {
@@ -511,7 +515,7 @@ const Header = () => {
                         Owner Dashboard
                       </button>
                     )}
-                    {isAdmin() && (
+                    {checkIsAdmin() && (
                       <button 
                         className="profile-menu-item dashboard" 
                         onClick={() => {

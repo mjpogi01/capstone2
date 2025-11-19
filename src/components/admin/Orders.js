@@ -25,7 +25,6 @@ import {
   FaCog,
   FaIndustry,
   FaShippingFast,
-  FaRedo,
   FaArrowLeft,
   FaArrowRight,
   FaChevronLeft,
@@ -456,6 +455,36 @@ const Orders = () => {
       case 'cancelled': return 'Order cancelled';
       default: return 'Unknown status';
     }
+  };
+
+  // Helper function to check if an order contains balls or trophies
+  const hasBallOrTrophyProducts = (order) => {
+    // Check both orderItems (camelCase) and order_items (snake_case)
+    const orderItems = order.orderItems || order.order_items;
+    if (!orderItems || !Array.isArray(orderItems)) {
+      return false;
+    }
+    
+    return orderItems.some(item => {
+      const category = (item.category || item.product_type || '').toString().toLowerCase().trim();
+      const name = (item.name || '').toString().toLowerCase().trim();
+      
+      // Check category field for exact matches
+      if (category === 'balls' || category === 'trophies') {
+        return true;
+      }
+      
+      // Also check name field as fallback (but exclude basketball/volleyball jerseys)
+      if (name.includes('ball') && !name.includes('basketball') && !name.includes('volleyball') && !name.includes('jersey')) {
+        return true;
+      }
+      
+      if (name.includes('trophy') || name.includes('trophie')) {
+        return true;
+      }
+      
+      return false;
+    });
   };
 
   const truncateOrderNumber = (orderNumber) => {
@@ -1541,6 +1570,26 @@ const Orders = () => {
                         return apparelTypeMap[apparelType] || 'Custom Design';
                       };
 
+                      // Helper function to check if an item is a ball or trophy
+                      const isBallOrTrophyItem = (item) => {
+                        const category = (item.category || item.product_type || '').toString().toLowerCase().trim();
+                        const name = (item.name || '').toString().toLowerCase().trim();
+                        
+                        if (category === 'balls' || category === 'trophies') {
+                          return true;
+                        }
+                        
+                        if (name.includes('ball') && !name.includes('basketball') && !name.includes('volleyball') && !name.includes('jersey')) {
+                          return true;
+                        }
+                        
+                        if (name.includes('trophy') || name.includes('trophie')) {
+                          return true;
+                        }
+                        
+                        return false;
+                      };
+
                       // Get first design image as product image
                       const designImage = item.design_images && item.design_images.length > 0 
                         ? item.design_images[0].url 
@@ -1578,7 +1627,9 @@ const Orders = () => {
                                 </div>
                                 <div className="cd-order-item-info">
                                   <div className="cd-order-item-name">{getApparelDisplayName(item.apparel_type)}</div>
-                                  <div className="cd-order-item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} × {item.quantity || 1}</div>
+                                  <div className="cd-order-item-price">
+                                    ₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} × {item.quantity || 1}
+                                  </div>
                                 </div>
                               </div>
                             
@@ -1789,7 +1840,9 @@ const Orders = () => {
                               <img src={item.image} alt={item.name} className="item-image" />
                               <div className="item-info">
                                 <div className="item-name">{item.name}</div>
-                                <div className="item-price">₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}{item.isTeamOrder ? '' : ` × ${item.quantity}`}</div>
+                                <div className="item-price">
+                                  ₱{(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}{item.isTeamOrder ? '' : ` × ${item.quantity}`}
+                                </div>
                               </div>
                             </div>
                             
@@ -1968,7 +2021,15 @@ const Orders = () => {
                       <div className="status-flow-guide">
                         <h5><FaArrowRight className="flow-icon" /> Order Status Flow:</h5>
                         <div className="flow-steps">
-                          {['pending', 'confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing', 'picked_up_delivered'].map((stage, index, arr) => {
+                          {(() => {
+                            // For ball/trophy orders, only show: pending, confirmed, packing_completing, picked_up_delivered
+                            // For apparel orders, show all stages
+                            const ballOrTrophy = hasBallOrTrophyProducts(order);
+                            const stages = ballOrTrophy 
+                              ? ['pending', 'confirmed', 'packing_completing', 'picked_up_delivered']
+                              : ['pending', 'confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing', 'picked_up_delivered'];
+                            
+                            return stages.map((stage, index, arr) => {
                             const stageIndex = arr.indexOf(order.status);
                             const currentStageIndex = arr.indexOf(stage);
                             const isActive = order.status === stage;
@@ -1982,7 +2043,8 @@ const Orders = () => {
                                 {index < arr.length - 1 && <span className="flow-arrow"><FaArrowRight /></span>}
                               </React.Fragment>
                             );
-                          })}
+                            });
+                          })()}
                         </div>
                       </div>
                       
@@ -2028,18 +2090,29 @@ const Orders = () => {
                       {/* Status Update Buttons - For all statuses except pending */}
                       {order.status !== 'pending' && (
                         <div className="status-buttons">
-                          {/* Confirmed - Start Layout */}
+                          {/* Confirmed - Start Layout (for apparel) or Move to Packing (for balls/trophies) */}
                           {order.status === 'confirmed' && (
+                            <>
+                              {hasBallOrTrophyProducts(order) ? (
+                                <button 
+                                  className="status-update-btn process-btn"
+                                  onClick={() => handleStatusUpdate(order.id, 'packing_completing')}
+                                >
+                                  <FaBox className="status-icon" /> Move to Packing
+                                </button>
+                              ) : (
                             <button 
                               className="status-update-btn process-btn"
                               onClick={() => handleStatusUpdate(order.id, 'layout')}
                             >
                               <FaPalette className="status-icon" /> Start Layout
                             </button>
+                              )}
+                            </>
                           )}
                           
-                          {/* Layout - Move to Sizing */}
-                          {order.status === 'layout' && (
+                          {/* Layout - Move to Sizing (only for apparel orders) */}
+                          {order.status === 'layout' && !hasBallOrTrophyProducts(order) && (
                             <button 
                               className={`status-update-btn process-btn ${user?.user_metadata?.role !== 'artist' ? 'disabled-btn' : ''}`}
                               onClick={() => handleStatusUpdate(order.id, 'sizing')}
@@ -2051,8 +2124,8 @@ const Orders = () => {
                             </button>
                           )}
                           
-                          {/* Sizing - Move to Printing */}
-                          {order.status === 'sizing' && (
+                          {/* Sizing - Move to Printing (only for apparel orders) */}
+                          {order.status === 'sizing' && !hasBallOrTrophyProducts(order) && (
                             <button 
                               className="status-update-btn process-btn"
                               onClick={() => handleStatusUpdate(order.id, 'printing')}
@@ -2061,8 +2134,8 @@ const Orders = () => {
                             </button>
                           )}
                           
-                          {/* Printing - Move to Press */}
-                          {order.status === 'printing' && (
+                          {/* Printing - Move to Press (only for apparel orders) */}
+                          {order.status === 'printing' && !hasBallOrTrophyProducts(order) && (
                             <button 
                               className="status-update-btn process-btn"
                               onClick={() => handleStatusUpdate(order.id, 'press')}
@@ -2071,8 +2144,8 @@ const Orders = () => {
                             </button>
                           )}
                           
-                          {/* Press - Move to Prod */}
-                          {order.status === 'press' && (
+                          {/* Press - Move to Prod (only for apparel orders) */}
+                          {order.status === 'press' && !hasBallOrTrophyProducts(order) && (
                             <button 
                               className="status-update-btn process-btn"
                               onClick={() => handleStatusUpdate(order.id, 'prod')}
@@ -2081,8 +2154,8 @@ const Orders = () => {
                             </button>
                           )}
                           
-                          {/* Prod - Move to Packing */}
-                          {order.status === 'prod' && (
+                          {/* Prod - Move to Packing (only for apparel orders) */}
+                          {order.status === 'prod' && !hasBallOrTrophyProducts(order) && (
                             <button 
                               className="status-update-btn process-btn"
                               onClick={() => handleStatusUpdate(order.id, 'packing_completing')}
@@ -2114,16 +2187,6 @@ const Orders = () => {
                             <div className="status-cancelled-message">
                               <span className="cancelled-icon"><FaTimes /></span>
                               <p>This order has been cancelled.</p>
-                              <button 
-                                className="status-update-btn reactivate-btn"
-                                onClick={() => {
-                                  if (window.confirm('Reactivate this cancelled order?')) {
-                                    handleStatusUpdate(order.id, 'pending');
-                                  }
-                                }}
-                              >
-                                <FaRedo className="status-icon" /> Reactivate Order
-                              </button>
                             </div>
                           )}
                           
@@ -2132,6 +2195,24 @@ const Orders = () => {
                             <button 
                               className="status-update-btn reopen-btn"
                               onClick={() => {
+                                // For ball/trophy orders, only allow going back to confirmed from packing
+                                if (hasBallOrTrophyProducts(order)) {
+                                  if (order.status === 'packing_completing') {
+                                    setConfirmDialog({
+                                      show: true,
+                                      title: 'Go Back One Stage',
+                                      message: `Are you sure you want to go back to ${getStatusDisplayName('confirmed')}?`,
+                                      currentStatus: getStatusDisplayName(order.status),
+                                      newStatus: getStatusDisplayName('confirmed'),
+                                      onConfirm: () => {
+                                        handleStatusUpdate(order.id, 'confirmed');
+                                        setConfirmDialog(null);
+                                      },
+                                      onCancel: () => setConfirmDialog(null)
+                                    });
+                                  }
+                                } else {
+                                  // For apparel orders, use normal flow
                                 const stages = ['confirmed', 'layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'];
                                 const currentIndex = stages.indexOf(order.status);
                                 if (currentIndex > 0) {
@@ -2148,6 +2229,7 @@ const Orders = () => {
                                     },
                                     onCancel: () => setConfirmDialog(null)
                                   });
+                                  }
                                 }
                               }}
                             >
@@ -2157,7 +2239,7 @@ const Orders = () => {
                         </div>
                       )}
 
-                      {canViewDesignFiles && (
+                      {canViewDesignFiles && !hasBallOrTrophyProducts(order) && (
                         <div className="design-files-section inside-status">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                             <h5 className="design-files-heading" style={{ margin: 0 }}>

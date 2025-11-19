@@ -63,6 +63,21 @@ const SimpleOrderReview = ({ orderId, orderNumber, productId = null, onReviewSub
 
     setSubmitting(true);
     setValidationError(false);
+    
+    // Optimistic update: immediately set existing review to disable button
+    const optimisticReview = {
+      id: `temp-${Date.now()}`,
+      orderId,
+      userId: user.id,
+      rating: newReview.rating,
+      comment: newReview.comment,
+      reviewType: 'general',
+      productId: productId,
+      createdAt: new Date().toISOString()
+    };
+    setExistingReview(optimisticReview);
+    setShowReviewPopup(false);
+    
     try {
       const response = await fetch('http://localhost:4000/api/order-tracking/review', {
         method: 'POST',
@@ -82,9 +97,11 @@ const SimpleOrderReview = ({ orderId, orderNumber, productId = null, onReviewSub
       const data = await response.json();
       
       if (data.success) {
+        // Update with actual review from server
+        setExistingReview(data.review);
+        
         // Reset form
         setNewReview({ rating: 5, comment: '' });
-        setShowReviewPopup(false);
         
         // Show success message
         showSuccess('Review Submitted', 'Thank you for your review!');
@@ -94,10 +111,16 @@ const SimpleOrderReview = ({ orderId, orderNumber, productId = null, onReviewSub
           onReviewSubmit(data.review);
         }
       } else {
+        // Revert optimistic update on error
+        setExistingReview(null);
+        setShowReviewPopup(true);
         showError('Review Error', data.error || 'Failed to submit review');
       }
     } catch (error) {
       console.error('Error submitting review:', error);
+      // Revert optimistic update on error
+      setExistingReview(null);
+      setShowReviewPopup(true);
       showError('Review Error', 'Failed to submit review. Please try again.');
     } finally {
       setSubmitting(false);
@@ -121,22 +144,26 @@ const SimpleOrderReview = ({ orderId, orderNumber, productId = null, onReviewSub
   return (
     <>
       {/* Simple Write Review Button */}
-      <div className="simple-review-section">
+      <div className="sor-simple-review-section">
         {loadingReview ? (
-          <button className="write-review-btn" disabled>
+          <button className="sor-write-review-btn" disabled>
             Loading...
           </button>
         ) : existingReview ? (
-          <div className="existing-review-badge">
-            <FaCheck className="check-icon" />
-            <span>You already reviewed this order</span>
-          </div>
+          <button 
+            className="sor-write-review-btn sor-review-already-submitted"
+            disabled
+            title="You have already reviewed this product"
+          >
+            <FaCheck className="sor-check-icon" />
+            <span>You have already reviewed this product</span>
+          </button>
         ) : (
           <button 
-            className="write-review-btn"
+            className="sor-write-review-btn"
             onClick={() => setShowReviewPopup(true)}
           >
-            <FaStar className="review-icon" />
+            <FaStar className="sor-review-icon" />
             Write a Review
           </button>
         )}

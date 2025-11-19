@@ -1,7 +1,7 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const emailService = require('../lib/emailService');
-const { authenticateSupabaseToken } = require('../middleware/supabaseAuth');
+const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -205,19 +205,8 @@ router.post('/unsubscribe', async (req, res) => {
 });
 
 // Get all active subscribers (admin only)
-router.get('/subscribers', authenticateSupabaseToken, async (req, res) => {
+router.get('/subscribers', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
-    const { data: user } = await supabase.auth.getUser(req.headers.authorization?.replace('Bearer ', ''));
-
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Check if user is admin or owner
-    const role = user.user_metadata?.role;
-    if (role !== 'admin' && role !== 'owner') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' });
-    }
 
     const { data: subscribers, error } = await supabase
       .from('newsletter_subscriptions')
@@ -243,19 +232,8 @@ router.get('/subscribers', authenticateSupabaseToken, async (req, res) => {
 });
 
 // Send marketing email to all subscribers (admin only)
-router.post('/send-marketing', authenticateSupabaseToken, async (req, res) => {
+router.post('/send-marketing', authenticateSupabaseToken, requireAdminOrOwner, async (req, res) => {
   try {
-    const { data: user } = await supabase.auth.getUser(req.headers.authorization?.replace('Bearer ', ''));
-
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Check if user is admin or owner
-    const role = user.user_metadata?.role;
-    if (role !== 'admin' && role !== 'owner') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' });
-    }
 
     const { title, message, products, ctaText, ctaLink, imageUrl } = req.body;
 

@@ -37,7 +37,8 @@ import {
   faStore,
   faUserShield,
   faEye,
-  faEyeSlash
+  faEyeSlash,
+  faEnvelope
 } from '@fortawesome/free-solid-svg-icons';
 import { authFetch } from '../../services/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
@@ -365,6 +366,11 @@ echarts.use([
   const handleManageAccounts = () => {
     const accountsPath = isOwner ? '/owner/accounts' : '/admin/accounts';
     navigate(accountsPath);
+  };
+
+  const handleEmailMarketing = () => {
+    const accountsPath = isOwner ? '/owner/accounts' : '/admin/accounts';
+    navigate(accountsPath, { state: { activeTab: 'email-marketing' } });
   };
 
   const handleAddProduct = (newProduct) => {
@@ -1325,6 +1331,15 @@ echarts.use([
                   <FontAwesomeIcon icon={faUserShield} className="quick-action-icon" />
                   <span>Manage Accounts</span>
                 </button>
+                {isOwner && (
+                  <button 
+                    className="dashboard1-quick-action-btn dashboard1-email-marketing-btn"
+                    onClick={handleEmailMarketing}
+                  >
+                    <FontAwesomeIcon icon={faEnvelope} className="quick-action-icon" />
+                    <span>Email Marketing</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

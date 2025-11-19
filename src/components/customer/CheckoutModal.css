@@ -1757,11 +1757,11 @@ div.checkout-modal div.member-details .detail-label {
 .shipping-options .section-header,
 .notes-section .section-header {
   margin-bottom: 16px;
-  background: #0f1419 !important;
-  padding: 16px 20px;
-  border-radius: 8px 8px 0 0 !important;
-  margin: -20px -20px 16px -20px;
-  width: calc(100% + 40px);
+  background: transparent !important;
+  padding: 0;
+  border-radius: 0;
+  margin: 0 0 16px 0;
+  width: 100%;
 }
 
 .shipping-options .section-header h2,
@@ -1772,7 +1772,12 @@ div.checkout-modal div.member-details .detail-label {
   text-transform: uppercase;
 }
 
-/* Shipping Options */
+.shipping-options .section-icon {
+  color: #63b3ed;
+  font-size: 1.25rem;
+}
+
+/* Shipping Options - Original Design */
 .shipping-method {
   display: flex;
   flex-direction: row;
@@ -1781,13 +1786,14 @@ div.checkout-modal div.member-details .detail-label {
 }
 
 .shipping-option {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  padding: 14px;
-  border-radius: 8px;
-  border: 1.5px solid #4a5568;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
   background: #1a202c;
   transition: all 0.2s ease;
   flex: 1;
@@ -1795,55 +1801,51 @@ div.checkout-modal div.member-details .detail-label {
 }
 
 .shipping-option:hover {
-  border-color: #718096;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.shipping-option.selected {
+  background: rgba(74, 144, 226, 0.6);
+  border: none;
 }
 
 .shipping-option input[type="radio"] {
   display: none;
 }
 
-.checkmark {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #718096;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.shipping-option input[type="radio"]:checked + .checkmark {
-  background: #63b3ed;
-  border-color: #63b3ed;
-}
-
-.shipping-option input[type="radio"]:checked + .checkmark::after {
-  content: '✓';
-  color: #1a202c;
-  font-weight: bold;
-  font-size: 12px;
-}
-
-.shipping-option:has(input[type="radio"]:checked) {
-  border-color: #63b3ed;
-  background: #2c5282;
+/* Checkmark icon in top-right corner */
+.option-checkmark-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  z-index: 2;
 }
 
 .option-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
 }
 
 .option-title {
-  color: #e2e8f0;
+  color: #ffffff;
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.shipping-option:not(.selected) .option-title {
+  color: #e2e8f0;
+}
+
+.shipping-option.selected .option-title {
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .option-subtitle {
@@ -1851,6 +1853,12 @@ div.checkout-modal div.member-details .detail-label {
   font-size: 0.875rem;
   font-weight: 600;
   margin: 0;
+}
+
+.shipping-option.selected .option-subtitle {
+  color: #e0f2fe;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Location Selector */
@@ -2238,6 +2246,12 @@ div.checkout-modal div.member-details .detail-label {
     padding: 12px 8px;
     font-size: 0.875rem;
   }
+
+  .option-checkmark-icon {
+    top: 6px;
+    right: 6px;
+    font-size: 12px;
+  }
   
   .option-title {
     font-size: 0.875rem;
@@ -2481,10 +2495,11 @@ div.checkout-modal div.member-details .detail-label {
     padding: 10px 6px;
     gap: 8px;
   }
-  
-  .checkmark {
-    width: 18px;
-    height: 18px;
+
+  .option-checkmark-icon {
+    top: 5px;
+    right: 5px;
+    font-size: 11px;
   }
   
   .option-title {
@@ -2729,10 +2744,11 @@ div.checkout-modal div.member-details .detail-label {
     padding: 10px 5px;
     gap: 6px;
   }
-  
-  .checkmark {
-    width: 16px;
-    height: 16px;
+
+  .option-checkmark-icon {
+    top: 5px;
+    right: 5px;
+    font-size: 11px;
   }
   
   .option-title {
@@ -2852,9 +2868,14 @@ div.checkout-modal div.member-details .detail-label {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.1s ease, border-color 0.1s ease;
   min-width: 100px;
   font-family: 'Inter', sans-serif;
+}
+
+.confirm-btn:active {
+  transform: scale(0.98);
+  transition: transform 0.05s ease;
 }
 
 .yes-btn {
@@ -3163,11 +3184,11 @@ div.checkout-modal div.member-details .detail-label {
     padding: 8px 4px;
     gap: 5px;
   }
-  
-  .checkmark {
-    width: 14px;
-    height: 14px;
-    border-width: 1.5px;
+
+  .option-checkmark-icon {
+    top: 4px;
+    right: 4px;
+    font-size: 10px;
   }
   
   .option-title {
@@ -3355,11 +3376,11 @@ div.checkout-modal div.member-details .detail-label {
     padding: 8px 4px;
     gap: 5px;
   }
-  
-  .checkmark {
-    width: 14px;
-    height: 14px;
-    border-width: 1.5px;
+
+  .option-checkmark-icon {
+    top: 4px;
+    right: 4px;
+    font-size: 10px;
   }
   
   .option-title {

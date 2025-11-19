@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { API_URL } from '../config/api';
 
 class ProductService {
   parseAvailableSizes(sizeValue) {
@@ -49,6 +50,64 @@ class ProductService {
   }
 
   async getAllProducts() {
+    try {
+      // Use backend API endpoint which includes public access and review calculations
+      const response = await fetch(`${API_URL}/api/products`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch products: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Backend API already includes review_count, average_rating, and sold_quantity
+      // Just need to parse surcharges and sizes
+      return data.map(product => {
+        let sizeSurcharges = product.size_surcharges;
+        if (typeof sizeSurcharges === 'string') {
+          try {
+            sizeSurcharges = JSON.parse(sizeSurcharges);
+          } catch (error) {
+            console.warn('Failed to parse size_surcharges from productService:', error?.message);
+            sizeSurcharges = null;
+          }
+        }
+
+        let fabricSurcharges = product.fabric_surcharges;
+        if (typeof fabricSurcharges === 'string') {
+          try {
+            fabricSurcharges = JSON.parse(fabricSurcharges);
+          } catch (error) {
+            console.warn('Failed to parse fabric_surcharges from productService:', error?.message);
+            fabricSurcharges = null;
+          }
+        }
+
+        return {
+          ...product,
+          // Ensure review_count and average_rating are always present (default to 0 if missing)
+          review_count: product.review_count || 0,
+          average_rating: product.average_rating || 0,
+          sold_quantity: product.sold_quantity || 0,
+          available_sizes: this.parseAvailableSizes(product.size),
+          size_surcharges: sizeSurcharges,
+          fabric_surcharges: fabricSurcharges
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      // Fallback to Supabase direct access if API fails (for backwards compatibility)
+      console.warn('Falling back to direct Supabase access...');
+      return this.getAllProductsFromSupabase();
+    }
+  }
+
+  // Fallback method using Supabase direct access
+  async getAllProductsFromSupabase() {
     try {
       const { data, error } = await supabase
         .from('products')
@@ -189,28 +248,31 @@ class ProductService {
           ...product,
           average_rating: average,
           review_count: count,
+          sold_quantity: product.sold_quantity || 0,
           available_sizes: this.parseAvailableSizes(product.size),
           size_surcharges: sizeSurcharges,
           fabric_surcharges: fabricSurcharges
         };
       });
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching products from Supabase:', error);
       throw error;
     }
   }
 
   async getProductById(id) {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
+      // Use backend API endpoint which includes public access and review calculations
+      const response = await fetch(`${API_URL}/api/products/${id}`);
       
-      if (error) {
-        throw new Error(`Failed to fetch product: ${error.message}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Product not found');
+        }
+        throw new Error(`Failed to fetch product: ${response.statusText}`);
       }
+      
+      const data = await response.json();
 
       let sizeSurcharges = data?.size_surcharges;
       if (typeof sizeSurcharges === 'string') {
@@ -234,6 +296,10 @@ class ProductService {
 
       return {
         ...data,
+        // Ensure review_count and average_rating are always present (default to 0 if missing)
+        review_count: data.review_count || 0,
+        average_rating: data.average_rating || 0,
+        sold_quantity: data.sold_quantity || 0,
         size_surcharges: sizeSurcharges,
         fabric_surcharges: fabricSurcharges
       };
