@@ -39,6 +39,7 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       process.env.CLIENT_URL,
+      'https://yohanns-sportswearhouse1.onrender.com', // Production frontend URL
       'http://localhost:3000' // for local testing
     ].filter(Boolean); // Remove undefined values
     
@@ -46,17 +47,67 @@ const corsOptions = {
     if (!origin) return callback(null, true);
     
     // Check if origin is allowed
-    if (allowedOrigins.length === 0 || allowedOrigins.some(allowed => origin.includes(allowed.replace(/^https?:\/\//, '').replace(/^www\./, '')))) {
+    if (allowedOrigins.length === 0) {
+      // If no origins configured, allow all in production (not ideal but prevents blocking)
+      console.warn('⚠️  No CORS origins configured, allowing all origins');
+      callback(null, true);
+    } else if (allowedOrigins.some(allowed => {
+      const allowedDomain = allowed.replace(/^https?:\/\//, '').replace(/^www\./, '');
+      const originDomain = origin.replace(/^https?:\/\//, '').replace(/^www\./, '');
+      // Check exact match or if origin contains allowed domain
+      return origin === allowed || originDomain === allowedDomain || originDomain.includes(allowedDomain) || allowedDomain.includes(originDomain);
+    })) {
       callback(null, true);
     } else {
       console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
+      console.warn(`   NODE_ENV: ${process.env.NODE_ENV}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  // Dynamically allow all headers that the browser requests
+  // This prevents CORS errors for any header the browser sends
+  allowedHeaders: function(req) {
+    // Return the headers the browser requested, or allow all if not specified
+    const requestedHeaders = req.headers['access-control-request-headers'];
+    if (requestedHeaders) {
+      return requestedHeaders.split(',').map(h => h.trim());
+    }
+    // If no specific headers requested, allow common ones
+    return ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma', 'Accept'];
+  },
+  // Don't let CORS middleware handle OPTIONS - we handle it manually
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
+// Handle OPTIONS requests BEFORE CORS middleware to ensure they're processed correctly
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    console.log('🔍 OPTIONS preflight request received:', req.path);
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      const requestedHeaders = req.headers['access-control-request-headers'];
+      if (requestedHeaders) {
+        res.setHeader('Access-Control-Allow-Headers', requestedHeaders);
+      } else {
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Cache-Control, Pragma, Accept');
+      }
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+    console.log('✅ OPTIONS preflight response sent with status 204');
+    return res.status(204).end();
+  }
+  next();
+});
+
 app.use(cors(corsOptions));
+
 app.use(express.json());
 
 // Root route - only show API info in development
@@ -162,6 +213,13 @@ app.use((err, req, res, next) => {
   
   if (res.headersSent) {
     return next(err);
+  }
+  
+  // Ensure CORS headers are set on error responses
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
   
   // Check for Supabase tenant errors

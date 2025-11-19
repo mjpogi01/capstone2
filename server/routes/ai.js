@@ -1174,6 +1174,13 @@ router.post('/analytics', async (req, res, next) => {
       return;
     }
     
+    // Ensure CORS headers are set on error responses
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    
     // Check for specific error types
     const errorMessage = error.message || String(error) || 'Unknown error';
     const errorLower = errorMessage.toLowerCase();
