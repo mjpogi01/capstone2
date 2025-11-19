@@ -33,35 +33,86 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
   // Check if reCAPTCHA script is loaded
   useEffect(() => {
     const checkRecaptchaLoaded = () => {
-      if (typeof window.grecaptcha !== 'undefined' && window.grecaptcha.ready) {
-        return true;
+      return typeof window.grecaptcha !== 'undefined' && 
+             typeof window.grecaptcha.render !== 'undefined';
+    };
+
+    // Function to load reCAPTCHA script if not already loaded
+    const loadRecaptchaScript = () => {
+      if (checkRecaptchaLoaded()) {
+        return Promise.resolve();
       }
-      return false;
+
+      return new Promise((resolve, reject) => {
+        // Check if script is already in the DOM
+        const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
+        if (existingScript) {
+          // Script exists, wait for it to load
+          existingScript.onload = () => {
+            if (checkRecaptchaLoaded()) {
+              resolve();
+            } else {
+              reject(new Error('reCAPTCHA script loaded but API not available'));
+            }
+          };
+          existingScript.onerror = () => reject(new Error('reCAPTCHA script failed to load'));
+          return;
+        }
+
+        // Create and load script
+        const script = document.createElement('script');
+        script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          // Wait a bit for grecaptcha to initialize
+          setTimeout(() => {
+            if (checkRecaptchaLoaded()) {
+              resolve();
+            } else {
+              reject(new Error('reCAPTCHA script loaded but API not available'));
+            }
+          }, 1000);
+        };
+        script.onerror = () => reject(new Error('reCAPTCHA script failed to load'));
+        document.head.appendChild(script);
+      });
     };
 
     // Wait for reCAPTCHA to load with timeout
-    if (isOpen && !checkRecaptchaLoaded()) {
-      const timeout = setTimeout(() => {
-        if (!checkRecaptchaLoaded()) {
-          setCaptchaError(true);
-          setError("reCAPTCHA failed to load. Please check your internet connection and refresh the page.");
-        }
-      }, 5000); // 5 second timeout
+    if (isOpen) {
+      let timeoutId;
+      let mounted = true;
 
-      const checkInterval = setInterval(() => {
-        if (checkRecaptchaLoaded()) {
-          clearTimeout(timeout);
-          clearInterval(checkInterval);
-          setCaptchaError(false);
-        }
-      }, 500);
+      loadRecaptchaScript()
+        .then(() => {
+          if (mounted) {
+            setCaptchaError(false);
+            if (error && error.includes("reCAPTCHA")) {
+              setError("");
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn('reCAPTCHA loading issue:', err);
+          if (mounted) {
+            setCaptchaError(true);
+            // Don't show error immediately - allow user to still sign in
+            // Only show warning after delay
+            timeoutId = setTimeout(() => {
+              if (mounted && !checkRecaptchaLoaded()) {
+                setError("reCAPTCHA is unavailable. You can still sign in, but please verify your domain is added in Google reCAPTCHA console.");
+              }
+            }, 8000); // 8 second timeout - give it more time
+          }
+        });
 
       return () => {
-        clearTimeout(timeout);
-        clearInterval(checkInterval);
+        mounted = false;
+        if (timeoutId) clearTimeout(timeoutId);
       };
     }
-  }, [isOpen]);
+  }, [isOpen, error]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -101,7 +152,8 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
     if (!errorShownRef.current) {
       errorShownRef.current = true;
       setCaptchaError(true);
-      setError("reCAPTCHA failed to load. Please check your internet connection and refresh the page.");
+      // Don't set error message - allow user to proceed
+      // The visual indicator in the UI is enough
       setCaptchaVerified(false);
     }
   };
@@ -268,7 +320,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
 
             {/* reCAPTCHA */}
             <div className={styles.signinCaptchaContainer}>
-              {!captchaError ? (
+              {!captchaError && typeof window.grecaptcha !== 'undefined' && typeof window.grecaptcha.render !== 'undefined' ? (
                 <ReCAPTCHA
                   ref={captchaRef}
                   sitekey={RECAPTCHA_SITE_KEY}
@@ -279,12 +331,20 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
                 />
               ) : (
                 <div style={{ 
-                  padding: '10px', 
+                  padding: '12px', 
                   textAlign: 'center', 
-                  color: '#ff6b6b',
-                  fontSize: '0.9rem' 
+                  color: '#ffa500',
+                  fontSize: '0.85rem',
+                  backgroundColor: 'rgba(255, 165, 0, 0.1)',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255, 165, 0, 0.3)',
+                  margin: '10px 0'
                 }}>
-                  reCAPTCHA unavailable. You can still sign in.
+                  ⚠️ reCAPTCHA unavailable. You can still sign in.
+                  <br />
+                  <small style={{ fontSize: '0.75rem', opacity: 0.8, display: 'block', marginTop: '4px' }}>
+                    Domain configuration: Ensure <code style={{ fontSize: '0.7rem', backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 4px', borderRadius: '3px' }}>yohanns-sportswear.onrender.com</code> is added to Google reCAPTCHA domains.
+                  </small>
                 </div>
               )}
             </div>
