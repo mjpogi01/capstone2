@@ -2257,6 +2257,7 @@ async function computeSalesForecast({ requestedRange, branchContext }) {
 
     const now = new Date();
     const startOfCurrentMonthUTC = startOfMonthUTC(new Date(now));
+    const firstAllowedMonthUTC = new Date(Date.UTC(2022, 0, 1)); // January 1, 2022 - exclude December 2021 and earlier
 
     console.log('📈 Computing sales forecast for range:', range);
     console.log('📈 Branch context:', branchContext);
@@ -2272,12 +2273,13 @@ async function computeSalesForecast({ requestedRange, branchContext }) {
         COUNT(*)::int AS orders
       FROM orders
       WHERE LOWER(status) NOT IN ('cancelled', 'canceled')
-        AND created_at < $1
+        AND created_at >= $1
+        AND created_at < $2
       ${monthlyFilter.clause}
       GROUP BY month_start
       ORDER BY month_start;
     `,
-      [startOfCurrentMonthUTC.toISOString(), ...monthlyFilter.params]
+      [firstAllowedMonthUTC.toISOString(), startOfCurrentMonthUTC.toISOString(), ...monthlyFilter.params]
       );
       rows = result.rows || [];
       console.log('📈 SQL query executed successfully, found', rows.length, 'rows');
@@ -2308,7 +2310,11 @@ async function computeSalesForecast({ requestedRange, branchContext }) {
     .filter(Boolean)
     .sort((a, b) => a.monthDate.getTime() - b.monthDate.getTime());
 
-  const fullHistorical = historicalRaw;
+  // Filter out December 2021 and any months before January 2022
+  const firstAllowedMonth = new Date(Date.UTC(2022, 0, 1)); // January 1, 2022
+  const fullHistorical = historicalRaw.filter((item) => {
+    return item.monthDate >= firstAllowedMonth;
+  });
 
   const monthKey = (date) => date.toISOString().slice(0, 7);
 
