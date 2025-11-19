@@ -1202,9 +1202,13 @@ class EmailService {
             }
             .header-logo {
                 max-width: 200px;
+                width: 200px;
                 height: auto;
-                margin: 0 auto 15px;
+                margin: 0 auto;
                 display: block;
+                border: 0;
+                outline: none;
+                text-decoration: none;
             }
             .header p {
                 margin: 0;
@@ -1303,8 +1307,18 @@ class EmailService {
             <div class="email-wrapper">
                 <div class="container">
                     <div class="header">
-                        <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" />
-                        <p>${safeTitle}</p>
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto;">
+                            <tr>
+                                <td align="center" style="padding-bottom: 15px;">
+                                    <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center">
+                                    <p>${safeTitle}</p>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                     
                     <div class="content">
