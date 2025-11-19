@@ -1,17 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import './OwnerDashboard.css';
 import '../admin/admin-shared.css';
 import Sidebar from '../../components/admin/Sidebar';
 import Orders from '../../components/admin/Orders';
 import Analytics from '../admin/Analytics';
 import Dashboard1 from '../admin/Dashboard1';
+import EmailMarketing from '../../components/admin/EmailMarketing';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars } from '@fortawesome/free-solid-svg-icons';
 import logo from '../../images/yohanns_logo-removebg-preview 3.png';
 
 const OwnerDashboard = () => {
+  const location = useLocation();
   const [activePage, setActivePage] = useState('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Sync activePage with URL
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/owner' || path === '/owner/') {
+      setActivePage('home');
+    } else if (path === '/owner/orders') {
+      setActivePage('orders');
+    } else if (path === '/owner/analytics') {
+      setActivePage('analytics');
+    } else if (path === '/owner/email-marketing') {
+      setActivePage('email-marketing');
+    }
+  }, [location]);
 
   const getPageTitle = () => {
     switch (activePage) {
@@ -21,6 +38,8 @@ const OwnerDashboard = () => {
         return 'Orders';
       case 'analytics':
         return 'Analytics';
+      case 'email-marketing':
+        return 'Email Marketing';
       default:
         return 'Owner Dashboard';
     }
@@ -34,6 +53,8 @@ const OwnerDashboard = () => {
         return <Orders />;
       case 'analytics':
         return <Analytics />;
+      case 'email-marketing':
+        return <EmailMarketing />;
       default:
         return <Dashboard1 />;
     }

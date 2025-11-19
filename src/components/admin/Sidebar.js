@@ -11,16 +11,18 @@ import {
   faBoxesStacked, 
   faUsers, 
   faSignOutAlt, 
-  faComments
+  faComments,
+  faEnvelope
 } from '@fortawesome/free-solid-svg-icons';
 
 const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuOpen }) => {
-  const { logout, user } = useAuth();
+  const { logout, user, hasAdminAccess } = useAuth();
   const navigate = useNavigate();
   
   // Get user role to determine correct paths
   const userRole = user?.user_metadata?.role || 'customer';
   const basePath = userRole === 'owner' ? '/owner' : '/admin';
+  const canAccessEmailMarketing = hasAdminAccess();
   
   const menuItems = [
     { id: 'home', label: 'Dashboard', icon: faHouse, path: basePath },
@@ -30,6 +32,16 @@ const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuO
     { id: 'inventory', label: 'Inventory', icon: faBoxesStacked, path: '/inventory' },
     { id: 'accounts', label: 'Accounts', icon: faUsers, path: `${basePath}/accounts` },
   ];
+
+  // Add Email Marketing menu item if user has access
+  if (canAccessEmailMarketing) {
+    menuItems.push({
+      id: 'email-marketing',
+      label: 'Email Marketing',
+      icon: faEnvelope,
+      path: `${basePath}/email-marketing`
+    });
+  }
 
   const handleLogout = () => {
     logout();
@@ -72,6 +84,7 @@ const Sidebar = ({ activePage, setActivePage, isMobileMenuOpen, setIsMobileMenuO
               <li key={item.id} className="nav-item">
                 <Link
                   to={item.path}
+                  state={item.state || {}}
                   className={`admin-nav-link ${activePage === item.id ? 'active' : ''}`}
                   onClick={() => handleMenuItemClick(item.id)}
                   data-tooltip={item.label}

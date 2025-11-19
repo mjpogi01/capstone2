@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEnvelope, FaTag, FaPercent, FaPaperPlane, FaUsers, FaSpinner } from 'react-icons/fa';
+import { FaEnvelope, FaTag, FaPercent, FaPaperPlane, FaUsers, FaSpinner, FaEdit, FaImage, FaMousePointer } from 'react-icons/fa';
 import newsletterService from '../../services/newsletterService';
 import { useNotification } from '../../contexts/NotificationContext';
 import './EmailMarketing.css';
@@ -118,22 +118,143 @@ const EmailMarketing = () => {
     }
   };
 
-  const buildEmailPreview = () => {
-    let message = formData.message;
+  const buildEmailPreviewHTML = () => {
+    const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl } = formData;
+    const clientUrl = window.location.origin;
     
-    if (formData.discountType === 'percentage' && formData.discountValue) {
-      message += `\n\n🎉 Special Offer: Get ${formData.discountValue}% OFF on your next purchase!`;
-      if (formData.promoCode) {
-        message += `\nUse promo code: ${formData.promoCode}`;
-      }
-    } else if (formData.discountType === 'fixed' && formData.discountValue) {
-      message += `\n\n🎉 Special Offer: Get ₱${formData.discountValue} OFF on your next purchase!`;
-      if (formData.promoCode) {
-        message += `\nUse promo code: ${formData.promoCode}`;
-      }
+    // Build discount section
+    let discountSection = '';
+    if (discountType === 'percentage' && discountValue) {
+      discountSection = `
+        <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; font-size: 18px; font-weight: bold;">Special Discount!</p>
+          <p style="margin: 10px 0 0 0; font-size: 16px;">Get ${discountValue}% OFF on your next purchase!</p>
+          ${promoCode ? `<p style="margin: 10px 0 0 0; font-size: 16px;">Use code: <strong>${promoCode}</strong></p>` : ''}
+        </div>
+      `;
+    } else if (discountType === 'fixed' && discountValue) {
+      discountSection = `
+        <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; font-size: 18px; font-weight: bold;">Special Discount!</p>
+          <p style="margin: 10px 0 0 0; font-size: 16px;">Get ₱${discountValue} OFF on your next purchase!</p>
+          ${promoCode ? `<p style="margin: 10px 0 0 0; font-size: 16px;">Use code: <strong>${promoCode}</strong></p>` : ''}
+        </div>
+      `;
     }
 
-    return message;
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title || 'Special Offer from Yohanns'}</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f8f9fa;
+            }
+            .container {
+                background-color: white;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            .header {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }
+            .header-logo {
+                max-width: 200px;
+                height: auto;
+                margin: 0 auto 15px;
+                display: block;
+            }
+            .header p {
+                margin: 0;
+                font-size: 18px;
+            }
+            .content {
+                padding: 30px;
+            }
+            .image-container {
+                text-align: center;
+                margin: 20px 0;
+            }
+            .image-container img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 8px;
+            }
+            .message {
+                white-space: pre-wrap;
+                margin: 20px 0;
+                line-height: 1.8;
+            }
+            .cta-button {
+                display: inline-block;
+                padding: 15px 40px;
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 16px;
+                margin: 20px 0;
+                text-align: center;
+            }
+            .footer {
+                background-color: #1a1a2e;
+                color: white;
+                padding: 20px;
+                text-align: center;
+                font-size: 14px;
+            }
+            .footer a {
+                color: #00bfff;
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" />
+                <p>${title || 'Special Offer'}</p>
+            </div>
+            
+            <div class="content">
+                ${imageUrl ? `<div class="image-container"><img src="${imageUrl}" alt="Promo Image" /></div>` : ''}
+                
+                ${discountSection}
+                
+                <div class="message">${message || ''}</div>
+                
+                <div style="text-align: center;">
+                    <a href="${ctaLink || clientUrl}" class="cta-button">
+                        ${ctaText || 'Shop Now'}
+                    </a>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p><strong>Yohanns - Premium Sports Apparel</strong></p>
+                <p>This is an automated message. Please do not reply to this email.</p>
+                <p><a href="${clientUrl}/unsubscribe">Unsubscribe</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+    
+    return html;
   };
 
   return (
@@ -157,41 +278,53 @@ const EmailMarketing = () => {
       ) : (
         <div className="email-marketing-content">
           <form onSubmit={handleSubmit} className="email-marketing-form">
-            {/* Title */}
-            <div className="form-group">
-              <label htmlFor="title">
-                <FaEnvelope className="label-icon" />
-                Email Title *
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="e.g., Summer Sale - 50% OFF!"
-                required
-                maxLength={100}
-              />
+            {/* Subject Section */}
+            <div className="form-section">
+              <h3>
+                <FaEnvelope className="section-icon" />
+                Subject
+              </h3>
+              
+              <div className="form-group">
+                <label htmlFor="title">
+                  Email Title *
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Summer Sale - 50% OFF!"
+                  required
+                  maxLength={100}
+                />
+              </div>
             </div>
 
-            {/* Message */}
-            <div className="form-group">
-              <label htmlFor="message">
-                <FaEnvelope className="label-icon" />
-                Email Message *
-              </label>
-              <textarea
-                id="message"
-                name="message"
-                value={formData.message}
-                onChange={handleInputChange}
-                placeholder="Write your marketing message here..."
-                required
-                rows={6}
-                maxLength={2000}
-              />
-              <div className="char-count">{formData.message.length}/2000</div>
+            {/* Compose Email Section */}
+            <div className="form-section">
+              <h3>
+                <FaEdit className="section-icon" />
+                Compose Email
+              </h3>
+              
+              <div className="form-group">
+                <label htmlFor="message">
+                  Email Message *
+                </label>
+                <textarea
+                  id="message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  placeholder="Write your marketing message here..."
+                  required
+                  rows={6}
+                  maxLength={2000}
+                />
+                <div className="char-count">{formData.message.length}/2000</div>
+              </div>
             </div>
 
             {/* Discount/Promo Section */}
@@ -259,7 +392,10 @@ const EmailMarketing = () => {
 
             {/* Call to Action */}
             <div className="form-section">
-              <h3>Call to Action</h3>
+              <h3>
+                <FaMousePointer className="section-icon" />
+                Call to Action
+              </h3>
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="ctaText">Button Text</label>
@@ -287,17 +423,25 @@ const EmailMarketing = () => {
               </div>
             </div>
 
-            {/* Image URL (Optional) */}
-            <div className="form-group">
-              <label htmlFor="imageUrl">Image URL (Optional)</label>
-              <input
-                type="url"
-                id="imageUrl"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleInputChange}
-                placeholder="https://example.com/promo-image.jpg"
-              />
+            {/* Media & Assets Section */}
+            <div className="form-section">
+              <h3>
+                <FaImage className="section-icon" />
+                Media & Assets
+              </h3>
+              
+              <div className="form-group">
+                <label htmlFor="imageUrl">Image URL (Optional)</label>
+                <input
+                  type="url"
+                  id="imageUrl"
+                  name="imageUrl"
+                  value={formData.imageUrl}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com/promo-image.jpg"
+                />
+                <small className="form-help-text">Add a promotional image to make your email more engaging</small>
+              </div>
             </div>
 
             {/* Preview Toggle */}
@@ -315,18 +459,13 @@ const EmailMarketing = () => {
             {previewMode && (
               <div className="email-preview">
                 <h4>Email Preview</h4>
-                <div className="preview-content">
-                  <div className="preview-header">
-                    <h3>{formData.title || 'Email Title'}</h3>
-                  </div>
-                  <div className="preview-body">
-                    <p style={{ whiteSpace: 'pre-wrap' }}>{buildEmailPreview() || 'Your message will appear here...'}</p>
-                    {formData.ctaText && (
-                      <div className="preview-cta">
-                        <button className="cta-button">{formData.ctaText}</button>
-                      </div>
-                    )}
-                  </div>
+                <div className="preview-iframe-container">
+                  <iframe
+                    title="Email Preview"
+                    srcDoc={buildEmailPreviewHTML()}
+                    className="preview-iframe"
+                    sandbox="allow-same-origin"
+                  />
                 </div>
               </div>
             )}

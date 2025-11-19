@@ -934,10 +934,12 @@ class EmailService {
 
   // Get newsletter welcome email template
   getNewsletterWelcomeEmailTemplate(subscriberEmail = '') {
+    // Use localhost for development, otherwise use CLIENT_URL or production URL
+    const clientUrl = process.env.CLIENT_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://yohanns-sportswear.onrender.com');
     // Encode email for unsubscribe link
     const unsubscribeLink = subscriberEmail 
-      ? `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
-      : `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe`;
+      ? `${clientUrl}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
+      : `${clientUrl}/unsubscribe`;
     
     const html = `
     <!DOCTYPE html>
@@ -1003,12 +1005,18 @@ class EmailService {
                 font-weight: bold;
                 margin: 20px 0;
             }
+            .header-logo {
+                max-width: 200px;
+                height: auto;
+                margin: 0 auto 15px;
+                display: block;
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h1>🏀 YOHANNS</h1>
+                <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" />
                 <p>Welcome to Our Newsletter!</p>
             </div>
             
@@ -1032,7 +1040,7 @@ class EmailService {
                 <p>Stay tuned for exciting updates and exclusive offers coming your way!</p>
                 
                 <div style="text-align: center;">
-                    <a href="${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}" class="cta-button">
+                    <a href="${clientUrl}" class="cta-button">
                         Visit Our Store
                     </a>
                 </div>
@@ -1065,7 +1073,7 @@ class EmailService {
     
     Stay tuned for exciting updates and exclusive offers coming your way!
     
-    Visit our store: ${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}
+    Visit our store: ${clientUrl}
     
     Thank you for choosing Yohanns - where quality meets passion!
     
@@ -1078,10 +1086,12 @@ class EmailService {
   // Get marketing email template
   getMarketingEmailTemplate(marketingData, subscriberEmail = '') {
     const { title, message, discountType, discountValue, promoCode, ctaText, ctaLink, imageUrl } = marketingData;
+    // Use localhost for development, otherwise use CLIENT_URL or production URL
+    const clientUrl = process.env.CLIENT_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://yohanns-sportswear.onrender.com');
     // Encode email for unsubscribe link
     const unsubscribeLink = subscriberEmail 
-      ? `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
-      : `${process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com'}/unsubscribe`;
+      ? `${clientUrl}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
+      : `${clientUrl}/unsubscribe`;
     
     let discountSection = '';
     if (discountType === 'percentage' && discountValue) {
@@ -1136,6 +1146,16 @@ class EmailService {
                 font-size: 28px;
                 font-weight: bold;
             }
+            .header-logo {
+                max-width: 200px;
+                height: auto;
+                margin: 0 auto 15px;
+                display: block;
+            }
+            .header p {
+                margin: 0;
+                font-size: 18px;
+            }
             .content {
                 padding: 30px;
             }
@@ -1177,7 +1197,7 @@ class EmailService {
     <body>
         <div class="container">
             <div class="header">
-                <h1>🏀 YOHANNS</h1>
+                <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" />
                 <p>${title || 'Special Offer'}</p>
             </div>
             
@@ -1189,7 +1209,7 @@ class EmailService {
                 <div class="message">${message || ''}</div>
                 
                 <div style="text-align: center;">
-                    <a href="${ctaLink || (process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com')}" class="cta-button">
+                    <a href="${ctaLink || clientUrl}" class="cta-button">
                         ${ctaText || 'Shop Now'}
                     </a>
                 </div>
@@ -1223,7 +1243,7 @@ class EmailService {
     
     ${textMessage}
     
-    ${ctaText || 'Shop Now'}: ${ctaLink || (process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com')}
+    ${ctaText || 'Shop Now'}: ${ctaLink || clientUrl}
     
     Yohanns - Premium Sports Apparel
     This is an automated message. Please do not reply to this email.

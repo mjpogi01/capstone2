@@ -26,6 +26,7 @@ import Orders from './pages/admin/Orders';
 import WalkInOrders from './pages/admin/WalkInOrders';
 import Analytics from './pages/admin/Analytics';
 import BranchSupport from './pages/admin/BranchSupport';
+import EmailMarketingPage from './pages/admin/EmailMarketing';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleRedirect from './components/RoleRedirect';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
@@ -178,6 +179,22 @@ const AppContent = () => {
           element={
             <ProtectedRoute requireOwner={true}>
               <Analytics />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/email-marketing"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <EmailMarketingPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/owner/email-marketing" 
+          element={
+            <ProtectedRoute requireOwner={true}>
+              <EmailMarketingPage />
             </ProtectedRoute>
           } 
         />
