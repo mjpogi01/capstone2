@@ -77,16 +77,17 @@ const Unsubscribe = () => {
             <div className="unsubscribe-success">
               <div className="success-icon">✓</div>
               <h3>Successfully Unsubscribed</h3>
-              <p>{message}</p>
-              {email && (
-                <p className="email-info">
-                  <strong>Email:</strong> {email}
+              <div className="confirmation-message">
+                <p className="confirmation-main">{message}</p>
+                {email && (
+                  <p className="email-info">
+                    <strong>Email:</strong> {email}
+                  </p>
+                )}
+                <p className="confirmation-detail">
+                  You have been successfully removed from our newsletter. You will no longer receive marketing emails from us.
                 </p>
-              )}
-              <p className="unsubscribe-note">
-                You will no longer receive marketing emails from Yohanns. If you subscribed again in the future, 
-                you can unsubscribe anytime using the link in our emails.
-              </p>
+              </div>
               <div className="unsubscribe-actions">
                 <button onClick={() => navigate('/')} className="btn-primary">
                   Return to Homepage

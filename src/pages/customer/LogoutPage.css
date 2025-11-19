@@ -1,6 +1,6 @@
 /* Logout Page - Clean Dark Theme */
 .logout-page {
-  background: #0d0d0d;
+  background: #0d0d0d !important;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -9,6 +9,13 @@
   overflow: hidden;
   padding: 2rem 0;
   font-family: 'Oswald', sans-serif;
+  color-scheme: dark !important;
+}
+
+/* Force dark theme - override any light mode preferences */
+.logout-page,
+.logout-page * {
+  color-scheme: dark !important;
 }
 
 .logout-container {
@@ -140,8 +147,8 @@
 }
 
 .form-preview-card {
-  background: #161616;
-  border: 1px solid #2d2d2d;
+  background: #161616 !important;
+  border: 1px solid #2d2d2d !important;
   border-radius: 12px;
   padding: 2rem;
   width: 100%;
@@ -178,8 +185,8 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  background: #1f1f1f;
-  border: 1px solid #2d2d2d;
+  background: #1f1f1f !important;
+  border: 1px solid #2d2d2d !important;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -187,8 +194,8 @@
 }
 
 .preview-btn:hover {
-  background: #252525;
-  border-color: #00bfff;
+  background: #252525 !important;
+  border-color: #00bfff !important;
 }
 
 .preview-btn-icon {

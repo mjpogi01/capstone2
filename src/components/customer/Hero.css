@@ -89,7 +89,7 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.2s ease, color 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-family: 'Poppins', sans-serif;
@@ -100,54 +100,30 @@
   background: #00bfff;
   color: #000;
   border: 2px solid #00bfff !important;
-  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
 }
 
 .btn-primary:hover {
   background: #0099cc;
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 20px rgba(0, 191, 255, 0.5);
 }
 
 .btn-primary:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.3);
+  background: #0088bb;
 }
 
 .btn-secondary {
   background: transparent;
   color: #00bfff;
   border: 2px solid #00bfff !important;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.2);
-}
-
-.btn-secondary::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: #00bfff;
-  transition: left 0.3s ease;
-  z-index: -1;
 }
 
 .btn-secondary:hover {
+  background: #00bfff;
   color: #000;
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 20px rgba(0, 191, 255, 0.4);
-}
-
-.btn-secondary:hover::before {
-  left: 0;
 }
 
 .btn-secondary:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.2);
+  background: #0099cc;
+  color: #000;
 }
 
 .hero-image {
@@ -271,7 +247,7 @@
   }
   
   .btn:active {
-    transform: scale(0.97);
+    opacity: 0.9;
   }
   
   .hero-image {

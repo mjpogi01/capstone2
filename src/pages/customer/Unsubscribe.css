@@ -3,50 +3,52 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
+  background: #0d0d0d;
   padding: 2rem 1rem;
   position: relative;
   overflow-x: hidden;
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .unsubscribe-container {
-  max-width: 600px;
+  max-width: 480px;
   width: 100%;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  background: #161616;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 191, 255, 0.2);
-  border: 1px solid rgba(0, 191, 255, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid #2d2d2d;
   overflow: hidden;
   position: relative;
   z-index: 1;
+  margin: 0 auto;
 }
 
 .unsubscribe-header {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #1a1a1a;
   color: white;
-  padding: 2.5rem 2rem;
+  padding: 1.5rem;
   text-align: center;
-  border-bottom: 2px solid rgba(0, 191, 255, 0.3);
+  border-bottom: 1px solid #2d2d2d;
 }
 
 .unsubscribe-header h1 {
   margin: 0 0 0.5rem 0;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
   color: #00bfff;
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .unsubscribe-header h2 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 400;
-  color: #a9d8ff;
-  opacity: 0.9;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #a0aec0;
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .unsubscribe-content {
-  padding: 3rem 2rem;
+  padding: 2rem 1.5rem;
   background: transparent;
 }
 
@@ -55,13 +57,13 @@
 }
 
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(0, 191, 255, 0.2);
-  border-top: 4px solid #00bfff;
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 191, 255, 0.2);
+  border-top: 3px solid #00bfff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto 1.25rem;
 }
 
 @keyframes spin {
@@ -70,9 +72,10 @@
 }
 
 .unsubscribe-loading p {
-  color: #a9d8ff;
+  color: #a0aec0;
   font-size: 1rem;
   margin: 0;
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .unsubscribe-success,
@@ -84,14 +87,14 @@
 .success-icon,
 .info-icon,
 .error-icon {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1.5rem;
-  font-size: 2.5rem;
+  margin: 0 auto 1.25rem;
+  font-size: 2rem;
   font-weight: bold;
   box-shadow: 0 4px 20px rgba(0, 191, 255, 0.3);
 }
@@ -117,11 +120,11 @@
 .unsubscribe-success h3,
 .unsubscribe-already h3,
 .unsubscribe-error h3 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   margin: 0 0 1rem 0;
   color: #00bfff;
-  text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .unsubscribe-success p,
@@ -131,37 +134,65 @@
   line-height: 1.6;
   color: #e0e0e0;
   margin: 0 0 1rem 0;
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+.confirmation-message {
+  background: rgba(0, 191, 255, 0.05);
+  border: 1px solid rgba(0, 191, 255, 0.2);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin: 1.25rem 0;
+}
+
+.confirmation-main {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  margin-bottom: 0.75rem !important;
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+.confirmation-detail {
+  font-size: 0.95rem !important;
+  line-height: 1.6 !important;
+  color: #a0aec0 !important;
+  margin: 0 !important;
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .email-info {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.3);
   padding: 1rem;
   border-radius: 8px;
-  margin: 1.5rem 0 !important;
+  margin: 1rem 0 !important;
   font-size: 0.9rem;
   border: 1px solid rgba(0, 191, 255, 0.2);
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .email-info strong {
   color: #00bfff;
+  font-weight: 600;
 }
 
 .unsubscribe-note {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.3);
   padding: 1rem;
   border-radius: 8px;
   font-size: 0.9rem;
-  color: #a9d8ff;
+  color: #a0aec0;
   margin: 1.5rem 0 !important;
   line-height: 1.6;
   border: 1px solid rgba(0, 191, 255, 0.2);
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .unsubscribe-actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: center;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   flex-wrap: wrap;
 }
 
@@ -174,36 +205,33 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%);
+  background: #00bfff;
   color: #000000;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.4);
+  font-weight: 600;
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 191, 255, 0.6);
-  background: linear-gradient(135deg, #00ccff 0%, #0099ff 100%);
+  background: #0099cc;
 }
 
 .btn-secondary {
-  background: rgba(0, 191, 255, 0.1);
+  background: transparent;
   color: #00bfff;
-  border: 1px solid rgba(0, 191, 255, 0.3);
+  border: 1px solid #4a5568;
 }
 
 .btn-secondary:hover {
-  background: rgba(0, 191, 255, 0.2);
-  border-color: rgba(0, 191, 255, 0.5);
-  color: #00ccff;
+  background: rgba(0, 191, 255, 0.1);
+  border-color: #00bfff;
 }
 
 .unsubscribe-footer {
   background: rgba(0, 0, 0, 0.5);
-  padding: 1.5rem 2rem;
+  padding: 1.25rem 1.5rem;
   text-align: center;
   border-top: 1px solid rgba(0, 191, 255, 0.2);
 }
@@ -211,24 +239,29 @@
 .unsubscribe-footer p {
   margin: 0.5rem 0;
   font-size: 0.875rem;
-  color: #a9d8ff;
+  color: #a0aec0;
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
 
 @media (max-width: 768px) {
+  .unsubscribe-container {
+    max-width: 90%;
+  }
+
   .unsubscribe-header {
-    padding: 2rem 1.5rem;
+    padding: 1.25rem;
   }
 
   .unsubscribe-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .unsubscribe-header h2 {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
   .unsubscribe-content {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1.25rem;
   }
 
   .unsubscribe-actions {

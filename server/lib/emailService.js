@@ -1093,21 +1093,37 @@ class EmailService {
       ? `${clientUrl}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}`
       : `${clientUrl}/unsubscribe`;
     
+    // Escape HTML in user-provided content for security
+    const escapeHtml = (text) => {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+    
+    const safeTitle = escapeHtml(title || 'Special Offer');
+    const safeMessage = escapeHtml(message || '');
+    const safeCtaText = escapeHtml(ctaText || 'Shop Now');
+    const safePromoCode = promoCode ? escapeHtml(promoCode) : '';
+    
     let discountSection = '';
     if (discountType === 'percentage' && discountValue) {
       discountSection = `
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 25px; text-align: center; border-radius: 10px; margin: 20px 0;">
-          <h2 style="margin: 0 0 10px 0; font-size: 32px;">${discountValue}% OFF</h2>
-          <p style="margin: 0; font-size: 18px; font-weight: bold;">Special Discount!</p>
-          ${promoCode ? `<p style="margin: 10px 0 0 0; font-size: 16px;">Use code: <strong>${promoCode}</strong></p>` : ''}
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px 15px; text-align: center; border-radius: 10px; margin: 20px 0; word-wrap: break-word; overflow-wrap: break-word;">
+          <h2 style="margin: 0 0 8px 0; font-size: clamp(24px, 6vw, 36px); font-weight: bold; line-height: 1.2;">${escapeHtml(discountValue)}% OFF</h2>
+          <p style="margin: 0 0 8px 0; font-size: clamp(16px, 4vw, 20px); font-weight: bold; line-height: 1.3;">Special Discount!</p>
+          ${safePromoCode ? `<p style="margin: 8px 0 0 0; font-size: clamp(14px, 3.5vw, 18px); word-break: break-word; line-height: 1.4;">Use code: <strong style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-left: 4px;">${safePromoCode}</strong></p>` : ''}
         </div>
       `;
     } else if (discountType === 'fixed' && discountValue) {
       discountSection = `
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 25px; text-align: center; border-radius: 10px; margin: 20px 0;">
-          <h2 style="margin: 0 0 10px 0; font-size: 32px;">₱${discountValue} OFF</h2>
-          <p style="margin: 0; font-size: 18px; font-weight: bold;">Special Discount!</p>
-          ${promoCode ? `<p style="margin: 10px 0 0 0; font-size: 16px;">Use code: <strong>${promoCode}</strong></p>` : ''}
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px 15px; text-align: center; border-radius: 10px; margin: 20px 0; word-wrap: break-word; overflow-wrap: break-word;">
+          <h2 style="margin: 0 0 8px 0; font-size: clamp(24px, 6vw, 36px); font-weight: bold; line-height: 1.2;">₱${escapeHtml(discountValue)} OFF</h2>
+          <p style="margin: 0 0 8px 0; font-size: clamp(16px, 4vw, 20px); font-weight: bold; line-height: 1.3;">Special Discount!</p>
+          ${safePromoCode ? `<p style="margin: 8px 0 0 0; font-size: clamp(14px, 3.5vw, 18px); word-break: break-word; line-height: 1.4;">Use code: <strong style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-left: 4px;">${safePromoCode}</strong></p>` : ''}
         </div>
       `;
     }
@@ -1118,34 +1134,73 @@ class EmailService {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${title || 'Special Offer from Yohanns'}</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>${safeTitle}</title>
+        <!--[if mso]>
+        <style type="text/css">
+          table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        </style>
+        <![endif]-->
         <style>
+            /* Reset styles for email clients */
+            body, table, td, p, a, li, blockquote {
+                -webkit-text-size-adjust: 100%;
+                -ms-text-size-adjust: 100%;
+            }
+            table, td {
+                mso-table-lspace: 0pt;
+                mso-table-rspace: 0pt;
+            }
+            img {
+                -ms-interpolation-mode: bicubic;
+                border: 0;
+                outline: none;
+                text-decoration: none;
+            }
+            
+            /* Base styles */
             body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: #f8f9fa;
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 line-height: 1.6;
                 color: #333;
+                width: 100% !important;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+            
+            /* Container */
+            .email-wrapper {
                 max-width: 600px;
                 margin: 0 auto;
-                padding: 20px;
                 background-color: #f8f9fa;
+                padding: 10px;
             }
+            
             .container {
-                background-color: white;
+                background-color: #ffffff;
                 border-radius: 10px;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                 overflow: hidden;
+                width: 100%;
             }
+            
+            /* Header */
             .header {
                 background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                color: white;
-                padding: 30px;
+                color: #ffffff;
+                padding: clamp(20px, 5vw, 30px) clamp(15px, 4vw, 30px);
                 text-align: center;
             }
             .header h1 {
-                margin: 0;
-                font-size: 28px;
+                margin: 0 0 8px 0;
+                font-size: clamp(22px, 5.5vw, 28px);
                 font-weight: bold;
+                line-height: 1.3;
             }
+<<<<<<< HEAD
             .header-logo {
                 max-width: 200px;
                 height: auto;
@@ -1154,46 +1209,149 @@ class EmailService {
             }
             .header p {
                 margin: 0;
-                font-size: 18px;
+                font-size: clamp(16px, 4vw, 18px);
+                opacity: 0.95;
+                line-height: 1.4;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
             }
+            
+            /* Content */
             .content {
-                padding: 30px;
+                padding: clamp(20px, 5vw, 30px) clamp(15px, 4vw, 30px);
             }
+            
+            /* Image container */
             .image-container {
                 text-align: center;
-                margin: 20px 0;
+                margin: clamp(15px, 4vw, 20px) 0;
             }
             .image-container img {
-                max-width: 100%;
-                height: auto;
+                max-width: 100% !important;
+                height: auto !important;
+                width: auto !important;
                 border-radius: 8px;
+                display: block;
+                margin: 0 auto;
             }
+            
+            /* Message text */
             .message {
                 white-space: pre-wrap;
-                margin: 20px 0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                margin: clamp(15px, 4vw, 20px) 0;
                 line-height: 1.8;
+                font-size: clamp(15px, 3.8vw, 16px);
+                color: #333;
+                max-width: 100%;
+            }
+            
+            /* CTA Button */
+            .cta-container {
+                text-align: center;
+                margin: clamp(20px, 5vw, 25px) 0;
             }
             .cta-button {
                 display: inline-block;
-                padding: 15px 40px;
+                padding: clamp(14px, 3.5vw, 16px) clamp(30px, 8vw, 40px);
                 background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-                color: white;
+                color: #ffffff !important;
                 text-decoration: none;
                 border-radius: 8px;
                 font-weight: bold;
-                font-size: 16px;
-                margin: 20px 0;
+                font-size: clamp(15px, 3.8vw, 17px);
+                line-height: 1.4;
+                min-height: 48px;
+                box-sizing: border-box;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
                 text-align: center;
             }
+            .cta-button:hover {
+                background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            }
+            
+            /* Footer */
             .footer {
                 background-color: #1a1a2e;
-                color: white;
-                padding: 20px;
+                color: #ffffff;
+                padding: clamp(15px, 4vw, 20px) clamp(15px, 4vw, 20px);
                 text-align: center;
-                font-size: 14px;
+                font-size: clamp(12px, 3vw, 14px);
+                line-height: 1.6;
+            }
+            .footer p {
+                margin: 8px 0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            .footer a {
+                color: #00bfff !important;
+                text-decoration: underline;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            /* Responsive styles */
+            @media only screen and (max-width: 600px) {
+                .email-wrapper {
+                    padding: 5px;
+                    width: 100% !important;
+                }
+                .container {
+                    border-radius: 8px;
+                }
+                .header {
+                    padding: 20px 15px;
+                }
+                .content {
+                    padding: 20px 15px;
+                }
+                .cta-button {
+                    width: 90%;
+                    max-width: 300px;
+                    display: block;
+                    margin: 0 auto;
+                }
+            }
+            
+            @media only screen and (max-width: 480px) {
+                .email-wrapper {
+                    padding: 0;
+                }
+                .container {
+                    border-radius: 0;
+                }
+                .header h1 {
+                    font-size: 22px;
+                }
+                .header p {
+                    font-size: 16px;
+                }
+                .message {
+                    font-size: 15px;
+                }
+                .footer {
+                    font-size: 12px;
+                }
+            }
+            
+            /* Dark mode support */
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background-color: #1a1a1a;
+                }
+                .container {
+                    background-color: #2a2a2a;
+                }
+                .message {
+                    color: #e0e0e0;
+                }
             }
         </style>
     </head>
+<<<<<<< HEAD
     <body>
         <div class="container">
             <div class="header">
@@ -1212,13 +1370,37 @@ class EmailService {
                     <a href="${ctaLink || clientUrl}" class="cta-button">
                         ${ctaText || 'Shop Now'}
                     </a>
+=======
+    <body style="margin: 0; padding: 0; background-color: #f8f9fa;">
+        <div style="background-color: #f8f9fa; padding: 10px 0; min-height: 100vh;">
+            <div class="email-wrapper">
+                <div class="container">
+                    <div class="header">
+                        <h1>🏀 YOHANNS</h1>
+                        <p>${safeTitle}</p>
+                    </div>
+                    
+                    <div class="content">
+                        ${imageUrl ? `<div class="image-container"><img src="${escapeHtml(imageUrl)}" alt="Promo Image" style="max-width: 100%; height: auto;" /></div>` : ''}
+                        
+                        ${discountSection}
+                        
+                        <div class="message">${safeMessage}</div>
+                        
+                        <div class="cta-container">
+                            <a href="${ctaLink || (process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com')}" class="cta-button">
+                                ${safeCtaText}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="footer">
+                        <p><strong>Yohanns - Premium Sports Apparel</strong></p>
+                        <p>This is an automated message. Please do not reply to this email.</p>
+                        <p><a href="${unsubscribeLink}" style="color: #00bfff; text-decoration: underline;">Unsubscribe</a></p>
+                    </div>
+>>>>>>> f813710d2e3014fe216c48272d372ee24a08786e
                 </div>
-            </div>
-            
-            <div class="footer">
-                <p><strong>Yohanns - Premium Sports Apparel</strong></p>
-                <p>This is an automated message. Please do not reply to this email.</p>
-                <p><a href="${unsubscribeLink}" style="color: #00bfff;">Unsubscribe</a></p>
             </div>
         </div>
     </body>
