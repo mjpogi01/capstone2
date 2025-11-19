@@ -1016,8 +1016,18 @@ class EmailService {
     <body>
         <div class="container">
             <div class="header">
-                <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" />
-                <p>Welcome to Our Newsletter!</p>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto;">
+                    <tr>
+                        <td align="center" style="padding-bottom: 15px;">
+                            <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" width="200" style="max-width: 200px; width: 200px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center">
+                            <p>Welcome to Our Newsletter!</p>
+                        </td>
+                    </tr>
+                </table>
             </div>
             
             <div class="content">
