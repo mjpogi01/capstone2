@@ -86,8 +86,11 @@ const EmailMarketing = () => {
     if (cloudName) {
       return `https://res.cloudinary.com/${cloudName}/image/upload/yohanns-logo.png`;
     }
-    // Fallback to client URL
-    return `${window.location.origin}/yohanns-logo.png`;
+    // Fallback to production URL (not localhost) so it works in emails
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    return isProduction 
+      ? `${window.location.origin}/yohanns-logo.png`
+      : 'https://yohanns-sportswear.onrender.com/yohanns-logo.png';
   };
 
   const [formData, setFormData] = useState({
