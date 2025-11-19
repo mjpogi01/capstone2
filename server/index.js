@@ -46,14 +46,27 @@ const corsOptions = {
     if (!origin) return callback(null, true);
     
     // Check if origin is allowed
-    if (allowedOrigins.length === 0 || allowedOrigins.some(allowed => origin.includes(allowed.replace(/^https?:\/\//, '').replace(/^www\./, '')))) {
+    if (allowedOrigins.length === 0 || allowedOrigins.some(allowed => {
+      const allowedDomain = allowed.replace(/^https?:\/\//, '').replace(/^www\./, '');
+      return origin.includes(allowedDomain) || origin === allowed;
+    })) {
       callback(null, true);
     } else {
       console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
+      console.warn(`   NODE_ENV: ${process.env.NODE_ENV}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  // Dynamically allow all headers that the browser requests
+  // This prevents CORS errors for any header the browser sends
+  allowedHeaders: (req, res) => {
+    // Return the headers the browser requested, or allow all if not specified
+    const requestedHeaders = req.headers['access-control-request-headers'];
+    return requestedHeaders || '*';
+  }
 };
 
 app.use(cors(corsOptions));
@@ -162,6 +175,13 @@ app.use((err, req, res, next) => {
   
   if (res.headersSent) {
     return next(err);
+  }
+  
+  // Ensure CORS headers are set on error responses
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
   
   // Check for Supabase tenant errors
