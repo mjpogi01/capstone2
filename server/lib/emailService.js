@@ -1200,6 +1200,104 @@ class EmailService {
                 font-weight: bold;
                 line-height: 1.3;
             }
+            .header-logo {
+                max-width: 200px;
+                height: auto;
+                margin: 0 auto 15px;
+                display: block;
+            }
+            .header p {
+                margin: 0;
+                font-size: clamp(16px, 4vw, 18px);
+                opacity: 0.95;
+                line-height: 1.4;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            /* Content */
+            .content {
+                padding: clamp(20px, 5vw, 30px) clamp(15px, 4vw, 30px);
+            }
+            
+            /* Image container */
+            .image-container {
+                text-align: center;
+                margin: clamp(15px, 4vw, 20px) 0;
+            }
+            .image-container img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 8px;
+            }
+            
+            /* Message */
+            .message {
+                white-space: pre-wrap;
+                margin: 20px 0;
+                line-height: 1.8;
+                color: #333;
+            }
+            
+            /* CTA Button */
+            .cta-container {
+                text-align: center;
+                margin: clamp(20px, 5vw, 25px) 0;
+            }
+            .cta-button {
+                display: inline-block;
+                padding: clamp(14px, 3.5vw, 16px) clamp(30px, 8vw, 40px);
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                color: #ffffff !important;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: clamp(15px, 3.8vw, 17px);
+                line-height: 1.4;
+                min-height: 48px;
+                box-sizing: border-box;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                text-align: center;
+            }
+            .cta-button:hover {
+                background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            }
+            
+            /* Footer */
+            .footer {
+                background-color: #1a1a2e;
+                color: #ffffff;
+                padding: clamp(15px, 4vw, 20px) clamp(15px, 4vw, 20px);
+                text-align: center;
+                font-size: clamp(12px, 3vw, 14px);
+            }
+            .footer a {
+                color: #00bfff;
+                text-decoration: underline;
+            }
+            
+            /* Responsive */
+            @media only screen and (max-width: 600px) {
+                .email-wrapper {
+                    padding: 5px;
+                }
+                .container {
+                    border-radius: 0;
+                }
+                .header {
+                    padding: 20px 15px;
+                }
+                .content {
+                    padding: 20px 15px;
+                }
+                .cta-button {
+                    width: 100%;
+                    padding: 16px;
+                }
+            }
+        </style>
+    </head>
     <body style="margin: 0; padding: 0; background-color: #f8f9fa;">
         <div style="background-color: #f8f9fa; padding: 10px 0; min-height: 100vh;">
             <div class="email-wrapper">
@@ -1228,10 +1326,6 @@ class EmailService {
                         <p>This is an automated message. Please do not reply to this email.</p>
                         <p><a href="${unsubscribeLink}" style="color: #00bfff; text-decoration: underline;">Unsubscribe</a></p>
                     </div>
-                </div>
-            </div>
-        </div>
-    </body>
                 </div>
             </div>
         </div>
