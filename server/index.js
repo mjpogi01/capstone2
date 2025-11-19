@@ -39,7 +39,7 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       process.env.CLIENT_URL,
-      'https://yohanns-sportswear.onrender.com', // Production frontend URL
+      'https://yohanns-sportswearhouse1.onrender.com', // Production frontend URL
       'http://localhost:3000' // for local testing
     ].filter(Boolean); // Remove undefined values
     
