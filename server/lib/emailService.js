@@ -1200,183 +1200,12 @@ class EmailService {
                 font-weight: bold;
                 line-height: 1.3;
             }
-<<<<<<< HEAD
-            .header-logo {
-                max-width: 200px;
-                height: auto;
-                margin: 0 auto 15px;
-                display: block;
-            }
-            .header p {
-                margin: 0;
-                font-size: clamp(16px, 4vw, 18px);
-                opacity: 0.95;
-                line-height: 1.4;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-            }
-            
-            /* Content */
-            .content {
-                padding: clamp(20px, 5vw, 30px) clamp(15px, 4vw, 30px);
-            }
-            
-            /* Image container */
-            .image-container {
-                text-align: center;
-                margin: clamp(15px, 4vw, 20px) 0;
-            }
-            .image-container img {
-                max-width: 100% !important;
-                height: auto !important;
-                width: auto !important;
-                border-radius: 8px;
-                display: block;
-                margin: 0 auto;
-            }
-            
-            /* Message text */
-            .message {
-                white-space: pre-wrap;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-                margin: clamp(15px, 4vw, 20px) 0;
-                line-height: 1.8;
-                font-size: clamp(15px, 3.8vw, 16px);
-                color: #333;
-                max-width: 100%;
-            }
-            
-            /* CTA Button */
-            .cta-container {
-                text-align: center;
-                margin: clamp(20px, 5vw, 25px) 0;
-            }
-            .cta-button {
-                display: inline-block;
-                padding: clamp(14px, 3.5vw, 16px) clamp(30px, 8vw, 40px);
-                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-                color: #ffffff !important;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: clamp(15px, 3.8vw, 17px);
-                line-height: 1.4;
-                min-height: 48px;
-                box-sizing: border-box;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-                text-align: center;
-            }
-            .cta-button:hover {
-                background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-            }
-            
-            /* Footer */
-            .footer {
-                background-color: #1a1a2e;
-                color: #ffffff;
-                padding: clamp(15px, 4vw, 20px) clamp(15px, 4vw, 20px);
-                text-align: center;
-                font-size: clamp(12px, 3vw, 14px);
-                line-height: 1.6;
-            }
-            .footer p {
-                margin: 8px 0;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-            }
-            .footer a {
-                color: #00bfff !important;
-                text-decoration: underline;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-            }
-            
-            /* Responsive styles */
-            @media only screen and (max-width: 600px) {
-                .email-wrapper {
-                    padding: 5px;
-                    width: 100% !important;
-                }
-                .container {
-                    border-radius: 8px;
-                }
-                .header {
-                    padding: 20px 15px;
-                }
-                .content {
-                    padding: 20px 15px;
-                }
-                .cta-button {
-                    width: 90%;
-                    max-width: 300px;
-                    display: block;
-                    margin: 0 auto;
-                }
-            }
-            
-            @media only screen and (max-width: 480px) {
-                .email-wrapper {
-                    padding: 0;
-                }
-                .container {
-                    border-radius: 0;
-                }
-                .header h1 {
-                    font-size: 22px;
-                }
-                .header p {
-                    font-size: 16px;
-                }
-                .message {
-                    font-size: 15px;
-                }
-                .footer {
-                    font-size: 12px;
-                }
-            }
-            
-            /* Dark mode support */
-            @media (prefers-color-scheme: dark) {
-                body {
-                    background-color: #1a1a1a;
-                }
-                .container {
-                    background-color: #2a2a2a;
-                }
-                .message {
-                    color: #e0e0e0;
-                }
-            }
-        </style>
-    </head>
-<<<<<<< HEAD
-    <body>
-        <div class="container">
-            <div class="header">
-                <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" />
-                <p>${title || 'Special Offer'}</p>
-            </div>
-            
-            <div class="content">
-                ${imageUrl ? `<div class="image-container"><img src="${imageUrl}" alt="Promo Image" /></div>` : ''}
-                
-                ${discountSection}
-                
-                <div class="message">${message || ''}</div>
-                
-                <div style="text-align: center;">
-                    <a href="${ctaLink || clientUrl}" class="cta-button">
-                        ${ctaText || 'Shop Now'}
-                    </a>
-=======
     <body style="margin: 0; padding: 0; background-color: #f8f9fa;">
         <div style="background-color: #f8f9fa; padding: 10px 0; min-height: 100vh;">
             <div class="email-wrapper">
                 <div class="container">
                     <div class="header">
-                        <h1>🏀 YOHANNS</h1>
+                        <img src="${clientUrl}/yohanns-logo.png" alt="YOHANNS" class="header-logo" />
                         <p>${safeTitle}</p>
                     </div>
                     
@@ -1388,7 +1217,7 @@ class EmailService {
                         <div class="message">${safeMessage}</div>
                         
                         <div class="cta-container">
-                            <a href="${ctaLink || (process.env.CLIENT_URL || 'https://yohanns-sportswear.onrender.com')}" class="cta-button">
+                            <a href="${ctaLink || clientUrl}" class="cta-button">
                                 ${safeCtaText}
                             </a>
                         </div>
@@ -1399,7 +1228,10 @@ class EmailService {
                         <p>This is an automated message. Please do not reply to this email.</p>
                         <p><a href="${unsubscribeLink}" style="color: #00bfff; text-decoration: underline;">Unsubscribe</a></p>
                     </div>
->>>>>>> f813710d2e3014fe216c48272d372ee24a08786e
+                </div>
+            </div>
+        </div>
+    </body>
                 </div>
             </div>
         </div>
