@@ -23,6 +23,11 @@ try {
 // Middleware to verify Supabase JWT token
 const authenticateSupabaseToken = async (req, res, next) => {
   try {
+    // Skip authentication for OPTIONS preflight requests
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     // Verify Supabase client is initialized
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Supabase not configured properly');

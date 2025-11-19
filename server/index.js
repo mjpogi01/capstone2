@@ -62,14 +62,45 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   // Dynamically allow all headers that the browser requests
   // This prevents CORS errors for any header the browser sends
-  allowedHeaders: (req, res) => {
+  allowedHeaders: function(req) {
     // Return the headers the browser requested, or allow all if not specified
     const requestedHeaders = req.headers['access-control-request-headers'];
-    return requestedHeaders || '*';
-  }
+    if (requestedHeaders) {
+      return requestedHeaders.split(',').map(h => h.trim());
+    }
+    // If no specific headers requested, allow common ones
+    return ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma', 'Accept'];
+  },
+  // Don't let CORS middleware handle OPTIONS - we handle it manually
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
+// Handle OPTIONS requests BEFORE CORS middleware to ensure they're processed correctly
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    console.log('🔍 OPTIONS preflight request received:', req.path);
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      const requestedHeaders = req.headers['access-control-request-headers'];
+      if (requestedHeaders) {
+        res.setHeader('Access-Control-Allow-Headers', requestedHeaders);
+      } else {
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Cache-Control, Pragma, Accept');
+      }
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+    console.log('✅ OPTIONS preflight response sent with status 204');
+    return res.status(204).end();
+  }
+  next();
+});
+
 app.use(cors(corsOptions));
+
 app.use(express.json());
 
 // Root route - only show API info in development
