@@ -257,7 +257,7 @@ class AuthService {
     }
   }
 
-  // Sign in with OAuth provider (Google, Facebook)
+  // Sign in with OAuth provider (Google)
   async signInWithProvider(provider) {
     try {
       // Determine the redirect URL - prioritize environment variable, then use current origin

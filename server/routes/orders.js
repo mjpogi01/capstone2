@@ -1520,31 +1520,43 @@ router.post('/', async (req, res) => {
     // Note: sold_quantity will be updated when order status changes to 'picked_up_delivered'
     // This prevents double-counting when orders are created and then completed
 
-    // Send order confirmation email if email is configured
-    let emailResult = null;
+    // Send order confirmation email if email is configured (non-blocking)
+    // Don't await - let it run in background so it doesn't delay order response
+    let emailPromise = null;
     if (process.env.EMAIL_USER && userId) {
+      emailPromise = (async () => {
       try {
         // Get customer email via Supabase Auth Admin API
         const { data: userResp, error: userLookupError } = await supabase.auth.admin.getUserById(userId);
         if (!userLookupError && userResp?.user?.email) {
-          emailResult = await emailService.sendOrderConfirmation(
+            const emailResult = await emailService.sendOrderConfirmation(
             newOrder,
             userResp.user.email,
             userResp.user.user_metadata?.full_name || null
           );
+            if (emailResult.success) {
           console.log(`📧 Order confirmation email sent for order ${newOrder.order_number}`);
+            } else {
+              console.warn(`⚠️ Order confirmation email failed for order ${newOrder.order_number}:`, emailResult.error);
+            }
         }
       } catch (emailError) {
-        console.error('❌ Failed to send order confirmation email:', emailError);
-        // Don't fail the entire request if email fails
-        emailResult = { success: false, error: emailError.message };
+          // Log error but don't throw - email failures shouldn't block orders
+          const errorMsg = emailError.message || emailError.code || 'Unknown error';
+          console.error(`❌ Failed to send order confirmation email for order ${newOrder.order_number}:`, errorMsg);
+          // Log full error details only in development for debugging
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Full email error:', emailError);
       }
     }
+      })();
+    }
 
+    // Respond immediately with order - don't wait for email
     res.status(201).json({
       ...newOrder,
-      emailSent: emailResult ? emailResult.success : false,
-      emailError: emailResult && !emailResult.success ? emailResult.error : null
+      emailSent: false, // Will be sent in background
+      emailError: null
     });
 
   } catch (error) {

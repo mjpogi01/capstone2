@@ -106,7 +106,11 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       return res.status(400).json({ error: 'At least one team member is required' });
     }
 
-    // Validate each member based on jerseyType
+    // Validate each member based on jerseyType and apparelType
+    const isUniforms = apparelType === 'uniforms';
+    const isHoodie = apparelType === 'hoodie';
+    const isLongSleeves = apparelType === 'longsleeves';
+    
     for (const member of membersArray) {
       // Basic required fields for all members
       if (!member.number || !member.surname || !member.sizingType) {
@@ -115,25 +119,28 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
         });
       }
       
-      // Validate sizes based on jerseyType (default to 'full' if not specified)
-      const jerseyType = member.jerseyType || 'full';
+      // For hoodies and long sleeves, they don't have jersey type - treat as shirt-only
+      const effectiveJerseyType = (isHoodie || isLongSleeves) ? 'shirt' : (member.jerseyType || 'full');
       
-      if (jerseyType === 'full') {
+      // Validate sizes based on effectiveJerseyType
+      if (effectiveJerseyType === 'full') {
         // Full set requires both sizes
         if (!member.size || !member.shortsSize) {
           return res.status(400).json({ 
             error: 'Full set orders require both shirt size and shorts size for all members' 
           });
         }
-      } else if (jerseyType === 'shirt') {
+      } else if (effectiveJerseyType === 'shirt') {
         // Shirt only requires shirt size, not shorts size
+        // This also applies to hoodies and long sleeves (they only need shirt size)
         if (!member.size) {
-          return res.status(400).json({ 
-            error: 'Shirt-only orders require shirt size for all members' 
-          });
+          const errorMsg = (isHoodie || isLongSleeves)
+            ? `${apparelType === 'hoodie' ? 'Hoodie' : 'Long sleeves'} orders require shirt size for all members`
+            : 'Shirt-only orders require shirt size for all members';
+          return res.status(400).json({ error: errorMsg });
         }
-        // shortsSize is not required for shirt-only orders
-      } else if (jerseyType === 'shorts') {
+        // shortsSize is not required for shirt-only orders, hoodies, or long sleeves
+      } else if (effectiveJerseyType === 'shorts') {
         // Shorts only requires shorts size, not shirt size
         if (!member.shortsSize) {
           return res.status(400).json({ 
@@ -142,6 +149,9 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
         }
         // size is not required for shorts-only orders
       }
+      
+      // Note: cutType, knittedOption, and fabricOption are optional fields
+      // No validation needed for these as they're optional selections
     }
 
     // Generate order number with unique identifier for walk-in orders
@@ -272,29 +282,38 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
     // Note: Artist task assignment will happen when admin/owner presses "Start Layout" button
     // This ensures tasks are only assigned when layout work is ready to begin
 
-    // Send confirmation email
-    let emailResult = null;
+    // Send confirmation email (non-blocking - don't await)
+    // Let it run in background so it doesn't delay order response
     if (process.env.EMAIL_USER) {
-      try {
-        emailResult = await emailService.sendCustomDesignConfirmation(
-          insertedOrder,
-          email,
-          clientName
-        );
-        console.log(`📧 Custom design confirmation email sent to ${email}`);
-      } catch (emailError) {
-        console.error('❌ Failed to send confirmation email:', emailError);
-        // Don't fail the order creation if email fails
-        emailResult = { success: false, error: emailError.message };
-      }
+      (async () => {
+        try {
+          const emailResult = await emailService.sendCustomDesignConfirmation(
+            insertedOrder,
+            email,
+            clientName
+          );
+          if (emailResult.success) {
+            console.log(`📧 Custom design confirmation email sent to ${email}`);
+          } else {
+            console.warn(`⚠️ Custom design confirmation email failed:`, emailResult.error);
+          }
+        } catch (emailError) {
+          const errorMsg = emailError.message || emailError.code || 'Unknown error';
+          console.error(`❌ Failed to send custom design confirmation email:`, errorMsg);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Full email error:', emailError);
+          }
+        }
+      })();
     }
 
+    // Respond immediately - don't wait for email
     res.status(201).json({
       success: true,
       message: 'Custom design order created successfully',
       order: insertedOrder,
-      emailSent: emailResult ? emailResult.success : false,
-      emailError: emailResult && !emailResult.success ? emailResult.error : null
+      emailSent: false, // Will be sent in background
+      emailError: null
     });
 
   } catch (error) {

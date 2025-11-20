@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import * as echarts from 'echarts/core';
 import { BarChart } from 'echarts/charts';
 import {
@@ -88,6 +88,9 @@ echarts.use([
   
   // Chart tabs
   const [activeChartTab, setActiveChartTab] = useState('sales');
+  
+  // Refs to store chart instances for resizing
+  const chartRefs = useRef({});
 
   // Current time state
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -138,6 +141,43 @@ echarts.use([
 
     return () => clearInterval(timer);
   }, []);
+
+  // Resize charts when tabs change or window resizes
+  useEffect(() => {
+    const resizeCharts = () => {
+      // Small delay to ensure DOM is updated after tab change
+      setTimeout(() => {
+        Object.values(chartRefs.current).forEach(chartInstance => {
+          if (chartInstance && typeof chartInstance.resize === 'function') {
+            try {
+              chartInstance.resize();
+            } catch (error) {
+              // Ignore resize errors (chart might not be ready)
+            }
+          }
+        });
+      }, 100);
+    };
+
+    resizeCharts();
+
+    // Also resize on window resize
+    window.addEventListener('resize', resizeCharts);
+    return () => window.removeEventListener('resize', resizeCharts);
+  }, [activeChartTab]);
+
+  // Helper function to create chart ready callback
+  const onChartReady = (chartId) => (chartInstance) => {
+    if (chartInstance) {
+      chartRefs.current[chartId] = chartInstance;
+      // Resize after a short delay to ensure container has dimensions
+      setTimeout(() => {
+        if (chartInstance.resize) {
+          chartInstance.resize();
+        }
+      }, 50);
+    }
+  };
 
   // Dashboard stats with real data from API
   const [dashboardStats, setDashboardStats] = useState({
@@ -1300,6 +1340,7 @@ echarts.use([
                           lazyUpdate={false}
                           opts={{ renderer: 'svg' }}
                           style={{ height: '240px', width: '100%', minHeight: '240px' }}
+                          onChartReady={onChartReady('lowStock')}
                         />
                       ) : (
                         <div className="analytics-loading-inline">

@@ -189,7 +189,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign in with Google/Facebook
+  // Sign in with Google
   const signInWithProvider = async (provider) => {
     try {
       // Set manual login flag before signing in with provider

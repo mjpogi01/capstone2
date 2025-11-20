@@ -511,7 +511,17 @@ const WalkInOrdering = ({ onClose }) => {
                   </div>
                 ) : (
                   <div className="cart-items-list">
-                    {cartItems.map((item, index) => (
+                    {cartItems.map((item, index) => {
+                      // Determine category for hiding fields
+                      const categoryLower = (item.category || '').toString().toLowerCase().trim();
+                      const isUniformsCategory = categoryLower === 'uniforms';
+                      const isHoodieCategory = categoryLower === 'hoodies';
+                      const isLongSleevesCategory = categoryLower === 'long sleeves';
+                      const isTShirtCategory = categoryLower === 't-shirts' || categoryLower === 't-shirt';
+                      const shouldHideJerseyType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+                      const shouldHideCutType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+                      
+                      return (
                       <div key={item.uniqueId} className="cart-item-card">
                         <div className="item-image">
                           <img 
@@ -566,12 +576,16 @@ const WalkInOrdering = ({ onClose }) => {
                                         <span className="compact-detail">
                                           Jersey: {member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}
                                         </span>
+                                        {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
                                         <span className="compact-detail">
-                                          Jersey Size: {member.jerseySize || member.size || 'N/A'} ({item.sizeType || 'Adult'})
+                                          {shouldHideJerseyType ? 'Size' : 'Jersey Size'}: {member.jerseySize || member.size || 'N/A'} ({item.sizeType || 'Adult'})
                                         </span>
-                                        <span className="compact-detail">
-                                          Shorts Size: {member.shortsSize || member.size || 'N/A'} ({item.sizeType || 'Adult'})
-                                        </span>
+                                        {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                        {!shouldHideJerseyType && (
+                                          <span className="compact-detail">
+                                            Shorts Size: {member.shortsSize || member.size || 'N/A'} ({item.sizeType || 'Adult'})
+                                          </span>
+                                        )}
                                       </div>
                                     ))}
                                   </div>
@@ -586,12 +600,16 @@ const WalkInOrdering = ({ onClose }) => {
                                     <span className="compact-detail">
                                       Jersey: {item.singleOrderDetails?.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}
                                     </span>
+                                    {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
                                     <span className="compact-detail">
-                                      Jersey Size: {item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})
+                                      {shouldHideJerseyType ? 'Size' : 'Jersey Size'}: {item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})
                                     </span>
-                                    <span className="compact-detail">
-                                      Shorts Size: {item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})
-                                    </span>
+                                    {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                    {!shouldHideJerseyType && (
+                                      <span className="compact-detail">
+                                        Shorts Size: {item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})
+                                      </span>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -619,7 +637,8 @@ const WalkInOrdering = ({ onClose }) => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -964,6 +964,13 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                 const isBall = item.category?.toLowerCase() === 'balls';
                 const isTrophy = item.category?.toLowerCase() === 'trophies';
                 const isApparel = !isBall && !isTrophy;
+                const categoryLower = item.category?.toLowerCase() || '';
+                const isUniformsCategory = categoryLower === 'uniforms';
+                const isHoodieCategory = categoryLower === 'hoodies';
+                const isLongSleevesCategory = categoryLower === 'long sleeves';
+                const isTShirtCategory = categoryLower === 't-shirts' || categoryLower === 't-shirt';
+                const shouldHideJerseyType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+                const shouldHideCutType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
                 const baseUnitPrice = Number(item.basePrice ?? item.price ?? 0);
                 const fabricOption = item.fabricOption || null;
                 const fabricSurcharge = Number(item.fabricSurcharge ?? 0);
@@ -1109,17 +1116,21 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                           <span className="checkout-modal-perfect-detail-label">Jersey No:</span>
                                           <span className="checkout-modal-perfect-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
                                         </div>
-                                        <div className="checkout-modal-perfect-detail-row">
-                                          <span className="checkout-modal-perfect-detail-label">Jersey Type:</span>
-                                          <span className="checkout-modal-perfect-detail-value">{jerseyTypeLabel}</span>
-                                        </div>
+                                        {/* Jersey Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                        {!shouldHideJerseyType && (
+                                          <div className="checkout-modal-perfect-detail-row">
+                                            <span className="checkout-modal-perfect-detail-label">Jersey Type:</span>
+                                            <span className="checkout-modal-perfect-detail-value">{jerseyTypeLabel}</span>
+                                          </div>
+                                        )}
                                         {memberFabricOption && (
                                           <div className="checkout-modal-perfect-detail-row">
                                             <span className="checkout-modal-perfect-detail-label">Fabric:</span>
                                             <span className="checkout-modal-perfect-detail-value">{memberFabricOption}</span>
                                           </div>
                                         )}
-                                        {memberCutType && (
+                                        {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                        {memberCutType && !shouldHideCutType && (
                                           <div className="checkout-modal-perfect-detail-row">
                                             <span className="checkout-modal-perfect-detail-label">Cut Type:</span>
                                             <span className="checkout-modal-perfect-detail-value">{memberCutType}</span>
@@ -1129,13 +1140,15 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                           <span className="checkout-modal-perfect-detail-label">Size Type:</span>
                                           <span className="checkout-modal-perfect-detail-value">{memberSizingType === 'kids' ? 'Kids' : 'Adult'}</span>
                                         </div>
-                                        {(memberJerseyType === 'full' || memberJerseyType === 'shirt') && showTeamJerseySize && (
+                                        {/* Jersey/Shirt Size - Show for full set, shirt only, or hoodies/long sleeves/T-shirts (treated as shirt-only) */}
+                                        {(((memberJerseyType === 'full' || memberJerseyType === 'shirt') && showTeamJerseySize) || (shouldHideJerseyType && (member.size || member.jerseySize))) && (
                                           <div className="checkout-modal-perfect-detail-row">
-                                            <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
+                                            <span className="checkout-modal-perfect-detail-label">{shouldHideJerseyType ? 'Size:' : 'Jersey Size:'}</span>
                                             <span className="checkout-modal-perfect-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
                                           </div>
                                         )}
-                                        {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && showTeamShortsSize && (
+                                        {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                        {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && showTeamShortsSize && !shouldHideJerseyType && (
                                           <div className="checkout-modal-perfect-detail-row">
                                             <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
                                             <span className="checkout-modal-perfect-detail-value">{member.shortsSize || 'N/A'}</span>
@@ -1173,7 +1186,8 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                       <span className="checkout-modal-perfect-detail-value">{item.fabricOption || item.singleOrderDetails?.fabricOption}</span>
                                     </div>
                                   )}
-                                  {(item.cutType || item.singleOrderDetails?.cutType) && (
+                                  {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                  {(item.cutType || item.singleOrderDetails?.cutType) && !shouldHideCutType && (
                                     <div className="checkout-modal-perfect-detail-row">
                                       <span className="checkout-modal-perfect-detail-label">Cut Type:</span>
                                       <span className="checkout-modal-perfect-detail-value">{item.cutType || item.singleOrderDetails?.cutType}</span>
@@ -1187,13 +1201,15 @@ const CheckoutModal = ({ isOpen, onClose, onPlaceOrder, cartItems: selectedCartI
                                     const { showJersey: showSingleJerseySize, showShorts: showSingleShortsSize } = getApparelSizeVisibility(item, fallbackVisibility);
                                     return (
                                       <>
-                                        {showSingleJerseySize && (
+                                        {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
+                                        {(showSingleJerseySize || shouldHideJerseyType) && (
                                           <div className="checkout-modal-perfect-detail-row">
-                                            <span className="checkout-modal-perfect-detail-label">Jersey Size:</span>
+                                            <span className="checkout-modal-perfect-detail-label">{shouldHideJerseyType ? 'Size:' : 'Jersey Size:'}</span>
                                             <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>
                                           </div>
                                         )}
-                                        {showSingleShortsSize && (
+                                        {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                        {showSingleShortsSize && !shouldHideJerseyType && (
                                           <div className="checkout-modal-perfect-detail-row">
                                             <span className="checkout-modal-perfect-detail-label">Shorts Size:</span>
                                             <span className="checkout-modal-perfect-detail-value">{item.singleOrderDetails?.shortsSize || 'N/A'} ({item.singleOrderDetails?.sizingType || item.sizeType || 'Adult'})</span>

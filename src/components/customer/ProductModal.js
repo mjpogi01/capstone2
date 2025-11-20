@@ -343,18 +343,50 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     return category === 'jerseys';
   }, [product, isApparel]);
 
-  // Determine if shorts size should be shown (only for jerseys, and only when jerseyType is 'full' or 'shorts')
-  const shouldShowShorts = useMemo(() => {
-    if (!isJerseyCategory) return false;
-    return jerseyType === 'full' || jerseyType === 'shorts';
-  }, [isJerseyCategory, jerseyType]);
-
   // Check if product is uniforms category
   const isUniformsCategory = useMemo(() => {
     if (!product) return false;
     const category = product.category?.toLowerCase();
     return category === 'uniforms';
   }, [product]);
+
+  // Check if product is hoodie category
+  const isHoodieCategory = useMemo(() => {
+    if (!product) return false;
+    const category = product.category?.toLowerCase();
+    return category === 'hoodies';
+  }, [product]);
+
+  // Check if product is long sleeves category
+  const isLongSleevesCategory = useMemo(() => {
+    if (!product) return false;
+    const category = product.category?.toLowerCase();
+    return category === 'long sleeves';
+  }, [product]);
+
+  // Check if product is T-shirt category
+  const isTShirtCategory = useMemo(() => {
+    if (!product) return false;
+    const category = product.category?.toLowerCase();
+    return category === 't-shirts' || category === 't-shirt';
+  }, [product]);
+
+  // Categories that don't have jersey type or cut type
+  const shouldHideJerseyType = useMemo(() => {
+    return isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+  }, [isUniformsCategory, isHoodieCategory, isLongSleevesCategory, isTShirtCategory]);
+
+  const shouldHideCutType = useMemo(() => {
+    return isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+  }, [isUniformsCategory, isHoodieCategory, isLongSleevesCategory, isTShirtCategory]);
+
+  // Determine if shorts size should be shown (only for jerseys, and only when jerseyType is 'full' or 'shorts')
+  // Hide for uniforms, hoodies, long sleeves, and T-shirts
+  const shouldShowShorts = useMemo(() => {
+    if (!isJerseyCategory) return false;
+    if (shouldHideJerseyType) return false; // No shorts for uniforms, hoodies, long sleeves, T-shirts
+    return jerseyType === 'full' || jerseyType === 'shorts';
+  }, [isJerseyCategory, jerseyType, shouldHideJerseyType]);
 
   // Parse jersey sizes from product (must be before early return)
   const jerseySizes = useMemo(() => {
@@ -838,12 +870,16 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           ? 'adults'
           : 'general';
 
+      // For hoodies, long sleeves, and T-shirts, treat as shirt-only (no jersey type, no shorts)
+      const isHoodieOrLongSleevesOrTShirt = isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
       const memberJerseyType = member?.jerseyType || 'full';
+      const effectiveMemberJerseyType = isHoodieOrLongSleevesOrTShirt ? 'shirt' : memberJerseyType;
+      
       let sizeKey = null;
       if (isJerseyCategory) {
-        if (memberJerseyType === 'shorts') {
+        if (effectiveMemberJerseyType === 'shorts') {
           sizeKey = member?.shortsSize || member?.size || member?.jerseySize || null;
-        } else if (memberJerseyType === 'shirt') {
+        } else if (effectiveMemberJerseyType === 'shirt' || isHoodieOrLongSleevesOrTShirt) {
           sizeKey = member?.jerseySize || member?.size || null;
         } else {
           sizeKey = member?.jerseySize || member?.size || null;
@@ -892,6 +928,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         console.log('⚠️ [ProductModal] No price found for trophy size', trophyDetails.size, ', using product.price:', basePrice);
       }
     } else if (isJerseyCategory && jerseyPrices) {
+      // For T-shirts, hoodies, long sleeves (shouldHideJerseyType), treat as shirt-only (no jersey type)
+      const effectiveJerseyType = shouldHideJerseyType ? 'shirt' : jerseyType;
+      
       // Use jersey-specific prices
       // Check if kids prices are available and sizeType is kids
       const useKidsPrices = sizeType === 'kids' && 
@@ -901,7 +940,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       
       if (useKidsPrices) {
         // Use kids prices
-        switch (jerseyType) {
+        switch (effectiveJerseyType) {
           case 'full':
             basePrice = jerseyPrices.fullSetKids;
             console.log('💰 [ProductModal] Using fullSetKids price:', basePrice);
@@ -920,7 +959,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         }
       } else {
         // Use adult prices
-        switch (jerseyType) {
+        switch (effectiveJerseyType) {
           case 'full':
             basePrice = jerseyPrices.fullSet;
             console.log('💰 [ProductModal] Using fullSet price:', basePrice);
@@ -950,7 +989,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     
     console.log('💰 [ProductModal] Base unit price (before surcharges):', basePrice);
     return basePrice;
-  }, [product, isTrophy, isJerseyCategory, jerseyPrices, trophyPrices, jerseyType, sizeType, trophyDetails]);
+  }, [product, isTrophy, isJerseyCategory, jerseyPrices, trophyPrices, jerseyType, sizeType, trophyDetails, shouldHideJerseyType]);
 
   // Calculate per-member pricing for team orders
   const teamPricingInfo = useMemo(() => {
@@ -959,17 +998,20 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     }
 
     const memberPricing = (teamMembers || []).map((member) => {
+      // For hoodies, long sleeves, and T-shirts, treat as shirt-only (no jersey type)
+      const isHoodieOrLongSleevesOrTShirt = isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
       const memberJerseyType = member?.jerseyType || 'full';
+      const effectiveMemberJerseyType = isHoodieOrLongSleevesOrTShirt ? 'shirt' : memberJerseyType;
       const memberSizingType = member?.sizingType || 'adult';
       const memberFabricOption = member?.fabricOption || '';
       
-      // Calculate base price based on member's jersey type
+      // Calculate base price based on member's effective jersey type
       let memberBasePrice = baseUnitPrice;
       if (isJerseyCategory && jerseyPrices) {
         const useKidsPrices = memberSizingType === 'kids' && 
           (jerseyPrices.fullSetKids !== null && jerseyPrices.fullSetKids !== undefined);
         
-        switch (memberJerseyType) {
+        switch (effectiveMemberJerseyType) {
           case 'shirt':
             memberBasePrice = useKidsPrices ? jerseyPrices.shirtOnlyKids : jerseyPrices.shirtOnly;
             break;
@@ -1109,11 +1151,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       setSingleOrderDetails(prevDetails => {
         const next = { ...prevDetails };
 
-        if (jerseyType === 'shirt') {
+        // For T-shirts, hoodies, long sleeves (shouldHideJerseyType), treat as shirt-only (no jersey type, no shorts)
+        const effectiveJerseyType = shouldHideJerseyType ? 'shirt' : jerseyType;
+
+        if (effectiveJerseyType === 'shirt' || shouldHideJerseyType) {
           next.jerseySize = prevDetails?.jerseySize || defaultShirtSize;
           next.shortsSize = null;
           next.size = next.jerseySize;
-        } else if (jerseyType === 'shorts') {
+        } else if (effectiveJerseyType === 'shorts') {
           next.jerseySize = null;
           next.shortsSize = prevDetails?.shortsSize || defaultShortSize;
           next.size = null;
@@ -1122,7 +1167,7 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           next.shortsSize = prevDetails?.shortsSize || defaultShortSize;
           next.size = next.jerseySize || null;
         }
-        next.jerseyType = jerseyType;
+        next.jerseyType = effectiveJerseyType;
 
         const changed =
           next.jerseySize !== prevDetails?.jerseySize ||
@@ -1796,7 +1841,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
     const memberSizeType = lastMember?.sizingType || sizeType;
     const memberJerseyType = lastMember?.jerseyType || jerseyType;
     const memberFabricOption = lastMember?.fabricOption || (fabricOptions.length > 0 ? fabricOptions[0].name : '');
-    const memberCutType = lastMember?.cutType || (cutTypeOptions.length > 0 ? cutTypeOptions[0].name : '');
+    // For hoodies, long sleeves, and T-shirts, no cut type
+    const memberCutType = shouldHideCutType ? '' : (lastMember?.cutType || (cutTypeOptions.length > 0 ? cutTypeOptions[0].name : ''));
+    
+    // For hoodies, long sleeves, and T-shirts, treat as shirt-only (no jersey type, no shorts)
+    const isHoodieOrLongSleevesOrTShirt = isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+    const effectiveJerseyType = isHoodieOrLongSleevesOrTShirt ? 'shirt' : memberJerseyType;
     
     const shirtSizeList = memberSizeType === 'kids' 
       ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
@@ -1813,13 +1863,13 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       teamName: teamName,
       surname: '',
       number: '',
-      jerseySize: memberJerseyType === 'shorts' ? null : defaultShirtSize,
-      shortsSize: memberJerseyType === 'shirt' ? null : defaultShortSize,
+      jerseySize: effectiveJerseyType === 'shorts' ? null : defaultShirtSize,
+      shortsSize: (effectiveJerseyType === 'shirt' || isHoodieOrLongSleevesOrTShirt) ? null : defaultShortSize,
       sizingType: memberSizeType,
-      jerseyType: memberJerseyType,
+      jerseyType: effectiveJerseyType,
       fabricOption: memberFabricOption,
       cutType: memberCutType,
-      size: memberJerseyType === 'shorts' ? null : defaultShirtSize
+      size: effectiveJerseyType === 'shorts' ? null : defaultShirtSize
     };
     setTeamMembers(prev => [...prev, newMember]);
     console.log('✅ New team member row added with per-member customization');
@@ -1831,8 +1881,17 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
         return member;
       }
 
+      // For hoodies, long sleeves, and T-shirts, treat as shirt-only (no jersey type, no shorts)
+      const isHoodieOrLongSleevesOrTShirt = isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+      
+      // Don't allow jersey type changes for hoodies, long sleeves, and T-shirts
+      if (field === 'jerseyType' && isHoodieOrLongSleevesOrTShirt) {
+        return member;
+      }
+
       const updated = { ...member, [field]: value };
       const memberJerseyType = field === 'jerseyType' ? value : (updated.jerseyType || 'full');
+      const effectiveJerseyType = isHoodieOrLongSleevesOrTShirt ? 'shirt' : memberJerseyType;
 
       // Handle jersey type changes
       if (field === 'jerseyType') {
@@ -1843,14 +1902,14 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           updated.jerseySize = null;
           updated.size = null;
         } else {
-          // full set - ensure both sizes exist
+          // full set - ensure both sizes exist (but not for hoodies/long sleeves/T-shirts)
           if (!updated.jerseySize) {
             const shirtSizes = updated.sizingType === 'kids'
               ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
               : (jerseySizes?.shirts.adults.length > 0 ? jerseySizes.shirts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
             updated.jerseySize = shirtSizes[Math.floor(shirtSizes.length / 2)] || 'M';
           }
-          if (!updated.shortsSize) {
+          if (!isHoodieOrLongSleevesOrTShirt && !updated.shortsSize) {
             const shortSizes = updated.sizingType === 'kids'
               ? (jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
               : (jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
@@ -1858,6 +1917,12 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           }
           updated.size = updated.jerseySize || null;
         }
+      }
+
+      // Clear shorts size and cut type for hoodies, long sleeves, and T-shirts
+      if (isHoodieOrLongSleevesOrTShirt) {
+        updated.shortsSize = null;
+        updated.cutType = '';
       }
 
       // Handle sizing type changes - update sizes to match new sizing type
@@ -1869,24 +1934,27 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
           ? (jerseySizes?.shorts.kids.length > 0 ? jerseySizes.shorts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
           : (jerseySizes?.shorts.adults.length > 0 ? jerseySizes.shorts.adults : ['S', 'M', 'L', 'XL', 'XXL']);
         
-        if (memberJerseyType !== 'shorts' && updated.jerseySize) {
+        if (effectiveJerseyType !== 'shorts' && updated.jerseySize) {
           // Try to find matching size in new list, or use default
           const defaultShirtSize = shirtSizes[Math.floor(shirtSizes.length / 2)] || (value === 'kids' ? 'S10' : 'M');
           updated.jerseySize = shirtSizes.includes(updated.jerseySize) ? updated.jerseySize : defaultShirtSize;
           updated.size = updated.jerseySize;
         }
-        if (memberJerseyType !== 'shirt' && updated.shortsSize) {
+        if (!isHoodieOrLongSleevesOrTShirt && effectiveJerseyType !== 'shirt' && updated.shortsSize) {
           const defaultShortSize = shortSizes[Math.floor(shortSizes.length / 2)] || (value === 'kids' ? 'S10' : 'M');
           updated.shortsSize = shortSizes.includes(updated.shortsSize) ? updated.shortsSize : defaultShortSize;
         }
       }
 
-      if (field === 'jerseySize' && memberJerseyType !== 'shorts') {
+      if (field === 'jerseySize' && effectiveJerseyType !== 'shorts') {
         updated.size = value;
       }
 
       if (field === 'shortsSize') {
-        if (memberJerseyType === 'shorts') {
+        // Clear shorts size for hoodies, long sleeves, and T-shirts
+        if (isHoodieOrLongSleevesOrTShirt) {
+          updated.shortsSize = null;
+        } else if (effectiveJerseyType === 'shorts') {
           updated.size = null;
         } else if (!updated.size) {
           updated.size = updated.jerseySize || null;
@@ -1935,6 +2003,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   };
 
   const renderFabricOptions = () => {
+    // Only show for apparel/trophy categories (not for balls)
+    if (!isApparel && !isTrophy) return null;
     if (fabricOptions.length === 0) return null;
     // Hide fabric options for team orders - they're per-member now
     if (isTeamOrder) return null;
@@ -1973,7 +2043,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
   const renderCutTypeOptions = () => {
     // Only show for jersey/apparel categories
     if (!isJerseyCategory && !isApparel) return null;
-    // Hide cut type options for team orders - they're per-member now
+    // Hide cut type options for uniforms, hoodies, long sleeves, T-shirts, and team orders
+    if (shouldHideCutType) return null;
     if (isTeamOrder) return null;
     if (cutTypeOptions.length === 0) {
       console.log('🔍 [ProductModal] No cut type options available. cutTypeData:', cutTypeData, 'cutTypeOptions:', cutTypeOptions);
@@ -2100,8 +2171,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
               </div>
             )}
 
-            {/* Jersey Type Selection - Only for Jersey Category, Hide for Team Orders */}
-            {isJerseyCategory && !isTeamOrder && (
+            {/* Jersey Type Selection - Only for Jersey Category, Hide for Team Orders, Uniforms, Hoodies, Long Sleeves, and T-shirts */}
+            {isJerseyCategory && !isTeamOrder && !shouldHideJerseyType && (
               <div className="modal-jersey-type-section">
                 <div className="modal-jersey-type-label">JERSEY TYPE</div>
                 <div className="modal-jersey-type-buttons">
@@ -2278,8 +2349,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                       {/* Per-Member Customization Section */}
                       {isExpanded && (
                       <div className="modal-member-customization-section">
-                        {/* Jersey Type Selector - Only for Jerseys */}
-                        {isJerseyCategory && (
+                        {/* Jersey Type Selector - Only for Jerseys (not uniforms, hoodies, long sleeves, or T-shirts) */}
+                        {isJerseyCategory && !shouldHideJerseyType && (
                           <div className="modal-member-customization-group">
                             <label className="modal-member-customization-label">Jersey Type</label>
                             <div className="modal-member-jersey-type-buttons">
@@ -2347,8 +2418,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                           </div>
                         )}
 
-                        {/* Cut Type Selector */}
-                        {cutTypeOptions.length > 0 && (
+                        {/* Cut Type Selector - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                        {cutTypeOptions.length > 0 && !shouldHideCutType && (
                           <div className="modal-member-customization-group">
                             <label className="modal-member-customization-label">Cut Type</label>
                             <select
@@ -2368,7 +2439,10 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                         {/* Size Selectors - Based on member's jersey type and sizing type */}
                         <div className="modal-member-size-selectors">
                           {(() => {
+                            // For hoodies, long sleeves, and T-shirts, treat as shirt-only (no jersey type)
+                            const isHoodieOrLongSleevesOrTShirt = isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
                             const memberJerseyType = member.jerseyType || 'full';
+                            const effectiveMemberJerseyType = isHoodieOrLongSleevesOrTShirt ? 'shirt' : memberJerseyType;
                             const memberSizingType = member.sizingType || 'adult';
                             const memberShirtSizes = memberSizingType === 'kids'
                               ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
@@ -2379,8 +2453,9 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
 
                             return (
                               <>
-                                {/* Shirt Size - Show for full set or shirt only */}
-                                {(!isJerseyCategory || memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                {/* Shirt Size - Show for jerseys only (full set, shirt only, or hoodies/long sleeves/T-shirts treated as shirt-only) */}
+                                {/* For non-jersey apparel, use "General Size" instead (shown below) */}
+                                {isJerseyCategory && (effectiveMemberJerseyType === 'full' || effectiveMemberJerseyType === 'shirt' || isHoodieOrLongSleevesOrTShirt) && (
                           <div className="modal-member-size-wrapper">
                             <label className="modal-member-size-label">Shirt Size</label>
                             <select
@@ -2400,8 +2475,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                             </select>
                           </div>
                         )}
-                                {/* Short Size - Show for full set or shorts only (jerseys only) */}
-                                {isJerseyCategory && shouldShowShorts && (memberJerseyType === 'full' || memberJerseyType === 'shorts') && (
+                                {/* Short Size - Show for jerseys only (full set or shorts only, not hoodies/long sleeves/T-shirts) */}
+                                {isJerseyCategory && shouldShowShorts && !isHoodieOrLongSleevesOrTShirt && (effectiveMemberJerseyType === 'full' || effectiveMemberJerseyType === 'shorts') && (
                           <div className="modal-member-size-wrapper">
                             <label className="modal-member-size-label">Short Size</label>
                             <select
@@ -2421,15 +2496,15 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                             </select>
                           </div>
                         )}
-                                {/* General Size - For non-jersey apparel */}
+                                {/* General Size - For non-jersey apparel (uniforms, hoodies, long sleeves, T-shirts, etc.) */}
                                 {!isJerseyCategory && (
-                                  <div className="modal-member-size-wrapper">
-                                    <label className="modal-member-size-label">Size</label>
-                                    <select
+                          <div className="modal-member-size-wrapper">
+                            <label className="modal-member-size-label">Size</label>
+                            <select
                                       value={member.size || member.jerseySize || 'M'}
-                                      onChange={(e) => updateTeamMember(index, 'size', e.target.value)}
-                                      className="modal-member-select"
-                                    >
+                              onChange={(e) => updateTeamMember(index, 'size', e.target.value)}
+                              className="modal-member-select"
+                            >
                                       {(() => {
                                         const sizes = memberSizingType === 'kids'
                                           ? (jerseySizes?.shirts.kids.length > 0 ? jerseySizes.shirts.kids : ['S6', 'S8', 'S10', 'S12', 'S14'])
@@ -2591,7 +2666,8 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
                   
                   {/* Row 3: Shirt Size and Short Size - With Labels (Conditional based on jersey type) */}
                   {/* Always show shirt size for apparel, but only for jerseys when jerseyType is 'full' or 'shirt' */}
-                  {(!isJerseyCategory || jerseyType === 'full' || jerseyType === 'shirt') && (
+                  {/* For T-shirts, hoodies, long sleeves (shouldHideJerseyType), always show shirt size */}
+                  {(!isJerseyCategory || jerseyType === 'full' || jerseyType === 'shirt' || shouldHideJerseyType) && (
                     <div className="modal-single-order-size-wrapper">
                       <label className="modal-single-order-size-label">Shirt Size</label>
                       <select

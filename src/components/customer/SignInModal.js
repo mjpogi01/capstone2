@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebook } from "react-icons/fa";
 import { AiOutlineMail, AiOutlineLock } from "react-icons/ai";
 import ReCAPTCHA from "react-google-recaptcha";
 import styles from "./SignInModal.module.css";
@@ -10,7 +9,7 @@ import logo from "../../images/yohanns_logo-removebg-preview 3.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import ForgotPasswordModal from "./ForgotPasswordModal";
-import { API_URL } from "../../config/api";
+import { API_URL, getAPI_URL } from "../../config/api";
 
 const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
   const [formData, setFormData] = useState({
@@ -146,13 +145,31 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
       
       // Verify the token with the backend
       try {
-        const response = await fetch(`${API_URL}/api/auth/verify-recaptcha`, {
+        // Use getAPI_URL() to get the URL dynamically at runtime
+        const apiUrl = getAPI_URL();
+        const verifyUrl = `${apiUrl}/api/auth/verify-recaptcha`;
+        console.log('🔐 Verifying reCAPTCHA at:', verifyUrl);
+        
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout')), 10000); // 10 second timeout
+        });
+        
+        // Create the fetch request
+        const fetchPromise = fetch(verifyUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ token: value }),
         });
+
+        // Race between fetch and timeout
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
         const data = await response.json();
 
@@ -172,7 +189,11 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
           setError("reCAPTCHA verification failed. Please try again.");
           // Reset the captcha widget
           if (captchaRef.current) {
-            captchaRef.current.reset();
+            try {
+              captchaRef.current.reset();
+            } catch (resetError) {
+              console.warn('Error resetting reCAPTCHA:', resetError);
+            }
           }
         }
       } catch (verifyError) {
@@ -180,10 +201,23 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
         console.error('Error verifying reCAPTCHA:', verifyError);
         setCaptchaVerified(false);
         setCaptchaError(true);
-        setError("Failed to verify reCAPTCHA. Please try again.");
+        
+        // More specific error messages
+        if (verifyError.message === 'Request timeout') {
+          setError("reCAPTCHA verification timed out. Please try again.");
+        } else if (verifyError.message?.includes('Failed to fetch') || verifyError.message?.includes('Connection refused')) {
+          setError("Unable to connect to server. Please check your connection and try again.");
+        } else {
+          setError("Failed to verify reCAPTCHA. Please try again.");
+        }
+        
         // Reset the captcha widget
         if (captchaRef.current) {
-          captchaRef.current.reset();
+          try {
+            captchaRef.current.reset();
+          } catch (resetError) {
+            console.warn('Error resetting reCAPTCHA:', resetError);
+          }
         }
       }
     } else {
@@ -438,15 +472,6 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
             >
               <FcGoogle />
               <span>Sign in with Google</span>
-            </button>
-            <button
-              type="button"
-              className={styles.signinSocialBtn}
-              onClick={() => handleSocial("Facebook")}
-              aria-label="Sign in with Facebook"
-            >
-              <FaFacebook style={{ color: '#1877f2' }} />
-              <span>Sign in with Facebook</span>
             </button>
           </div>
 

@@ -15,8 +15,48 @@ const isJerseyCategory = (category) => {
 const shouldShowShorts = (category) => {
   if (!category || typeof category !== 'string') return false;
   const lowerCategory = category.toLowerCase();
-  // Only show shorts for actual Jerseys category
+  // Only show shorts for actual Jerseys category (not uniforms, hoodies or long sleeves)
   return lowerCategory === 'jerseys';
+};
+
+const shouldShowJerseyPrices = (category) => {
+  if (!category || typeof category !== 'string') return false;
+  const lowerCategory = category.toLowerCase();
+  // Only show jersey prices (full set, shirt only, shorts only) for actual Jerseys category
+  // Uniforms, hoodies, and long sleeves don't have jersey type options
+  return lowerCategory === 'jerseys';
+};
+
+const isUniformsCategory = (category) => {
+  if (!category || typeof category !== 'string') return false;
+  return category.toLowerCase() === 'uniforms';
+};
+
+const isHoodieCategory = (category) => {
+  if (!category || typeof category !== 'string') return false;
+  return category.toLowerCase() === 'hoodies';
+};
+
+const isLongSleevesCategory = (category) => {
+  if (!category || typeof category !== 'string') return false;
+  return category.toLowerCase() === 'long sleeves';
+};
+
+const isTShirtCategory = (category) => {
+  if (!category || typeof category !== 'string') return false;
+  const lowerCategory = category.toLowerCase();
+  return lowerCategory === 't-shirts' || lowerCategory === 't-shirt';
+};
+
+const shouldShowCutType = (category) => {
+  if (!category || typeof category !== 'string') return false;
+  const lowerCategory = category.toLowerCase();
+  // Hide cut type for uniforms, hoodies, long sleeves, and T-shirts
+  return lowerCategory !== 'uniforms' && 
+         lowerCategory !== 'hoodies' && 
+         lowerCategory !== 'long sleeves' &&
+         lowerCategory !== 't-shirts' &&
+         lowerCategory !== 't-shirt';
 };
 
 const APPAREL_CATEGORIES = new Set([
@@ -36,13 +76,18 @@ const isApparelCategory = (category) => {
 };
 
 const DEFAULT_FABRIC_SURCHARGES = {
-  'DryFit Elite': '100',
-  'Performance Mesh': '100',
-  'Cotton Blend': '100',
-  'Polytex': '0'
+  'Polydex': '0', // Default
+  'Microcool': '100',
+  'Aircool': '100',
+  'Drifit': '100',
+  'Square Mesh': '100',
+  'Lacoste': '100' // Added for uniforms
 };
 
 const DEFAULT_FABRIC_PRESETS = Object.keys(DEFAULT_FABRIC_SURCHARGES);
+
+// Uniforms can only use these fabrics
+const UNIFORM_FABRICS = ['Lacoste', 'Drifit', 'Polydex'];
 
 const DEFAULT_CUT_TYPE_SURCHARGES = {
   'Normal Cut': '0',
@@ -519,7 +564,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       let priceValue = editingProduct.price || '';
       let jerseyPricesValue = { fullSet: '', shirtOnly: '', shortsOnly: '' };
       
-      if (shouldShowShorts(editingProduct.category)) {
+      // Only load jersey prices for actual jerseys category (not uniforms, hoodies, long sleeves)
+      if (shouldShowJerseyPrices(editingProduct.category)) {
         // Check if jersey_prices column exists and has data
         if (editingProduct.jersey_prices) {
           // Use jersey_prices if available
@@ -623,6 +669,26 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         normalizedFabricSurcharges = { ...DEFAULT_FABRIC_SURCHARGES };
       }
 
+      // For uniforms, filter to only allowed fabrics (Lacoste, Drifit, Polydex)
+      // For T-shirts and other categories, keep all fabric options including Lacoste
+      if (isUniformsCategory(editingProduct.category)) {
+        const filtered = {};
+        UNIFORM_FABRICS.forEach(fabric => {
+          // Check if fabric exists in normalized surcharges (case-insensitive)
+          const fabricKey = Object.keys(normalizedFabricSurcharges).find(
+            key => key.toLowerCase() === fabric.toLowerCase()
+          );
+          if (fabricKey) {
+            filtered[fabricKey] = normalizedFabricSurcharges[fabricKey];
+          } else {
+            // If not in existing surcharges, add default value
+            filtered[fabric] = fabric === 'Polydex' ? '0' : '100';
+          }
+        });
+        normalizedFabricSurcharges = filtered;
+      }
+      // For T-shirts: all fabric options (including Lacoste) are preserved, no filtering
+
       setFabricSurcharges(normalizedFabricSurcharges);
       setFabricError('');
 
@@ -630,7 +696,15 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         editingProduct.cut_type_surcharges
       );
 
+      // Clear cut type surcharges for uniforms, hoodies, long sleeves, and T-shirts (they don't have cut type)
       if (
+        isUniformsCategory(editingProduct.category) ||
+        isHoodieCategory(editingProduct.category) ||
+        isLongSleevesCategory(editingProduct.category) ||
+        isTShirtCategory(editingProduct.category)
+      ) {
+        normalizedCutTypeSurcharges = {};
+      } else if (
         Object.keys(normalizedCutTypeSurcharges).length === 0 &&
         (isJerseyCategory(editingProduct.category) ||
           isApparelCategory(editingProduct.category))
@@ -755,12 +829,36 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       jerseyCategorySelected || apparelCategorySelected;
     if (!supportsFabric) return null;
 
-    const fabricEntries = Object.entries(fabricSurcharges);
+    // For uniforms, only show Lacoste, Drifit, and Polydex
+    // For T-shirts and all other categories, show all fabric options including Lacoste
+    const isUniforms = isUniformsCategory(formData.category);
+    let availableFabrics = fabricSurcharges;
+    
+    if (isUniforms) {
+      // Filter to only show uniform-allowed fabrics
+      availableFabrics = Object.fromEntries(
+        Object.entries(fabricSurcharges).filter(([name]) =>
+          UNIFORM_FABRICS.some(allowed => name.toLowerCase() === allowed.toLowerCase())
+        )
+      );
+    }
+    // For T-shirts and other categories (not uniforms), all fabrics are available including Lacoste
 
-    const quickAddOptions =
-      jerseyCategorySelected || apparelCategorySelected
-        ? DEFAULT_FABRIC_PRESETS
-        : [];
+    const fabricEntries = Object.entries(availableFabrics);
+
+    // Quick add options - for uniforms, only show allowed fabrics
+    // For T-shirts and all other categories, show all fabric options including Lacoste
+    let quickAddOptions = [];
+    if (jerseyCategorySelected || apparelCategorySelected) {
+      if (isUniforms) {
+        quickAddOptions = DEFAULT_FABRIC_PRESETS.filter(preset =>
+          UNIFORM_FABRICS.some(allowed => preset.toLowerCase() === allowed.toLowerCase())
+        );
+      } else {
+        // T-shirts and other categories: show all fabric options (Polydex, Microcool, Aircool, Drifit, Square Mesh, Lacoste)
+        quickAddOptions = DEFAULT_FABRIC_PRESETS;
+      }
+    }
 
     return (
       <div className="apm-section-block">
@@ -797,10 +895,25 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
             <div className="apm-form-inline-error">{fabricError}</div>
           )}
 
+          {isUniforms && (
+            <div style={{
+              padding: '0.75rem',
+              background: '#fef3c7',
+              border: '1px solid #fbbf24',
+              borderRadius: '6px',
+              marginBottom: '1rem',
+              fontSize: '0.875rem',
+              color: '#92400e'
+            }}>
+              <strong>Note:</strong> Uniforms can only use Lacoste, Drifit, or Polydex fabrics.
+            </div>
+          )}
+
           <div className="apm-fabric-list">
             {fabricEntries.length === 0 ? (
               <span className="apm-muted">
                 No fabric or material options yet. Use the form below to add one.
+                {isUniforms && ' For uniforms, only add Lacoste, Drifit, or Polydex.'}
               </span>
             ) : (
               fabricEntries.map(([name, fee]) => (
@@ -832,7 +945,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
           <div className="apm-fabric-add">
             <input
               type="text"
-              placeholder="New option name"
+              placeholder={isUniforms ? "Only: Lacoste, Drifit, or Polydex" : "New option name"}
               value={newFabricOption.name}
               onChange={(e) =>
                 setNewFabricOption((prev) => ({ ...prev, name: e.target.value }))
@@ -853,7 +966,19 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
             <button
               type="button"
               className="apm-size-add-btn"
-              onClick={handleAddFabricOption}
+              onClick={() => {
+                // Validate for uniforms
+                if (isUniforms) {
+                  const optionName = newFabricOption.name.trim();
+                  if (optionName && !UNIFORM_FABRICS.some(allowed => 
+                    optionName.toLowerCase() === allowed.toLowerCase()
+                  )) {
+                    setFabricError('Uniforms can only use Lacoste, Drifit, or Polydex fabrics.');
+                    return;
+                  }
+                }
+                handleAddFabricOption();
+              }}
             >
               Add Option
             </button>
@@ -867,6 +992,11 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
     const supportsCutType =
       jerseyCategorySelected || apparelCategorySelected;
     if (!supportsCutType) return null;
+
+    // Hide cut type for uniforms, hoodies, and long sleeves
+    if (!shouldShowCutType(formData.category)) {
+      return null;
+    }
 
     const cutTypeEntries = Object.entries(cutTypeSurcharges);
 
@@ -977,7 +1107,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   };
 
   const renderJerseyPriceSection = () => {
-    if (!shouldShowShorts(formData.category)) return null;
+    // Only show jersey prices for actual jerseys category (not uniforms, hoodies, long sleeves)
+    if (!shouldShowJerseyPrices(formData.category)) return null;
 
     const kidsShirtSizes = jerseySizes.shirts?.kids ?? [];
     const kidsShortSizes = jerseySizes.shorts?.kids ?? [];
@@ -1203,7 +1334,24 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         }
 
         if (isJerseyCategory(value) || isApparelCategory(value)) {
+          // Set all fabric options (including Lacoste) for all categories
           setFabricSurcharges({ ...DEFAULT_FABRIC_SURCHARGES });
+          // For uniforms only, filter to only allowed fabrics (Lacoste, Drifit, Polydex)
+          // T-shirts and other categories keep all fabric options including Lacoste
+          if (isUniformsCategory(value)) {
+            setFabricSurcharges(prev => {
+              const filtered = {};
+              UNIFORM_FABRICS.forEach(fabric => {
+                if (prev[fabric] !== undefined) {
+                  filtered[fabric] = prev[fabric];
+                } else {
+                  filtered[fabric] = fabric === 'Polydex' ? '0' : '100';
+                }
+              });
+              return filtered;
+            });
+          }
+          // For T-shirts: all fabric options (including Lacoste) are available, no filtering needed
         }
       }
   };
@@ -1751,8 +1899,9 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       let jerseyPricesValue = null;
       let trophyPricesValue = null;
       
-      // Check if this is specifically a Jerseys category (not uniforms, t-shirts, etc.)
-      const isJerseysCategory = shouldShowShorts(formData.category);
+      // Check if this is specifically a Jerseys category (not uniforms, hoodies, long sleeves, etc.)
+      // Only jerseys have jersey type options (full set, shirt only, shorts only)
+      const isJerseysCategory = shouldShowJerseyPrices(formData.category);
       
       if (isTrophyProduct) {
         // Store trophy prices as JSONB object mapping size to price
@@ -2255,7 +2404,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
               </div>
 
             {isApparelCategory(formData.category) && !jerseyCategorySelected && (
-              shouldShowShorts(formData.category)
+              shouldShowJerseyPrices(formData.category)
                 ? renderJerseyPriceSection()
                 : renderSimplePriceSection('Base Price')
             )}
@@ -2382,8 +2531,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                   {/* Adults Tab Content */}
                   {activeJerseyTab === 'adults' && (
                     <div className="apm-jersey-tab-content">
-                        {/* Adults Prices */}
-                        {shouldShowShorts(formData.category) && (
+                        {/* Adults Prices - Only show for jerseys (not uniforms, hoodies, long sleeves) */}
+                        {shouldShowJerseyPrices(formData.category) && (
                           <div className="apm-section-block">
                             <div className="apm-form-group">
                               <label>Adults Jersey Prices</label>
@@ -2510,7 +2659,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                           </div>
                         </div>
 
-                        {/* Short Sizes - Adults - Only show for Jerseys */}
+                        {/* Short Sizes - Adults - Only show for Jerseys (not hoodies or long sleeves) */}
                         {shouldShowShorts(formData.category) && (
                           <div className="apm-jersey-size-subgroup">
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -2594,8 +2743,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                   {/* Kids Tab Content */}
                   {activeJerseyTab === 'kids' && (
                     <div className="apm-jersey-tab-content">
-                        {/* Kids Prices */}
-                        {shouldShowShorts(formData.category) && (() => {
+                        {/* Kids Prices - Only show for jerseys (not uniforms, hoodies, long sleeves) */}
+                        {shouldShowJerseyPrices(formData.category) && (() => {
                           const kidsShirtSizes = jerseySizes.shirts?.kids ?? [];
                           const kidsShortSizes = jerseySizes.shorts?.kids ?? [];
                           const hasKidsSizes = kidsShirtSizes.length > 0 || kidsShortSizes.length > 0;
@@ -2731,7 +2880,7 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                           </div>
                         </div>
 
-                        {/* Short Sizes - Kids - Only show for Jerseys */}
+                        {/* Short Sizes - Kids - Only show for Jerseys (not hoodies or long sleeves) */}
                         {shouldShowShorts(formData.category) && (
                           <div className="apm-jersey-size-subgroup">
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

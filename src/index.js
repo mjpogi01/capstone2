@@ -84,11 +84,17 @@ window.addEventListener('unhandledrejection', (event) => {
   // Suppress reCAPTCHA timeout promise rejections
   if (event.reason && (event.reason.message && (event.reason.message.includes('Timeout') || event.reason.message.includes('timeout')))) {
     const stack = event.reason.stack || '';
-    if (stack.includes('recaptcha') || stack.includes('gstatic') || event.reason.message.includes('recaptcha')) {
+    if (stack.includes('recaptcha') || stack.includes('gstatic') || stack.includes('recaptcha__en.js') || event.reason.message.includes('recaptcha')) {
       console.warn('reCAPTCHA timeout promise rejection handled gracefully');
       event.preventDefault();
       return false;
     }
+  }
+  // Also handle general timeout errors from reCAPTCHA
+  if (event.reason && event.reason.message === 'Timeout' && event.reason.stack && event.reason.stack.includes('recaptcha')) {
+    console.warn('reCAPTCHA timeout promise rejection handled gracefully');
+    event.preventDefault();
+    return false;
   }
   // Suppress AbortSignal timeout promise rejections from Supabase queries
   // Catch all "Timeout (u)" promise rejections - these are non-critical

@@ -619,6 +619,14 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                           {order.orderItems && order.orderItems.map((item, index) => {
                             // Check if this is a custom design order
                             const isCustomDesign = item.product_type === 'custom_design';
+                            // Determine category for hiding fields
+                            const categoryLower = (item.category || '').toString().toLowerCase().trim();
+                            const isUniformsCategory = categoryLower === 'uniforms';
+                            const isHoodieCategory = categoryLower === 'hoodies';
+                            const isLongSleevesCategory = categoryLower === 'long sleeves';
+                            const isTShirtCategory = categoryLower === 't-shirts' || categoryLower === 't-shirt';
+                            const shouldHideJerseyType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+                            const shouldHideCutType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
                             
                             // Determine product category (balls, trophies, or apparel)
                             const isBall = item.category?.toLowerCase() === 'balls';
@@ -1082,24 +1090,31 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
                                                     <span className="order-detail-value">{item.singleOrderDetails.number || item.singleOrderDetails.jerseyNo || item.singleOrderDetails.jerseyNumber || 'N/A'}</span>
                                                   </div>
                                                 )}
+                                                {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
                                                 <div className="order-detail-row">
-                                                  <span className="order-detail-label">Jersey Size:</span>
+                                                  <span className="order-detail-label">{shouldHideJerseyType ? 'Size' : 'Jersey Size'}:</span>
                                                   <span className="order-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || item.size || 'N/A'}</span>
                                                 </div>
-                                                <div className="order-detail-row">
-                                                  <span className="order-detail-label">Shorts Size:</span>
-                                                  <span className="order-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || item.size || 'N/A'}</span>
-                                                </div>
+                                                {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                                {!shouldHideJerseyType && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Shorts Size:</span>
+                                                    <span className="order-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || item.size || 'N/A'}</span>
+                                                  </div>
+                                                )}
                                                 {(item.fabricOption || item.singleOrderDetails?.fabricOption) && (
                                                   <div className="order-detail-row">
                                                     <span className="order-detail-label">Fabric:</span>
                                                     <span className="order-detail-value">{item.fabricOption || item.singleOrderDetails?.fabricOption || 'N/A'}</span>
                                                   </div>
                                                 )}
-                                                <div className="order-detail-row">
-                                                  <span className="order-detail-label">Cut Type:</span>
-                                                  <span className="order-detail-value">{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</span>
-                                                </div>
+                                                {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                                {!shouldHideCutType && (
+                                                  <div className="order-detail-row">
+                                                    <span className="order-detail-label">Cut Type:</span>
+                                                    <span className="order-detail-value">{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</span>
+                                                  </div>
+                                                )}
                                                 {(item.singleOrderDetails?.sizingType || item.sizeType) && (
                                                   <div className="order-detail-row">
                                                     <span className="order-detail-label">Type:</span>

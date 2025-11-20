@@ -1557,6 +1557,15 @@ const Orders = () => {
                       </button>
                     </div>
                     {(Array.isArray(order.orderItems) ? order.orderItems : []).map((item, index) => {
+                      // Determine category for hiding fields
+                      const categoryLower = (item.category || '').toString().toLowerCase().trim();
+                      const isUniformsCategory = categoryLower === 'uniforms';
+                      const isHoodieCategory = categoryLower === 'hoodies';
+                      const isLongSleevesCategory = categoryLower === 'long sleeves';
+                      const isTShirtCategory = categoryLower === 't-shirts' || categoryLower === 't-shirt';
+                      const shouldHideJerseyType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+                      const shouldHideCutType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+                      
                       // Helper function to map apparel type to display name
                       const getApparelDisplayName = (apparelType) => {
                         const apparelTypeMap = {
@@ -1653,12 +1662,16 @@ const Orders = () => {
                                          <tr>
                                            <th>Surname</th>
                                            <th>Jersey #</th>
-                                           <th>Jersey Type</th>
+                                           {/* Jersey Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                           {!shouldHideJerseyType && <th>Jersey Type</th>}
                                            <th>Fabric</th>
-                                           <th>Cut Type</th>
+                                           {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                           {!shouldHideCutType && <th>Cut Type</th>}
                                            <th>Size Type</th>
-                                           {(showTeamJerseySize || members.some(m => Boolean(m?.size))) && <th>Jersey Size</th>}
-                                           {(showTeamShortsSize || members.some(m => Boolean(m?.shortsSize))) && <th>Shorts Size</th>}
+                                           {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
+                                           {((showTeamJerseySize || members.some(m => Boolean(m?.size))) || shouldHideJerseyType) && <th>{shouldHideJerseyType ? 'Size' : 'Jersey Size'}</th>}
+                                           {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                           {(showTeamShortsSize || members.some(m => Boolean(m?.shortsSize))) && !shouldHideJerseyType && <th>Shorts Size</th>}
                                          </tr>
                                        </thead>
                                        <tbody>
@@ -1673,14 +1686,18 @@ const Orders = () => {
                                              <tr key={memberIndex}>
                                                <td>{(member.surname || 'N/A').toUpperCase()}</td>
                                                <td>{member.number || 'N/A'}</td>
-                                               <td>{jerseyTypeLabel}</td>
+                                               {/* Jersey Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                               {!shouldHideJerseyType && <td>{jerseyTypeLabel}</td>}
                                                <td>{memberFabricOption || 'N/A'}</td>
-                                               <td>{memberCutType || 'N/A'}</td>
+                                               {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                               {!shouldHideCutType && <td>{memberCutType || 'N/A'}</td>}
                                                <td>{memberSizingType === 'kids' ? 'Kids' : 'Adult'}</td>
-                                               {(showTeamJerseySize || members.some(m => Boolean(m?.size))) && (
-                                                 <td>{(memberJerseyType === 'full' || memberJerseyType === 'shirt') ? (member.size || 'N/A') : '-'}</td>
+                                               {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
+                                               {((showTeamJerseySize || members.some(m => Boolean(m?.size))) || (shouldHideJerseyType && (member.size || member.jerseySize))) && (
+                                                 <td>{(memberJerseyType === 'full' || memberJerseyType === 'shirt' || shouldHideJerseyType) ? (member.size || member.jerseySize || 'N/A') : '-'}</td>
                                                )}
-                                               {(showTeamShortsSize || members.some(m => Boolean(m?.shortsSize))) && (
+                                               {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                               {(showTeamShortsSize || members.some(m => Boolean(m?.shortsSize))) && !shouldHideJerseyType && (
                                                  <td>{(memberJerseyType === 'full' || memberJerseyType === 'shorts') ? (member.shortsSize || 'N/A') : '-'}</td>
                                                )}
                                              </tr>
@@ -1864,12 +1881,16 @@ const Orders = () => {
                                          <tr>
                                            <th>Surname</th>
                                            <th>Jersey #</th>
-                                           <th>Jersey Type</th>
+                                           {/* Jersey Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                           {!shouldHideJerseyType && <th>Jersey Type</th>}
                                            <th>Fabric</th>
-                                           <th>Cut Type</th>
+                                           {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                           {!shouldHideCutType && <th>Cut Type</th>}
                                            <th>Size Type</th>
-                                           {(showTeamJerseySize || item.teamMembers.some(m => Boolean(m?.jerseySize || m?.size))) && <th>Jersey Size</th>}
-                                           {(showTeamShortsSize || item.teamMembers.some(m => Boolean(m?.shortsSize))) && <th>Shorts Size</th>}
+                                           {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
+                                           {((showTeamJerseySize || item.teamMembers.some(m => Boolean(m?.jerseySize || m?.size))) || shouldHideJerseyType) && <th>{shouldHideJerseyType ? 'Size' : 'Jersey Size'}</th>}
+                                           {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                           {(showTeamShortsSize || item.teamMembers.some(m => Boolean(m?.shortsSize))) && !shouldHideJerseyType && <th>Shorts Size</th>}
                                          </tr>
                                        </thead>
                                        <tbody>
@@ -1884,14 +1905,18 @@ const Orders = () => {
                                              <tr key={memberIndex}>
                                                <td>{(member.surname || member.lastName || 'N/A').toUpperCase()}</td>
                                                <td>{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</td>
-                                               <td>{jerseyTypeLabel}</td>
+                                               {/* Jersey Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                               {!shouldHideJerseyType && <td>{jerseyTypeLabel}</td>}
                                                <td>{memberFabricOption || 'N/A'}</td>
-                                               <td>{memberCutType || 'N/A'}</td>
+                                               {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                               {!shouldHideCutType && <td>{memberCutType || 'N/A'}</td>}
                                                <td>{memberSizingType === 'kids' ? 'Kids' : 'Adult'}</td>
-                                               {(showTeamJerseySize || item.teamMembers.some(m => Boolean(m?.jerseySize || m?.size))) && (
-                                                 <td>{(memberJerseyType === 'full' || memberJerseyType === 'shirt') ? (member.jerseySize || member.size || 'N/A') : '-'}</td>
+                                               {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
+                                               {((showTeamJerseySize || item.teamMembers.some(m => Boolean(m?.jerseySize || m?.size))) || (shouldHideJerseyType && (member.size || member.jerseySize))) && (
+                                                 <td>{(memberJerseyType === 'full' || memberJerseyType === 'shirt' || shouldHideJerseyType) ? (member.jerseySize || member.size || 'N/A') : '-'}</td>
                                                )}
-                                               {(showTeamShortsSize || item.teamMembers.some(m => Boolean(m?.shortsSize))) && (
+                                               {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                               {(showTeamShortsSize || item.teamMembers.some(m => Boolean(m?.shortsSize))) && !shouldHideJerseyType && (
                                                  <td>{(memberJerseyType === 'full' || memberJerseyType === 'shorts') ? (member.shortsSize || 'N/A') : '-'}</td>
                                                )}
                                              </tr>
@@ -1921,29 +1946,39 @@ const Orders = () => {
                                           <tr>
                                             <th>Surname</th>
                                             <th>Jersey #</th>
-                                            <th>Jersey Type</th>
+                                            {/* Jersey Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                            {!shouldHideJerseyType && <th>Jersey Type</th>}
                                             <th>Fabric</th>
-                                            <th>Cut Type</th>
+                                            {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                            {!shouldHideCutType && <th>Cut Type</th>}
                                             <th>Size Type</th>
-                                            {(showSingleJerseySize || Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size)) && <th>Jersey Size</th>}
-                                            {(showSingleShortsSize || Boolean(item.singleOrderDetails?.shortsSize)) && <th>Shorts Size</th>}
+                                            {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
+                                            {((showSingleJerseySize || Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size)) || shouldHideJerseyType) && <th>{shouldHideJerseyType ? 'Size' : 'Jersey Size'}</th>}
+                                            {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                            {(showSingleShortsSize || Boolean(item.singleOrderDetails?.shortsSize)) && !shouldHideJerseyType && <th>Shorts Size</th>}
                                           </tr>
                                         </thead>
                                         <tbody>
                                           <tr>
                                             <td>{(item.singleOrderDetails.surname || item.singleOrderDetails?.lastName || 'N/A').toUpperCase()}</td>
                                             <td>{item.singleOrderDetails.number || item.singleOrderDetails?.jerseyNo || item.singleOrderDetails?.jerseyNumber || 'N/A'}</td>
-                                            <td>{(() => {
-                                              const jerseyType = item.jerseyType || item.singleOrderDetails?.jerseyType || 'full';
-                                              return jerseyType === 'shirt' ? 'Shirt Only' : jerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
-                                            })()}</td>
+                                            {/* Jersey Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                            {!shouldHideJerseyType && (
+                                              <td>{(() => {
+                                                const jerseyType = item.jerseyType || item.singleOrderDetails?.jerseyType || 'full';
+                                                return jerseyType === 'shirt' ? 'Shirt Only' : jerseyType === 'shorts' ? 'Shorts Only' : 'Full Set';
+                                              })()}</td>
+                                            )}
                                             <td>{item.fabricOption || item.singleOrderDetails?.fabricOption || 'N/A'}</td>
-                                            <td>{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</td>
+                                            {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                            {!shouldHideCutType && <td>{item.cutType || item.singleOrderDetails?.cutType || 'N/A'}</td>}
                                             <td>{(item.singleOrderDetails.sizingType || item.sizeType || 'adult') === 'kids' ? 'Kids' : 'Adult'}</td>
-                                            {(showSingleJerseySize || Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size)) && (
+                                            {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
+                                            {((showSingleJerseySize || Boolean(item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size)) || shouldHideJerseyType) && (
                                               <td>{item.singleOrderDetails.jerseySize || item.singleOrderDetails.size || 'N/A'}</td>
                                             )}
-                                            {(showSingleShortsSize || Boolean(item.singleOrderDetails?.shortsSize)) && (
+                                            {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                            {(showSingleShortsSize || Boolean(item.singleOrderDetails?.shortsSize)) && !shouldHideJerseyType && (
                                               <td>{item.singleOrderDetails.shortsSize || 'N/A'}</td>
                                             )}
                                           </tr>

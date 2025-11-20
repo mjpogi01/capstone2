@@ -250,6 +250,14 @@ const CartModal = () => {
                     const fabricSurcharge = Number(item.fabricSurcharge ?? 0);
                     const cutType = item.cutType || null;
                     const cutTypeSurcharge = Number(item.cutTypeSurcharge ?? 0);
+                    // Determine category for hiding fields
+                    const categoryLower = item.category?.toLowerCase() || '';
+                    const isUniformsCategory = categoryLower === 'uniforms';
+                    const isHoodieCategory = categoryLower === 'hoodies';
+                    const isLongSleevesCategory = categoryLower === 'long sleeves';
+                    const isTShirtCategory = categoryLower === 't-shirts' || categoryLower === 't-shirt';
+                    const shouldHideJerseyType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
+                    const shouldHideCutType = isUniformsCategory || isHoodieCategory || isLongSleevesCategory || isTShirtCategory;
                     const sizeSurchargePerUnit = Number(item.sizeSurcharge ?? 0);
                     const sizeSurchargeTotal = Number(
                       item.sizeSurchargeTotal ??
@@ -380,17 +388,21 @@ const CartModal = () => {
                                                 <span className="mycart-detail-label">Jersey:</span>
                                                 <span className="mycart-detail-value">{member.number || member.jerseyNo || member.jerseyNumber || 'N/A'}</span>
                                               </div>
-                                              <div className="mycart-detail-line">
-                                                <span className="mycart-detail-label">Jersey Type:</span>
-                                                <span className="mycart-detail-value">{jerseyTypeLabel}</span>
-                                              </div>
+                                              {/* Jersey Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                              {!shouldHideJerseyType && (
+                                                <div className="mycart-detail-line">
+                                                  <span className="mycart-detail-label">Jersey Type:</span>
+                                                  <span className="mycart-detail-value">{jerseyTypeLabel}</span>
+                                                </div>
+                                              )}
                                               {memberFabricOption && (
                                                 <div className="mycart-detail-line">
                                                   <span className="mycart-detail-label">Fabric:</span>
                                                   <span className="mycart-detail-value">{memberFabricOption}</span>
                                                 </div>
                                               )}
-                                              {memberCutType && (
+                                              {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                              {memberCutType && !shouldHideCutType && (
                                                 <div className="mycart-detail-line">
                                                   <span className="mycart-detail-label">Cut Type:</span>
                                                   <span className="mycart-detail-value">{memberCutType}</span>
@@ -400,13 +412,15 @@ const CartModal = () => {
                                                 <span className="mycart-detail-label">Size Type:</span>
                                                 <span className="mycart-detail-value">{memberSizingType === 'kids' ? 'Kids' : 'Adult'}</span>
                                               </div>
-                                              {(memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                              {/* Jersey/Shirt Size - Show for full set, shirt only, or hoodies/long sleeves/T-shirts (treated as shirt-only) */}
+                                              {(((memberJerseyType === 'full' || memberJerseyType === 'shirt') || (shouldHideJerseyType && (member.size || member.jerseySize))) && (
                                                 <div className="mycart-detail-line">
-                                                  <span className="mycart-detail-label">Jersey Size:</span>
+                                                  <span className="mycart-detail-label">{shouldHideJerseyType ? 'Size:' : 'Jersey Size:'}</span>
                                                   <span className="mycart-detail-value">{member.jerseySize || member.size || 'N/A'}</span>
                                                 </div>
-                                              )}
-                                              {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && (
+                                              ))}
+                                              {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                              {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && !shouldHideJerseyType && (
                                                 <div className="mycart-detail-line">
                                                   <span className="mycart-detail-label">Shorts Size:</span>
                                                   <span className="mycart-detail-value">{member.shortsSize || 'N/A'}</span>
@@ -442,20 +456,25 @@ const CartModal = () => {
                                             <span className="mycart-detail-value">{item.fabricOption || item.singleOrderDetails?.fabricOption}</span>
                                           </div>
                                         )}
-                                        {(item.cutType || item.singleOrderDetails?.cutType) && (
+                                        {/* Cut Type - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                                        {(item.cutType || item.singleOrderDetails?.cutType) && !shouldHideCutType && (
                                           <div className="mycart-detail-line">
                                             <span className="mycart-detail-label">Cut Type:</span>
                                             <span className="mycart-detail-value">{item.cutType || item.singleOrderDetails?.cutType}</span>
                                           </div>
                                         )}
+                                        {/* Jersey/Shirt Size - For non-jersey apparel, show as "Size" */}
                                         <div className="mycart-detail-line">
-                                          <span className="mycart-detail-label">Jersey Size:</span>
+                                          <span className="mycart-detail-label">{shouldHideJerseyType ? 'Size:' : 'Jersey Size:'}</span>
                                           <span className="mycart-detail-value">{item.singleOrderDetails?.jerseySize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
                                         </div>
-                                        <div className="mycart-detail-line">
-                                          <span className="mycart-detail-label">Shorts Size:</span>
-                                          <span className="mycart-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
-                                        </div>
+                                        {/* Shorts Size - Hide for hoodies, long sleeves, and T-shirts */}
+                                        {!shouldHideJerseyType && (
+                                          <div className="mycart-detail-line">
+                                            <span className="mycart-detail-label">Shorts Size:</span>
+                                            <span className="mycart-detail-value">{item.singleOrderDetails?.shortsSize || item.singleOrderDetails?.size || 'N/A'} ({item.sizeType || 'Adult'})</span>
+                                          </div>
+                                        )}
                                       </div>
                                     ) : isTrophy ? (
                                       /* For Trophies */

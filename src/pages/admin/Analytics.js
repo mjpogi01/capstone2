@@ -172,6 +172,9 @@ const Analytics = () => {
   const [activeSalesChartTab, setActiveSalesChartTab] = useState('totalSales');
   const [activeCustomersChartTab, setActiveCustomersChartTab] = useState('customerInsights');
   
+  // Refs to store chart instances for resizing
+  const chartRefs = useRef({});
+  
   // Chart values visibility for Sales & Revenue tab
   // Load from localStorage on mount, default to true (shared with Dashboard)
   const [isSalesChartValuesVisible, setIsSalesChartValuesVisible] = useState(() => {
@@ -312,6 +315,43 @@ const Analytics = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showFilters]);
+
+  // Resize charts when tabs change or window resizes
+  useEffect(() => {
+    const resizeCharts = () => {
+      // Small delay to ensure DOM is updated after tab change
+      setTimeout(() => {
+        Object.values(chartRefs.current).forEach(chartInstance => {
+          if (chartInstance && typeof chartInstance.resize === 'function') {
+            try {
+              chartInstance.resize();
+            } catch (error) {
+              // Ignore resize errors (chart might not be ready)
+            }
+          }
+        });
+      }, 100);
+    };
+
+    resizeCharts();
+
+    // Also resize on window resize
+    window.addEventListener('resize', resizeCharts);
+    return () => window.removeEventListener('resize', resizeCharts);
+  }, [activeTab, activeSalesChartTab, activeCustomersChartTab]);
+
+  // Helper function to create chart ready callback
+  const onChartReady = (chartId) => (chartInstance) => {
+    if (chartInstance) {
+      chartRefs.current[chartId] = chartInstance;
+      // Resize after a short delay to ensure container has dimensions
+      setTimeout(() => {
+        if (chartInstance.resize) {
+          chartInstance.resize();
+        }
+      }, 50);
+    }
+  };
 
   const fetchAnalyticsData = async () => {
     try {
@@ -1815,7 +1855,8 @@ const Analytics = () => {
                   notMerge
                   lazyUpdate
                   opts={{ renderer: 'svg' }}
-                  style={{ height: chartHeights.base, width: '100%' }}
+                  style={{ height: chartHeights.base, width: '100%', minHeight: '200px' }}
+                  onChartReady={onChartReady('totalSales')}
                 />
                 {!hasTotalSalesData && (
                   <div className="chart-empty-state">
@@ -1858,7 +1899,8 @@ const Analytics = () => {
                   notMerge
                   lazyUpdate
                   opts={{ renderer: 'svg' }}
-                  style={{ height: chartHeights.base, width: '100%' }}
+                  style={{ height: chartHeights.base, width: '100%', minHeight: '200px' }}
+                  onChartReady={onChartReady('salesTrends')}
                 />
                 {!hasSalesTrendsData && (
                   <div className="chart-empty-state">
@@ -1895,7 +1937,8 @@ const Analytics = () => {
                 notMerge
                 lazyUpdate
                 opts={{ renderer: 'svg' }}
-                style={{ height: chartHeights.base, width: '100%' }}
+                style={{ height: chartHeights.base, width: '100%', minHeight: '200px' }}
+                onChartReady={onChartReady('salesByBranch')}
               />
               {!hasSalesByBranchData && (
                 <div className="chart-empty-state">
@@ -1971,7 +2014,8 @@ const Analytics = () => {
                 notMerge
                 lazyUpdate
                 opts={{ renderer: 'svg' }}
-                style={{ height: chartHeights.compact, width: '100%' }}
+                style={{ height: chartHeights.compact, width: '100%', minHeight: '200px' }}
+                onChartReady={onChartReady('orderStatus')}
               />
               {!hasOrderStatusData && (
                 <div className="chart-empty-state">
@@ -2008,7 +2052,8 @@ const Analytics = () => {
                 notMerge
                 lazyUpdate
                 opts={{ renderer: 'svg' }}
-                style={{ height: chartHeights.tall, width: '100%' }}
+                style={{ height: chartHeights.tall, width: '100%', minHeight: '200px' }}
+                onChartReady={onChartReady('topProducts')}
               />
               {!hasTopProductsData && (
                 <div className="chart-empty-state">
@@ -2112,7 +2157,8 @@ const Analytics = () => {
                   notMerge
                   lazyUpdate
                   opts={{ renderer: 'svg' }}
-                  style={{ height: chartHeights.base, width: '100%' }}
+                  style={{ height: chartHeights.base, width: '100%', minHeight: '200px' }}
+                  onChartReady={onChartReady('topCustomers')}
                 />
                 {!hasTopCustomersData && (
                   <div className="chart-empty-state">
@@ -2247,7 +2293,8 @@ const Analytics = () => {
               notMerge
               lazyUpdate
               opts={{ renderer: 'svg' }}
-              style={{ height: chartHeights.wide, width: '100%' }}
+              style={{ height: chartHeights.wide, width: '100%', minHeight: '200px' }}
+              onChartReady={onChartReady('salesForecast')}
             />
             {forecastLoading ? (
               <div className="chart-empty-state">

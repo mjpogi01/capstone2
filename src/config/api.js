@@ -12,37 +12,44 @@
 // Your computer's local IP address (for mobile testing)
 const COMPUTER_IP = '192.168.254.100';
 
-// Default API URL - automatically switches based on environment
-// For production, set REACT_APP_API_URL in .env.production or build-time environment
-// If not set, it will try to auto-detect at runtime (for separate deployment)
+// Get API URL dynamically - checks window.location at runtime
+// This ensures we always use the correct URL based on where the app is running
 const getApiUrl = () => {
-  // If REACT_APP_API_URL is explicitly set, use it
+  // If REACT_APP_API_URL is explicitly set, use it (highest priority)
   if (process.env.REACT_APP_API_URL) {
+    console.log('📌 Using REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
     return process.env.REACT_APP_API_URL;
   }
   
-  // In development, use localhost
-  if (process.env.NODE_ENV !== 'production') {
-    return 'http://localhost:4000';
-  }
-  
-  // In production without explicit URL, use the same domain
-  // The backend API is on the same domain (Render handles routing)
+  // Check if we're in a browser environment (always true in React apps)
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
-    // Use the same origin (same domain) for API calls
-    // Render will route /api/* requests to the backend service
-    if (hostname && hostname.includes('onrender.com')) {
-      return window.location.origin;
+    const origin = window.location.origin;
+    
+    console.log('🌐 getApiUrl() - hostname:', hostname, 'origin:', origin);
+    
+    // If we're on localhost, use localhost:4000 for development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      console.log('📍 Detected localhost - using http://localhost:4000');
+      return 'http://localhost:4000';
     }
-    // For other production domains, use the same origin
-    return window.location.origin;
+    
+    // For any other domain (production/deployment), use the same origin
+    // The backend API is on the same domain (Render handles routing)
+    console.log('📍 Detected production - using origin:', origin);
+    return origin;
   }
   
-  return 'http://localhost:4000'; // Fallback
+  // Fallback for SSR or edge cases
+  console.warn('⚠️ getApiUrl() - window not available, using fallback localhost:4000');
+  return 'http://localhost:4000';
 };
 
-// Export the API URL
+// Export a function that gets the API URL dynamically (for runtime calls)
+export const getAPI_URL = getApiUrl;
+
+// Export API_URL as a constant for backward compatibility
+// This is evaluated at module load time in the browser, so window.location is available
 export const API_URL = getApiUrl();
 
 // For mobile testing, uncomment this line:
@@ -54,8 +61,12 @@ export const isMobileDevice = () => {
 };
 
 // Log the API URL on startup (helpful for debugging)
-console.log('🔗 API URL:', API_URL);
+// Use getAPI_URL() to get the runtime value
+const runtimeApiUrl = getAPI_URL();
+console.log('🔗 API URL:', runtimeApiUrl);
 console.log('📱 Mobile Device:', isMobileDevice());
+console.log('🌐 Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'N/A');
+console.log('🌐 Origin:', typeof window !== 'undefined' ? window.location.origin : 'N/A');
 
 export default API_URL;
 

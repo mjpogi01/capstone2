@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import * as echarts from 'echarts/core';
 import { BarChart } from 'echarts/charts';
 import {
@@ -29,6 +29,7 @@ echarts.use([
 const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onToggleValues }) => {
   const [salesTrends, setSalesTrends] = useState([]);
   const [loading, setLoading] = useState(true);
+  const chartInstanceRef = useRef(null);
 
   const formatNumber = (num) => {
     if (num === null || num === undefined || Number.isNaN(num)) {
@@ -72,6 +73,37 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
 
     fetchSalesTrends();
   }, [selectedBranchId]);
+
+  // Resize chart when visibility changes or window resizes
+  useEffect(() => {
+    const resizeChart = () => {
+      if (chartInstanceRef.current && typeof chartInstanceRef.current.resize === 'function') {
+        setTimeout(() => {
+          try {
+            chartInstanceRef.current.resize();
+          } catch (error) {
+            // Ignore resize errors
+          }
+        }, 100);
+      }
+    };
+
+    resizeChart();
+    window.addEventListener('resize', resizeChart);
+    return () => window.removeEventListener('resize', resizeChart);
+  }, [isValuesVisible]);
+
+  // Callback when chart is ready
+  const onChartReady = (chartInstance) => {
+    if (chartInstance) {
+      chartInstanceRef.current = chartInstance;
+      setTimeout(() => {
+        if (chartInstance.resize) {
+          chartInstance.resize();
+        }
+      }, 50);
+    }
+  };
 
   // Check if we have data
   const hasData = useMemo(() => {
@@ -245,7 +277,8 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
               notMerge
               lazyUpdate
               opts={{ renderer: 'svg' }}
-              style={{ height: chartHeights.base, width: '100%' }}
+              style={{ height: chartHeights.base, width: '100%', minHeight: '200px' }}
+              onChartReady={onChartReady}
             />
           </>
         )}

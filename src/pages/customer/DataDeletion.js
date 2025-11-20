@@ -84,7 +84,7 @@ const DataDeletion = () => {
               <li><strong>Irreversible Action:</strong> Account deletion is permanent and cannot be undone. Please ensure you want to proceed before confirming.</li>
               <li><strong>Active Orders:</strong> If you have pending orders, please allow them to be completed or cancelled before requesting deletion.</li>
               <li><strong>Legal Requirements:</strong> Some data may be retained as required by law or for legitimate business purposes (e.g., financial transaction records).</li>
-              <li><strong>Third-Party Services:</strong> If you signed in using third-party services (Google, Facebook), you may need to revoke access separately from those services.</li>
+              <li><strong>Third-Party Services:</strong> If you signed in using third-party services (Google), you may need to revoke access separately from those services.</li>
             </ul>
           </section>
 

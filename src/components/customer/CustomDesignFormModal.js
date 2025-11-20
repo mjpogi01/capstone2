@@ -35,13 +35,20 @@ const fabricOptions = [
   { name: 'Microcool', surcharge: 100 },
   { name: 'Aircool', surcharge: 100 },
   { name: 'Drifit', surcharge: 100 },
-  { name: 'Square Mesh', surcharge: 100 }
+  { name: 'Square Mesh', surcharge: 100 },
+  { name: 'Lacoste', surcharge: 100 } // Added for uniforms
 ];
 
 // Cut type options
 const cutTypeOptions = [
   { name: 'Normal Cut', surcharge: 0 }, // Default
   { name: 'NBA Cut', surcharge: 100 }
+];
+
+// Knitted options for uniforms (Sleeves and Collars)
+const knittedOptions = [
+  { name: 'Sleeves', surcharge: 100 },
+  { name: 'Collars', surcharge: 100 }
 ];
 
 const initialMember = { 
@@ -53,6 +60,7 @@ const initialMember = {
   jerseyType: 'full', // 'full', 'shirt', 'shorts'
   fabricOption: 'Polydex', // Default fabric
   cutType: 'Normal Cut', // Default cut type
+  knittedOption: '', // For uniforms: 'Sleeves', 'Collars', or empty
   apparelType: '' // 'basketball_jersey', 'volleyball_jersey', 'hoodie', 'tshirt', 'longsleeves', 'uniforms'
 };
 
@@ -60,7 +68,6 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const { user } = useAuth();
   const { openSignIn } = useModal();
   const [clientName, setClientName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [teamName, setTeamName] = useState('');
   const [apparelType, setApparelType] = useState(''); // 'basketball_jersey', 'volleyball_jersey', 'hoodie', 'tshirt', 'longsleeves', 'uniforms'
@@ -87,7 +94,6 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const [addressToDelete, setAddressToDelete] = useState(null);
   const [newAddress, setNewAddress] = useState({
     fullName: '',
-    email: '',
     phone: '',
     province: '',
     city: '',
@@ -114,8 +120,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const errors = useMemo(() => {
     const e = {};
     if (!clientName.trim()) e.clientName = 'Client name is required';
-    if (!email.trim()) e.email = 'Email is required';
-    else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = 'Enter a valid email address';
+    // Email is automatically taken from logged-in user, no validation needed
     if (!phone.trim()) e.phone = 'Phone is required';
     else if (!/^\+?[0-9\-()\s]{7,}$/.test(phone)) e.phone = 'Enter a valid phone number';
     if (!teamName.trim()) e.teamName = 'Team name is required';
@@ -155,24 +160,38 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       // Only validate sizes that are actually needed based on jerseyType
       const memberJerseyType = m.jerseyType || 'full';
       
+      // For hoodies, long sleeves, and T-shirts, they don't have jersey type - treat as shirt-only
+      const isHoodieOrLongSleeves = apparelType === 'hoodie' || apparelType === 'longsleeves';
+      const isTShirt = apparelType === 'tshirt';
+      const effectiveJerseyType = (isHoodieOrLongSleeves || isTShirt) ? 'shirt' : memberJerseyType;
+      
       // Debug logging for member 0 to help diagnose issues
       if (idx === 0) {
-        console.log(`🔍 Member ${idx} validation - jerseyType: "${m.jerseyType}" (resolved to: "${memberJerseyType}"), size: "${m.size}", shortsSize: "${m.shortsSize}"`);
+        console.log(`🔍 Member ${idx} validation - apparelType: "${apparelType}", jerseyType: "${m.jerseyType}" (resolved to: "${effectiveJerseyType}"), size: "${m.size}", shortsSize: "${m.shortsSize}"`);
+        if (isTShirt) {
+          console.log(`✅ Member ${idx}: T-shirt - treating as shirt-only, no jersey type`);
+        }
       }
       
       // For full set: require both shirt and shorts sizes
-      if (memberJerseyType === 'full') {
+      if (effectiveJerseyType === 'full') {
         if (!m.size?.trim()) e[`member_size_${idx}`] = 'Required';
         if (!m.shortsSize?.trim()) e[`member_shorts_size_${idx}`] = 'Required';
       } 
-      // For shirt only: require shirt size only (shorts size NOT required)
-      else if (memberJerseyType === 'shirt') {
+      // For shirt only (or hoodies/long sleeves): require shirt size only (shorts size NOT required)
+      else if (effectiveJerseyType === 'shirt') {
         if (!m.size?.trim()) e[`member_size_${idx}`] = 'Required';
-        // shortsSize validation is intentionally skipped for shirt-only orders
-        console.log(`✅ Member ${idx}: Shirt-only order - skipping shortsSize validation`);
+        // shortsSize validation is intentionally skipped for shirt-only orders, hoodies, long sleeves, and T-shirts
+        if (isHoodieOrLongSleeves) {
+          console.log(`✅ Member ${idx}: Hoodie/Long Sleeves - skipping shortsSize validation`);
+        } else if (isTShirt) {
+          console.log(`✅ Member ${idx}: T-shirt - skipping shortsSize validation`);
+        } else {
+          console.log(`✅ Member ${idx}: Shirt-only order - skipping shortsSize validation`);
+        }
       } 
       // For shorts only: require shorts size only (shirt size NOT required)
-      else if (memberJerseyType === 'shorts') {
+      else if (effectiveJerseyType === 'shorts') {
         if (!m.shortsSize?.trim()) e[`member_shorts_size_${idx}`] = 'Required';
         // size validation is intentionally skipped for shorts-only orders
         console.log(`✅ Member ${idx}: Shorts-only order - skipping size validation`);
@@ -184,7 +203,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       }
     });
     return e;
-  }, [clientName, email, phone, teamName, apparelType, shippingMethod, pickupBranchId, deliveryAddress, members, hasAddress, selectedAddressId, showAddressForm, newAddress]);
+  }, [clientName, phone, teamName, apparelType, shippingMethod, pickupBranchId, deliveryAddress, members, hasAddress, selectedAddressId, showAddressForm, newAddress]);
 
   const hasErrors = Object.keys(errors).length > 0;
 
@@ -209,7 +228,35 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   };
 
   const addMemberRow = () => {
-    setMembers(prev => [...prev, { ...initialMember }]);
+    // When adding a member, set defaults based on current apparel type
+    const newMember = { ...initialMember };
+    const isUniforms = apparelType === 'uniforms';
+    const isHoodie = apparelType === 'hoodie';
+    const isLongSleeves = apparelType === 'longsleeves';
+    const isTShirt = apparelType === 'tshirt';
+    
+    if (isUniforms || isHoodie || isLongSleeves || isTShirt) {
+      newMember.cutType = ''; // No cut type for uniforms, hoodies, long sleeves, or T-shirts
+    }
+    
+    if (!isUniforms) {
+      newMember.knittedOption = ''; // No knitted option for non-uniforms
+    }
+    
+    // For uniforms, ensure fabric is valid
+    if (isUniforms) {
+      const uniformFabrics = ['Lacoste', 'Drifit', 'Polydex'];
+      if (!uniformFabrics.includes(newMember.fabricOption)) {
+        newMember.fabricOption = 'Polydex';
+      }
+    }
+    
+    // For hoodies, long sleeves, and T-shirts, clear shorts size (no shorts for these items)
+    if (isHoodie || isLongSleeves || isTShirt) {
+      newMember.shortsSize = '';
+    }
+    
+    setMembers(prev => [...prev, newMember]);
     console.log('✅ New team member row added');
   };
   
@@ -223,7 +270,9 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       if (i === index) {
         // Clear sizes when switching sizing type and set new defaults
         if (field === 'sizingType') {
-          const memberJerseyType = m.jerseyType || 'full';
+          const isHoodieOrLongSleeves = apparelType === 'hoodie' || apparelType === 'longsleeves';
+          const isTShirt = apparelType === 'tshirt';
+          const memberJerseyType = (isHoodieOrLongSleeves || isTShirt) ? 'shirt' : (m.jerseyType || 'full');
           const memberShirtSizes = value === 'kids' ? kidsSizes : adultSizes;
           const memberShortSizes = value === 'kids' ? kidsSizes : adultSizes;
           const defaultShirtSize = memberShirtSizes.length > 0 ? memberShirtSizes[Math.floor(memberShirtSizes.length / 2)] : 'M';
@@ -231,10 +280,10 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
           
           const updated = { ...m, [field]: value };
           
-          // Set defaults based on jerseyType
+          // Set defaults based on jerseyType (or treat hoodies/long sleeves/T-shirts as shirt-only)
           if (memberJerseyType === 'full') {
             updated.size = defaultShirtSize;
-            updated.shortsSize = defaultShortSize;
+            updated.shortsSize = (isHoodieOrLongSleeves || isTShirt) ? '' : defaultShortSize;
           } else if (memberJerseyType === 'shirt') {
             updated.size = defaultShirtSize;
             updated.shortsSize = '';
@@ -246,10 +295,23 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
             updated.shortsSize = '';
           }
           
+          // Clear shorts size for hoodies, long sleeves, and T-shirts
+          if (isHoodieOrLongSleeves || isTShirt) {
+            updated.shortsSize = '';
+          }
+          
           return updated;
         }
         // Handle jerseyType changes - clear sizes based on type and set defaults
+        // Note: jerseyType is not applicable for hoodies, long sleeves, and T-shirts
         if (field === 'jerseyType') {
+          const isHoodieOrLongSleeves = apparelType === 'hoodie' || apparelType === 'longsleeves';
+          const isTShirt = apparelType === 'tshirt';
+          if (isHoodieOrLongSleeves || isTShirt) {
+            // Don't allow jerseyType changes for hoodies/long sleeves/T-shirts
+            return m;
+          }
+          
           console.log(`🔄 Updating member ${index} jerseyType to: "${value}"`);
           const memberSizingType = m.sizingType || 'adults';
           const memberShirtSizes = memberSizingType === 'kids' ? kidsSizes : adultSizes;
@@ -315,6 +377,46 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       }
     }
   }, [isOpen, user]);
+
+  // Clear cutType and knittedOption when apparel type changes
+  useEffect(() => {
+    if (apparelType) {
+      const isUniforms = apparelType === 'uniforms';
+      const isHoodie = apparelType === 'hoodie';
+      const isLongSleeves = apparelType === 'longsleeves';
+      const isTShirt = apparelType === 'tshirt';
+      
+      // Clear cutType for uniforms, hoodies, long sleeves, and T-shirts
+      if (isUniforms || isHoodie || isLongSleeves || isTShirt) {
+        setMembers(prev => prev.map(member => ({
+          ...member,
+          cutType: '', // Clear cut type
+          knittedOption: isUniforms ? member.knittedOption : '', // Only keep knitted option for uniforms
+          // For hoodies, long sleeves, and T-shirts, clear shorts size (no shorts for these items)
+          shortsSize: (isHoodie || isLongSleeves || isTShirt) ? '' : member.shortsSize
+        })));
+      } else {
+        // Set default cut type for other apparel types
+        setMembers(prev => prev.map(member => ({
+          ...member,
+          cutType: member.cutType || 'Normal Cut',
+          knittedOption: '' // Clear knitted option for non-uniforms
+        })));
+      }
+
+      // Reset fabric option to default if current selection is not available for uniforms
+      if (isUniforms) {
+        setMembers(prev => prev.map(member => {
+          const currentFabric = member.fabricOption || 'Polydex';
+          const uniformFabrics = ['Lacoste', 'Drifit', 'Polydex'];
+          if (!uniformFabrics.includes(currentFabric)) {
+            return { ...member, fabricOption: 'Polydex' };
+          }
+          return member;
+        }));
+      }
+    }
+  }, [apparelType]);
 
   // Filter cities by selected province
   useEffect(() => {
@@ -386,24 +488,41 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       const defaultShirtSize = memberShirtSizes.length > 0 ? memberShirtSizes[Math.floor(memberShirtSizes.length / 2)] : 'M';
       const defaultShortSize = memberShortSizes.length > 0 ? memberShortSizes[Math.floor(memberShortSizes.length / 2)] : 'M';
       
+      // For hoodies, long sleeves, and T-shirts, always show shirt size (no jersey type)
+      const isHoodieOrLongSleeves = apparelType === 'hoodie' || apparelType === 'longsleeves';
+      const isTShirt = apparelType === 'tshirt';
+      const effectiveJerseyType = (isHoodieOrLongSleeves || isTShirt) ? 'shirt' : memberJerseyType;
+      
       const updated = { ...m };
       let changed = false;
       
-      // Auto-set shirt size if needed (for full set or shirt only)
-      if ((memberJerseyType === 'full' || memberJerseyType === 'shirt') && !m.size?.trim()) {
+      // Auto-set shirt size if needed (for full set, shirt only, or hoodies/long sleeves/T-shirts)
+      if ((effectiveJerseyType === 'full' || effectiveJerseyType === 'shirt' || isHoodieOrLongSleeves || isTShirt) && !m.size?.trim()) {
         updated.size = defaultShirtSize;
         changed = true;
       }
       
-      // Auto-set shorts size if needed (for full set or shorts only)
-      if ((memberJerseyType === 'full' || memberJerseyType === 'shorts') && !m.shortsSize?.trim()) {
+      // Auto-set shorts size if needed (for full set or shorts only, but not for hoodies/long sleeves/T-shirts)
+      if ((effectiveJerseyType === 'full' || effectiveJerseyType === 'shorts') && !isHoodieOrLongSleeves && !isTShirt && !m.shortsSize?.trim()) {
         updated.shortsSize = defaultShortSize;
+        changed = true;
+      }
+      
+      // Clear shorts size for T-shirts
+      if (isTShirt && m.shortsSize) {
+        updated.shortsSize = '';
+        changed = true;
+      }
+      
+      // Clear shorts size for hoodies and long sleeves
+      if (isHoodieOrLongSleeves && m.shortsSize) {
+        updated.shortsSize = '';
         changed = true;
       }
       
       return changed ? updated : m;
     }));
-  }, [expandedMembers]); // Only depend on expandedMembers to avoid loops
+  }, [expandedMembers, apparelType]); // Add apparelType dependency
 
   // Check for user address when modal opens
   const checkUserAddress = async () => {
@@ -453,17 +572,9 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       ...prev,
       [name]: processedValue
     }));
-    // Sync with client info for name, email, and phone
+    // Sync with client info for name and phone
     if (name === 'fullName') {
       setClientName(processedValue);
-    } else if (name === 'email') {
-      setEmail(processedValue);
-      // Real-time validation for email
-      if (processedValue.trim() && !/^\S+@\S+\.\S+$/.test(processedValue)) {
-        setInstantErrors(prev => ({ ...prev, email: 'Invalid email format' }));
-      } else {
-        setInstantErrors(prev => ({ ...prev, email: '' }));
-      }
     } else if (name === 'phone') {
       setPhone(processedValue);
       // Real-time validation for phone
@@ -483,15 +594,12 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
 
   const validateAddressForm = () => {
     const errors = {};
-    const requiredFields = ['fullName', 'email', 'phone', 'streetAddress', 'province', 'city', 'barangay', 'postalCode'];
+    const requiredFields = ['fullName', 'phone', 'streetAddress', 'province', 'city', 'barangay', 'postalCode'];
     requiredFields.forEach(field => {
       if (!newAddress[field] || newAddress[field].trim() === '') {
         errors[field] = 'This field is required';
       }
     });
-    if (newAddress.email && !/^\S+@\S+\.\S+$/.test(newAddress.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
     if (newAddress.phone && !/^[\d\s\-+()]+$/.test(newAddress.phone)) {
       errors.phone = 'Please enter a valid phone number';
     }
@@ -522,7 +630,6 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
         }
         // Sync with client info
         setClientName(newAddress.fullName);
-        setEmail(newAddress.email);
         setPhone(newAddress.phone);
         await checkUserAddress();
         setShowAddressForm(false);
@@ -578,7 +685,6 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     }
     setNewAddress({
       fullName: addressToEdit.full_name || '',
-      email: email || '',
       phone: addressToEdit.phone || '',
       streetAddress: streetAddress,
       barangay: barangay,
@@ -628,12 +734,13 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
   const resetForm = () => {
     // Pre-populate with user data if logged in
     setClientName(user?.user_metadata?.full_name || '');
-    setEmail(user?.email || '');
+    // Email is automatically taken from logged-in user, no need to set state
     setPhone('');
     setTeamName('');
     setApparelType('');
     setImages([]);
-    setMembers([{ ...initialMember }]);
+    // Reset members - also clear knittedOption
+    setMembers([{ ...initialMember, knittedOption: '', cutType: 'Normal Cut' }]);
     setPickupBranchId('');
     setShippingMethod('pickup');
     setDeliveryAddress({
@@ -656,7 +763,6 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
     setEditingAddressId(null);
                         setNewAddress({
                           fullName: '',
-                          email: '',
                           phone: '',
                           province: '',
                           city: '',
@@ -690,7 +796,7 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       deliveryAddress,
       pickupBranchId,
       clientName: !!clientName.trim(),
-      email: !!email.trim(),
+      email: !!user?.email,
       phone: !!phone.trim(),
       teamName: !!teamName.trim(),
       apparelType: !!apparelType,
@@ -712,7 +818,8 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
       
       // Add form fields
       formData.append('clientName', clientName);
-      formData.append('email', email);
+      // Use logged-in user's email automatically
+      formData.append('email', user?.email || '');
       formData.append('phone', phone);
       formData.append('teamName', teamName);
       formData.append('apparelType', apparelType);
@@ -847,7 +954,6 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                           setEditingAddressId(null);
                           setNewAddress({
                             fullName: '',
-                            email: '',
                             phone: '',
                             province: '',
                             city: '',
@@ -878,21 +984,6 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                       />
                       {addressErrors.fullName && (
                         <span className="cdfm-error-message">{addressErrors.fullName}</span>
-                      )}
-                    </div>
-                    
-                    <div className="cdfm-form-group">
-                      <input
-                        type="email"
-                        name="email"
-                        value={newAddress.email}
-                        onChange={handleAddressInputChange}
-                        className={addressErrors.email || instantErrors.email ? 'error' : ''}
-                        placeholder="Contact Email"
-                        maxLength={255}
-                      />
-                      {(addressErrors.email || instantErrors.email) && (
-                        <span className="cdfm-error-message">{addressErrors.email || instantErrors.email}</span>
                       )}
                     </div>
                     
@@ -1214,43 +1305,71 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                 const memberSizingType = m.sizingType || 'adults';
                 const memberFabricOption = m.fabricOption || 'Polydex';
                 const memberCutType = m.cutType || 'Normal Cut';
+                const memberKnittedOption = m.knittedOption || '';
+                
+                // Determine if this is uniforms, hoodie, long sleeves, or T-shirt
+                const isUniforms = apparelType === 'uniforms';
+                const isHoodie = apparelType === 'hoodie';
+                const isLongSleeves = apparelType === 'longsleeves';
+                const isTShirt = apparelType === 'tshirt';
                 
                 // Calculate member price
                 // Base prices
                 let basePrice = 0;
+                // For hoodies, long sleeves, and T-shirts, they don't have jersey type, so use shirt-only pricing
+                const effectiveJerseyType = (isHoodie || isLongSleeves || isTShirt) ? 'shirt' : memberJerseyType;
+                
                 if (memberSizingType === 'kids') {
                   // Kids: ₱850 full set, ₱450 shirt only, ₱400 shorts only
-                  if (memberJerseyType === 'full') basePrice = 850;
-                  else if (memberJerseyType === 'shirt') basePrice = 450;
-                  else if (memberJerseyType === 'shorts') basePrice = 400;
+                  if (effectiveJerseyType === 'full') basePrice = 850;
+                  else if (effectiveJerseyType === 'shirt') basePrice = 450;
+                  else if (effectiveJerseyType === 'shorts') basePrice = 400;
                 } else {
                   // Adult: ₱950 full set, ₱500 shirt only, ₱450 shorts only
-                  if (memberJerseyType === 'full') basePrice = 950;
-                  else if (memberJerseyType === 'shirt') basePrice = 500;
-                  else if (memberJerseyType === 'shorts') basePrice = 450;
+                  if (effectiveJerseyType === 'full') basePrice = 950;
+                  else if (effectiveJerseyType === 'shirt') basePrice = 500;
+                  else if (effectiveJerseyType === 'shorts') basePrice = 450;
                 }
                 
                 // Size surcharge (₱50 for 2XL-8XL, regardless of jersey type)
+                // For hoodies, long sleeves, and T-shirts, only check shirt size (no shorts)
                 let sizeSurcharge = 0;
                 const shirtSize = m.size || '';
-                const shortsSize = m.shortsSize || '';
+                const shortsSize = (isHoodie || isLongSleeves || isTShirt) ? '' : (m.shortsSize || '');
                 if (surchargeSizes.includes(shirtSize) || surchargeSizes.includes(shortsSize)) {
                   sizeSurcharge = 50; // Only one surcharge regardless of how many sizes qualify
                 }
                 
-                // Fabric surcharge
-                const fabricOption = fabricOptions.find(f => f.name === memberFabricOption);
+                // Fabric surcharge - filter fabric options based on apparel type
+                // For uniforms: only Lacoste, Drifit, Polydex
+                let availableFabrics = fabricOptions;
+                if (isUniforms) {
+                  availableFabrics = fabricOptions.filter(f => 
+                    ['Lacoste', 'Drifit', 'Polydex'].includes(f.name)
+                  );
+                }
+                const fabricOption = availableFabrics.find(f => f.name === memberFabricOption);
                 const fabricSurcharge = fabricOption ? fabricOption.surcharge : 0;
                 
-                // Cut type surcharge
-                const cutTypeOption = cutTypeOptions.find(c => c.name === memberCutType);
-                const cutTypeSurcharge = cutTypeOption ? cutTypeOption.surcharge : 0;
+                // Cut type surcharge - not available for uniforms, hoodies, or long sleeves
+                let cutTypeSurcharge = 0;
+                if (!isUniforms && !isHoodie && !isLongSleeves) {
+                  const cutTypeOption = cutTypeOptions.find(c => c.name === memberCutType);
+                  cutTypeSurcharge = cutTypeOption ? cutTypeOption.surcharge : 0;
+                }
+                
+                // Knitted option surcharge (only for uniforms)
+                let knittedSurcharge = 0;
+                if (isUniforms && memberKnittedOption) {
+                  const knittedOption = knittedOptions.find(k => k.name === memberKnittedOption);
+                  knittedSurcharge = knittedOption ? knittedOption.surcharge : 0;
+                }
                 
                 // Custom design fee
                 const customDesignFee = 200;
                 
                 // Total member price
-                const memberPrice = basePrice + sizeSurcharge + fabricSurcharge + cutTypeSurcharge + customDesignFee;
+                const memberPrice = basePrice + sizeSurcharge + fabricSurcharge + cutTypeSurcharge + knittedSurcharge + customDesignFee;
                 
                 return (
                   <div key={idx} className="cdfm-member-card">
@@ -1323,42 +1442,44 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                     {/* Per-Member Customization Section */}
                     {isExpanded && (
                       <div className="cdfm-member-customization-section">
-                        {/* Jersey Type Selector */}
-                        <div className="cdfm-member-customization-group">
-                          <label className="cdfm-member-customization-label">Jersey Type</label>
-                          <div className="cdfm-member-jersey-type-buttons">
-                            <button
-                              type="button"
-                              className={`cdfm-member-jersey-type-btn ${memberJerseyType === 'full' ? 'active' : ''}`}
-                              onClick={() => {
-                                updateMember(idx, 'jerseyType', 'full');
-                                if (showErrors) setShowErrors(false);
-                              }}
-                            >
-                              Full Set
-                            </button>
-                            <button
-                              type="button"
-                              className={`cdfm-member-jersey-type-btn ${memberJerseyType === 'shirt' ? 'active' : ''}`}
-                              onClick={() => {
-                                updateMember(idx, 'jerseyType', 'shirt');
-                                if (showErrors) setShowErrors(false);
-                              }}
-                            >
-                              Shirt Only
-                            </button>
-                            <button
-                              type="button"
-                              className={`cdfm-member-jersey-type-btn ${memberJerseyType === 'shorts' ? 'active' : ''}`}
-                              onClick={() => {
-                                updateMember(idx, 'jerseyType', 'shorts');
-                                if (showErrors) setShowErrors(false);
-                              }}
-                            >
-                              Shorts Only
-                            </button>
+                        {/* Jersey Type Selector - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                        {apparelType !== 'uniforms' && apparelType !== 'hoodie' && apparelType !== 'longsleeves' && apparelType !== 'tshirt' && (
+                          <div className="cdfm-member-customization-group">
+                            <label className="cdfm-member-customization-label">Jersey Type</label>
+                            <div className="cdfm-member-jersey-type-buttons">
+                              <button
+                                type="button"
+                                className={`cdfm-member-jersey-type-btn ${memberJerseyType === 'full' ? 'active' : ''}`}
+                                onClick={() => {
+                                  updateMember(idx, 'jerseyType', 'full');
+                                  if (showErrors) setShowErrors(false);
+                                }}
+                              >
+                                Full Set
+                              </button>
+                              <button
+                                type="button"
+                                className={`cdfm-member-jersey-type-btn ${memberJerseyType === 'shirt' ? 'active' : ''}`}
+                                onClick={() => {
+                                  updateMember(idx, 'jerseyType', 'shirt');
+                                  if (showErrors) setShowErrors(false);
+                                }}
+                              >
+                                Shirt Only
+                              </button>
+                              <button
+                                type="button"
+                                className={`cdfm-member-jersey-type-btn ${memberJerseyType === 'shorts' ? 'active' : ''}`}
+                                onClick={() => {
+                                  updateMember(idx, 'jerseyType', 'shorts');
+                                  if (showErrors) setShowErrors(false);
+                                }}
+                              >
+                                Shorts Only
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Size Type Selector */}
                         <div className="cdfm-member-customization-group">
@@ -1393,11 +1514,14 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                             const memberSizingType = m.sizingType || 'adults';
                             const memberShirtSizes = memberSizingType === 'kids' ? kidsSizes : adultSizes;
                             const memberShortSizes = memberSizingType === 'kids' ? kidsSizes : adultSizes;
+                            // For hoodies, long sleeves, and T-shirts, only show shirt size (no shorts)
+                            const isHoodieOrLongSleeves = apparelType === 'hoodie' || apparelType === 'longsleeves';
+                            const isTShirt = apparelType === 'tshirt';
 
                             return (
                               <>
-                                {/* Shirt Size - Show for full set or shirt only */}
-                                {(memberJerseyType === 'full' || memberJerseyType === 'shirt') && (
+                                {/* Shirt Size - Show for full set, shirt only, or hoodies/long sleeves/T-shirts */}
+                                {(memberJerseyType === 'full' || memberJerseyType === 'shirt' || isHoodieOrLongSleeves || isTShirt) && (
                                   <div className="cdfm-member-size-wrapper">
                                     <label className="cdfm-member-size-label">Shirt Size</label>
                                     <select
@@ -1421,8 +1545,8 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                                     </select>
                                   </div>
                                 )}
-                                {/* Short Size - Show for full set or shorts only */}
-                                {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && (
+                                {/* Short Size - Show for full set or shorts only (not for hoodies/long sleeves/T-shirts) */}
+                                {(memberJerseyType === 'full' || memberJerseyType === 'shorts') && !isHoodieOrLongSleeves && !isTShirt && (
                                   <div className="cdfm-member-size-wrapper">
                                     <label className="cdfm-member-size-label">Short Size</label>
                                     <select
@@ -1464,32 +1588,66 @@ export default function CustomDesignFormModal({ isOpen, onClose }) {
                               }}
                               className="cdfm-member-select"
                             >
-                              {fabricOptions.map(fabric => (
-                                <option key={fabric.name} value={fabric.name}>
-                                  {fabric.name} {fabric.surcharge > 0 ? `(+₱${fabric.surcharge})` : ''}
-                                </option>
-                              ))}
+                              {(() => {
+                                // Filter fabric options based on apparel type
+                                // For uniforms: only Lacoste, Drifit, Polydex
+                                let availableFabrics = fabricOptions;
+                                if (apparelType === 'uniforms') {
+                                  availableFabrics = fabricOptions.filter(f => 
+                                    ['Lacoste', 'Drifit', 'Polydex'].includes(f.name)
+                                  );
+                                }
+                                return availableFabrics.map(fabric => (
+                                  <option key={fabric.name} value={fabric.name}>
+                                    {fabric.name} {fabric.surcharge > 0 ? `(+₱${fabric.surcharge})` : ''}
+                                  </option>
+                                ));
+                              })()}
                             </select>
                           </div>
 
-                          {/* Cut Type Selector */}
-                          <div className="cdfm-member-customization-group">
-                            <label className="cdfm-member-customization-label">Cut Type</label>
-                            <select
-                              value={m.cutType || 'Normal Cut'}
-                              onChange={(e) => {
-                                updateMember(idx, 'cutType', e.target.value);
-                                if (showErrors) setShowErrors(false);
-                              }}
-                              className="cdfm-member-select"
-                            >
-                              {cutTypeOptions.map(cut => (
-                                <option key={cut.name} value={cut.name}>
-                                  {cut.name} {cut.surcharge > 0 ? `(+₱${cut.surcharge})` : ''}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                          {/* Cut Type Selector - Hide for uniforms, hoodies, long sleeves, and T-shirts */}
+                          {apparelType !== 'uniforms' && apparelType !== 'hoodie' && apparelType !== 'longsleeves' && apparelType !== 'tshirt' && (
+                            <div className="cdfm-member-customization-group">
+                              <label className="cdfm-member-customization-label">Cut Type</label>
+                              <select
+                                value={m.cutType || 'Normal Cut'}
+                                onChange={(e) => {
+                                  updateMember(idx, 'cutType', e.target.value);
+                                  if (showErrors) setShowErrors(false);
+                                }}
+                                className="cdfm-member-select"
+                              >
+                                {cutTypeOptions.map(cut => (
+                                  <option key={cut.name} value={cut.name}>
+                                    {cut.name} {cut.surcharge > 0 ? `(+₱${cut.surcharge})` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Knitted Options - Only for uniforms */}
+                          {apparelType === 'uniforms' && (
+                            <div className="cdfm-member-customization-group">
+                              <label className="cdfm-member-customization-label">Knitted Options</label>
+                              <select
+                                value={m.knittedOption || ''}
+                                onChange={(e) => {
+                                  updateMember(idx, 'knittedOption', e.target.value);
+                                  if (showErrors) setShowErrors(false);
+                                }}
+                                className="cdfm-member-select"
+                              >
+                                <option value="">None</option>
+                                {knittedOptions.map(knitted => (
+                                  <option key={knitted.name} value={knitted.name}>
+                                    {knitted.name} {knitted.surcharge > 0 ? `(+₱${knitted.surcharge})` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

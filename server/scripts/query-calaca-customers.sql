@@ -69,3 +69,4 @@ ORDER BY total_spent DESC, total_orders DESC, cc.user_id;
 
 
 
+

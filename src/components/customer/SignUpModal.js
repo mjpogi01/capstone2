@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebook } from "react-icons/fa";
 import { AiOutlineMail, AiOutlineLock, AiOutlinePhone } from "react-icons/ai";
 import styles from "./SignUpModal.module.css";
 import { useAuth } from "../../contexts/AuthContext";
@@ -432,15 +431,6 @@ const SignUpModal = ({ isOpen, onClose, onOpenSignIn }) => {
             >
               <FcGoogle />
               <span>Sign up with Google</span>
-            </button>
-            <button
-              type="button"
-              className={styles.signupSocialBtn}
-              onClick={() => handleSocial("Facebook")}
-              aria-label="Sign up with Facebook"
-            >
-              <FaFacebook style={{ color: '#1877f2' }} />
-              <span>Sign up with Facebook</span>
             </button>
           </div>
 
