@@ -212,7 +212,47 @@ router.get('/', async (req, res) => {
       };
     });
 
-    res.json(transformedData);
+    // Deduplicate products by name and category for customer-facing display
+    // Group products with the same name and category, keeping the one with:
+    // 1. Highest stock_quantity (if available)
+    // 2. Most recent created_at
+    // 3. First one found if both are equal
+    const productMap = new Map();
+    
+    transformedData.forEach(product => {
+      // Create a unique key from name and category (case-insensitive)
+      const key = `${(product.name || '').toLowerCase().trim()}_${(product.category || '').toLowerCase().trim()}`;
+      
+      if (!productMap.has(key)) {
+        // First occurrence of this product
+        productMap.set(key, product);
+      } else {
+        // Product already exists, compare and keep the better one
+        const existing = productMap.get(key);
+        const current = product;
+        
+        // Prefer product with higher stock_quantity (if both have it)
+        const existingStock = existing.stock_quantity || 0;
+        const currentStock = current.stock_quantity || 0;
+        
+        if (currentStock > existingStock) {
+          productMap.set(key, current);
+        } else if (currentStock === existingStock) {
+          // If stock is equal, prefer the one with more recent created_at
+          const existingDate = new Date(existing.created_at || 0);
+          const currentDate = new Date(current.created_at || 0);
+          if (currentDate > existingDate) {
+            productMap.set(key, current);
+          }
+        }
+        // Otherwise keep existing
+      }
+    });
+
+    // Convert map back to array
+    const deduplicatedData = Array.from(productMap.values());
+
+    res.json(deduplicatedData);
   } catch (error) {
     console.error('Error fetching products:', error);
     res.status(500).json({ error: error.message });
@@ -432,25 +472,86 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
     console.log('📦 [Products API] Final insert data:', insertData);
     console.log('📦 [Products API] jersey_prices in insertData:', insertData.jersey_prices);
 
-    console.log('📦 [Products API] About to insert into Supabase with data:', JSON.stringify(insertData, null, 2));
+    // Check if product with same name, category, and branch_id already exists
+    // For balls, trophies, and medals, we want to allow multiple branches but prevent duplicates within the same branch
+    console.log('📦 [Products API] Checking for existing product:', {
+      name: insertData.name,
+      category: insertData.category,
+      branch_id: insertData.branch_id
+    });
     
-    const { data, error } = await supabase
+    const { data: existingProduct, error: checkError } = await supabase
       .from('products')
-      .insert(insertData)
-      .select(`
-        *,
-        branches (
-          name
-        )
-      `)
-      .single();
+      .select('id, branch_id, name, category')
+      .eq('name', insertData.name)
+      .eq('category', insertData.category)
+      .eq('branch_id', insertData.branch_id)
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('❌ Error checking for existing product:', checkError);
+      return res.status(500).json({ error: 'Failed to check for existing product' });
+    }
+
+    let data;
+    let error;
+
+    if (existingProduct) {
+      // Update existing product instead of creating duplicate
+      console.log('📦 [Products API] Product exists in branch', insertData.branch_id, ', updating:', existingProduct.id);
+      const { data: updateData, error: updateError } = await supabase
+        .from('products')
+        .update({
+          ...insertData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingProduct.id)
+        .select(`
+          *,
+          branches (
+            name
+          )
+        `)
+        .single();
+      
+      data = updateData;
+      error = updateError;
+      
+      if (updateError) {
+        console.error('❌ Error updating product:', updateError);
+      } else {
+        console.log('✅ [Products API] Product updated successfully in branch', insertData.branch_id);
+      }
+    } else {
+      // Create new product
+      console.log('📦 [Products API] Creating new product for branch', insertData.branch_id);
+      const { data: insertResult, error: insertError } = await supabase
+        .from('products')
+        .insert(insertData)
+        .select(`
+          *,
+          branches (
+            name
+          )
+        `)
+        .single();
+      
+      data = insertResult;
+      error = insertError;
+      
+      if (insertError) {
+        console.error('❌ Error inserting product:', insertError);
+      } else {
+        console.log('✅ [Products API] Product created successfully in branch', insertData.branch_id);
+      }
+    }
 
     if (error) {
-      console.error('❌ Supabase insert error:', error);
+      console.error('❌ Supabase error:', error);
       console.error('❌ Error code:', error.code);
       console.error('❌ Error message:', error.message);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
-      console.error('❌ Insert data that failed:', JSON.stringify(insertData, null, 2));
+      console.error('❌ Data that failed:', JSON.stringify(insertData, null, 2));
       return res.status(500).json({ error: error.message });
     }
     

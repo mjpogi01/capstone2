@@ -187,19 +187,30 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
           type: 'shadow'
         },
         formatter: function(params) {
-          const xLabel = params[0]?.axisValue || '';
-          let result = `<div style="margin-bottom:4px;"><strong>${xLabel}</strong></div>`;
-          let pending = 0, inProg = 0, completed = 0;
-          params.forEach(p => {
-            result += `${p.marker} ${p.seriesName}: <strong>${p.value}</strong><br/>`;
-            if (p.seriesName === 'Pending') pending = p.value || 0;
-            if (p.seriesName === 'In Progress') inProg = p.value || 0;
-            if (p.seriesName === 'Completed') completed = p.value || 0;
-          });
-          const total = pending + inProg + completed;
-          result += `<hr style="border:none;border-top:1px solid #e5e7eb;margin:6px 0;" />`;
-          result += `Total: <strong>${total}</strong>`;
-          return result;
+          try {
+            if (!Array.isArray(params) || !params.length) return '';
+            const firstParam = params[0];
+            if (!firstParam) return '';
+            const xLabel = firstParam.axisValue || '';
+            let result = `<div style="margin-bottom:4px;"><strong>${xLabel}</strong></div>`;
+            let pending = 0, inProg = 0, completed = 0;
+            params
+              .filter(p => p && p.seriesName)
+              .forEach(p => {
+                const value = p.value ?? 0;
+                result += `${p.marker || ''} ${p.seriesName}: <strong>${value}</strong><br/>`;
+                if (p.seriesName === 'Pending') pending = value;
+                if (p.seriesName === 'In Progress') inProg = value;
+                if (p.seriesName === 'Completed') completed = value;
+              });
+            const total = pending + inProg + completed;
+            result += `<hr style="border:none;border-top:1px solid #e5e7eb;margin:6px 0;" />`;
+            result += `Total: <strong>${total}</strong>`;
+            return result;
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
         }
       },
       legend: {

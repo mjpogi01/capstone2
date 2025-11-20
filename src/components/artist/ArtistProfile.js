@@ -6,13 +6,16 @@ import {
   faEdit, 
   faSave, 
   faTimes,
-  faStar
+  faStar,
+  faToggleOn,
+  faToggleOff
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import artistDashboardService from '../../services/artistDashboardService';
 import authService from '../../services/authService';
 import ChangePasswordModal from '../customer/ChangePasswordModal';
 import ChangeEmailModal from './ChangeEmailModal';
+import ConfirmModal from '../shared/ConfirmModal';
 import { useNotification } from '../../contexts/NotificationContext';
 import { supabase } from '../../lib/supabase';
 import profileImageService from '../../services/profileImageService';
@@ -26,7 +29,8 @@ const ArtistProfile = () => {
     rating: 0,
     total_designs: 0,
     total_sales: 0,
-    total_tasks_completed: 0
+    total_tasks_completed: 0,
+    is_active: true
   });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -34,6 +38,8 @@ const ArtistProfile = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const fileInputRef = useRef(null);
   const { user, refreshUser } = useAuth();
@@ -53,7 +59,8 @@ const ArtistProfile = () => {
           rating: 0,
           total_designs: 0,
           total_sales: 0,
-          total_tasks_completed: 0
+          total_tasks_completed: 0,
+          is_active: true
         });
         return;
       }
@@ -87,7 +94,8 @@ const ArtistProfile = () => {
         rating: 0,
         total_designs: 0,
         total_sales: 0,
-        total_tasks_completed: 0
+        total_tasks_completed: 0,
+        is_active: true
       });
     } finally {
       setLoading(false);
@@ -159,6 +167,57 @@ const ArtistProfile = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Toggle artist active status - show confirmation modal
+  const handleToggleStatus = () => {
+    const newStatus = !profile.is_active;
+    setPendingStatus(newStatus);
+    setIsStatusConfirmOpen(true);
+  };
+
+  // Confirm status change
+  const handleConfirmStatusChange = async () => {
+    setIsStatusConfirmOpen(false);
+    const newStatus = pendingStatus;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        showNotification('No active session. Please log in again.', 'error');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:4000/api/admin/artists/${user.id}/toggle-status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: newStatus })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Status toggle successful:', result);
+        setProfile(prev => ({ ...prev, is_active: newStatus }));
+        showNotification(`Your status has been updated to ${newStatus ? 'Active' : 'Inactive'}`, 'success');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Status toggle failed:', response.status, errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          showNotification(`Error: ${errorData.error || 'Failed to update status'}`, 'error');
+        } catch (parseError) {
+          showNotification(`Error: ${response.status} - ${errorText}`, 'error');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error toggling status:', error);
+      showNotification(`Error updating status: ${error.message}`, 'error');
+    } finally {
+      setPendingStatus(null);
+    }
   };
 
   const handleFileSelect = () => {
@@ -351,6 +410,32 @@ const ArtistProfile = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Account Status */}
+                <div className="artist-form-field">
+                  <label>Account Status :</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                    <button
+                      onClick={handleToggleStatus}
+                      className={`artist-status-toggle-btn ${profile.is_active ? 'active' : 'inactive'}`}
+                      title={profile.is_active ? 'Click to set inactive' : 'Click to activate'}
+                      aria-label={profile.is_active ? 'Set account inactive' : 'Activate account'}
+                    >
+                      <FontAwesomeIcon 
+                        icon={profile.is_active ? faToggleOn : faToggleOff} 
+                        className="toggle-icon"
+                      />
+                      <span className="toggle-label">
+                        {profile.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </button>
+                    <span style={{ color: '#64748b', fontSize: '12px' }}>
+                      {profile.is_active 
+                        ? 'You are eligible for task assignments' 
+                        : 'You will not receive new task assignments'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -370,6 +455,25 @@ const ArtistProfile = () => {
         onClose={() => setIsEmailModalOpen(false)}
         onEmailChange={handleEmailChange}
         currentEmail={user?.email || ''}
+      />
+
+      {/* Status Toggle Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isStatusConfirmOpen}
+        onClose={() => {
+          setIsStatusConfirmOpen(false);
+          setPendingStatus(null);
+        }}
+        onConfirm={handleConfirmStatusChange}
+        title={pendingStatus ? 'Activate Account' : 'Set Account Inactive'}
+        message={
+          pendingStatus
+            ? 'Are you sure you want to activate your account? You will be eligible to receive new task assignments from orders.'
+            : 'Are you sure you want to set your account to inactive? You will be excluded from receiving new task assignments. Existing tasks will not be affected.'
+        }
+        confirmText={pendingStatus ? 'Activate' : 'Set Inactive'}
+        cancelText="Cancel"
+        type={pendingStatus ? 'success' : 'warning'}
       />
     </div>
   );

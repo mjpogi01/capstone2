@@ -19,7 +19,7 @@ import { API_URL } from '../../config/api';
 import { authFetch, authJsonFetch } from '../../services/apiClient';
 import branchService from '../../services/branchService';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaSearch, FaFilter, FaStore, FaClipboardList, FaTshirt, FaMap, FaChartLine, FaChartArea, FaUsers, FaUserPlus, FaShoppingCart, FaMoneyBillWave, FaRobot } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaStore, FaClipboardList, FaTshirt, FaMap, FaChartLine, FaChartArea, FaUsers, FaUserPlus, FaShoppingCart, FaMoneyBillWave, FaRobot, FaBox } from 'react-icons/fa';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import './Analytics.css';
@@ -46,6 +46,7 @@ const CHART_LABELS = {
   salesByBranch: 'Sales by Branch',
   orderStatus: 'Order Pipeline Health',
   topProducts: 'Top Product Groups',
+  productStocks: 'Products Stocks',
   topCustomers: 'Top Customers',
   customerLocations: 'Customer Locations',
   salesForecast: 'Sales Forecast'
@@ -63,6 +64,7 @@ const QUESTION_KEYWORDS = [
   { id: 'salesByBranch', keywords: ['branch', 'pickup location', 'store performance'] },
   { id: 'orderStatus', keywords: ['order status', 'pipeline', 'processing', 'pending'] },
   { id: 'topProducts', keywords: ['product', 'category', 'top selling product'] },
+  { id: 'productStocks', keywords: ['product stock', 'inventory', 'stock level', 'product inventory', 'stock quantity', 'products stock'] },
   { id: 'topCustomers', keywords: ['customer', 'buyer', 'best customer'] },
   { id: 'customerLocations', keywords: ['customer location', 'map', 'geo', 'heatmap'] },
   { id: 'salesForecast', keywords: ['forecast', 'projection', 'predict'] }
@@ -136,6 +138,8 @@ const Analytics = () => {
   const [salesTrends, setSalesTrends] = useState([]);
   const [customerSummary, setCustomerSummary] = useState(null);
   const [topCustomers, setTopCustomers] = useState([]);
+  const [productStocks, setProductStocks] = useState([]);
+  const [productStocksLoading, setProductStocksLoading] = useState(true);
   const [salesForecastRange, setSalesForecastRange] = useState('restOfYear');
   const [customerLocationsData, setCustomerLocationsData] = useState({
     points: [],
@@ -171,6 +175,7 @@ const Analytics = () => {
   const [activeTab, setActiveTab] = useState('sales');
   const [activeSalesChartTab, setActiveSalesChartTab] = useState('totalSales');
   const [activeCustomersChartTab, setActiveCustomersChartTab] = useState('customerInsights');
+  const [activeProductsChartTab, setActiveProductsChartTab] = useState('topProducts');
   
   // Refs to store chart instances for resizing
   const chartRefs = useRef({});
@@ -245,6 +250,7 @@ const Analytics = () => {
     const runDeferredFetches = () => {
       fetchSalesTrends();
       fetchCustomerAnalytics();
+      fetchProductStocks();
     };
 
     let idleId = null;
@@ -338,7 +344,7 @@ const Analytics = () => {
     // Also resize on window resize
     window.addEventListener('resize', resizeCharts);
     return () => window.removeEventListener('resize', resizeCharts);
-  }, [activeTab, activeSalesChartTab, activeCustomersChartTab]);
+  }, [activeTab, activeSalesChartTab, activeCustomersChartTab, activeProductsChartTab]);
 
   // Helper function to create chart ready callback
   const onChartReady = (chartId) => (chartInstance) => {
@@ -548,6 +554,57 @@ const Analytics = () => {
     }
   };
 
+  const fetchProductStocks = async () => {
+    try {
+      setProductStocksLoading(true);
+      const response = await authFetch(`${API_URL}/api/products`);
+      const products = await response.json();
+      
+      if (Array.isArray(products)) {
+        // Filter products with stock_quantity and group by product name
+        const onHandCategories = ['balls', 'trophies', 'medals'];
+        const stockData = products
+          .filter(product => {
+            const hasStockQuantity = product.stock_quantity !== null && product.stock_quantity !== undefined;
+            const category = product.category?.toLowerCase();
+            return hasStockQuantity && onHandCategories.includes(category);
+          })
+          .reduce((acc, product) => {
+            const key = product.name?.toLowerCase() || 'unknown';
+            if (!acc[key]) {
+              acc[key] = {
+                name: product.name,
+                category: product.category,
+                totalStock: 0,
+                branches: []
+              };
+            }
+            acc[key].totalStock += product.stock_quantity || 0;
+            if (product.branch_name) {
+              acc[key].branches.push({
+                branch: product.branch_name,
+                stock: product.stock_quantity || 0
+              });
+            }
+            return acc;
+          }, {});
+        
+        const stockArray = Object.values(stockData)
+          .sort((a, b) => b.totalStock - a.totalStock)
+          .slice(0, 20); // Top 20 products by stock
+        
+        setProductStocks(stockArray);
+      } else {
+        setProductStocks([]);
+      }
+    } catch (error) {
+      console.error('Error fetching product stocks:', error);
+      setProductStocks([]);
+    } finally {
+      setProductStocksLoading(false);
+    }
+  };
+
   const fetchSalesForecast = useCallback(async (rangeOverride) => {
     const activeRange = rangeOverride || salesForecastRange;
     try {
@@ -576,13 +633,15 @@ const Analytics = () => {
     if (num === null || num === undefined || Number.isNaN(num)) {
       return '0';
     }
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
+    // Always round to whole numbers (no cents for currency, no decimals for counts)
+    const roundedNum = Math.round(num);
+    if (roundedNum >= 1000000) {
+      return `${(roundedNum / 1000000).toFixed(1)}M`;
     }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
+    if (roundedNum >= 1000) {
+      return `${(roundedNum / 1000).toFixed(1)}K`;
     }
-    return num.toLocaleString();
+    return roundedNum.toLocaleString();
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -613,22 +672,35 @@ const Analytics = () => {
       setNexusLoading(true);
       setNexusError(null);
 
+      // For productStocks, don't pass chartData - backend fetches it from database
+      // Only pass chartData for charts that need it (like salesForecast)
+      const shouldIncludeChartData = chart === 'salesForecast' && chartContext.data;
+      
       const payload = {
         chartId: chart,
         filters: appliedFilters,
         messages: conversation,
         general: isGeneralConversation,
         range: chartContext.range || null,
-        chartData: chartContext.data || null
+        ...(shouldIncludeChartData && { chartData: chartContext.data })
       };
+
+      // Validate payload can be stringified
+      let requestBody;
+      try {
+        requestBody = JSON.stringify({
+          ...payload,
+          question: conversation[conversation.length - 1]?.content || ''
+        });
+      } catch (stringifyError) {
+        console.error('Error stringifying payload:', stringifyError);
+        throw new Error('Failed to prepare request data. Please try again.');
+      }
 
       const response = await authJsonFetch(`${API_URL}/api/ai/analytics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...payload,
-          question: conversation[conversation.length - 1]?.content || ''
-        })
+        body: requestBody
       });
 
       const assistantMessage = {
@@ -689,6 +761,8 @@ const Analytics = () => {
     const defaultPrompt =
       chartId === 'salesForecast'
         ? `Please analyze the ${CHART_LABELS[chartId] || chartId} chart for the ${SALES_FORECAST_RANGE_LABELS[rangeContext] || rangeContext}. Summarize projected revenue, orders, confidence, and how it compares to the baseline.`
+        : chartId === 'productStocks'
+        ? `Please analyze the ${CHART_LABELS[chartId] || chartId} chart. Identify products with low stock levels, products that may need restocking, stock distribution across branches, and provide recommendations for inventory management.`
         : `Please analyze the ${CHART_LABELS[chartId] || chartId} chart and highlight the most important insights.`;
     const initialPrompt = typeof context.question === 'string' && context.question.trim().length > 0
       ? context.question.trim()
@@ -714,10 +788,13 @@ const Analytics = () => {
     });
     setIsNexusOpen(true);
 
-    fetchNexusResponse(chartId, initialConversation, appliedFilters, false, {
-      range: rangeContext,
-      data: context.data || (chartId === 'salesForecast' ? salesForecast : null)
-    });
+    // Only pass data for charts that need it (like salesForecast)
+    // For other charts (including productStocks), backend fetches data from database
+    const chartContext = chartId === 'salesForecast' 
+      ? { range: rangeContext, data: context.data || salesForecast }
+      : { range: rangeContext };
+    
+    fetchNexusResponse(chartId, initialConversation, appliedFilters, false, chartContext);
   };
 
   const hasActiveFilters = () => {
@@ -909,10 +986,16 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
-          if (!isSalesChartValuesVisible) return '';
-          if (!Array.isArray(params) || !params.length) return '';
-          const point = params[0];
-          return `${point.axisValue}<br/>${seriesName}: ₱${formatNumber(point.data || 0)}`;
+          try {
+            if (!isSalesChartValuesVisible) return '';
+            if (!Array.isArray(params) || !params.length) return '';
+            const point = params[0];
+            if (!point || point.axisValue === undefined) return '';
+            return `${point.axisValue}<br/>${seriesName}: ₱${formatNumber(point.data || 0)}`;
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
         }
       },
       grid: { left: '4%', right: '3%', bottom: rotateLabels ? '14%' : '8%', top: '10%', containLabel: true },
@@ -967,10 +1050,18 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
-          if (!isSalesChartValuesVisible) return '';
-          if (!Array.isArray(params) || !params.length) return '';
-          const bar = params[0];
-          return `${bar.axisValueLabel}<br/>Sales: ₱${formatNumber(bar.data?.value ?? bar.data ?? 0)}`;
+          try {
+            if (!isSalesChartValuesVisible) return '';
+            if (!Array.isArray(params) || !params.length) return '';
+            const bar = params[0];
+            if (!bar) return '';
+            const axisLabel = bar.axisValueLabel || bar.axisValue || '';
+            const value = bar.data?.value ?? bar.data ?? 0;
+            return `${axisLabel}<br/>Sales: ₱${formatNumber(value)}`;
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
         }
       },
       grid: { left: '6%', right: '4%', bottom: '12%', top: '10%', containLabel: true, show: false },
@@ -1072,8 +1163,19 @@ const Analytics = () => {
         backgroundColor: '#111827',
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
-        formatter: ({ name, value }) => {
-          return `${name}<br/>${value} orders`;
+        formatter: (params) => {
+          try {
+            if (!params) return '';
+            // Handle both single object (pie chart) and array
+            const param = Array.isArray(params) ? params[0] : params;
+            if (!param) return '';
+            const name = param.name || '';
+            const value = param.value ?? 0;
+            return `${name}<br/>${value} orders`;
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
         }
       },
       legend: {
@@ -1139,15 +1241,24 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
-          if (!isSalesChartValuesVisible) return '';
-          if (!Array.isArray(params) || !params.length) return '';
-          const lines = params.map(point => {
-            if (point.seriesName === 'Sales') {
-              return `${point.marker}${point.seriesName}: ₱${formatNumber(point.data ?? 0)}`;
-            }
-            return `${point.marker}${point.seriesName}: ${formatNumber(point.data ?? 0)}`;
-          });
-          return [`${params[0].axisValue}`, ...lines].join('<br/>');
+          try {
+            if (!isSalesChartValuesVisible) return '';
+            if (!Array.isArray(params) || !params.length) return '';
+            const firstParam = params[0];
+            if (!firstParam || firstParam.axisValue === undefined) return '';
+            const lines = params
+              .filter(point => point && point.seriesName)
+              .map(point => {
+                if (point.seriesName === 'Sales') {
+                  return `${point.marker || ''}${point.seriesName}: ₱${formatNumber(point.data ?? 0)}`;
+                }
+                return `${point.marker || ''}${point.seriesName}: ${formatNumber(point.data ?? 0)}`;
+              });
+            return [`${firstParam.axisValue}`, ...lines].join('<br/>');
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
         }
       },
       legend: {
@@ -1236,26 +1347,35 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
-          if (!Array.isArray(params) || !params.length) return '';
-          const bar = params[0];
-          const product = products[bar.dataIndex];
-          if (!product) return '';
-          const quantity = product.quantity ?? 0;
-          const orders = product.orders ?? 0;
-          const share = product.percentage ?? 0;
-          const revenue = product.revenue ?? 0;
-          const lines = [
-            `${bar.axisValueLabel}`,
-            `Quantity: ${formatNumber(quantity)}`,
-            `Share: ${share}%`
-          ];
-          if (orders) {
-            lines.push(`Orders: ${formatNumber(orders)}`);
+          try {
+            if (!Array.isArray(params) || !params.length) return '';
+            const bar = params[0];
+            if (!bar || bar.dataIndex === undefined || bar.dataIndex === null) return '';
+            const dataIndex = Number(bar.dataIndex);
+            if (isNaN(dataIndex) || dataIndex < 0 || dataIndex >= products.length) return '';
+            const product = products[dataIndex];
+            if (!product) return '';
+            const quantity = product.quantity ?? 0;
+            const orders = product.orders ?? 0;
+            const share = product.percentage ?? 0;
+            const revenue = product.revenue ?? 0;
+            const axisLabel = bar.axisValueLabel || bar.axisValue || '';
+            const lines = [
+              `${axisLabel}`,
+              `Quantity: ${formatNumber(quantity)}`,
+              `Share: ${share}%`
+            ];
+            if (orders) {
+              lines.push(`Orders: ${formatNumber(orders)}`);
+            }
+            if (revenue) {
+              lines.push(`Revenue: ₱${formatNumber(revenue)}`);
+            }
+            return lines.join('<br/>');
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
           }
-          if (revenue) {
-            lines.push(`Revenue: ₱${formatNumber(revenue)}`);
-          }
-          return lines.join('<br/>');
         }
       },
       grid: { left: '6%', right: '6%', bottom: '6%', top: '6%', containLabel: true },
@@ -1314,8 +1434,10 @@ const Analytics = () => {
             show: products.length > 0,
             position: 'right',
             formatter: ({ value, dataIndex }) => {
+              if (dataIndex === undefined || dataIndex === null) return '';
+              if (isNaN(Number(dataIndex)) || Number(dataIndex) < 0 || Number(dataIndex) >= products.length) return '';
               const share = products[dataIndex]?.percentage ?? 0;
-              return `${formatNumber(value)} • ${share}%`;
+              return `${formatNumber(value ?? 0)} • ${share}%`;
             },
             color: '#312e81',
             fontWeight: 600,
@@ -1343,14 +1465,22 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
-          if (!Array.isArray(params) || !params.length) return '';
-          const bar = params[0];
-          const customer = customers[bar.dataIndex];
-          if (!customer) return '';
-          const name = getCustomerDisplayName(customer, bar.dataIndex);
-          const spent = customer.totalSpent || customer.totalSpentValue || customer.total || 0;
-          const orderCount = customer.orderCount || customer.order_count || customer.orderCountValue || customer.orders || 0;
-          return `${name}<br/>Spent: ₱${formatNumber(spent)}<br/>Orders: ${formatNumber(orderCount)}`;
+          try {
+            if (!Array.isArray(params) || !params.length) return '';
+            const bar = params[0];
+            if (!bar || bar.dataIndex === undefined || bar.dataIndex === null) return '';
+            const dataIndex = Number(bar.dataIndex);
+            if (isNaN(dataIndex) || dataIndex < 0 || dataIndex >= customers.length) return '';
+            const customer = customers[dataIndex];
+            if (!customer) return '';
+            const name = getCustomerDisplayName(customer, dataIndex);
+            const spent = customer.totalSpent || customer.totalSpentValue || customer.total || 0;
+            const orderCount = customer.orderCount || customer.order_count || customer.orderCountValue || customer.orders || 0;
+            return `${name}<br/>Spent: ₱${formatNumber(spent)}<br/>Orders: ${formatNumber(orderCount)}`;
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
         }
       },
       grid: { left: '3%', right: '4%', bottom: '4%', top: '6%', containLabel: true },
@@ -1393,6 +1523,125 @@ const Analytics = () => {
     return { option, hasData };
   }, [topCustomers]);
 
+  const productStocksChart = useMemo(() => {
+    const stocks = Array.isArray(productStocks) ? productStocks.slice(0, 15) : [];
+    const values = stocks.map(item => Number(item.totalStock || 0));
+    const hasData = stocks.length > 0 && values.some(value => value > 0);
+    const maxValue = Math.max(0, ...values);
+    const paddedMax = maxValue <= 0 ? 10 : Math.ceil(maxValue * 1.1);
+    const gradientStops = [
+      { offset: 0, color: '#10b981' },
+      { offset: 0.5, color: '#059669' },
+      { offset: 1, color: '#047857' }
+    ];
+
+    const option = {
+      animation: hasData,
+      animationDuration: hasData ? 650 : 0,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: '#111827',
+        borderColor: '#1f2937',
+        textStyle: { color: '#f9fafb' },
+        formatter: (params) => {
+          try {
+            if (!Array.isArray(params) || !params.length) return '';
+            const bar = params[0];
+            if (!bar || bar.dataIndex === undefined || bar.dataIndex === null) return '';
+            const dataIndex = Number(bar.dataIndex);
+            if (isNaN(dataIndex) || dataIndex < 0 || dataIndex >= stocks.length) return '';
+            const stock = stocks[dataIndex];
+            if (!stock) return '';
+            const axisLabel = bar.axisValueLabel || bar.axisValue || '';
+            const lines = [
+              `${axisLabel}`,
+              `Total Stock: <strong>${formatNumber(stock.totalStock || 0)}</strong>`,
+              `Category: ${stock.category || 'N/A'}`
+            ];
+            if (stock.branches && stock.branches.length > 0) {
+              lines.push('<br/>By Branch:');
+              stock.branches.forEach(branch => {
+                lines.push(`  • ${branch.branch}: ${formatNumber(branch.stock)}`);
+              });
+            }
+            return lines.join('<br/>');
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
+        }
+      },
+      grid: { left: '6%', right: '6%', bottom: '6%', top: '6%', containLabel: true },
+      xAxis: {
+        type: 'value',
+        min: 0,
+        max: paddedMax,
+        axisLabel: {
+          color: '#6b7280',
+          formatter: (value) => formatNumber(value)
+        },
+        splitLine: { lineStyle: { color: '#e5e7eb' } }
+      },
+      yAxis: {
+        type: 'category',
+        data: stocks.map(item => {
+          const name = item.name || 'Unknown';
+          return name.length > 30 ? name.substring(0, 30) + '...' : name;
+        }),
+        inverse: true,
+        axisLabel: {
+          color: '#059669',
+          fontWeight: 600,
+          fontSize: 13
+        },
+        axisTick: { show: false },
+        axisLine: { show: false }
+      },
+      series: [
+        {
+          type: 'bar',
+          barWidth: 28,
+          showBackground: true,
+          backgroundStyle: {
+            color: 'rgba(16, 185, 129, 0.08)',
+            borderRadius: [0, 12, 12, 0]
+          },
+          data: values.map((value) => ({
+            value,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, gradientStops),
+              shadowBlur: 6,
+              shadowOffsetX: 2,
+              shadowColor: 'rgba(16, 185, 129, 0.35)'
+            },
+            emphasis: {
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                  { offset: 0, color: '#34d399' },
+                  { offset: 1, color: '#047857' }
+                ])
+              }
+            }
+          })),
+          itemStyle: { borderRadius: [0, 12, 12, 0] },
+          animation: hasData,
+          animationDuration: hasData ? 650 : 0,
+          label: {
+            show: stocks.length > 0,
+            position: 'right',
+            formatter: ({ value }) => formatNumber(value),
+            color: '#047857',
+            fontWeight: 600,
+            fontSize: 12
+          }
+        }
+      ]
+    };
+
+    return { option, hasData };
+  }, [productStocks]);
+
   const salesForecastChart = useMemo(() => {
     const combined = Array.isArray(salesForecast?.combined) ? salesForecast.combined : [];
     const categories = combined.map(item => item.month || item.label || '');
@@ -1415,20 +1664,29 @@ const Analytics = () => {
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
-          if (!Array.isArray(params) || !params.length) return '';
-          const lines = params
-            .filter(point => point.value !== null && point.value !== undefined)
-            .map(point => {
-              let line = `${point.marker}${point.seriesName}: ₱${formatNumber(point.value || 0)}`;
-              if (point.seriesName === 'Forecast') {
-                const confidence = confidenceMap.get(String(point.axisValueLabel));
-                if (confidence !== undefined) {
-                  line += `<br/>Confidence: ${confidence}%`;
+          try {
+            if (!Array.isArray(params) || !params.length) return '';
+            const firstParam = params[0];
+            if (!firstParam) return '';
+            const axisLabel = firstParam.axisValueLabel || firstParam.axisValue || '';
+            const lines = params
+              .filter(point => point && point.seriesName && point.value !== null && point.value !== undefined)
+              .map(point => {
+                let line = `${point.marker || ''}${point.seriesName}: ₱${formatNumber(point.value || 0)}`;
+                if (point.seriesName === 'Forecast') {
+                  const label = point.axisValueLabel || point.axisValue || '';
+                  const confidence = confidenceMap.get(String(label));
+                  if (confidence !== undefined) {
+                    line += `<br/>Confidence: ${confidence}%`;
+                  }
                 }
-              }
-              return line;
-            });
-          return [params[0]?.axisValueLabel || '', ...lines].join('<br/>');
+                return line;
+              });
+            return [axisLabel, ...lines].join('<br/>');
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
         }
       },
       legend: {
@@ -1490,6 +1748,7 @@ const Analytics = () => {
   const { option: salesByBranchOption, hasData: hasSalesByBranchData } = salesByBranchChart;
   const { option: orderStatusOption, hasData: hasOrderStatusData } = orderStatusChart;
   const { option: topProductsOption, hasData: hasTopProductsData } = topProductsChart;
+  const { option: productStocksOption, hasData: hasProductStocksData } = productStocksChart;
   const { option: topCustomersOption, hasData: hasTopCustomersData } = topCustomersChart;
   const { option: salesForecastOption, hasData: hasSalesForecastData } = salesForecastChart;
   const forecastSummary = salesForecast?.summary || null;
@@ -2031,38 +2290,100 @@ const Analytics = () => {
         {/* Products Tab */}
         {activeTab === 'products' && (
           <>
-            {/* Top Selling Products */}
-            <div className="analytics-card geo-distribution-card">
-          <div className="card-header">
-            <FaTshirt className="card-icon" />
-            <h3>Top Selling Products</h3>
+            {/* Chart Tabs for Products */}
+            <div className="sales-chart-tabs-container">
+              <div className="sales-chart-tabs">
                 <button
-              className="analytics-header-analyze-btn"
-                  type="button"
-                  onClick={() => handleAnalyzeClick('topProducts', { data: analyticsData.topProducts, filters })}
+                  className={`sales-chart-tab ${activeProductsChartTab === 'topProducts' ? 'active' : ''}`}
+                  onClick={() => setActiveProductsChartTab('topProducts')}
                 >
-                  Analyze
+                  <span>Top Selling Products</span>
                 </button>
-          </div>
-          <div className="chart-container">
-            <>
-              <ReactEChartsCore
-                echarts={echarts}
-                option={topProductsOption}
-                notMerge
-                lazyUpdate
-                opts={{ renderer: 'svg' }}
-                style={{ height: chartHeights.tall, width: '100%', minHeight: '200px' }}
-                onChartReady={onChartReady('topProducts')}
-              />
-              {!hasTopProductsData && (
-                <div className="chart-empty-state">
-                  <p>No product data available</p>
+                <button
+                  className={`sales-chart-tab ${activeProductsChartTab === 'productStocks' ? 'active' : ''}`}
+                  onClick={() => setActiveProductsChartTab('productStocks')}
+                >
+                  <span>Products Stocks</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Top Selling Products */}
+            {activeProductsChartTab === 'topProducts' && (
+              <div className="analytics-card geo-distribution-card sales-chart-card">
+                <div className="card-header">
+                  <FaTshirt className="card-icon" />
+                  <h3>Top Selling Products</h3>
+                  <button
+                    className="analytics-header-analyze-btn"
+                    type="button"
+                    onClick={() => handleAnalyzeClick('topProducts', { data: analyticsData.topProducts, filters })}
+                  >
+                    Analyze
+                  </button>
                 </div>
-              )}
-            </>
-          </div>
-        </div>
+                <div className="chart-container">
+                  <>
+                    <ReactEChartsCore
+                      echarts={echarts}
+                      option={topProductsOption}
+                      notMerge
+                      lazyUpdate
+                      opts={{ renderer: 'svg' }}
+                      style={{ height: chartHeights.tall, width: '100%', minHeight: '200px' }}
+                      onChartReady={onChartReady('topProducts')}
+                    />
+                    {!hasTopProductsData && (
+                      <div className="chart-empty-state">
+                        <p>No product data available</p>
+                      </div>
+                    )}
+                  </>
+                </div>
+              </div>
+            )}
+
+            {/* Products Stocks */}
+            {activeProductsChartTab === 'productStocks' && (
+              <div className="analytics-card geo-distribution-card sales-chart-card">
+                <div className="card-header">
+                  <FaBox className="card-icon" />
+                  <h3>Products Stocks</h3>
+                  <button
+                    className="analytics-header-analyze-btn"
+                    type="button"
+                    onClick={() => handleAnalyzeClick('productStocks', { data: productStocks })}
+                  >
+                    Analyze
+                  </button>
+                </div>
+                <div className="chart-container">
+                  {productStocksLoading ? (
+                    <div className="analytics-loading-inline">
+                      <div className="loading-spinner"></div>
+                      <p>Loading product stocks...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <ReactEChartsCore
+                        echarts={echarts}
+                        option={productStocksOption}
+                        notMerge
+                        lazyUpdate
+                        opts={{ renderer: 'svg' }}
+                        style={{ height: chartHeights.tall, width: '100%', minHeight: '200px' }}
+                        onChartReady={onChartReady('productStocks')}
+                      />
+                      {!hasProductStocksData && (
+                        <div className="chart-empty-state">
+                          <p>No product stock data available</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -2145,7 +2466,7 @@ const Analytics = () => {
                   <div className="summary-content">
                     <h3>Avg Spend / Customer</h3>
                     <p className="summary-value">
-                      ₱{Number(customerSummary?.avgSpentPerCustomer || 0).toFixed(2)}
+                      ₱{Math.round(customerSummary?.avgSpentPerCustomer || 0).toLocaleString()}
                     </p>
               </div>
               </div>

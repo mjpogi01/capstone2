@@ -5,6 +5,8 @@ import { faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import './AddProductModal.css';
 
 const isTrophyCategory = (category) => typeof category === 'string' && category.toLowerCase() === 'trophies';
+const isBallCategory = (category) => typeof category === 'string' && category.toLowerCase() === 'balls';
+const isMedalCategory = (category) => typeof category === 'string' && category.toLowerCase() === 'medals';
 const isJerseyCategory = (category) => {
   if (!category || typeof category !== 'string') return false;
   const lowerCategory = category.toLowerCase();
@@ -429,6 +431,13 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   const [cutTypeSurcharges, setCutTypeSurcharges] = useState({ ...DEFAULT_CUT_TYPE_SURCHARGES });
   const [newCutTypeOption, setNewCutTypeOption] = useState({ name: '', fee: '' });
   const [cutTypeError, setCutTypeError] = useState('');
+  const [branchStocks, setBranchStocks] = useState({}); // { branchId: stockQuantity }
+  const [branchProducts, setBranchProducts] = useState({}); // { branchId: { product info } } - current stocks per branch
+  const [selectedBranches, setSelectedBranches] = useState([]); // Array of selected branch IDs
+  const [branchStockQuantity, setBranchStockQuantity] = useState(''); // Single stock quantity for selected branches
+  const [hoveredBranchId, setHoveredBranchId] = useState(null); // Track which branch is being hovered
+  const [addingStockBranchId, setAddingStockBranchId] = useState(null); // Track which branch is having stock added
+  const [addingStockQuantity, setAddingStockQuantity] = useState(''); // Temporary input for adding stock to a branch
 
   useEffect(() => {
     // Load custom categories from localStorage
@@ -543,7 +552,11 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
           setBranches(branchesData);
           const mainBranch = branchesData.find(branch => branch.is_main_manufacturing);
           if (mainBranch && !isEditMode) {
-            setFormData(prev => ({ ...prev, branch_id: mainBranch.id }));
+            // Only set default branch for non-simple categories (apparel, etc.)
+            const isSimpleCategory = ballCategorySelected || medalCategorySelected;
+            if (!isSimpleCategory) {
+              setFormData(prev => ({ ...prev, branch_id: mainBranch.id }));
+            }
           }
         } else {
           console.error('Failed to fetch branches');
@@ -557,6 +570,66 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
 
     fetchBranches();
   }, [isEditMode]);
+
+  // Fetch current stocks per branch when in edit mode
+  useEffect(() => {
+    if (isEditMode && editingProduct && formData.name && formData.category) {
+      const fetchBranchStocks = async () => {
+        try {
+          const branchProductsMap = {};
+          // Fetch products with same name and category from all branches
+          const allProductsResponse = await fetch('http://localhost:4000/api/products');
+          if (allProductsResponse.ok) {
+            const allProducts = await allProductsResponse.json();
+            const matchingProducts = allProducts.filter(p => 
+              p.name === formData.name && 
+              p.category === formData.category &&
+              p.stock_quantity !== null &&
+              p.stock_quantity !== undefined
+            );
+            
+            matchingProducts.forEach(product => {
+              if (product.branch_id) {
+                branchProductsMap[product.branch_id] = {
+                  stock_quantity: product.stock_quantity || 0,
+                  id: product.id
+                };
+              }
+            });
+            
+            setBranchProducts(branchProductsMap);
+            // Initialize selected branches with branches that have stocks
+            const branchesWithStocks = Object.keys(branchProductsMap);
+            setSelectedBranches(branchesWithStocks.map(id => parseInt(id)));
+            // Initialize branchStocks with current stocks
+            const initialStocks = {};
+            Object.keys(branchProductsMap).forEach(branchId => {
+              initialStocks[branchId] = branchProductsMap[branchId].stock_quantity;
+            });
+            setBranchStocks(initialStocks);
+            // Set the stock quantity if all selected branches have the same stock
+            if (branchesWithStocks.length > 0) {
+              const stockValues = branchesWithStocks.map(id => branchProductsMap[id].stock_quantity);
+              const allSameStock = stockValues.every(val => val === stockValues[0]);
+              if (allSameStock) {
+                setBranchStockQuantity(stockValues[0]?.toString() || '');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching branch stocks:', error);
+        }
+      };
+      
+      fetchBranchStocks();
+    } else if (!isEditMode) {
+      // For new products, initialize empty branch stocks
+      setBranchProducts({});
+      setBranchStocks({});
+      setSelectedBranches([]);
+      setBranchStockQuantity('');
+    }
+  }, [isEditMode, editingProduct, formData.name, formData.category]);
 
   useEffect(() => {
     if (isEditMode && editingProduct) {
@@ -727,6 +800,9 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
   const kidsSizes = ['S6', 'S8', 'S10', 'S12', 'S14'];
   const trophyCategorySelected = isTrophyCategory(formData.category);
+  const ballCategorySelected = isBallCategory(formData.category);
+  const medalCategorySelected = isMedalCategory(formData.category);
+  const simpleCategorySelected = ballCategorySelected || medalCategorySelected || trophyCategorySelected; // Categories that need branch stock selection
   const jerseyCategorySelected = isJerseyCategory(formData.category);
   const showMultipleSizes = trophyCategorySelected || jerseyCategorySelected;
   const apparelCategorySelected = isApparelCategory(formData.category);
@@ -2067,45 +2143,150 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
       console.log('📦 [AddProductModal] Jersey prices value:', jerseyPricesValue);
       console.log('📦 [AddProductModal] Jersey prices state:', jerseyPrices);
 
-      const url = isEditMode
-        ? `http://localhost:4000/api/products/${editingProduct.id}`
-        : 'http://localhost:4000/api/products';
+      // Handle branch stocks for simple categories (balls, medals, trophies)
+      const hasBranchStocks = Object.keys(branchStocks).length > 0;
+      const shouldUseBranchStocks = simpleCategorySelected || trophyCategorySelected;
+      
+      if (hasBranchStocks && shouldUseBranchStocks) {
+        // Create/update products for each branch with stock
+        const branchStockEntries = Object.entries(branchStocks).filter(([branchId, stockQuantity]) => {
+          // Only process branches that have a stock quantity set (not null, undefined, or empty string)
+          return stockQuantity !== null && stockQuantity !== undefined && stockQuantity !== '';
+        });
+        
+        console.log('📦 [AddProductModal] Processing branch stocks:', branchStockEntries);
+        console.log('📦 [AddProductModal] Total branches to process:', branchStockEntries.length);
+        
+        if (branchStockEntries.length === 0) {
+          throw new Error('Please set stock quantity for at least one branch');
+        }
+        
+        const productPromises = branchStockEntries.map(async ([branchId, stockQuantity]) => {
+          try {
+            const branchProductData = {
+              ...productData,
+              branch_id: parseInt(branchId),
+              stock_quantity: stockQuantity ? parseInt(stockQuantity) : null
+            };
 
-      const method = isEditMode ? 'PUT' : 'POST';
+            console.log(`📦 [AddProductModal] Processing branch ${branchId} with stock ${stockQuantity}`);
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(productData)
-      });
+            // For edit mode, check if product exists in this branch
+            if (isEditMode && branchProducts[branchId]) {
+              // Update existing product in this branch
+              const existingProductId = branchProducts[branchId].id;
+              console.log(`📦 [AddProductModal] Updating existing product ${existingProductId} in branch ${branchId}`);
+              const url = `http://localhost:4000/api/products/${existingProductId}`;
+              const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify(branchProductData)
+              });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ [AddProductModal] API Error:', errorData);
-        throw new Error(errorData.error || 'Failed to add product');
+              if (!response.ok) {
+                const errorData = await response.json();
+                console.error(`❌ [AddProductModal] Failed to update product in branch ${branchId}:`, errorData);
+                throw new Error(errorData.error || `Failed to update product in branch ${branchId}`);
+              }
+
+              const result = await response.json();
+              console.log(`✅ [AddProductModal] Successfully updated product in branch ${branchId}`);
+              return result;
+            } else {
+              // Create new product for this branch
+              console.log(`📦 [AddProductModal] Creating new product in branch ${branchId}`);
+              const url = 'http://localhost:4000/api/products';
+              const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify(branchProductData)
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                console.error(`❌ [AddProductModal] Failed to create product in branch ${branchId}:`, errorData);
+                throw new Error(errorData.error || `Failed to create product in branch ${branchId}`);
+              }
+
+              const result = await response.json();
+              console.log(`✅ [AddProductModal] Successfully created product in branch ${branchId}:`, result.id);
+              return result;
+            }
+          } catch (error) {
+            console.error(`❌ [AddProductModal] Error processing branch ${branchId}:`, error);
+            throw error;
+          }
+        });
+
+        const createdProducts = await Promise.all(productPromises);
+        console.log('✅ [AddProductModal] All products created/updated successfully for branches:', createdProducts.map(p => ({ id: p.id, branch_id: p.branch_id, stock: p.stock_quantity })));
+        
+        // Use the first created product for callback (for compatibility)
+        const newProduct = createdProducts[0];
+        console.log('✅ [AddProductModal] Product jersey_prices:', newProduct.jersey_prices);
+        console.log('✅ [AddProductModal] Returned size_surcharges:', newProduct.size_surcharges);
+        console.log('✅ [AddProductModal] Returned fabric_surcharges:', newProduct.fabric_surcharges);
+
+        const normalizedProduct = {
+          ...newProduct,
+          size_surcharges: normalizeSizeSurcharges(newProduct.size_surcharges),
+          fabric_surcharges: normalizeFabricSurcharges(newProduct.fabric_surcharges)
+        };
+
+        console.log('✅ [AddProductModal] Normalized surcharges (ready for state):', {
+          size: normalizedProduct.size_surcharges,
+          fabric: normalizedProduct.fabric_surcharges
+        });
+
+        onAdd(normalizedProduct);
+      } else {
+        // Standard single product creation/update
+        const url = isEditMode
+          ? `http://localhost:4000/api/products/${editingProduct.id}`
+          : 'http://localhost:4000/api/products';
+
+        const method = isEditMode ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify(productData)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('❌ [AddProductModal] API Error:', errorData);
+          throw new Error(errorData.error || 'Failed to add product');
+        }
+
+        const newProduct = await response.json();
+        console.log('✅ [AddProductModal] Product added successfully:', newProduct);
+        console.log('✅ [AddProductModal] Product jersey_prices:', newProduct.jersey_prices);
+        console.log('✅ [AddProductModal] Returned size_surcharges:', newProduct.size_surcharges);
+        console.log('✅ [AddProductModal] Returned fabric_surcharges:', newProduct.fabric_surcharges);
+
+        const normalizedProduct = {
+          ...newProduct,
+          size_surcharges: normalizeSizeSurcharges(newProduct.size_surcharges),
+          fabric_surcharges: normalizeFabricSurcharges(newProduct.fabric_surcharges)
+        };
+
+        console.log('✅ [AddProductModal] Normalized surcharges (ready for state):', {
+          size: normalizedProduct.size_surcharges,
+          fabric: normalizedProduct.fabric_surcharges
+        });
+
+        onAdd(normalizedProduct);
       }
-
-      const newProduct = await response.json();
-      console.log('✅ [AddProductModal] Product added successfully:', newProduct);
-      console.log('✅ [AddProductModal] Product jersey_prices:', newProduct.jersey_prices);
-      console.log('✅ [AddProductModal] Returned size_surcharges:', newProduct.size_surcharges);
-      console.log('✅ [AddProductModal] Returned fabric_surcharges:', newProduct.fabric_surcharges);
-
-      const normalizedProduct = {
-        ...newProduct,
-        size_surcharges: normalizeSizeSurcharges(newProduct.size_surcharges),
-        fabric_surcharges: normalizeFabricSurcharges(newProduct.fabric_surcharges)
-      };
-
-      console.log('✅ [AddProductModal] Normalized surcharges (ready for state):', {
-        size: normalizedProduct.size_surcharges,
-        fabric: normalizedProduct.fabric_surcharges
-      });
-
-      onAdd(normalizedProduct);
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -2403,7 +2584,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                 </div>
               </div>
 
-            {isApparelCategory(formData.category) && !jerseyCategorySelected && (
+            {/* Only show apparel-specific sections if not ball/medal */}
+            {!simpleCategorySelected && isApparelCategory(formData.category) && !jerseyCategorySelected && (
               shouldShowJerseyPrices(formData.category)
                 ? renderJerseyPriceSection()
                 : renderSimplePriceSection('Base Price')
@@ -2968,7 +3150,8 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                     Add available sizes for jersey shirts and shorts for both adults and kids. Use quick add buttons for standard sizes or type custom sizes.
                   </small>
                 </div>
-              ) : (
+              ) : !simpleCategorySelected ? (
+                // Show size selector for non-jersey, non-trophy categories (but not balls/medals)
                 <div className="apm-section-block">
                   <div className="apm-form-group">
                     <label>Size (Optional)</label>
@@ -2994,9 +3177,10 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                     <small className="apm-form-help">Leave blank if not applicable</small>
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {apparelCategorySelected && !jerseyCategorySelected && !trophyCategorySelected && (
+              {/* Hide size surcharges, fabric, cut type for balls/medals */}
+              {!simpleCategorySelected && apparelCategorySelected && !jerseyCategorySelected && !trophyCategorySelected && (
                 <div className="apm-section-block">
                   {renderSizeSurchargeGroup(
                     'Size Surcharges',
@@ -3007,25 +3191,368 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                   )}
                 </div>
               )}
-              {renderFabricSurchargeSection()}
+              
+              {/* Hide fabric and cut type surcharges for balls/medals */}
+              {!simpleCategorySelected && renderFabricSurchargeSection()}
 
-              {renderCutTypeSurchargeSection()}
+              {!simpleCategorySelected && renderCutTypeSurchargeSection()}
 
-              {!apparelCategorySelected && !trophyCategorySelected && renderSimplePriceSection()}
+              {/* Show simple price for balls, medals, and non-apparel categories (but not trophies) */}
+              {(!apparelCategorySelected || simpleCategorySelected) && !trophyCategorySelected ? renderSimplePriceSection() : null}
 
-              {!apparelCategorySelected && (
+              {/* Show stock quantity for balls, medals, trophies, and non-apparel categories */}
+              {(!apparelCategorySelected || simpleCategorySelected || trophyCategorySelected) && (
                 <div className="apm-section-block">
                   <div className="apm-form-group">
                     <label>Stock Quantity (Optional)</label>
                     <input
                       type="number"
                       name="stock_quantity"
-                      value={formData.stock_quantity || ''}
-                      onChange={handleInputChange}
-                      placeholder="Leave blank for order-based items"
+                      value={branchStockQuantity}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setBranchStockQuantity(value);
+                        // Update branchStocks for all selected branches
+                        if (value === '' || value === null || value === undefined) {
+                          setBranchStocks(prev => {
+                            const updated = { ...prev };
+                            selectedBranches.forEach(branchId => {
+                              delete updated[branchId];
+                            });
+                            return updated;
+                          });
+                        } else {
+                          const stockValue = parseInt(value) || 0;
+                          setBranchStocks(prev => {
+                            const updated = { ...prev };
+                            selectedBranches.forEach(branchId => {
+                              updated[branchId] = stockValue;
+                            });
+                            return updated;
+                          });
+                        }
+                      }}
+                      placeholder="Enter stock quantity"
                       min="0"
                     />
-                    <small className="apm-form-help">Leave blank for custom orders - items are made to order</small>
+                    <small className="apm-form-help">Enter stock quantity and select branches below to apply it</small>
+                    
+                    {/* Branch Selection Checkboxes */}
+                    {branches.length > 0 && (
+                      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                          <label style={{ display: 'block', fontWeight: 600, color: '#111827', fontSize: '0.875rem', margin: 0 }}>
+                            Select Branches
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const allBranchIds = branches.map(b => b.id);
+                              const allSelected = allBranchIds.every(id => selectedBranches.includes(id));
+                              
+                              if (allSelected) {
+                                // Deselect all
+                                setSelectedBranches([]);
+                                setBranchStocks({});
+                              } else {
+                                // Select all
+                                setSelectedBranches(allBranchIds);
+                                // If stock quantity is already set, apply it to all branches
+                                if (branchStockQuantity) {
+                                  const stockValue = parseInt(branchStockQuantity) || 0;
+                                  const allStocks = {};
+                                  allBranchIds.forEach(branchId => {
+                                    allStocks[branchId] = stockValue;
+                                  });
+                                  setBranchStocks(allStocks);
+                                }
+                              }
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#3b82f6',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              textDecoration: 'underline',
+                              padding: '0.25rem 0.5rem',
+                              fontFamily: 'inherit'
+                            }}
+                          >
+                            {branches.every(b => selectedBranches.includes(b.id)) ? 'Deselect All' : 'Select All'}
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {branches.map(branch => {
+                            const currentStockFromDB = branchProducts[branch.id]?.stock_quantity || 0;
+                            const newStock = branchStocks[branch.id];
+                            // Display new stock if set, otherwise show current stock from DB
+                            const displayStock = newStock !== undefined && newStock !== '' ? newStock : currentStockFromDB;
+                            const isSelected = selectedBranches.includes(branch.id);
+                            const isHovered = hoveredBranchId === branch.id;
+                            const isAddingStock = addingStockBranchId === branch.id;
+                            const branchStock = branchStocks[branch.id] || '';
+                            
+                            return (
+                              <div 
+                                key={branch.id}
+                                onMouseEnter={() => setHoveredBranchId(branch.id)}
+                                onMouseLeave={() => {
+                                  setHoveredBranchId(null);
+                                  if (!isAddingStock) {
+                                    setAddingStockBranchId(null);
+                                    setAddingStockQuantity('');
+                                  }
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  padding: '0.5rem',
+                                  borderRadius: '4px',
+                                  background: isSelected ? '#eff6ff' : isHovered ? '#f0f9ff' : 'transparent',
+                                  transition: 'background 0.2s ease',
+                                  position: 'relative'
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    if (isSelected) {
+                                      setSelectedBranches(prev => prev.filter(id => id !== branch.id));
+                                      setBranchStocks(prev => {
+                                        const updated = { ...prev };
+                                        delete updated[branch.id];
+                                        return updated;
+                                      });
+                                    } else {
+                                      setSelectedBranches(prev => [...prev, branch.id]);
+                                      // If stock quantity is already set, apply it to this branch
+                                      if (branchStockQuantity) {
+                                        const stockValue = parseInt(branchStockQuantity) || 0;
+                                        setBranchStocks(prev => ({
+                                          ...prev,
+                                          [branch.id]: stockValue
+                                        }));
+                                      }
+                                    }
+                                  }}
+                                  style={{
+                                    width: '1rem',
+                                    height: '1rem',
+                                    cursor: 'pointer',
+                                    accentColor: '#3b82f6'
+                                  }}
+                                />
+                                <label 
+                                  style={{ 
+                                    flex: 1,
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem',
+                                    color: '#111827',
+                                    fontWeight: isSelected ? 500 : 400
+                                  }}
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setSelectedBranches(prev => prev.filter(id => id !== branch.id));
+                                      setBranchStocks(prev => {
+                                        const updated = { ...prev };
+                                        delete updated[branch.id];
+                                        return updated;
+                                      });
+                                    } else {
+                                      setSelectedBranches(prev => [...prev, branch.id]);
+                                      if (branchStockQuantity) {
+                                        const stockValue = parseInt(branchStockQuantity) || 0;
+                                        setBranchStocks(prev => ({
+                                          ...prev,
+                                          [branch.id]: stockValue
+                                        }));
+                                      }
+                                    }
+                                  }}
+                                >
+                                  {branch.name}
+                                  {branch.is_main_manufacturing && (
+                                    <span style={{ marginLeft: '0.5rem', color: '#6b7280', fontSize: '0.75rem' }}>
+                                      (Main Manufacturing)
+                                    </span>
+                                  )}
+                                  {displayStock > 0 && (
+                                    <span style={{ marginLeft: '0.5rem', color: newStock !== undefined && newStock !== '' ? '#3b82f6' : '#059669', fontSize: '0.75rem', fontWeight: 500 }}>
+                                      - Stock: {displayStock}
+                                      {currentStockFromDB > 0 && newStock !== undefined && newStock !== '' && newStock !== currentStockFromDB && (
+                                        <span style={{ color: '#6b7280', marginLeft: '0.25rem' }}>
+                                          (was {currentStockFromDB})
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                  {displayStock === 0 && newStock === 0 && currentStockFromDB === 0 && (
+                                    <span style={{ marginLeft: '0.5rem', color: '#9ca3af', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                                      - No stock
+                                    </span>
+                                  )}
+                                </label>
+                                
+                                {/* Add button appears on hover */}
+                                {isHovered && !isAddingStock && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      // Deselect all branches
+                                      setSelectedBranches([]);
+                                      // Clear the stock quantity input
+                                      setBranchStockQuantity('');
+                                      // Clear all branch stocks
+                                      setBranchStocks({});
+                                      // Open input for this branch
+                                      setAddingStockBranchId(branch.id);
+                                      setAddingStockQuantity(branchStock || '');
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.stopPropagation();
+                                      setHoveredBranchId(branch.id);
+                                    }}
+                                    style={{
+                                      background: '#3b82f6',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      padding: '0.25rem 0.75rem',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 500,
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      transition: 'background 0.2s ease'
+                                    }}
+                                  >
+                                    Add
+                                  </button>
+                                )}
+                                
+                                {/* Input field appears when adding stock */}
+                                {isAddingStock && (
+                                  <div 
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                    onMouseEnter={() => setHoveredBranchId(branch.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <input
+                                      type="number"
+                                      value={addingStockQuantity}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        setAddingStockQuantity(e.target.value);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        e.stopPropagation();
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          const stockValue = parseInt(addingStockQuantity) || 0;
+                                          if (stockValue > 0) {
+                                            setBranchStocks(prev => ({
+                                              ...prev,
+                                              [branch.id]: stockValue
+                                            }));
+                                            setSelectedBranches(prev => {
+                                              if (!prev.includes(branch.id)) {
+                                                return [...prev, branch.id];
+                                              }
+                                              return prev;
+                                            });
+                                            setAddingStockBranchId(null);
+                                            setAddingStockQuantity('');
+                                            setHoveredBranchId(null);
+                                          }
+                                        } else if (e.key === 'Escape') {
+                                          e.preventDefault();
+                                          setAddingStockBranchId(null);
+                                          setAddingStockQuantity('');
+                                          setHoveredBranchId(null);
+                                        }
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      placeholder="Qty"
+                                      min="0"
+                                      autoFocus
+                                      style={{
+                                        width: '60px',
+                                        padding: '0.25rem 0.5rem',
+                                        border: '1px solid #3b82f6',
+                                        borderRadius: '4px',
+                                        fontSize: '0.75rem'
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        const stockValue = parseInt(addingStockQuantity) || 0;
+                                        if (stockValue > 0) {
+                                          setBranchStocks(prev => ({
+                                            ...prev,
+                                            [branch.id]: stockValue
+                                          }));
+                                          setSelectedBranches(prev => {
+                                            if (!prev.includes(branch.id)) {
+                                              return [...prev, branch.id];
+                                            }
+                                            return prev;
+                                          });
+                                        }
+                                        setAddingStockBranchId(null);
+                                        setAddingStockQuantity('');
+                                        setHoveredBranchId(null);
+                                      }}
+                                      style={{
+                                        background: '#10b981',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        padding: '0.25rem 0.5rem',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 500,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      ✓
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        setAddingStockBranchId(null);
+                                        setAddingStockQuantity('');
+                                        setHoveredBranchId(null);
+                                      }}
+                                      style={{
+                                        background: '#ef4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        padding: '0.25rem 0.5rem',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 500,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -3045,28 +3572,6 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
                 </div>
               </div>
 
-              {!apparelCategorySelected && (
-                <div className="apm-form-group">
-                  <label>Branch</label>
-                  <select
-                    name="branch_id"
-                    value={formData.branch_id || ''}
-                    onChange={handleInputChange}
-                    disabled={loadingBranches}
-                  >
-                    {loadingBranches ? (
-                      <option value="">Loading branches...</option>
-                    ) : (
-                      branches.map(branch => (
-                        <option key={branch.id} value={branch.id}>
-                          {branch.name} {branch.is_main_manufacturing ? '(Main Manufacturing)' : ''}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <small className="apm-form-help">Select the branch for this product</small>
-                </div>
-              )}
 
               <div className="apm-section-block">
                 <div className="apm-form-group">

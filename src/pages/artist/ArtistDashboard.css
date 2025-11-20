@@ -64,6 +64,67 @@
   font-weight: 500;
 }
 
+/* Artist Dashboard Status Toggle Button */
+.artist-dashboard-status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  background: transparent;
+  margin-left: 0.75rem;
+}
+
+.artist-dashboard-status-toggle.active {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #10b981;
+}
+
+.artist-dashboard-status-toggle.active:hover:not(:disabled) {
+  background: #a7f3d0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.artist-dashboard-status-toggle.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #ef4444;
+}
+
+.artist-dashboard-status-toggle.inactive:hover:not(:disabled) {
+  background: #fecaca;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.artist-dashboard-status-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.artist-dashboard-status-toggle .toggle-icon {
+  font-size: 1.125rem;
+  transition: transform 0.2s ease;
+}
+
+.artist-dashboard-status-toggle:hover:not(:disabled) .toggle-icon {
+  transform: scale(1.1);
+}
+
+.artist-dashboard-status-toggle .toggle-label {
+  font-size: 0.75rem;
+}
+
 .content-body {
   padding: 1rem 1.5rem;
   flex: 1;
@@ -434,6 +495,20 @@
     font-size: 0.8rem;
     word-wrap: break-word;
     overflow-wrap: break-word;
+  }
+
+  .artist-dashboard-status-toggle {
+    margin-left: 0.5rem;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
+  }
+
+  .artist-dashboard-status-toggle .toggle-icon {
+    font-size: 1rem;
+  }
+
+  .artist-dashboard-status-toggle .toggle-label {
+    font-size: 0.6875rem;
   }
   
   .content-body {

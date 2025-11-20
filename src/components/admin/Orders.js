@@ -2590,8 +2590,8 @@ const Orders = () => {
                             </div>
                           </div>
 
-                          {/* Admin review actions */}
-                          {['admin', 'owner'].includes(userRole) && (
+                          {/* Admin review actions - only show if there are submitted files */}
+                          {['admin', 'owner'].includes(userRole) && designFiles.length > 0 && (
                             <div className="design-review-actions" style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                               <button
                                 type="button"

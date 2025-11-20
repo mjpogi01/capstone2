@@ -694,6 +694,61 @@ body.sidebar-collapsed .accounts-container {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Status Toggle Button */
+.status-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+  background: transparent;
+}
+
+.status-toggle-btn.active {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #10b981;
+}
+
+.status-toggle-btn.active:hover {
+  background: #a7f3d0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.status-toggle-btn.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #ef4444;
+}
+
+.status-toggle-btn.inactive:hover {
+  background: #fecaca;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.status-toggle-btn .toggle-icon {
+  font-size: 1.125rem;
+  transition: transform 0.2s ease;
+}
+
+.status-toggle-btn:hover .toggle-icon {
+  transform: scale(1.1);
+}
+
+.status-toggle-btn .toggle-label {
+  font-size: 0.6875rem;
+}
+
 /* ===========================================
    ACTION BUTTONS - MINIMALISTIC PILL STYLE
    =========================================== */

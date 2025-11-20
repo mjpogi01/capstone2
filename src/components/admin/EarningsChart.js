@@ -141,15 +141,24 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
         borderColor: '#1f2937',
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
-          if (!isValuesVisible) return '';
-          if (!Array.isArray(params) || !params.length) return '';
-          const lines = params.map(point => {
-            if (point.seriesName === 'Sales') {
-              return `${point.marker}${point.seriesName}: ₱${formatNumber(point.data ?? 0)}`;
-            }
-            return `${point.marker}${point.seriesName}: ${formatNumber(point.data ?? 0)}`;
-          });
-          return [`${params[0].axisValue}`, ...lines].join('<br/>');
+          try {
+            if (!isValuesVisible) return '';
+            if (!Array.isArray(params) || !params.length) return '';
+            const firstParam = params[0];
+            if (!firstParam || firstParam.axisValue === undefined) return '';
+            const lines = params
+              .filter(point => point && point.seriesName)
+              .map(point => {
+                if (point.seriesName === 'Sales') {
+                  return `${point.marker || ''}${point.seriesName}: ₱${formatNumber(point.data ?? 0)}`;
+                }
+                return `${point.marker || ''}${point.seriesName}: ${formatNumber(point.data ?? 0)}`;
+              });
+            return [`${firstParam.axisValue}`, ...lines].join('<br/>');
+          } catch (error) {
+            console.warn('Tooltip formatter error:', error);
+            return '';
+          }
         }
       },
       legend: {
@@ -235,7 +244,7 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
   }, [salesTrends, isValuesVisible, hasData]);
 
   const chartHeights = {
-    base: '300px'
+    base: '420px'
   };
 
   return (
@@ -277,7 +286,7 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
               notMerge
               lazyUpdate
               opts={{ renderer: 'svg' }}
-              style={{ height: chartHeights.base, width: '100%', minHeight: '200px' }}
+              style={{ height: chartHeights.base, width: '100%', minHeight: '380px' }}
               onChartReady={onChartReady}
             />
           </>

@@ -920,6 +920,70 @@ router.put('/artists/:id', requireOwner, async (req, res) => {
   }
 });
 
+// Toggle artist active status (owner or artist themselves)
+router.patch('/artists/:id/toggle-status', authenticateSupabaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    const user = req.user;
+    const userRole = user?.user_metadata?.role || user?.raw_user_meta_data?.role;
+    const isOwner = userRole === 'owner';
+    const isAdmin = userRole === 'admin';
+    
+    console.log('🔄 Toggling artist status:', { id, is_active, userRole, userId: user?.id });
+    
+    if (typeof is_active !== 'boolean') {
+      return res.status(400).json({ error: 'is_active must be a boolean value' });
+    }
+    
+    // Get artist profile by user_id
+    const { data: profileData, error: profileError } = await supabase
+      .from('artist_profiles')
+      .select('id, user_id, artist_name')
+      .eq('user_id', id)
+      .single();
+    
+    if (profileError || !profileData) {
+      console.error('Error finding artist profile:', profileError);
+      return res.status(404).json({ error: 'Artist profile not found' });
+    }
+    
+    // Check permissions: owner/admin can toggle any artist, artist can only toggle themselves
+    if (!isOwner && !isAdmin) {
+      if (user?.id !== id) {
+        return res.status(403).json({ error: 'You can only toggle your own status' });
+      }
+    }
+    
+    // Update is_active status
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from('artist_profiles')
+      .update({ is_active: is_active })
+      .eq('id', profileData.id)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('Error updating artist status:', updateError);
+      return res.status(500).json({ error: 'Failed to update artist status' });
+    }
+    
+    console.log('✅ Artist status updated successfully');
+    res.json({ 
+      message: `Artist status updated to ${is_active ? 'active' : 'inactive'}`,
+      data: {
+        id: id,
+        artist_name: updatedProfile.artist_name,
+        is_active: is_active
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error toggling artist status:', error);
+    res.status(500).json({ error: 'Failed to toggle artist status' });
+  }
+});
+
 // Delete artist account (admin or owner)
 router.delete('/artists/:id', requireAdminOrOwner, async (req, res) => {
   try {

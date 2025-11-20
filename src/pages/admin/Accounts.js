@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faTrash, faUsers, faUserShield, faPalette, faEdit, faSave, faTimes, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faTrash, faUsers, faUserShield, faPalette, faEdit, faSave, faTimes, faToggleOn, faToggleOff } from '@fortawesome/free-solid-svg-icons';
+import ConfirmModal from '../../components/shared/ConfirmModal';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import Sidebar from '../../components/admin/Sidebar';
-import EmailMarketing from '../../components/admin/EmailMarketing';
 import '../admin/AdminDashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -12,7 +12,7 @@ import './Accounts.css';
 import './admin-shared.css';
 
 const Accounts = () => {
-  const { user, hasAdminAccess } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const [adminAccounts, setAdminAccounts] = useState([]);
   const [customerAccounts, setCustomerAccounts] = useState([]);
@@ -32,11 +32,12 @@ const Accounts = () => {
     artist_name: '',
     email: ''
   });
+  const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
+  const [pendingArtist, setPendingArtist] = useState(null);
+  const [pendingStatus, setPendingStatus] = useState(null);
 
   // Make isOwner reactive to user changes
   const isOwner = useMemo(() => user?.user_metadata?.role === 'owner', [user?.user_metadata?.role]);
-  // Check if user has admin or owner access (for Email Marketing feature)
-  const canAccessEmailMarketing = useMemo(() => hasAdminAccess(), [hasAdminAccess]);
   
   // Initialize activeTab from location state if available, otherwise default
   const [activeTab, setActiveTab] = useState(() => {
@@ -464,6 +465,66 @@ const Accounts = () => {
     setEditFormData({ artist_name: '', email: '' });
   };
 
+  // Toggle artist active status - show confirmation modal
+  const handleToggleArtistStatus = (artist) => {
+    if (!isOwner) {
+      alert('Only owners can change artist status');
+      return;
+    }
+
+    const newStatus = !artist.is_active;
+    setPendingArtist(artist);
+    setPendingStatus(newStatus);
+    setIsStatusConfirmOpen(true);
+  };
+
+  // Confirm status change
+  const handleConfirmStatusChange = async () => {
+    setIsStatusConfirmOpen(false);
+    const artist = pendingArtist;
+    const newStatus = pendingStatus;
+
+    if (!artist) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('No active session. Please log in again.');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:4000/api/admin/artists/${artist.id}/toggle-status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: newStatus })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Status toggle successful:', result);
+        await fetchAccounts();
+        setForceUpdate(prev => prev + 1);
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Status toggle failed:', response.status, errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          alert(`Error: ${errorData.error || 'Failed to update artist status'}`);
+        } catch (parseError) {
+          alert(`Error: ${response.status} - ${errorText}`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error toggling artist status:', error);
+      alert(`Error updating artist status: ${error.message}`);
+    } finally {
+      setPendingArtist(null);
+      setPendingStatus(null);
+    }
+  };
 
   // Track if we've already fetched accounts to prevent refetching on focus
   const hasFetchedRef = React.useRef(false);
@@ -618,15 +679,6 @@ const Accounts = () => {
           <FontAwesomeIcon icon={faUsers} className="tab-icon" />
           Customer Accounts
         </button>
-        {canAccessEmailMarketing && (
-          <button
-            className={`accounts-tab ${activeTab === 'email-marketing' ? 'active' : ''}`}
-            onClick={() => setActiveTab('email-marketing')}
-          >
-            <FontAwesomeIcon icon={faEnvelope} className="tab-icon" />
-            Email Marketing
-          </button>
-        )}
       </div>
 
       {/* Admin Accounts Section - Only for Owners */}
@@ -772,9 +824,26 @@ const Accounts = () => {
                     <td>{artist.total_tasks_assigned || 0}</td>
                     <td>{artist.total_tasks_completed || 0}</td>
                     <td>
-                      <span className={`status-badge ${artist.is_active ? 'active' : 'inactive'}`}>
-                        {artist.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      {isOwner ? (
+                        <button
+                          onClick={() => handleToggleArtistStatus(artist)}
+                          className={`status-toggle-btn ${artist.is_active ? 'active' : 'inactive'}`}
+                          title={artist.is_active ? 'Click to set inactive' : 'Click to activate'}
+                          aria-label={artist.is_active ? 'Set artist inactive' : 'Activate artist'}
+                        >
+                          <FontAwesomeIcon 
+                            icon={artist.is_active ? faToggleOn : faToggleOff} 
+                            className="toggle-icon"
+                          />
+                          <span className="toggle-label">
+                            {artist.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </button>
+                      ) : (
+                        <span className={`status-badge ${artist.is_active ? 'active' : 'inactive'}`}>
+                          {artist.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className={`verification-badge ${artist.is_verified ? 'verified' : 'unverified'}`}>
@@ -965,12 +1034,27 @@ const Accounts = () => {
         </div>
       )}
 
-      {/* Email Marketing Section - For Admins and Owners */}
-      {canAccessEmailMarketing && activeTab === 'email-marketing' && (
-        <div className="accounts-section">
-          <EmailMarketing />
-        </div>
-      )}
+      {/* Status Toggle Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isStatusConfirmOpen}
+        onClose={() => {
+          setIsStatusConfirmOpen(false);
+          setPendingArtist(null);
+          setPendingStatus(null);
+        }}
+        onConfirm={handleConfirmStatusChange}
+        title={pendingStatus ? 'Activate Artist' : 'Set Artist Inactive'}
+        message={
+          pendingArtist
+            ? pendingStatus
+              ? `Are you sure you want to activate ${pendingArtist.artist_name || pendingArtist.email}? They will be eligible to receive new task assignments from orders.`
+              : `Are you sure you want to set ${pendingArtist.artist_name || pendingArtist.email} to inactive? They will be excluded from receiving new task assignments. Existing tasks will not be affected.`
+            : ''
+        }
+        confirmText={pendingStatus ? 'Activate' : 'Set Inactive'}
+        cancelText="Cancel"
+        type={pendingStatus ? 'success' : 'warning'}
+      />
     </div>
     </div>
     </div>
