@@ -613,11 +613,15 @@
   }
 
   .mywishlist-header-clean h2 {
-    font-size: 1.05rem;
+    font-size: 14px !important;
   }
 
   .mywishlist-content-clean {
     padding: 8px;
+  }
+  
+  .mywishlist-empty-state {
+    padding: 6px 12px 12px !important;
   }
 
   .mywishlist-footer-section {
@@ -649,7 +653,11 @@
   }
 
   .mywishlist-header-clean h2 {
-    font-size: 1.05rem;
+    font-size: 14px !important;
+  }
+  
+  .mywishlist-empty-state {
+    padding: 6px 12px 12px !important;
   }
 
   .mywishlist-content-clean {
@@ -766,7 +774,11 @@
   }
 
   .mywishlist-header-clean h2 {
-    font-size: 0.95rem;
+    font-size: 14px !important;
+  }
+  
+  .mywishlist-empty-state {
+    padding: 6px 12px 12px !important;
   }
 
   .mywishlist-close-btn-clean {

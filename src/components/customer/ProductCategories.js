@@ -59,7 +59,8 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
   const navRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [activeScrollSection, setActiveScrollSection] = useState(0);
+  const [activeDotIndex, setActiveDotIndex] = useState(0); // 0, 1, or 2 for the 3 dots
+  const [dotStartIndex, setDotStartIndex] = useState(0); // Starting index for the sliding window of dots
   const { openSignIn } = useModal();
   // const { addToCart } = useCart(); // Removed unused import
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -255,27 +256,6 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
       setCanScrollRight(
         navRef.current.scrollWidth > navRef.current.clientWidth + navRef.current.scrollLeft
       );
-      
-      // Calculate which section (0, 1, or 2) based on scroll position
-      const scrollWidth = navRef.current.scrollWidth;
-      const clientWidth = navRef.current.clientWidth;
-      const scrollLeft = navRef.current.scrollLeft;
-      const maxScroll = scrollWidth - clientWidth;
-      
-      if (maxScroll > 0) {
-        const scrollPercentage = (scrollLeft / maxScroll) * 100;
-        
-        // Divide into 3 sections
-        if (scrollPercentage < 33) {
-          setActiveScrollSection(0); // Left section
-        } else if (scrollPercentage < 66) {
-          setActiveScrollSection(1); // Middle section
-        } else {
-          setActiveScrollSection(2); // Right section
-        }
-      } else {
-        setActiveScrollSection(0);
-      }
     }
   };
 
@@ -287,6 +267,45 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
       });
     }
   };
+
+  // Fixed groups: First 3 dots (categories 0-2), Second 3 dots (categories 3-5), Last 1 dot (category 6)
+  useEffect(() => {
+    if (!activeCategory || categories.length === 0) {
+      setActiveDotIndex(0);
+      setDotStartIndex(0);
+      return;
+    }
+    
+    const categoryIndex = categories.findIndex(cat => cat.id === activeCategory);
+    if (categoryIndex === -1) {
+      setActiveDotIndex(0);
+      setDotStartIndex(0);
+      return;
+    }
+    
+    const totalCategories = categories.length;
+    let newStartIndex = 0;
+    let newActiveDotIndex = 0;
+    
+    // Group 1: First 3 categories (0-2) → Show dots 0-2
+    if (categoryIndex < 3) {
+      newStartIndex = 0;
+      newActiveDotIndex = categoryIndex;
+    }
+    // Group 2: Next 3 categories (3-5) → Show dots 3-5
+    else if (categoryIndex < 6) {
+      newStartIndex = 3;
+      newActiveDotIndex = categoryIndex - 3;
+    }
+    // Group 3: Last category (6) → Show only dot 6
+    else {
+      newStartIndex = 6;
+      newActiveDotIndex = 0;
+    }
+    
+    setDotStartIndex(newStartIndex);
+    setActiveDotIndex(newActiveDotIndex);
+  }, [activeCategory, categories]);
 
   useEffect(() => {
     // Add a small delay to ensure DOM is updated after category change
@@ -313,11 +332,30 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
     <section className="product-categories">
       {/* Category Nav */}
       <div className="sportswear-category-nav-wrapper">
-        {/* Scroll Radio Indicators - Mobile only */}
+        {/* Fixed Groups Pagination - Mobile only */}
+        {/* Group 1: First 3 dots (categories 0-2) */}
+        {/* Group 2: Second 3 dots (categories 3-5) */}
+        {/* Group 3: Last 1 dot (category 6) */}
         <div className="sportswear-scroll-radio-indicators">
-          <span className={`sportswear-radio-dot ${activeScrollSection === 0 ? 'active' : ''}`} />
-          <span className={`sportswear-radio-dot ${activeScrollSection === 1 ? 'active' : ''}`} />
-          <span className={`sportswear-radio-dot ${activeScrollSection === 2 ? 'active' : ''}`} />
+          {categories.length > 0 && (() => {
+            // Determine how many dots to show based on current group
+            let dotsToShow = 3;
+            if (dotStartIndex === 6) {
+              // Last group: only 1 dot
+              dotsToShow = 1;
+            }
+            
+            return Array.from({ length: dotsToShow }, (_, idx) => {
+              const dotIndex = dotStartIndex + idx;
+              const isActive = activeDotIndex === idx;
+              return (
+                <span 
+                  key={`dot-${dotIndex}`}
+                  className={`sportswear-radio-dot ${isActive ? 'active' : ''}`}
+                />
+              );
+            });
+          })()}
         </div>
         
         {/* LEFT ARROW */}
@@ -337,6 +375,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
               onClick={() => {
                 setActiveCategory(category.id);
                 setShowAll(false);
+                // Dot indicator will update automatically via useEffect
               }}
             >
               {category.name}

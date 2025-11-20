@@ -20,7 +20,7 @@ const FAQs = () => {
     },
     {
       question: "How long does it take to complete an order?",
-      answer: "Standard orders typically take 3-5 business days, while custom designs may take 7-10 business days. Rush orders are available for an additional fee."
+      answer: "Standard orders typically take 3-5 business days, while custom designs may take 7-10 business days."
     },
     {
       question: "Do you have multiple branch locations?",
@@ -36,7 +36,7 @@ const FAQs = () => {
     },
     {
       question: "Can I visit your branches to see products?",
-      answer: "Absolutely! We encourage customers to visit our branches to see our products in person and get personalized assistance from our staff."
+      answer: "Absolutely! We encourage customers to visit our branches to see our products in person and get personalized assistance."
     }
   ];
 

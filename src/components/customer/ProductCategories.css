@@ -42,7 +42,9 @@
   padding: 0 1rem;
 }
 
-/* ===== SCROLL RADIO INDICATORS (Mobile Only) ===== */
+/* ===== CONTINUOUS CAROUSEL PAGINATION (Mobile Only) ===== */
+/* 7 total slides, but only 3 dots visible at a time */
+/* Dots shift dynamically as active category changes */
 .sportswear-scroll-radio-indicators {
   display: none; /* Hidden by default (desktop) */
   position: absolute;
@@ -53,6 +55,10 @@
   gap: 8px;
   align-items: center;
   justify-content: center;
+  /* Ensure only 3 dots are visible */
+  flex-wrap: nowrap;
+  /* Smooth transition for dot shifting */
+  transition: all 0.3s ease;
 }
 
 .sportswear-radio-dot {
@@ -61,8 +67,13 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
   border: 1.5px solid rgba(0, 191, 255, 0.4);
-  transition: all 0.3s ease;
-  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+  display: inline-block;
+  pointer-events: none; /* Make dots non-interactive */
+  flex-shrink: 0;
+  /* Smooth animation for active state changes */
+  transform: scale(1);
 }
 
 .sportswear-radio-dot.active {
@@ -71,6 +82,21 @@
   box-shadow: 0 0 10px var(--sportswear-accent-yellow);
   width: 9px;
   height: 9px;
+  transform: scale(1.1);
+  /* Smooth transition when dot becomes active */
+  animation: dotPulse 0.3s ease;
+}
+
+@keyframes dotPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1.1);
+  }
 }
 
 .sportswear-category-nav {
@@ -96,43 +122,44 @@
 
 /* ===== SCROLL BUTTONS ===== */
 .sportswear-scroll-btn {
-  background: linear-gradient(135deg, rgba(0, 191, 255, 0.2), rgba(0, 191, 255, 0.1));
-  border: 3px solid var(--sportswear-accent-cyan);
+  background: transparent;
+  border: none;
   color: var(--sportswear-accent-cyan);
   font-size: 1.5rem;
   cursor: pointer;
-  padding: 1rem;
-  border-radius: 50%;
+  padding: 0;
+  border-radius: 0;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: 2;
   transition: var(--sportswear-transition);
-  box-shadow: 0 0 8px rgba(0, 191, 255, 0.4);
+  box-shadow: none;
   display: flex !important;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
+  width: auto;
+  height: auto;
   font-weight: bold;
   visibility: visible !important;
   opacity: 1 !important;
 }
 
 .sportswear-scroll-btn:hover {
-  background: linear-gradient(135deg, var(--sportswear-accent-cyan), rgba(0, 212, 255, 0.3));
-  border-color: var(--sportswear-neon-blue);
-  color: var(--sportswear-text-white);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transform: translateY(-50%) scale(1.15);
+  background: transparent;
+  border: none;
+  color: var(--sportswear-neon-blue);
+  box-shadow: none;
+  transform: translateY(-50%) scale(1.2);
+  opacity: 0.8;
 }
 
 .sportswear-scroll-btn.left {
-  left: -90px;
+  left: 10px;
 }
 
 .sportswear-scroll-btn.right {
-  right: -90px;
+  right: 10px;
 }
 
 /* ===== CATEGORY BUTTONS ===== */
@@ -291,6 +318,7 @@
   gap: 0.2rem;
   min-height: 210px;
   max-height: 210px;
+  background: #000000;
 }
 
 
@@ -766,6 +794,41 @@
     padding: 2rem 0;
   }
   
+  /* Show scroll radio indicators on mobile */
+  .sportswear-scroll-radio-indicators {
+    display: flex !important;
+  }
+  
+  /* Mobile: Arrow buttons - icon only, no box/background */
+  .sportswear-scroll-btn {
+    display: flex !important;
+    width: auto !important;
+    height: auto !important;
+    font-size: 1.2rem !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-width: auto !important;
+    min-height: auto !important;
+  }
+  
+  .sportswear-scroll-btn:hover {
+    transform: translateY(-50%) scale(1.2) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    opacity: 0.8 !important;
+  }
+  
+  .sportswear-scroll-btn.left {
+    left: 5px !important;
+  }
+  
+  .sportswear-scroll-btn.right {
+    right: 5px !important;
+  }
+  
   .sportswear-category-nav {
     gap: 1rem;
     padding: 1rem 1.5rem;
@@ -793,8 +856,10 @@
   }
 
   .sportswear-products-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px !important;
+    row-gap: 24px !important;
+    column-gap: 24px !important;
     padding: 0 1rem;
   }
   
@@ -888,7 +953,9 @@
   /* Two Column Grid for Mobile */
   .sportswear-products-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    gap: 24px !important;
+    row-gap: 24px !important;
+    column-gap: 24px !important;
     padding: 0 0.5rem;
     max-width: 100%;
     margin: 0 auto;
@@ -938,10 +1005,11 @@
 
   /* Enlarged Product Info */
   .sportswear-product-info {
-    padding: 0.9rem 0.75rem;
+    padding: 6px 5px 4px !important;
     gap: 0.6rem;
     min-height: 180px;
     max-height: 180px;
+    background: #000000;
   }
 
   .sportswear-product-name {
@@ -954,6 +1022,7 @@
     padding: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1112,8 +1181,10 @@
   
   /* Enlarged Product Info */
   .sportswear-product-info {
+    padding: 6px 5px 4px !important;
     min-height: 240px;
     max-height: 240px;
+    background: #000000;
   }
   
   .sportswear-product-name {
@@ -1126,6 +1197,7 @@
     max-height: 2.4rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1284,8 +1356,10 @@
   
   /* Enlarged Product Info */
   .sportswear-product-info {
+    padding: 6px 5px 4px !important;
     min-height: 240px;
     max-height: 240px;
+    background: #000000;
   }
   
   .sportswear-product-name {
@@ -1298,6 +1372,7 @@
     max-height: 2.4rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1555,7 +1630,35 @@
     height: 8px;
   }
 
+  /* Mobile: Arrow buttons - icon only, no box/background */
+  .sportswear-scroll-btn {
+    display: flex !important;
+    width: auto !important;
+    height: auto !important;
+    font-size: 1.2rem !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-width: auto !important;
+    min-height: auto !important;
+  }
   
+  .sportswear-scroll-btn:hover {
+    transform: translateY(-50%) scale(1.2) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    opacity: 0.8 !important;
+  }
+  
+  .sportswear-scroll-btn.left {
+    left: 5px !important;
+  }
+  
+  .sportswear-scroll-btn.right {
+    right: 5px !important;
+  }
   
   .sportswear-category-nav {
     gap: 0.4rem;
@@ -1590,7 +1693,9 @@
   .sportswear-products-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 150px)) !important;
     justify-content: center;
-    gap: 0.4rem !important;
+    gap: 24px !important;
+    row-gap: 24px !important;
+    column-gap: 24px !important;
     padding: 0 0.3rem !important;
     max-width: 100%;
   }
@@ -1645,19 +1750,20 @@
   
   /* Compact Product Info for Mobile */
   .sportswear-product-info {
-    padding: 0.4rem 0.35rem !important;
+    padding: 6px 5px 4px !important;
     gap: 0.25rem !important;
     min-height: 130px !important;
     max-height: 130px !important;
+    background: #000000 !important;
   }
   
   .sportswear-product-name {
     font-size: 0.7rem !important;
-    line-height: 1.2 !important;
-    min-height: 2rem !important;
-    max-height: 2rem !important;
+    line-height: 1.3 !important;
+    min-height: auto !important;
+    max-height: none !important;
     letter-spacing: 0.25px !important;
-    margin: 0 0 0.15rem 0 !important;
+    margin: 0 !important;
     padding: 0 !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
@@ -1682,10 +1788,10 @@
     display: flex !important;
     justify-content: flex-start !important;
     align-items: center !important;
-    margin-bottom: 3px !important;
-    gap: 0.3rem !important;
-    font-size: 0.6rem !important;
-    line-height: 1.2 !important;
+    margin-bottom: 2px !important;
+    gap: 6px !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
     min-height: 16px !important;
     max-height: 16px !important;
     height: 16px !important;
@@ -1756,10 +1862,10 @@
   .sportswear-product-price {
     font-size: 0.9rem !important;
     letter-spacing: 0.4px !important;
-    margin: 0.2rem 0 !important;
+    margin: 2px 0 !important;
     font-weight: 800 !important;
-    min-height: 1.3rem !important;
-    max-height: 1.3rem !important;
+    min-height: auto !important;
+    max-height: none !important;
     display: flex !important;
     align-items: center !important;
   }
@@ -1852,29 +1958,40 @@
     font-size: 0.9rem;
   }
   
-  /* Scroll Buttons - Show on mobile with smaller size */
+  /* Mobile: Arrow buttons - icon only, no box/background */
   .sportswear-scroll-btn {
     display: flex !important;
-    width: 24px !important;
-    height: 24px !important;
-    font-size: 0.9rem !important;
+    width: auto !important;
+    height: auto !important;
+    font-size: 1.2rem !important;
     padding: 0 !important;
-    background: TRANSPARENT;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-width: auto !important;
+    min-height: auto !important;
   }
   
   .sportswear-scroll-btn:hover {
-    transform: translateY(-50%) scale(1.05) !important;
-    background: TRANSPARENT;
-    
+    transform: translateY(-50%) scale(1.2) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    opacity: 0.8 !important;
+  }
+  
+  .sportswear-scroll-btn svg,
+  .sportswear-scroll-btn .fa-chevron-left,
+  .sportswear-scroll-btn .fa-chevron-right {
+    color: var(--sportswear-accent-cyan) !important;
   }
   
   .sportswear-scroll-btn.left {
-    left: 0px !important;
+    left: 5px !important;
   }
   
   .sportswear-scroll-btn.right {
-    right: 0px !important;
+    right: 5px !important;
   }
 }
 
@@ -1999,7 +2116,9 @@
 @media only screen and (max-width: 320px) {
   .sportswear-products-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.3rem !important;
+    gap: 24px !important;
+    row-gap: 24px !important;
+    column-gap: 24px !important;
   }
 
   .sportswear-product-card {

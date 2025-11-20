@@ -1337,6 +1337,15 @@ const Branches = () => {
 // Branch Details Modal Component
 const BranchDetailsModal = ({ branch, isOpen, onClose, onGetDirections, isRouting }) => {
   const modalRef = React.useRef(null);
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 768);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -1377,7 +1386,17 @@ const BranchDetailsModal = ({ branch, isOpen, onClose, onGetDirections, isRoutin
         </button>
 
         <div className="branch-modal-header">
-          <h2 className="branch-modal-title">{branch.name}</h2>
+          <h2 className="branch-modal-title">
+            {isMobile && (branch.name === 'BATANGAS CITY BRANCH' || branch.name === 'PINAMALAYAN BRANCH') ? (
+              <>
+                {branch.name.replace(' BRANCH', '')}
+                <br />
+                BRANCH
+              </>
+            ) : (
+              branch.name
+            )}
+          </h2>
           <div className="branch-modal-badge">
             <FontAwesomeIcon icon={faStore} />
             <span>Yohann's Sportswear House</span>
