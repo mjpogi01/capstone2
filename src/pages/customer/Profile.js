@@ -341,6 +341,7 @@ const Profile = () => {
   const handleCancel = async () => {
     setIsEditing(false);
     setPhoneError(''); // Clear phone error on cancel
+    setShowDeleteAccountSection(false); // Hide delete account section when canceling
     
     // Reload original data from database
     if (user) {
@@ -667,26 +668,30 @@ const Profile = () => {
                   <label>Password :</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, flexWrap: 'wrap' }}>
                     <span style={{ color: '#cccccc', fontSize: '14px' }}>••••••••••••••••</span>
-                    <button 
-                      className="yohanns-change-password-btn"
-                      onClick={() => setIsPasswordModalOpen(true)}
-                    >
-                      Change Password
-                    </button>
-                    <button 
-                      className="yohanns-delete-account-toggle-btn"
-                      onClick={() => setShowDeleteAccountSection(!showDeleteAccountSection)}
-                    >
-                      {showDeleteAccountSection ? 'Hide Delete Account' : 'Delete Account'}
-                    </button>
+                    {isEditing && (
+                      <>
+                        <button 
+                          className="yohanns-change-password-btn"
+                          onClick={() => setIsPasswordModalOpen(true)}
+                        >
+                          Change Password
+                        </button>
+                        <button 
+                          className="yohanns-delete-account-toggle-btn"
+                          onClick={() => setShowDeleteAccountSection(!showDeleteAccountSection)}
+                        >
+                          {showDeleteAccountSection ? 'Hide Delete Account' : 'Delete Account'}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Delete Account Section - Only show when button is clicked */}
-          {showDeleteAccountSection && (
+          {/* Delete Account Section - Only show when editing and button is clicked */}
+          {isEditing && showDeleteAccountSection && (
             <div className="yohanns-delete-account-section">
               <div className="yohanns-delete-account-content">
                 <p className="yohanns-delete-account-description">

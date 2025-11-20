@@ -94,6 +94,13 @@
 .buyers-album {
   margin-bottom: 5rem;
   width: 100%;
+  overflow: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.buyers-album::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .buyers-grid {
@@ -106,7 +113,14 @@
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
+  overflow-y: hidden;
   contain: layout;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.buyers-grid::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Grid Item */

@@ -1,110 +1,159 @@
-/* Yohann's Profile Page Styles - Black Theme */
+/* ============================================
+   YOHANN'S PROFILE PAGE - ORIGINAL DESIGN
+   ============================================ */
 
-/* Main Container */
+/* Main Page Container */
 .yohanns-profile-page {
   min-height: 100vh;
-  background: #000000;
+  background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 100%);
+  padding: 2rem 1rem;
+  padding-top: 100px; /* Space for fixed header */
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 6rem 0 2rem 0;
-  color: #ffffff;
+  align-items: flex-start;
+  font-family: 'Oswald', sans-serif;
   position: relative;
-  overflow-x: hidden;
+  z-index: 1; /* Below header */
 }
 
+/* Profile Container */
 .yohanns-profile-container {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 2rem;
-  width: 100%;
   position: relative;
   z-index: 1;
 }
 
-/* Header Section */
-.yohanns-profile-header {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.yohanns-profile-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 2rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  text-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
-  font-family: 'Inter', sans-serif;
-}
-
-/* Tabs Navigation */
-.yohanns-profile-tabs {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.yohanns-profile-tab {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-profile-tab.active {
-  background: #00bfff;
-  color: #000000;
-  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.5);
-}
-
-.yohanns-profile-tab:not(.active) {
-  background: rgba(0, 191, 255, 0.1);
-  color: #00bfff;
-  border: 1px solid rgba(0, 191, 255, 0.3);
-}
-
-.yohanns-profile-tab:not(.active):hover {
-  background: rgba(0, 191, 255, 0.2);
-  border-color: rgba(0, 191, 255, 0.5);
-  transform: translateY(-2px);
-}
-
-/* Content Container */
+/* Content Wrapper */
 .yohanns-profile-content {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(17, 22, 30, 0.95);
   border-radius: 16px;
   padding: 2rem;
-  border: 2px solid rgba(0, 191, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 191, 255, 0.2);
+  border: 1px solid rgba(76, 210, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
   position: relative;
+  z-index: 1;
 }
 
-/* Top Controls - Edit/Save/Cancel Buttons */
+/* Loading State */
+.yohanns-profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.yohanns-profile-loading-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #f2f6f9;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.yohanns-profile-loading-text {
+  font-size: 1rem;
+  color: rgba(191, 209, 225, 0.78);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Top Controls - Edit/Save/Cancel */
 .yohanns-profile-top-controls {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(0, 191, 255, 0.2);
+  border-bottom: 1px solid rgba(76, 210, 255, 0.2);
+  position: relative;
+  z-index: 10;
+  width: 100%;
 }
 
-/* Personal Information Section */
+.yohanns-edit-link {
+  background: none;
+  border: none;
+  color: #4ec9ff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-family: 'Oswald', sans-serif;
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  position: relative;
+  z-index: 10;
+}
+
+.yohanns-edit-link:hover {
+  color: #63d6ff;
+  background: rgba(76, 210, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.yohanns-edit-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.yohanns-save-btn {
+  background: linear-gradient(120deg, rgba(76, 210, 255, 0.3), rgba(76, 210, 255, 0.6));
+  border: 1px solid rgba(76, 210, 255, 0.5);
+  color: #f2f6f9;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  font-family: 'Oswald', sans-serif;
+}
+
+.yohanns-save-btn:hover {
+  background: linear-gradient(120deg, rgba(76, 210, 255, 0.4), rgba(76, 210, 255, 0.7));
+  box-shadow: 0 4px 12px rgba(76, 210, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.yohanns-cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f2f6f9;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  font-family: 'Oswald', sans-serif;
+}
+
+.yohanns-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Personal Info Section */
 .yohanns-personal-info-section {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 3rem;
-  align-items: start;
+  grid-template-columns: 250px 1fr;
+  gap: 2rem;
+  align-items: flex-start;
 }
 
 /* Profile Picture Section */
@@ -112,161 +161,56 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(76, 210, 255, 0.1), rgba(76, 210, 255, 0.05));
+  border-radius: 12px;
+  border: 1px solid rgba(76, 210, 255, 0.2);
 }
 
 .yohanns-profile-picture {
-  position: relative;
-  width: 200px;
-  height: 200px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .yohanns-profile-avatar {
-  width: 100%;
-  height: 100%;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  background: #1a1a1a;
+  background: linear-gradient(135deg, rgba(76, 210, 255, 0.3), rgba(76, 210, 255, 0.1));
+  border: 3px solid rgba(76, 210, 255, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid #00bfff;
-  box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
-  color: #00bfff;
-  transition: all 0.3s ease;
-}
-
-.yohanns-profile-avatar:hover {
-  box-shadow: 0 0 40px rgba(0, 191, 255, 0.7);
-  transform: scale(1.02);
+  color: #4ec9ff;
+  box-shadow: 0 8px 16px rgba(76, 210, 255, 0.2);
 }
 
 .yohanns-profile-avatar svg {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
 }
 
-.yohanns-profile-image {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #00bfff;
-  box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
-  transition: all 0.3s ease;
-}
-
-.yohanns-profile-image:hover {
-  box-shadow: 0 0 40px rgba(0, 191, 255, 0.7);
-  transform: scale(1.02);
-}
-
-.yohanns-upload-btn {
-  background: rgba(0, 191, 255, 0.1);
-  color: #00bfff;
-  border: 2px solid #00bfff;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-upload-btn:hover:not(:disabled) {
-  background: #00bfff;
-  color: #000000;
-  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.5);
-  transform: translateY(-2px);
-}
-
-.yohanns-upload-btn:disabled {
-  background: #1a1a1a;
-  border-color: #333333;
-  color: #666666;
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-/* Personal Information Form */
+/* Personal Info Form */
 .yohanns-personal-info-form {
   flex: 1;
 }
 
 .yohanns-form-header {
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(0, 191, 255, 0.3);
+  margin-bottom: 1.5rem;
 }
 
 .yohanns-form-header h3 {
-  color: #ffffff;
   font-size: 1.5rem;
   font-weight: 600;
+  color: #f2f6f9;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  text-shadow: 0 0 12px rgba(76, 210, 255, 0.3);
 }
 
-.yohanns-edit-link {
-  color: #00bfff;
-  background: none;
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-  transition: all 0.3s ease;
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-edit-link:hover {
-  color: #87ceeb;
-  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
-}
-
-.yohanns-edit-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.yohanns-save-btn,
-.yohanns-cancel-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-save-btn {
-  background: #00bfff;
-  color: #000000;
-  border: 2px solid #00bfff;
-}
-
-.yohanns-save-btn:hover {
-  background: #87ceeb;
-  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.5);
-  transform: translateY(-1px);
-}
-
-.yohanns-cancel-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-}
-
-.yohanns-cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-/* Form Fields */
 .yohanns-form-fields {
   display: flex;
   flex-direction: column;
@@ -275,742 +219,519 @@
 
 .yohanns-form-field {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .yohanns-form-field label {
-  min-width: 150px;
-  color: #ffffff;
-  font-weight: 500;
-  font-size: 14px;
-  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f2f6f9;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-family: 'Oswald', sans-serif;
 }
 
 .yohanns-form-field input {
-  flex: 1;
-  background: #1a1a1a;
-  border: 2px solid rgba(0, 191, 255, 0.3);
+  background: rgba(10, 15, 24, 0.6);
+  border: 1px solid rgba(76, 210, 255, 0.3);
   border-radius: 8px;
-  padding: 12px 16px;
-  color: #ffffff;
-  font-size: 14px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px rgba(0, 191, 255, 0.1);
+  padding: 0.75rem 1rem;
+  color: #f2f6f9;
+  font-size: 1rem;
   font-family: 'Inter', sans-serif;
-}
-
-.yohanns-form-field input::placeholder {
-  color: #666666;
+  transition: all 0.3s ease;
 }
 
 .yohanns-form-field input:focus {
   outline: none;
-  box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
-  border-color: #00bfff;
+  border-color: #4ec9ff;
+  box-shadow: 0 0 12px rgba(76, 210, 255, 0.3);
+  background: rgba(10, 15, 24, 0.8);
 }
 
 .yohanns-form-field input:disabled {
-  background: #0d0d0d;
-  border-color: #333333;
-  color: #888888;
+  opacity: 0.6;
   cursor: not-allowed;
+  background: rgba(10, 15, 24, 0.4);
 }
 
-/* Radio Group */
-.yohanns-radio-group {
-  display: flex;
-  gap: 2rem;
-  flex: 1;
-}
-
-.yohanns-radio-option {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  color: #ffffff;
-  font-size: 14px;
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-radio-option input[type="radio"] {
-  display: none;
-}
-
-.yohanns-radio-custom {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #00bfff;
-  border-radius: 50%;
-  position: relative;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 8px rgba(0, 191, 255, 0.2);
-}
-
-.yohanns-radio-option input[type="radio"]:checked + .yohanns-radio-custom {
-  background: #00bfff;
-  box-shadow: 0 0 12px rgba(0, 191, 255, 0.5);
-}
-
-.yohanns-radio-option input[type="radio"]:checked + .yohanns-radio-custom::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  background: #000000;
-  border-radius: 50%;
-}
-
-.yohanns-radio-option input[type="radio"]:disabled + .yohanns-radio-custom {
-  border-color: #333333;
-  box-shadow: none;
-}
-
-.yohanns-radio-option input[type="radio"]:disabled:checked + .yohanns-radio-custom {
-  background: #333333;
+.yohanns-form-field input::placeholder {
+  color: rgba(191, 209, 225, 0.5);
 }
 
 /* Change Password Button */
 .yohanns-change-password-btn {
-  background: rgba(0, 191, 255, 0.1);
-  color: #00bfff;
-  border: 1px solid #00bfff;
-  padding: 8px 16px;
+  background: linear-gradient(120deg, rgba(76, 210, 255, 0.2), rgba(76, 210, 255, 0.4));
+  border: 1px solid rgba(76, 210, 255, 0.4);
+  color: #f2f6f9;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
   font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  font-family: 'Oswald', sans-serif;
 }
 
 .yohanns-change-password-btn:hover {
-  background: #00bfff;
-  color: #000000;
-  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.4);
+  background: linear-gradient(120deg, rgba(76, 210, 255, 0.3), rgba(76, 210, 255, 0.5));
+  box-shadow: 0 4px 8px rgba(76, 210, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 /* Delete Account Toggle Button */
 .yohanns-delete-account-toggle-btn {
-  padding: 8px 16px;
-  background: rgba(255, 68, 68, 0.1);
-  color: #ff4444;
-  border: 1px solid rgba(255, 68, 68, 0.3);
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ff6b6b;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
-  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  font-family: 'Oswald', sans-serif;
 }
 
 .yohanns-delete-account-toggle-btn:hover {
-  background: rgba(255, 68, 68, 0.2);
-  border-color: rgba(255, 68, 68, 0.5);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
-}
-
-.yohanns-delete-account-toggle-btn:active {
-  transform: translateY(0);
+  background: rgba(255, 107, 107, 0.3);
+  box-shadow: 0 4px 8px rgba(255, 107, 107, 0.2);
+  transform: translateY(-2px);
 }
 
 /* Delete Account Section */
 .yohanns-delete-account-section {
   margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 68, 68, 0.3);
+  padding: 1.5rem;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 12px;
 }
 
 .yohanns-delete-account-content {
-  background: rgba(255, 68, 68, 0.05);
-  border: 1px solid rgba(255, 68, 68, 0.2);
-  border-radius: 8px;
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  text-align: center;
 }
 
 .yohanns-delete-account-description {
-  color: #cccccc;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  margin: 0 0 1rem 0;
+  color: #f2f6f9;
+  font-size: 1rem;
+  margin: 0;
   font-family: 'Inter', sans-serif;
+  line-height: 1.6;
 }
 
 .yohanns-delete-account-btn {
-  padding: 10px 20px;
-  background: #ff4444;
+  background: linear-gradient(120deg, rgba(255, 107, 107, 0.4), rgba(255, 107, 107, 0.6));
+  border: 1px solid rgba(255, 107, 107, 0.5);
   color: #ffffff;
-  border: 2px solid #ff4444;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-family: 'Inter', sans-serif;
-  width: 100%;
-  max-width: 250px;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  font-family: 'Oswald', sans-serif;
 }
 
 .yohanns-delete-account-btn:hover {
-  background: #ff3333;
-  border-color: #ff3333;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+  background: linear-gradient(120deg, rgba(255, 107, 107, 0.5), rgba(255, 107, 107, 0.7));
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  transform: translateY(-2px);
 }
 
-.yohanns-delete-account-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(255, 68, 68, 0.3);
-}
+/* ============================================
+   RESPONSIVE DESIGN - MOBILE
+   ============================================ */
 
-/* Orders Section */
-.yohanns-orders-section {
-  text-align: center;
-  padding: 3rem;
-}
-
-.yohanns-orders-section h3 {
-  color: #ffffff;
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-orders-section p {
-  color: #cccccc;
-  font-size: 16px;
-  font-family: 'Inter', sans-serif;
-}
-
-/* Loading State */
-.yohanns-profile-loading {
-  text-align: center;
-  padding: 2rem;
-  color: #00bfff;
-}
-
-.yohanns-profile-loading-title {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  font-family: 'Inter', sans-serif;
-}
-
-.yohanns-profile-loading-text {
-  font-size: 0.9rem;
-  opacity: 0.7;
-  font-family: 'Inter', sans-serif;
-}
-
-/* ======================
-   RESPONSIVE DESIGN
-   ====================== */
-
-/* Tablet (1024px) */
-@media (max-width: 1024px) {
-  .yohanns-profile-page {
-    padding: 5.5rem 0 2rem 0;
-  }
-  
-  .yohanns-profile-container {
-    padding: 0 1.5rem;
-  }
-  
-  .yohanns-profile-content {
-    padding: 1.75rem;
-  }
-  
-  .yohanns-personal-info-section {
-    gap: 2.5rem;
-  }
-  
-  .yohanns-profile-picture {
-    width: 180px;
-    height: 180px;
-  }
-  
-  .yohanns-profile-avatar svg {
-    width: 70px;
-    height: 70px;
-  }
-}
-
-/* Tablet/Mobile (768px) */
 @media (max-width: 768px) {
   .yohanns-profile-page {
-    padding: 5rem 0 2rem 0;
+    padding: 1rem 0.5rem;
+    padding-top: 80px !important; /* Space for mobile header */
   }
-  
-  .yohanns-profile-container {
-    padding: 0 1rem;
-  }
-  
-  .yohanns-profile-title {
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
-  }
-  
+
   .yohanns-profile-content {
-    margin-top: 90px;
-    margin: 90px 10px 10px 10px;
     padding: 1.5rem;
+    border-radius: 12px;
   }
-  
+
+  .yohanns-profile-top-controls {
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 100 !important;
+    width: 100% !important;
+  }
+
+  .yohanns-edit-link {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    background: none !important;
+    border: none !important;
+    border-radius: 0;
+    color: #4ec9ff !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 101 !important;
+    width: auto !important;
+    min-width: auto !important;
+    text-align: right !important;
+    box-shadow: none !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .yohanns-save-btn,
+  .yohanns-cancel-btn {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
+    background: none !important;
+    border: none !important;
+    border-radius: 0;
+    box-shadow: none !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    min-width: auto !important;
+    width: auto !important;
+  }
+
+  .yohanns-save-btn {
+    color: #4ec9ff !important;
+  }
+
+  .yohanns-cancel-btn {
+    color: rgba(191, 209, 225, 0.78) !important;
+  }
+
+  .yohanns-save-btn:hover,
+  .yohanns-cancel-btn:hover {
+    background: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    opacity: 0.8;
+  }
+
   .yohanns-personal-info-section {
     grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  
-  .yohanns-profile-picture-section {
-    align-items: center;
-    order: 1;
-  }
-  
-  .yohanns-personal-info-form {
-    order: 2;
-  }
-  
-  .yohanns-form-field {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-  
-  .yohanns-form-field label {
-    min-width: auto;
-    font-weight: 600;
-  }
-  
-  .yohanns-radio-group {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .yohanns-profile-tabs {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  
-  .yohanns-profile-tab {
-    width: 100%;
-    max-width: 300px;
-    padding: 10px 20px;
-    font-size: 13px;
-  }
-  
-  .yohanns-profile-picture {
-    width: 150px;
-    height: 150px;
-  }
-  
-  .yohanns-profile-avatar svg {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .yohanns-upload-btn {
-    width: 100%;
-    max-width: 200px;
-    padding: 10px 20px;
-    font-size: 13px;
-  }
-  
-  .yohanns-profile-top-controls {
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-  }
-
-  .yohanns-form-header h3 {
-    font-size: 1.3rem;
-  }
-  
-  .yohanns-form-field input {
-    padding: 10px 14px;
-    font-size: 13px;
-  }
-}
-
-/* Small Mobile (480px) */
-@media (max-width: 480px) {
-  .yohanns-profile-page {
-    padding: 4.5rem 0 1.5rem 0;
-  }
-  
-  .yohanns-profile-container {
-    padding: 0 0.75rem;
-  }
-  
-  .yohanns-profile-title {
-    font-size: 1.8rem;
-    margin-bottom: 1.25rem;
-  }
-  
-  .yohanns-profile-content {
-    padding: 1rem;
-    border-width: 1px;
-  }
-  
-  .yohanns-personal-info-section {
     gap: 1.5rem;
   }
-  
-  .yohanns-profile-picture {
-    width: 130px;
-    height: 130px;
+
+  .yohanns-profile-picture-section {
+    padding: 1rem;
   }
-  
+
+  .yohanns-profile-avatar {
+    width: 100px;
+    height: 100px;
+  }
+
   .yohanns-profile-avatar svg {
     width: 50px;
     height: 50px;
   }
-  
-  .yohanns-upload-btn {
-    max-width: 180px;
-    padding: 8px 16px;
-    font-size: 12px;
-  }
-  
-  .yohanns-profile-top-controls {
-    margin-bottom: 1rem;
-    padding-bottom: 0.65rem;
-  }
 
-  .yohanns-edit-actions {
-    gap: 0.75rem;
-  }
-  
   .yohanns-form-header h3 {
-    font-size: 1.2rem;
-  }
-  
-  .yohanns-save-btn,
-  .yohanns-cancel-btn {
-    flex: 1;
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-  
-  .yohanns-form-field input {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-  
-  .yohanns-form-field label {
-    font-size: 13px;
-  }
-  
-  .yohanns-profile-tab {
-    padding: 8px 16px;
-    font-size: 12px;
-  }
-  
-  .yohanns-radio-option {
-    font-size: 13px;
-  }
-  
-  .yohanns-radio-custom {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .yohanns-change-password-btn {
-    padding: 6px 12px;
-    font-size: 11px;
+    font-size: 1.25rem;
   }
 
+  .yohanns-form-fields {
+    gap: 1.25rem;
+  }
+
+  .yohanns-form-field label {
+    font-size: 0.9rem;
+  }
+
+  .yohanns-form-field input {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.95rem;
+  }
+
+  .yohanns-change-password-btn,
   .yohanns-delete-account-toggle-btn {
-    padding: 6px 12px;
-    font-size: 11px;
+    font-size: 0.65rem !important;
+    padding: 0.3rem 0.6rem !important;
+    min-width: auto !important;
+    width: auto !important;
   }
 
   .yohanns-delete-account-section {
     margin-top: 1.5rem;
-    padding-top: 1rem;
-  }
-
-  .yohanns-delete-account-content {
-    padding: 0.875rem;
+    padding: 1rem;
   }
 
   .yohanns-delete-account-description {
-    font-size: 0.8rem;
-    margin-bottom: 0.875rem;
+    font-size: 0.9rem;
   }
 
   .yohanns-delete-account-btn {
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    max-width: 100%;
+    font-size: 0.9rem;
+    padding: 0.65rem 1.5rem;
   }
 }
 
-/* Extra Small Mobile (360px) */
-@media (max-width: 360px) {
+@media (max-width: 480px) {
   .yohanns-profile-page {
-    padding: 4rem 0 1rem 0;
+    padding: 0.5rem;
+    padding-top: 75px !important; /* Space for mobile header */
   }
-  
-  .yohanns-profile-container {
-    padding: 0 0.5rem;
-  }
-  
-  .yohanns-profile-title {
-    font-size: 1.6rem;
-    margin-bottom: 1rem;
-  }
-  
+
   .yohanns-profile-content {
-    padding: 0.75rem;
+    padding: 1rem;
+    border-radius: 10px;
   }
-  
-  .yohanns-personal-info-section {
-    gap: 1.25rem;
-  }
-  
-  .yohanns-profile-picture {
-    width: 120px;
-    height: 120px;
-  }
-  
-  .yohanns-profile-avatar svg {
-    width: 45px;
-    height: 45px;
-  }
-  
-  .yohanns-upload-btn {
-    max-width: 160px;
-    padding: 6px 12px;
-    font-size: 11px;
-  }
-  
+
   .yohanns-profile-top-controls {
-    margin-bottom: 0.85rem;
+    margin-bottom: 1rem;
     padding-bottom: 0.5rem;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 100 !important;
+    width: 100% !important;
+    margin-top: 0 !important;
+  }
+
+  .yohanns-edit-link {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.7rem;
+    background: none !important;
+    border: none !important;
+    border-radius: 0;
+    color: #4ec9ff !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 101 !important;
+    width: auto !important;
+    min-width: auto !important;
+    text-align: right !important;
+    box-shadow: none !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .yohanns-edit-actions {
-    gap: 0.5rem;
+    flex-direction: row;
+    width: auto;
+    gap: 1rem;
+    justify-content: flex-end;
   }
-  
+
+  .yohanns-save-btn,
+  .yohanns-cancel-btn {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+    background: none !important;
+    border: none !important;
+    border-radius: 0;
+    box-shadow: none !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    min-width: auto !important;
+    width: auto !important;
+  }
+
+  .yohanns-save-btn {
+    color: #4ec9ff !important;
+  }
+
+  .yohanns-cancel-btn {
+    color: rgba(191, 209, 225, 0.78) !important;
+  }
+
+  .yohanns-save-btn:hover,
+  .yohanns-cancel-btn:hover {
+    background: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    opacity: 0.8;
+  }
+
+  .yohanns-save-btn,
+  .yohanns-cancel-btn {
+    width: 100%;
+  }
+
+  .yohanns-profile-picture-section {
+    padding: 0.75rem;
+  }
+
+  .yohanns-profile-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .yohanns-profile-avatar svg {
+    width: 40px;
+    height: 40px;
+  }
+
   .yohanns-form-header h3 {
     font-size: 1.1rem;
   }
-  
-  .yohanns-save-btn,
-  .yohanns-cancel-btn {
-    padding: 5px 10px;
-    font-size: 11px;
-  }
-  
-  .yohanns-form-field input {
-    padding: 6px 10px;
-    font-size: 11px;
-  }
-  
-  .yohanns-form-field label {
-    font-size: 12px;
-  }
-  
-  .yohanns-profile-tab {
-    padding: 6px 12px;
-    font-size: 11px;
-  }
-  
-  .yohanns-radio-option {
-    font-size: 12px;
-  }
-  
-  .yohanns-radio-custom {
-    width: 16px;
-    height: 16px;
-  }
-  
-  .yohanns-change-password-btn {
-    padding: 5px 10px;
-    font-size: 10px;
+
+  .yohanns-form-fields {
+    gap: 1rem;
   }
 
+  .yohanns-form-field label {
+    font-size: 0.85rem;
+  }
+
+  .yohanns-form-field input {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .yohanns-change-password-btn,
   .yohanns-delete-account-toggle-btn {
-    padding: 5px 10px;
-    font-size: 10px;
+    font-size: 0.65rem !important;
+    padding: 0.3rem 0.6rem !important;
+    min-width: auto !important;
+    width: auto !important;
   }
 
   .yohanns-delete-account-section {
-    margin-top: 1.25rem;
-    padding-top: 0.875rem;
-  }
-
-  .yohanns-delete-account-content {
+    margin-top: 1rem;
     padding: 0.75rem;
   }
 
   .yohanns-delete-account-description {
-    font-size: 0.75rem;
-    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
   }
 
   .yohanns-delete-account-btn {
-    padding: 7px 14px;
-    font-size: 0.8rem;
-    max-width: 100%;
+    font-size: 0.85rem;
+    padding: 0.6rem 1.25rem;
+    width: 100%;
   }
 }
 
-/* Tablet Landscape (769px - 1024px, landscape) - Desktop UI */
-@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
-  /* Uses desktop styles - minimal overrides if needed */
+@media (max-width: 360px) {
   .yohanns-profile-page {
-    padding: 5.5rem 0 2rem 0;
+    padding-top: 70px !important;
   }
-  
-  .yohanns-profile-container {
-    padding: 0 1.5rem;
-  }
-  
+
   .yohanns-profile-content {
-    padding: 1.75rem;
+    padding: 0.75rem;
   }
-  
-  .yohanns-personal-info-section {
-    gap: 2.5rem;
+
+  .yohanns-profile-top-controls {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 100 !important;
+    width: 100% !important;
+    margin-top: 0 !important;
   }
-  
-  .yohanns-profile-picture {
-    width: 180px;
-    height: 180px;
+
+  .yohanns-edit-link {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+    background: none !important;
+    border: none !important;
+    border-radius: 0;
+    color: #4ec9ff !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 101 !important;
+    width: auto !important;
+    min-width: auto !important;
+    text-align: right !important;
+    box-shadow: none !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
-  
-  .yohanns-profile-avatar svg {
+
+  .yohanns-edit-actions {
+    flex-direction: row;
+    width: auto;
+    gap: 0.8rem;
+    justify-content: flex-end;
+  }
+
+  .yohanns-save-btn,
+  .yohanns-cancel-btn {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
+    background: none !important;
+    border: none !important;
+    border-radius: 0;
+    box-shadow: none !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    min-width: auto !important;
+    width: auto !important;
+  }
+
+  .yohanns-save-btn {
+    color: #4ec9ff !important;
+  }
+
+  .yohanns-cancel-btn {
+    color: rgba(191, 209, 225, 0.78) !important;
+  }
+
+  .yohanns-save-btn:hover,
+  .yohanns-cancel-btn:hover {
+    background: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    opacity: 0.8;
+  }
+
+  .yohanns-profile-avatar {
     width: 70px;
     height: 70px;
   }
-}
 
-/* Tablet Portrait (769px - 1024px, portrait) - Mobile UI */
-@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
-  .yohanns-profile-page {
-    padding: 5rem 0 2rem 0;
-  }
-  
-  .yohanns-profile-container {
-    padding: 0 1rem;
-  }
-  
-  .yohanns-profile-title {
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .yohanns-profile-content {
-    margin-top: 90px;
-    margin: 90px 10px 10px 10px;
-    padding: 1.5rem;
-  }
-  
-  .yohanns-personal-info-section {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  
-  .yohanns-profile-picture-section {
-    align-items: center;
-    order: 1;
-  }
-  
-  .yohanns-personal-info-form {
-    order: 2;
-  }
-  
-  .yohanns-form-field {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-  
-  .yohanns-form-field label {
-    min-width: auto;
-    font-weight: 600;
-  }
-  
-  .yohanns-radio-group {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .yohanns-profile-tabs {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  
-  .yohanns-profile-tab {
-    width: 100%;
-    max-width: 300px;
-    padding: 10px 20px;
-    font-size: 13px;
-  }
-  
-  .yohanns-profile-picture {
-    width: 150px;
-    height: 150px;
-  }
-  
   .yohanns-profile-avatar svg {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .yohanns-upload-btn {
-    width: 100%;
-    max-width: 200px;
-    padding: 10px 20px;
-    font-size: 13px;
-  }
-  
-  .yohanns-profile-top-controls {
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
+    width: 35px;
+    height: 35px;
   }
 
   .yohanns-form-header h3 {
-    font-size: 1.3rem;
+    font-size: 1rem;
   }
-  
-  .yohanns-form-field input {
-    padding: 10px 14px;
-    font-size: 13px;
-  }
-}
 
-/* Landscape Mode for Mobile */
-@media (max-height: 500px) and (orientation: landscape) {
-  .yohanns-profile-page {
-    padding: 3rem 0 1rem 0;
+  .yohanns-form-field label {
+    font-size: 0.8rem;
   }
-  
-  .yohanns-profile-content {
-    padding: 1rem;
+
+  .yohanns-form-field input {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.85rem;
   }
-  
-  .yohanns-personal-info-section {
-    gap: 1.5rem;
-  }
-  
-  .yohanns-profile-picture {
-    width: 100px;
-    height: 100px;
-  }
-  
-  .yohanns-profile-avatar svg {
-    width: 40px;
-    height: 40px;
+
+  .yohanns-change-password-btn,
+  .yohanns-delete-account-toggle-btn {
+    font-size: 0.55rem !important;
+    padding: 0.25rem 0.5rem !important;
+    min-width: auto !important;
+    width: auto !important;
   }
 }

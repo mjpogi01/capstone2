@@ -566,6 +566,13 @@ input.chat-input[type="text"] {
     height: 36px;
     padding: 8px;
   }
+
+  .send-btn,
+  .attach-btn {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 8px !important;
+  }
 }
 
 /* Animation for new messages */

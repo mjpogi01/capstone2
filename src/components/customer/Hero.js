@@ -30,13 +30,14 @@ const Hero = () => {
 						Gear Up for Greatness!
 					</h1>
 					<h2 className="hero-subtitle">
-						<span className="highlight">Elevate Your Game</span> With{' '}
-						<span className="highlight">Premium Sportswear!</span>
+						<span className="highlight">Elevate Your Game</span> With <span className="highlight">Premium</span>
+						<br />
+						<span className="highlight">Sportswear!</span>
 					</h2>
 					<p className="hero-description">
-						Yohann's Sportswear House is your one-stop shop for quality sportswear, 
-						custom jerseys, uniforms, and accessories like tote bags, umbrellas, and towels. 
-						Trusted by teams, clubs, and organizations worldwide.
+						Yohann's Sportswear House is your one-stop shop for quality 
+						sportswear, custom jerseys,uniforms, and accessories like tote bags,
+						umbrellas, and towels. Trusted by teams, clubs, and organizations worldwide
 					</p>
 					<div className="hero-buttons">
 						<ProtectedAction

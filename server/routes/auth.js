@@ -7,12 +7,27 @@ const router = express.Router();
 // These routes are kept for backward compatibility but should not be used
 // Frontend should use Supabase Auth directly
 
+// Test endpoint to check reCAPTCHA configuration
+router.get('/verify-recaptcha/test', (req, res) => {
+  const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
+  res.json({
+    configured: !!RECAPTCHA_SECRET_KEY,
+    hasSecretKey: RECAPTCHA_SECRET_KEY ? 'Yes (hidden)' : 'No',
+    message: RECAPTCHA_SECRET_KEY 
+      ? '✅ reCAPTCHA secret key is configured' 
+      : '⚠️ RECAPTCHA_SECRET_KEY is not set in environment variables'
+  });
+});
+
 // reCAPTCHA verification endpoint
 router.post('/verify-recaptcha', async (req, res) => {
   try {
     const { token } = req.body;
 
+    console.log('🔍 reCAPTCHA verification request received');
+
     if (!token) {
+      console.warn('⚠️ reCAPTCHA verification failed: No token provided');
       return res.status(400).json({ 
         success: false,
         error: 'reCAPTCHA token is required' 
@@ -30,6 +45,8 @@ router.post('/verify-recaptcha', async (req, res) => {
       });
     }
 
+    console.log('✅ RECAPTCHA_SECRET_KEY is configured, verifying with Google...');
+
     // Verify the token with Google's reCAPTCHA API
     const verificationUrl = 'https://www.google.com/recaptcha/api/siteverify';
     
@@ -46,6 +63,10 @@ router.post('/verify-recaptcha', async (req, res) => {
 
       if (success) {
         // Token is valid
+        console.log('✅ reCAPTCHA verification successful:', {
+          hostname,
+          challenge_ts
+        });
         return res.json({ 
           success: true,
           challenge_ts,
@@ -53,7 +74,7 @@ router.post('/verify-recaptcha', async (req, res) => {
         });
       } else {
         // Token verification failed
-        console.warn('reCAPTCHA verification failed:', errorCodes);
+        console.warn('❌ reCAPTCHA verification failed:', errorCodes);
         return res.status(400).json({ 
           success: false,
           error: 'reCAPTCHA verification failed',
@@ -61,14 +82,14 @@ router.post('/verify-recaptcha', async (req, res) => {
         });
       }
     } catch (verifyError) {
-      console.error('Error verifying reCAPTCHA with Google:', verifyError.message);
+      console.error('❌ Error verifying reCAPTCHA with Google:', verifyError.message);
       return res.status(500).json({ 
         success: false,
         error: 'Failed to verify reCAPTCHA with Google. Please try again.' 
       });
     }
   } catch (error) {
-    console.error('Error in reCAPTCHA verification endpoint:', error);
+    console.error('❌ Error in reCAPTCHA verification endpoint:', error);
     return res.status(500).json({ 
       success: false,
       error: 'Internal server error during reCAPTCHA verification' 

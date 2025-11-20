@@ -74,7 +74,19 @@ const ProductListModal = ({ isOpen, onClose }) => {
   const { openSignIn } = useModal();
   const { addToCart } = useCart();
   
-  const productsPerPage = 15;
+  // Responsive products per page - reduce for mobile to ensure all products fit
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  const productsPerPage = isMobile ? 10 : 15;
 
   useEffect(() => {
     if (isOpen) {
@@ -389,33 +401,19 @@ const ProductListModal = ({ isOpen, onClose }) => {
                 onClick={() => paginate(currentPage - 1)}
                 disabled={currentPage === 1}
                 aria-label="Previous page"
+                title={`Page ${currentPage - 1} of ${totalPages}`}
               >
                 <FaChevronLeft />
               </button>
-              <span className="page-counter">{currentPage}/{totalPages}</span>
               <button
                 className="page-nav-arrow"
                 onClick={() => paginate(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 aria-label="Next page"
+                title={`Page ${currentPage + 1} of ${totalPages}`}
               >
                 <FaChevronRight />
               </button>
-            </div>
-          </div>
-
-          {/* Mobile Filter Button Row - Only visible on mobile */}
-          <div className="mobile-filter-row">
-            <button 
-              className="mobile-filter-btn"
-              onClick={() => setShowMobileFilters(true)}
-              aria-label="Open filters"
-            >
-              <FaFilter className="filter-icon" />
-              <span>Filters</span>
-            </button>
-            <div className="mobile-results-text">
-              {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
             </div>
           </div>
 
@@ -622,45 +620,60 @@ const ProductListModal = ({ isOpen, onClose }) => {
                   ))}
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination with Page Numbers */}
                 {totalPages > 1 && (
                   <div className="shop-pagination">
                     <button
                       onClick={() => paginate(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="shop-page-btn"
+                      className="shop-page-arrow"
+                      aria-label="Previous page"
+                      title={`Page ${currentPage - 1} of ${totalPages}`}
                     >
-                      Previous
+                      <FaChevronLeft />
                     </button>
-
-                    {[...Array(totalPages)].map((_, index) => {
-                      const pageNumber = index + 1;
-                      if (
-                        pageNumber === 1 ||
-                        pageNumber === totalPages ||
-                        (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                      ) {
-                        return (
+                    
+                    <div className="shop-page-numbers">
+                      {(() => {
+                        // Always show only 3 page numbers
+                        let pagesToShow = [];
+                        
+                        if (totalPages <= 3) {
+                          // If 3 or fewer pages, show all
+                          pagesToShow = Array.from({ length: totalPages }, (_, i) => i + 1);
+                        } else if (currentPage === 1) {
+                          // Show first 3 pages: 1, 2, 3
+                          pagesToShow = [1, 2, 3];
+                        } else if (currentPage === totalPages) {
+                          // Show last 3 pages
+                          pagesToShow = [totalPages - 2, totalPages - 1, totalPages];
+                        } else {
+                          // Show current page and one before/after: current-1, current, current+1
+                          pagesToShow = [currentPage - 1, currentPage, currentPage + 1];
+                        }
+                        
+                        return pagesToShow.map((pageNum) => (
                           <button
-                            key={pageNumber}
-                            onClick={() => paginate(pageNumber)}
-                            className={`shop-page-btn ${currentPage === pageNumber ? 'active' : ''}`}
+                            key={pageNum}
+                            onClick={() => paginate(pageNum)}
+                            className={`shop-page-number ${currentPage === pageNum ? 'active' : ''}`}
+                            aria-label={`Go to page ${pageNum}`}
+                            title={`Page ${pageNum}`}
                           >
-                            {pageNumber}
+                            {pageNum}
                           </button>
-                        );
-                      } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                        return <span key={pageNumber} className="shop-page-dots">...</span>;
-                      }
-                      return null;
-                    })}
-
+                        ));
+                      })()}
+                    </div>
+                    
                     <button
                       onClick={() => paginate(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="shop-page-btn"
+                      className="shop-page-arrow"
+                      aria-label="Next page"
+                      title={`Page ${currentPage + 1} of ${totalPages}`}
                     >
-                      Next
+                      <FaChevronRight />
                     </button>
                   </div>
                 )}

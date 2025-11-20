@@ -10,7 +10,9 @@
  */
 
 // Your computer's local IP address (for mobile testing)
-const COMPUTER_IP = '192.168.254.100';
+// Update this to match your computer's IP on your Wi-Fi network
+// Find it with: ipconfig (look for IPv4 Address under your Wi-Fi adapter)
+const COMPUTER_IP = '172.20.10.3'; // Update this if needed
 
 // Get API URL dynamically - checks window.location at runtime
 // This ensures we always use the correct URL based on where the app is running
