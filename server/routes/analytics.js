@@ -819,7 +819,7 @@ function roundCurrency(value) {
   if (!Number.isFinite(value)) {
     return 0;
   }
-  return Number.parseFloat(value.toFixed(2));
+  return Math.round(value);
 }
 
 function clamp(value, min, max) {
@@ -1334,7 +1334,7 @@ router.get('/dashboard', async (req, res) => {
               month: parseInt(month),
               label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
               date: date.toISOString(),
-              sales: parseFloat(sales.toFixed(2)),
+              sales: Math.round(sales),
               granularity: 'monthly'
             };
           });
@@ -1350,7 +1350,7 @@ router.get('/dashboard', async (req, res) => {
             year,
             label: String(year),
             date: new Date(year, 0, 1).toISOString(),
-            sales: parseFloat(sales.toFixed(2)),
+            sales: Math.round(sales),
             granularity: 'yearly'
           }));
         
@@ -1358,7 +1358,7 @@ router.get('/dashboard', async (req, res) => {
           .sort((a, b) => b[1] - a[1])
           .map(([branch, sales], index) => ({
             branch: branch || 'Unspecified',
-            sales: parseFloat(sales.toFixed(2)),
+            sales: Math.round(sales),
             color: getBranchColor(index)
           }));
         
@@ -1367,7 +1367,7 @@ router.get('/dashboard', async (req, res) => {
             product: group,
             quantity: data.quantity,
             orders: data.orders.size,
-            revenue: parseFloat(data.revenue.toFixed(2))
+            revenue: Math.round(data.revenue)
           }))
           .sort((a, b) => {
             // Sort by quantity, but always put "Other Products" at the end if it exists
@@ -1441,7 +1441,7 @@ router.get('/dashboard', async (req, res) => {
         };
         
         console.log('✅ Analytics data fetched using Supabase client fallback');
-        console.log(`📊 Found ${totalOrders} orders, ${totalCustomers} customers, ${totalRevenue.toFixed(2)} revenue`);
+        console.log(`📊 Found ${totalOrders} orders, ${totalCustomers} customers, ${Math.round(totalRevenue)} revenue`);
         
         return res.json({
           success: true,
@@ -1749,7 +1749,7 @@ router.get('/dashboard', async (req, res) => {
           month,
           label: monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           date: monthDate.toISOString(),
-          sales: parseFloat(sales.toFixed(2)),
+          sales: Math.round(sales),
           granularity: 'monthly'
         };
       })
@@ -1766,7 +1766,7 @@ router.get('/dashboard', async (req, res) => {
         year,
         label: String(year),
         date: new Date(year, 0, 1).toISOString(),
-        sales: parseFloat(sales.toFixed(2)),
+        sales: Math.round(sales),
         granularity: 'yearly'
       }));
 
@@ -1781,7 +1781,7 @@ router.get('/dashboard', async (req, res) => {
       .sort((a, b) => b[1] - a[1])
       .map(([branch, sales], index) => ({
         branch,
-        sales: parseFloat(sales.toFixed(2)),
+        sales: Math.round(sales),
         color: getBranchColor(index)
       }));
 
@@ -1885,7 +1885,7 @@ router.get('/dashboard', async (req, res) => {
             product: group,
             quantity: data.quantity,
             orders: data.orders.size,
-            revenue: parseFloat(data.revenue.toFixed(2))
+            revenue: Math.round(data.revenue)
           }))
           .sort((a, b) => {
             // Sort by quantity, but always put "Other Products" at the end if it exists
@@ -2148,15 +2148,38 @@ router.get('/product-performance', async (req, res) => {
 // Get customer analytics
 router.get('/customer-analytics', async (req, res) => {
   try {
-    const { data: orders, error } = await supabase
-      .from('orders')
-      .select('*')
-      .neq('status', 'cancelled');
- 
-    if (error) throw error;
+    // Fetch ALL orders (paginated to avoid Supabase default limit of 1000 rows)
+    let allOrders = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .neq('status', 'cancelled')
+        .neq('status', 'canceled')
+        .range(from, to);
+
+      if (error) throw error;
+
+      if (orders && orders.length > 0) {
+        allOrders = allOrders.concat(orders);
+        hasMore = orders.length === pageSize;
+        page++;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    console.log(`📊 Fetched ${allOrders.length} orders for customer analytics (paginated across ${page} pages)`);
 
     const branchContext = await resolveBranchContext(req.user);
-    const scopedOrders = filterOrdersByBranch(orders, branchContext);
+    const scopedOrders = filterOrdersByBranch(allOrders, branchContext);
  
     const startOfCurrentMonth = new Date();
     startOfCurrentMonth.setDate(1);
@@ -2167,14 +2190,16 @@ router.get('/customer-analytics', async (req, res) => {
       return Number.isFinite(createdAt.getTime()) && createdAt < startOfCurrentMonth;
     });
  
-    const thirtyDaysAgo = new Date(startOfCurrentMonth);
+    const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Calculate customer statistics
+    // Calculate customer statistics from ALL orders (not just excluding current month)
+    // This ensures we count all customers who have ever placed an order
     const customerStats = {};
     let newCustomers = new Set();
 
-    ordersExcludingCurrentMonth.forEach(order => {
+    // Process ALL orders to get accurate total customer count
+    scopedOrders.forEach(order => {
       const userId = order.user_id;
       if (!customerStats[userId]) {
         customerStats[userId] = {
@@ -2182,7 +2207,8 @@ router.get('/customer-analytics', async (req, res) => {
           totalSpent: 0,
           lastOrderDate: null,
           name: null,
-          email: null
+          email: null,
+          firstOrderDate: null
         };
       }
       
@@ -2193,8 +2219,12 @@ router.get('/customer-analytics', async (req, res) => {
       if (!customerStats[userId].lastOrderDate || orderDate > customerStats[userId].lastOrderDate) {
         customerStats[userId].lastOrderDate = orderDate;
       }
+      if (!customerStats[userId].firstOrderDate || orderDate < customerStats[userId].firstOrderDate) {
+        customerStats[userId].firstOrderDate = orderDate;
+      }
       
-      if (orderDate >= thirtyDaysAgo) {
+      // Check if customer is "new" (first order within last 30 days)
+      if (customerStats[userId].firstOrderDate && customerStats[userId].firstOrderDate >= thirtyDaysAgo) {
         newCustomers.add(userId);
       }
 
@@ -2209,6 +2239,7 @@ router.get('/customer-analytics', async (req, res) => {
       }
     });
 
+    // Total customers includes ALL customers who have placed orders (including current month)
     const totalCustomers = Object.keys(customerStats).length;
     const avgOrdersPerCustomer = totalCustomers > 0 
       ? Object.values(customerStats).reduce((sum, c) => sum + c.orderCount, 0) / totalCustomers 
@@ -2237,7 +2268,7 @@ router.get('/customer-analytics', async (req, res) => {
           totalCustomers,
           newCustomers: newCustomers.size,
           avgOrdersPerCustomer: parseFloat(avgOrdersPerCustomer.toFixed(2)),
-          avgSpentPerCustomer: parseFloat(avgSpentPerCustomer.toFixed(2))
+          avgSpentPerCustomer: Math.round(avgSpentPerCustomer)
         },
         topCustomers
       }
@@ -2712,10 +2743,10 @@ router.get('/geographic-distribution', async (req, res) => {
         return {
           location: city,
           orders: data.orders,
-          revenue: parseFloat(data.revenue.toFixed(2)),
+          revenue: Math.round(data.revenue),
           customers: data.customers.size,
           percentage: totalOrders > 0 ? parseFloat(((data.orders / totalOrders) * 100).toFixed(1)) : 0,
-          avgOrderValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0,
+          avgOrderValue: data.orders > 0 ? Math.round(data.revenue / data.orders) : 0,
           topProducts
         };
       })

@@ -311,6 +311,21 @@ async function enrichTopCustomerRows(rows = []) {
 
 async function getChartDataset(chartId, filters = {}, options = {}) {
   const normalizedFilters = normalizeFilters(filters);
+  
+  // Automatically apply branch filtering for admins (like /customer-analytics does)
+  if (options.user) {
+    const branchContext = await resolveBranchContextAnalytics(options.user);
+    if (branchContext) {
+      // Admin user - add branch filtering to filters
+      if (branchContext.branchId) {
+        normalizedFilters.branchId = branchContext.branchId;
+      }
+      if (branchContext.branchName) {
+        normalizedFilters.branchName = branchContext.branchName;
+      }
+    }
+  }
+  
   const where = buildWhereClause(normalizedFilters);
 
   switch (chartId) {
@@ -396,23 +411,100 @@ async function getChartDataset(chartId, filters = {}, options = {}) {
       return { sql, rows: formattedRows };
     }
     case 'topProducts': {
-      // First, get all product groups without limit to find "Other Products"
+      // Match the determineProductGroup logic from analytics.js
+      // This ensures consistency between regular analytics and AI analytics
       const allProductsSql = `
         WITH expanded AS (
           SELECT
             CASE
-              WHEN LOWER(item.value->>'category') LIKE '%basketball%' OR LOWER(item.value->>'name') LIKE '%basketball%' THEN 'Basketball Jerseys'
-              WHEN LOWER(item.value->>'category') LIKE '%volleyball%' OR LOWER(item.value->>'name') LIKE '%volleyball%' THEN 'Volleyball Jerseys'
-              WHEN LOWER(item.value->>'category') LIKE '%hoodie%' OR LOWER(item.value->>'name') LIKE '%hoodie%' THEN 'Hoodies'
-              WHEN LOWER(item.value->>'category') LIKE '%uniform%' OR LOWER(item.value->>'name') LIKE '%uniform%' THEN 'Uniforms'
-              WHEN LOWER(item.value->>'category') LIKE '%jersey%' OR LOWER(item.value->>'name') LIKE '%jersey%' THEN 'Custom Jerseys'
-              WHEN LOWER(item.value->>'category') LIKE 'ball%' OR LOWER(item.value->>'name') LIKE '%ball%' THEN 'Sports Balls'
-              WHEN LOWER(item.value->>'category') LIKE 'troph%' OR LOWER(item.value->>'name') LIKE '%trophy%' THEN 'Trophies'
-              WHEN LOWER(item.value->>'category') LIKE 'medal%' OR LOWER(item.value->>'name') LIKE '%medal%' THEN 'Medals'
-              ELSE 'Other Products'
+              -- Check apparel_type first (for custom design orders)
+              WHEN LOWER(COALESCE(item.value->>'apparel_type', '')) = 'basketball_jersey' THEN 'Basketball Jerseys'
+              WHEN LOWER(COALESCE(item.value->>'apparel_type', '')) = 'volleyball_jersey' THEN 'Volleyball Jerseys'
+              WHEN LOWER(COALESCE(item.value->>'apparel_type', '')) = 'hoodie' THEN 'Hoodies'
+              WHEN LOWER(COALESCE(item.value->>'apparel_type', '')) = 'tshirt' THEN 'T-shirts'
+              WHEN LOWER(COALESCE(item.value->>'apparel_type', '')) = 'longsleeves' THEN 'Long Sleeves'
+              WHEN LOWER(COALESCE(item.value->>'apparel_type', '')) = 'uniforms' THEN 'Uniforms'
+              
+              -- Check for T-shirts (handle various formats)
+              WHEN LOWER(COALESCE(item.value->>'category', '')) LIKE '%t-shirt%' OR LOWER(COALESCE(item.value->>'category', '')) LIKE '%tshirt%' THEN 'T-shirts'
+              WHEN LOWER(COALESCE(item.value->>'name', '')) LIKE '%t-shirt%' OR LOWER(COALESCE(item.value->>'name', '')) LIKE '%tshirt%' THEN 'T-shirts'
+              WHEN LOWER(COALESCE(item.value->>'cut_type', '')) LIKE '%t-shirt%' THEN 'T-shirts'
+              WHEN LOWER(COALESCE(item.value->>'fabric_option', '')) LIKE '%t-shirt%' THEN 'T-shirts'
+              
+              -- Check for Long Sleeves
+              WHEN LOWER(COALESCE(item.value->>'category', '')) LIKE '%long sleeve%' OR LOWER(COALESCE(item.value->>'category', '')) LIKE '%longsleeve%' THEN 'Long Sleeves'
+              WHEN LOWER(COALESCE(item.value->>'name', '')) LIKE '%long sleeve%' OR LOWER(COALESCE(item.value->>'name', '')) LIKE '%longsleeve%' THEN 'Long Sleeves'
+              WHEN LOWER(COALESCE(item.value->>'cut_type', '')) LIKE '%long sleeve%' THEN 'Long Sleeves'
+              WHEN LOWER(COALESCE(item.value->>'fabric_option', '')) LIKE '%long sleeve%' THEN 'Long Sleeves'
+              
+              -- Check for Uniforms
+              WHEN LOWER(COALESCE(item.value->>'category', '')) LIKE '%uniform%' THEN 'Uniforms'
+              WHEN LOWER(COALESCE(item.value->>'name', '')) LIKE '%uniform%' THEN 'Uniforms'
+              WHEN LOWER(COALESCE(item.value->>'cut_type', '')) LIKE '%uniform%' THEN 'Uniforms'
+              WHEN LOWER(COALESCE(item.value->>'fabric_option', '')) LIKE '%uniform%' THEN 'Uniforms'
+              
+              -- Check for Hoodies
+              WHEN LOWER(COALESCE(item.value->>'category', '')) LIKE '%hoodie%' THEN 'Hoodies'
+              WHEN LOWER(COALESCE(item.value->>'name', '')) LIKE '%hoodie%' THEN 'Hoodies'
+              
+              -- For jersey category, check sport field and other fields to differentiate basketball vs volleyball
+              WHEN LOWER(COALESCE(item.value->>'category', '')) = 'jerseys' OR LOWER(COALESCE(item.value->>'category', '')) = 'jersey' THEN
+                CASE
+                  WHEN LOWER(COALESCE(item.value->>'sport', '')) = 'basketball' OR 
+                       LOWER(COALESCE(item.value->>'name', '')) LIKE '%basketball%' OR
+                       LOWER(COALESCE(item.value->>'cut_type', '')) LIKE '%basketball%' OR
+                       LOWER(COALESCE(item.value->>'fabric_option', '')) LIKE '%basketball%' THEN 'Basketball Jerseys'
+                  WHEN LOWER(COALESCE(item.value->>'sport', '')) = 'volleyball' OR 
+                       LOWER(COALESCE(item.value->>'name', '')) LIKE '%volleyball%' OR
+                       LOWER(COALESCE(item.value->>'cut_type', '')) LIKE '%volleyball%' OR
+                       LOWER(COALESCE(item.value->>'fabric_option', '')) LIKE '%volleyball%' THEN 'Volleyball Jerseys'
+                  ELSE 'Custom Jerseys'
+                END
+              
+              -- Check combined text for basketball/volleyball (check all fields)
+              WHEN LOWER(CONCAT(
+                COALESCE(item.value->>'category', ''), ' ',
+                COALESCE(item.value->>'name', ''), ' ',
+                COALESCE(item.value->>'cut_type', ''), ' ',
+                COALESCE(item.value->>'fabric_option', ''), ' ',
+                COALESCE(item.value->>'sport', '')
+              )) LIKE '%basketball%' THEN 'Basketball Jerseys'
+              
+              WHEN LOWER(CONCAT(
+                COALESCE(item.value->>'category', ''), ' ',
+                COALESCE(item.value->>'name', ''), ' ',
+                COALESCE(item.value->>'cut_type', ''), ' ',
+                COALESCE(item.value->>'fabric_option', ''), ' ',
+                COALESCE(item.value->>'sport', '')
+              )) LIKE '%volleyball%' THEN 'Volleyball Jerseys'
+              
+              -- Check for jersey (generic)
+              WHEN LOWER(COALESCE(item.value->>'category', '')) LIKE '%jersey%' OR LOWER(COALESCE(item.value->>'name', '')) LIKE '%jersey%' THEN 'Custom Jerseys'
+              
+              -- Check for Sports Balls
+              WHEN LOWER(COALESCE(item.value->>'category', '')) LIKE 'ball%' OR LOWER(COALESCE(item.value->>'name', '')) LIKE '%ball%' THEN 'Sports Balls'
+              
+              -- Check for Trophies
+              WHEN LOWER(COALESCE(item.value->>'category', '')) LIKE 'troph%' OR LOWER(COALESCE(item.value->>'name', '')) LIKE '%trophy%' THEN 'Trophies'
+              
+              -- Check for Medals
+              WHEN LOWER(COALESCE(item.value->>'category', '')) LIKE 'medal%' OR LOWER(COALESCE(item.value->>'name', '')) LIKE '%medal%' THEN 'Medals'
+              
+              -- If none match, still categorize as a known group rather than "Other Products"
+              -- This ensures all products are properly categorized
+              ELSE 'Custom Jerseys'
             END AS product_group,
             (item.value->>'quantity')::numeric AS quantity,
-            (item.value->>'price')::numeric AS unit_price,
+            COALESCE(
+              (item.value->>'price')::numeric,
+              (item.value->>'pricePerUnit')::numeric,
+              CASE 
+                WHEN (item.value->>'quantity')::numeric > 0 
+                THEN (item.value->>'totalPrice')::numeric / (item.value->>'quantity')::numeric
+                ELSE 0
+              END,
+              0
+            ) AS unit_price,
             o.id AS order_id
           FROM orders o
           CROSS JOIN LATERAL jsonb_array_elements(o.order_items) AS item(value)
@@ -424,62 +516,188 @@ async function getChartDataset(chartId, filters = {}, options = {}) {
           SUM(quantity * unit_price)::numeric AS total_revenue,
           COUNT(DISTINCT order_id)::int AS order_count
         FROM expanded
+        WHERE product_group IS NOT NULL
         GROUP BY product_group
-        ORDER BY total_quantity DESC;
+        ORDER BY total_quantity DESC
+        LIMIT 10;
       `;
       const { rows: allRows } = await executeSql(allProductsSql, where.params);
       
-      // Find "Other Products" if it exists
-      const otherProducts = allRows.find(row => row.product_group === 'Other Products');
-      const otherProductsFormatted = otherProducts ? {
-        product_group: otherProducts.product_group,
-        total_quantity: coerceNumber(otherProducts.total_quantity),
-        total_revenue: coerceNumber(otherProducts.total_revenue),
-        order_count: coerceNumber(otherProducts.order_count)
-      } : null;
+      // Format the rows (no need to handle "Other Products" anymore)
+      const formattedRows = allRows.map((row) => ({
+        product_group: row.product_group,
+        total_quantity: coerceNumber(row.total_quantity),
+        total_revenue: coerceNumber(row.total_revenue),
+        order_count: coerceNumber(row.order_count)
+      }));
       
-      // Get top 6 (excluding "Other Products" if it exists)
-      const top6 = allRows
-        .filter(row => row.product_group !== 'Other Products')
-        .slice(0, 6)
-        .map((row) => ({
-          product_group: row.product_group,
-          total_quantity: coerceNumber(row.total_quantity),
-          total_revenue: coerceNumber(row.total_revenue),
-          order_count: coerceNumber(row.order_count)
+      return { sql: allProductsSql, rows: formattedRows };
+    }
+    case 'productStocks': {
+      // Get product stock levels for on-hand products (balls, trophies, medals)
+      // Use COALESCE for optional columns that might not exist
+      const productStocksSql = `
+        SELECT
+          p.name AS product_name,
+          p.category,
+          COALESCE(p.stock_quantity, 0)::numeric AS stock_quantity,
+          COALESCE(b.name, 'Unspecified') AS branch_name,
+          COALESCE(p.reorder_level, 10)::numeric AS reorder_level,
+          p.last_restocked
+        FROM products p
+        LEFT JOIN branches b ON p.branch_id = b.id
+        WHERE p.stock_quantity IS NOT NULL
+          AND LOWER(COALESCE(p.category, '')) IN ('balls', 'trophies', 'medals')
+        ORDER BY p.stock_quantity DESC, p.name ASC
+        LIMIT 50;
+      `;
+      try {
+        const { rows } = await executeSql(productStocksSql, []);
+        const formattedRows = rows.map((row) => ({
+          product_name: row.product_name || 'Unknown',
+          category: row.category || 'Unknown',
+          stock_quantity: coerceNumber(row.stock_quantity) || 0,
+          branch_name: row.branch_name || 'Unspecified',
+          reorder_level: coerceNumber(row.reorder_level) || 10,
+          last_restocked: row.last_restocked ? coerceDate(row.last_restocked) : null
         }));
-      
-      // Always include "Other Products" at the end if it exists and has data
-      const formattedRows = [...top6];
-      if (otherProductsFormatted && (otherProductsFormatted.total_quantity > 0 || otherProductsFormatted.order_count > 0)) {
-        formattedRows.push(otherProductsFormatted);
+        return { sql: productStocksSql, rows: formattedRows };
+      } catch (error) {
+        console.error('Error fetching product stocks:', error);
+        // If columns don't exist, try a simpler query without optional columns
+        const simpleProductStocksSql = `
+          SELECT
+            p.name AS product_name,
+            p.category,
+            COALESCE(p.stock_quantity, 0)::numeric AS stock_quantity,
+            COALESCE(b.name, 'Unspecified') AS branch_name
+          FROM products p
+          LEFT JOIN branches b ON p.branch_id = b.id
+          WHERE p.stock_quantity IS NOT NULL
+            AND LOWER(COALESCE(p.category, '')) IN ('balls', 'trophies', 'medals')
+          ORDER BY p.stock_quantity DESC, p.name ASC
+          LIMIT 50;
+        `;
+        const { rows } = await executeSql(simpleProductStocksSql, []);
+        const formattedRows = rows.map((row) => ({
+          product_name: row.product_name || 'Unknown',
+          category: row.category || 'Unknown',
+          stock_quantity: coerceNumber(row.stock_quantity) || 0,
+          branch_name: row.branch_name || 'Unspecified',
+          reorder_level: 10,
+          last_restocked: null
+        }));
+        return { sql: simpleProductStocksSql, rows: formattedRows };
       }
-      
-      const sql = allProductsSql.replace(';', ' LIMIT 7;');
-      return { sql, rows: formattedRows };
     }
     case 'topCustomers': {
-      const sql = `
+      // For customer insights, we need to process ALL orders (including current month)
+      // to get accurate customer counts, but still exclude cancelled orders
+      // Remove the current month exclusion from where clause for customer counting
+      let customerWhereClause = where.clause;
+      let customerParams = [...where.params];
+      
+      // Remove current month exclusion for customer counting
+      customerWhereClause = customerWhereClause.replace(/\s+AND\s+created_at < date_trunc\('month', CURRENT_TIMESTAMP\)/gi, '');
+      customerWhereClause = customerWhereClause.replace(/created_at < date_trunc\('month', CURRENT_TIMESTAMP\)\s+AND\s+/gi, '');
+      customerWhereClause = customerWhereClause.trim();
+      
+      // Ensure cancelled orders are excluded
+      if (!customerWhereClause.includes('cancelled') && !customerWhereClause.includes('canceled')) {
+        if (customerWhereClause && customerWhereClause.startsWith('WHERE')) {
+          customerWhereClause += " AND LOWER(status) NOT IN ('cancelled', 'canceled')";
+        } else {
+          customerWhereClause = "WHERE LOWER(status) NOT IN ('cancelled', 'canceled')";
+        }
+      }
+      
+      // Get top customers query
+      const topCustomersSql = `
         SELECT
           user_id,
           COUNT(*)::int AS order_count,
           SUM(total_amount)::numeric AS total_spent,
-          MAX(created_at) AS last_order
+          MAX(created_at) AS last_order,
+          MIN(created_at) AS first_order
         FROM orders
-        ${where.clause}
+        ${customerWhereClause}
         GROUP BY user_id
         ORDER BY total_spent DESC
         LIMIT 10;
       `;
-      const { rows } = await executeSql(sql, where.params);
-      const formattedRows = rows.map((row) => ({
+      
+      // Get total customers count
+      const totalCustomersSql = `
+        SELECT COUNT(DISTINCT user_id)::int AS total_customers
+        FROM orders
+        ${customerWhereClause}
+      `;
+      
+      // Get new customers count (first order within last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const newCustomersParams = [...customerParams, thirtyDaysAgo.toISOString()];
+      const newCustomersSql = `
+        WITH customer_first_orders AS (
+          SELECT user_id, MIN(created_at) AS first_order_date
+          FROM orders
+          ${customerWhereClause}
+          GROUP BY user_id
+        )
+        SELECT COUNT(*)::int AS new_customers
+        FROM customer_first_orders
+        WHERE first_order_date >= $${newCustomersParams.length}
+      `;
+      
+      // Get total orders and revenue for average calculations
+      const allCustomersMetricsSql = `
+        SELECT
+          COUNT(DISTINCT user_id)::int AS total_customers,
+          COUNT(*)::int AS total_orders,
+          SUM(total_amount)::numeric AS total_revenue
+        FROM orders
+        ${customerWhereClause}
+      `;
+      
+      const [topCustomersResult, totalCustomersResult, newCustomersResult, allCustomersMetricsResult] = await Promise.all([
+        executeSql(topCustomersSql, customerParams),
+        executeSql(totalCustomersSql, customerParams),
+        executeSql(newCustomersSql, newCustomersParams),
+        executeSql(allCustomersMetricsSql, customerParams)
+      ]);
+      
+      const allCustomersMetrics = allCustomersMetricsResult?.rows?.[0] || {};
+      const totalCustomers = coerceNumber(allCustomersMetrics.total_customers) || 0;
+      const newCustomers = coerceNumber(newCustomersResult?.rows?.[0]?.new_customers) || 0;
+      const totalOrders = coerceNumber(allCustomersMetrics.total_orders) || 0;
+      const totalRevenue = coerceNumber(allCustomersMetrics.total_revenue) || 0;
+      
+      const avgOrdersPerCustomer = totalCustomers > 0 ? totalOrders / totalCustomers : 0;
+      const avgSpentPerCustomer = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
+      
+      const formattedRows = topCustomersResult.rows.map((row) => ({
         user_id: row.user_id,
         order_count: coerceNumber(row.order_count),
         total_spent: coerceNumber(row.total_spent),
-        last_order: coerceDate(row.last_order)
+        last_order: coerceDate(row.last_order),
+        first_order: coerceDate(row.first_order)
       }));
+      
       const enrichedRows = await enrichTopCustomerRows(formattedRows);
-      return { sql, rows: enrichedRows };
+      
+      // Add summary metadata
+      return {
+        sql: topCustomersSql,
+        rows: enrichedRows,
+        metadata: {
+          summary: {
+            totalCustomers,
+            newCustomers,
+            avgOrdersPerCustomer: parseFloat(avgOrdersPerCustomer.toFixed(2)),
+            avgSpentPerCustomer: Math.round(avgSpentPerCustomer)
+          }
+        }
+      };
     }
     case 'customerLocations': {
       // Use user_addresses as primary source, join with orders for order statistics
@@ -562,7 +780,9 @@ async function getChartDataset(chartId, filters = {}, options = {}) {
           historical: forecastData.historical || [],
           summary: forecastData.summary || null,
           model: forecastData.model || null,
-          range: forecastData.range || options.range || 'restOfYear'
+          trainingWindow: forecastData.trainingWindow || null,
+          range: forecastData.range || options.range || 'restOfYear',
+          rangeLabel: forecastData.rangeLabel || null
         }
       };
     }
@@ -600,6 +820,10 @@ function buildForecastMetadataMessage(metadata = {}, chartData = {}) {
     return null;
   }
 
+  const modelInfo = metadata.model || chartData.model || {};
+  const modelType = modelInfo.type || metadata.modelType || chartData.modelType || 'unknown';
+  const trainingWindow = metadata.trainingWindow || chartData.trainingWindow || {};
+  
   const rangeLabel = SALES_FORECAST_RANGE_LABELS?.[summary.range] || metadata.rangeLabel || summary.range || 'selected range';
   const lines = [
     `Sales forecast summary for ${rangeLabel}:`,
@@ -607,26 +831,90 @@ function buildForecastMetadataMessage(metadata = {}, chartData = {}) {
     `- Projected orders: ${summary.projectedOrders ?? 'n/a'}`,
     `- Baseline revenue: ${formatPeso(summary.baselineRevenue)}`,
     `- Expected growth vs baseline: ${summary.expectedGrowthRate != null ? `${summary.expectedGrowthRate}%` : 'n/a'}`,
-    `- Confidence: ${summary.confidence != null ? `${summary.confidence}%` : 'n/a'}`
+    `- Confidence: ${summary.confidence != null ? `${summary.confidence}%` : 'n/a'}`,
+    '',
+    '**Predictive Model Used:**'
   ];
 
-  if (metadata.model?.type || metadata.modelType || chartData.model?.type) {
-    const modelInfo = metadata.model?.type || metadata.modelType || chartData.model?.type;
-    lines.push(`- Model: ${modelInfo}`);
+  // Add detailed model explanation
+  if (modelType === 'weighted_fourier_regression') {
+    lines.push(
+      'The sales forecast uses a **Weighted Fourier Regression** model, a time series forecasting method specifically designed to capture seasonal patterns and trends in revenue data.',
+      '',
+      '**How the Model Works:**',
+      '1. **Seasonal Pattern Detection**: The model uses Fourier series (sine and cosine harmonics) to identify recurring yearly patterns in sales. It employs 6 harmonic pairs to capture complex seasonal variations throughout the year.',
+      '2. **Recency Weighting**: Recent months receive higher weights (decay factor: 0.55) to emphasize current trends, while older data still contributes (minimum weight: 0.35) to maintain long-term pattern recognition.',
+      '3. **Log-Transform**: Revenue values are log-transformed (log(revenue + 1)) to stabilize variance and ensure all predictions remain positive, which is more suitable for revenue forecasting than linear models.',
+      '4. **Regression Analysis**: A weighted linear regression is performed on the Fourier features to learn the relationship between time patterns and revenue, with Ridge regularization to prevent overfitting.',
+      '5. **Forecast Generation**: The model projects future revenue by extending the learned seasonal patterns and trends forward in time, with confidence scores that decrease as the forecast horizon extends.',
+      '',
+      '**Model Parameters:**',
+      `- Harmonics (seasonal components): ${modelInfo.harmonics ?? 6}`,
+      `- Recency decay factor: ${modelInfo.recencyDecay ?? 0.55} (lower values emphasize recent data more)`,
+      `- Minimum weight: ${modelInfo.minWeight ?? 0.35} (prevents old data from being completely ignored)`,
+      `- Season length: 12 months (yearly cycle)`
+    );
+  } else if (modelType === 'seasonal_naive') {
+    lines.push(
+      'The sales forecast uses a **Seasonal Naïve** model as a fallback when insufficient data is available for regression analysis.',
+      '',
+      '**How the Model Works:**',
+      'This method projects future revenue by mirroring the same months from the previous year. For example, January 2025 would use January 2024\'s revenue. This is a simple but effective approach when historical patterns are the best predictor available.'
+    );
+  } else {
+    lines.push(`Model type: ${modelType}`);
   }
 
-  const trainingMape = typeof metadata.trainingMape === 'number'
-    ? metadata.trainingMape
-    : typeof chartData.trainingMape === 'number'
-      ? chartData.trainingMape
-      : null;
+  // Add training information
+  if (trainingWindow.start || trainingWindow.end) {
+    const startDate = trainingWindow.start ? new Date(trainingWindow.start).toISOString().slice(0, 7) : 'N/A';
+    const endDate = trainingWindow.end ? new Date(trainingWindow.end).toISOString().slice(0, 7) : 'N/A';
+    lines.push(
+      '',
+      '**Training Window:**',
+      `- Start: ${startDate}`,
+      `- End: ${endDate}`,
+      `- The model was trained on historical monthly revenue data from ${startDate} to ${endDate}.`
+    );
+  }
+
+  // Add model performance metrics
+  const trainingMape = typeof modelInfo.trainingMape === 'number'
+    ? modelInfo.trainingMape
+    : typeof metadata.trainingMape === 'number'
+      ? metadata.trainingMape
+      : typeof chartData.trainingMape === 'number'
+        ? chartData.trainingMape
+        : null;
   if (trainingMape !== null) {
-    lines.push(`- Training MAPE: ${trainingMape.toFixed(2)}%`);
+    lines.push(
+      '',
+      '**Model Performance:**',
+      `- Training MAPE (Mean Absolute Percentage Error): ${trainingMape.toFixed(2)}%`,
+      '  (Lower MAPE indicates better accuracy; this represents the average percentage error on historical data)'
+    );
   }
 
-  if (metadata.fallbackUsed || chartData.fallbackUsed) {
-    lines.push('- Note: Seasonal naïve fallback used due to insufficient data for regression.');
+  if (modelInfo.fallbackUsed || metadata.fallbackUsed || chartData.fallbackUsed) {
+    lines.push(
+      '',
+      '**Note:** Seasonal naïve fallback was used due to insufficient data for regression analysis. This means the forecast is based on repeating last year\'s pattern rather than the weighted Fourier regression model.'
+    );
   }
+
+  // Add usage instructions
+  lines.push(
+    '',
+    '**Using the Forecast:**',
+    'The forecast provides projected revenue and order counts for the selected time period. Use these projections to:',
+    '- Plan inventory and production capacity',
+    '- Set revenue targets and budget allocation',
+    '- Identify seasonal opportunities and prepare for peak periods',
+    '- Monitor actual performance against projections to assess accuracy',
+    '',
+    '**Confidence Scores:**',
+    'Each forecast month includes a confidence percentage (45-95%) that reflects the model\'s certainty. Higher confidence indicates more reliable projections based on consistent historical patterns.'
+  );
 
   return lines.join('\n');
 }
@@ -689,6 +977,14 @@ router.post('/analytics', async (req, res, next) => {
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
+      });
+    }
+
+    // Check if GROQ_API_KEY is configured
+    if (!groqConfigured) {
+      return res.status(503).json({
+        success: false,
+        error: 'AI analytics service is not available. GROQ_API_KEY is not configured. Please contact the administrator.'
       });
     }
 
@@ -805,11 +1101,14 @@ router.post('/analytics', async (req, res, next) => {
       'Unless the user explicitly requests cancelled orders, treat them as excluded from revenue and order counts (status values "cancelled" / "canceled"); do not sum their total_amount.',
       'If the user specifically asks about cancelled orders, centre the analysis on cancellation metrics (counts, rates, branch comparisons) and avoid mixing in unrelated revenue totals unless the user also asks for them.',
       'Branch information is stored in orders.pickup_location (text); there is no branch_id column in orders. Use pickup_location (or join to the branches table by name) when aggregating by branch.',
-      'When analyzing top product groups, use the standardized categories returned by the dataset (Basketball Jerseys, Volleyball Jerseys, Hoodies, Uniforms, Custom Jerseys, Sports Balls, Trophies, Medals, Other Products) and discuss them explicitly rather than inventing new groupings.',
+      'When analyzing top product groups, use the standardized categories returned by the dataset (Basketball Jerseys, Volleyball Jerseys, Hoodies, Uniforms, T-shirts, Long Sleeves, Custom Jerseys, Sports Balls, Trophies, Medals) and discuss them explicitly rather than inventing new groupings.',
+      'When analyzing product stocks, focus on on-hand inventory items (balls, trophies, medals) that have stock_quantity. Identify low stock levels, products that may need restocking, stock distribution across branches, and provide actionable inventory management recommendations. Products with stock_quantity at or below reorder_level should be flagged as needing attention.',
       'The business operates in the Philippines; refer to seasons as dry or rainy and never mention winter.',
+      'ALWAYS use Philippine Peso (PHP) currency format when mentioning monetary amounts. Use the ₱ symbol (not $) and format amounts as ₱X,XXX or ₱X,XXX.XX (e.g., ₱1,234.56 or ₱50,000). Never use dollar signs ($) or USD. All revenue, prices, and monetary values are in Philippine Pesos.',
       'If the available dataset does not contain the information needed to answer the user question, you MUST respond by proposing a SAFE SELECT query wrapped in <SQL>...</SQL> and wait for the query result before providing conclusions. Do not just suggest a query - actually provide it wrapped in <SQL>...</SQL>.',
       'Location-based questions (province, city, address) require querying user_addresses table and/or orders.delivery_address JSONB field. If the current dataset does not contain location data, generate SQL to fetch it.',
       'If a question cannot be answered with the provided data, generate the appropriate SQL query to fetch the needed data.',
+      'When analyzing sales forecasts, always include a brief explanation of the predictive model used (Weighted Fourier Regression or Seasonal Naïve) and how it works, as well as the model\'s confidence scores and training performance metrics. This helps users understand the reliability and methodology behind the projections.',
       'Respond using markdown formatting only.'
     ].join(' ');
 
@@ -823,6 +1122,8 @@ router.post('/analytics', async (req, res, next) => {
         role: 'system',
         content: buildContextMessage(chartId, normalizedFilters, dataset.sql, dataset.rows)
       });
+      
+      // Add forecast metadata for sales forecast
       if (chartId === 'salesForecast') {
         const metadataMessage = buildForecastMetadataMessage(dataset.metadata || {}, chartData || {});
         if (metadataMessage) {
@@ -831,6 +1132,23 @@ router.post('/analytics', async (req, res, next) => {
             content: metadataMessage
           });
         }
+      }
+      
+      // Add customer insights summary metadata
+      if (chartId === 'topCustomers' && dataset.metadata?.summary) {
+        const summary = dataset.metadata.summary;
+        const customerInsightsMessage = [
+          'Customer Insights Summary:',
+          `- Total Customers: ${summary.totalCustomers}`,
+          `- New Customers (last 30 days): ${summary.newCustomers}`,
+          `- Average Orders per Customer: ${summary.avgOrdersPerCustomer.toFixed(2)}`,
+          `- Average Spent per Customer: ${formatPeso(Math.round(summary.avgSpentPerCustomer))}`
+        ].join('\n');
+        
+        conversation.push({
+          role: 'system',
+          content: customerInsightsMessage
+        });
       }
     } else {
       conversation.push({

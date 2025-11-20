@@ -59,7 +59,7 @@ const EmailConfirmModal = ({ subscriberCount, formData, sending, onConfirm, onCa
           >
             {sending ? (
               <>
-                <FaSpinner className="spinner" />
+                <FaSpinner className="email-marketing-spinner" />
                 Sending...
               </>
             ) : (
@@ -219,13 +219,42 @@ const EmailMarketing = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.message) {
-      showError('Validation Error', 'Title and message are required');
-      return;
+    // Collect all missing required fields
+    const missingFields = [];
+    
+    if (!formData.title || !formData.title.trim()) {
+      missingFields.push('Email Title');
     }
-
-    if (formData.discountType !== 'none' && !formData.discountValue) {
-      showError('Validation Error', 'Please enter a discount value');
+    
+    if (!formData.message || !formData.message.trim()) {
+      missingFields.push('Email Message');
+    }
+    
+    if (!formData.logoUrl || !formData.logoUrl.trim()) {
+      missingFields.push('Logo URL');
+    }
+    
+    // Check discount fields if discount type is selected
+    if (formData.discountType !== 'none') {
+      if (!formData.discountValue || !formData.discountValue.toString().trim()) {
+        missingFields.push('Discount Value');
+      }
+    }
+    
+    // If there are missing fields, show detailed error
+    if (missingFields.length > 0) {
+      const fieldsList = missingFields.map((field, index) => {
+        if (index === missingFields.length - 1 && missingFields.length > 1) {
+          return `and ${field}`;
+        }
+        return field;
+      }).join(missingFields.length > 2 ? ', ' : missingFields.length === 2 ? ' ' : '');
+      
+      const errorMessage = missingFields.length === 1
+        ? `Please fill up the following required field: ${fieldsList}`
+        : `Please fill up the following required fields: ${fieldsList}`;
+      
+      showError('Incomplete Form', errorMessage);
       return;
     }
 
@@ -437,34 +466,34 @@ const EmailMarketing = () => {
     <div className="email-marketing-container">
       <div className="email-marketing-header">
         <h2>
-          <FaEnvelope className="header-icon" />
+          <FaEnvelope className="email-marketing-header-icon" />
           Email Marketing
         </h2>
         <div 
           ref={subscriberInfoRef}
-          className={`subscriber-info ${countUpdating ? 'updating' : ''}`}
+          className={`email-marketing-subscriber-info ${countUpdating ? 'updating' : ''}`}
         >
-          <FaUsers className="subscriber-icon" />
+          <FaUsers className="email-marketing-subscriber-icon" />
           <span>{subscriberCount} Active Subscriber{subscriberCount !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
       {loading ? (
-        <div className="loading-state">
-          <FaSpinner className="spinner" />
+        <div className="email-marketing-loading-state">
+          <FaSpinner className="email-marketing-spinner" />
           <p>Loading subscribers...</p>
         </div>
       ) : (
         <div className="email-marketing-content">
           <form onSubmit={handleSubmit} className="email-marketing-form">
             {/* Subject Section */}
-            <div className="form-section">
+            <div className="email-marketing-form-section">
               <h3>
-                <FaEnvelope className="section-icon" />
+                <FaEnvelope className="email-marketing-section-icon" />
                 Subject
               </h3>
               
-              <div className="form-group">
+              <div className="email-marketing-form-group">
                 <label htmlFor="title">
                   Email Title *
                 </label>
@@ -474,7 +503,7 @@ const EmailMarketing = () => {
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  placeholder="e.g., Summer Sale - 50% OFF!"
+                  placeholder="Example: Summer Sale - 50% OFF"
                   required
                   maxLength={100}
                 />
@@ -482,13 +511,13 @@ const EmailMarketing = () => {
             </div>
 
             {/* Compose Email Section */}
-            <div className="form-section">
+            <div className="email-marketing-form-section">
               <h3>
-                <FaEdit className="section-icon" />
+                <FaEdit className="email-marketing-section-icon" />
                 Compose Email
               </h3>
               
-              <div className="form-group">
+              <div className="email-marketing-form-group">
                 <label htmlFor="message">
                   Email Message *
                 </label>
@@ -502,18 +531,18 @@ const EmailMarketing = () => {
                   rows={6}
                   maxLength={2000}
                 />
-                <div className="char-count">{formData.message.length}/2000</div>
+                <div className="email-marketing-char-count">{formData.message.length}/2000</div>
               </div>
             </div>
 
             {/* Discount/Promo Section */}
-            <div className="form-section">
+            <div className="email-marketing-form-section">
               <h3>
-                <FaTag className="section-icon" />
+                <FaTag className="email-marketing-section-icon" />
                 Discount & Promo (Optional)
               </h3>
               
-              <div className="form-group">
+              <div className="email-marketing-form-group">
                 <label htmlFor="discountType">Discount Type</label>
                 <select
                   id="discountType"
@@ -529,15 +558,15 @@ const EmailMarketing = () => {
 
               {formData.discountType !== 'none' && (
                 <>
-                  <div className="form-group">
+                  <div className="email-marketing-form-group">
                     <label htmlFor="discountValue">
                       {formData.discountType === 'percentage' ? 'Discount Percentage' : 'Discount Amount (₱)'} *
                     </label>
-                    <div className="input-with-icon">
+                    <div className="email-marketing-input-with-icon">
                       {formData.discountType === 'percentage' ? (
-                        <FaPercent className="input-icon" />
+                        <FaPercent className="email-marketing-input-icon" />
                       ) : (
-                        <span className="currency-icon">₱</span>
+                        <span className="email-marketing-currency-icon">₱</span>
                       )}
                       <input
                         type="number"
@@ -545,7 +574,7 @@ const EmailMarketing = () => {
                         name="discountValue"
                         value={formData.discountValue}
                         onChange={handleInputChange}
-                        placeholder={formData.discountType === 'percentage' ? 'e.g., 50' : 'e.g., 500'}
+                        placeholder={formData.discountType === 'percentage' ? 'Example: 50' : 'Example: 500'}
                         min="0"
                         max={formData.discountType === 'percentage' ? '100' : undefined}
                         required={formData.discountType !== 'none'}
@@ -553,7 +582,7 @@ const EmailMarketing = () => {
                     </div>
                   </div>
 
-                  <div className="form-group">
+                  <div className="email-marketing-form-group">
                     <label htmlFor="promoCode">Promo Code (Optional)</label>
                     <input
                       type="text"
@@ -561,7 +590,7 @@ const EmailMarketing = () => {
                       name="promoCode"
                       value={formData.promoCode}
                       onChange={handleInputChange}
-                      placeholder="e.g., SUMMER50"
+                      placeholder="Example: SUMMER50"
                       maxLength={20}
                     />
                   </div>
@@ -570,13 +599,13 @@ const EmailMarketing = () => {
             </div>
 
             {/* Call to Action */}
-            <div className="form-section">
+            <div className="email-marketing-form-section">
               <h3>
-                <FaMousePointer className="section-icon" />
+                <FaMousePointer className="email-marketing-section-icon" />
                 Call to Action
               </h3>
-              <div className="form-row">
-                <div className="form-group">
+              <div className="email-marketing-form-row">
+                <div className="email-marketing-form-group">
                   <label htmlFor="ctaText">Button Text</label>
                   <input
                     type="text"
@@ -588,7 +617,7 @@ const EmailMarketing = () => {
                     maxLength={30}
                   />
                 </div>
-                <div className="form-group">
+                <div className="email-marketing-form-group">
                   <label htmlFor="ctaLink">Button Link</label>
                   <input
                     type="url"
@@ -603,13 +632,13 @@ const EmailMarketing = () => {
             </div>
 
             {/* Media & Assets Section */}
-            <div className="form-section">
+            <div className="email-marketing-form-section">
               <h3>
-                <FaImage className="section-icon" />
+                <FaImage className="email-marketing-section-icon" />
                 Media & Assets
               </h3>
               
-              <div className="form-group">
+              <div className="email-marketing-form-group">
                 <label htmlFor="logoUrl">
                   Logo URL (Header) *
                 </label>
@@ -622,7 +651,7 @@ const EmailMarketing = () => {
                   placeholder="https://res.cloudinary.com/your-cloud/image/upload/yohanns-logo.png"
                   required
                 />
-                <small className="form-help-text">
+                <small className="email-marketing-form-help-text">
                   Logo displayed in email header. This will be saved as your default logo URL.
                   <br />
                   Recommended: Use Cloudinary CDN URL for better email deliverability.
@@ -648,7 +677,7 @@ const EmailMarketing = () => {
                 </small>
               </div>
               
-              <div className="form-group">
+              <div className="email-marketing-form-group">
                 <label htmlFor="imageUrl">Promotional Image URL (Optional)</label>
                 <input
                   type="url"
@@ -658,15 +687,15 @@ const EmailMarketing = () => {
                   onChange={handleInputChange}
                   placeholder="https://example.com/promo-image.jpg"
                 />
-                <small className="form-help-text">Add a promotional image to make your email more engaging</small>
+                <small className="email-marketing-form-help-text">Add a promotional image to make your email more engaging</small>
               </div>
             </div>
 
             {/* Preview Toggle */}
-            <div className="form-actions">
+            <div className="email-marketing-form-actions">
               <button
                 type="button"
-                className="preview-btn"
+                className="email-marketing-preview-btn"
                 onClick={() => setPreviewMode(!previewMode)}
               >
                 {previewMode ? 'Hide Preview' : 'Show Preview'}
@@ -675,13 +704,13 @@ const EmailMarketing = () => {
 
             {/* Email Preview */}
             {previewMode && (
-              <div className="email-preview">
+              <div className="email-marketing-preview">
                 <h4>Email Preview</h4>
-                <div className="preview-iframe-container">
+                <div className="email-marketing-preview-iframe-container">
                         <iframe
                           title="Email Preview"
                           srcDoc={buildEmailPreviewHTML()}
-                          className="preview-iframe"
+                          className="email-marketing-preview-iframe"
                           sandbox="allow-same-origin allow-scripts"
                         />
                 </div>
@@ -689,15 +718,15 @@ const EmailMarketing = () => {
             )}
 
             {/* Submit Button */}
-            <div className="submit-section">
+            <div className="email-marketing-submit-section">
               <button
                 type="submit"
-                className="send-email-btn"
+                className="email-marketing-send-email-btn"
                 disabled={sending || subscriberCount === 0}
               >
                 {sending ? (
                   <>
-                    <FaSpinner className="spinner" />
+                    <FaSpinner className="email-marketing-spinner" />
                     Sending...
                   </>
                 ) : (
@@ -708,7 +737,7 @@ const EmailMarketing = () => {
                 )}
               </button>
               {subscriberCount === 0 && (
-                <p className="no-subscribers-warning">
+                <p className="email-marketing-no-subscribers-warning">
                   No active subscribers. Customers need to subscribe to the newsletter first.
                 </p>
               )}

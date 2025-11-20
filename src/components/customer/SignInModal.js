@@ -434,7 +434,7 @@ const SignInModal = ({ isOpen, onClose, onOpenSignUp }) => {
                   ⚠️ reCAPTCHA unavailable. You can still sign in.
                   <br />
                   <small style={{ fontSize: '0.75rem', opacity: 0.8, display: 'block', marginTop: '4px' }}>
-                    Domain configuration: Ensure <code style={{ fontSize: '0.7rem', backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 4px', borderRadius: '3px' }}>yohanns-sportswear.onrender.com</code> is added to Google reCAPTCHA domains.
+                    Domain configuration: Ensure <code style={{ fontSize: '0.7rem', backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 4px', borderRadius: '3px' }}>{typeof window !== 'undefined' ? window.location.hostname : 'your-domain.com'}</code> is added to Google reCAPTCHA domains.
                   </small>
                 </div>
               )}

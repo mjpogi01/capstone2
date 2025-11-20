@@ -2984,26 +2984,129 @@ async function generateAndInsertData() {
     });
   }
   const usedCustomerIds = new Set(allOrders.map(order => order.user_id));
-  const orphanedCustomerIds = createdCustomerIds.filter((id) => !usedCustomerIds.has(id));
-
-  if (orphanedCustomerIds.length > 0) {
-    console.log(`\n🧹 Cleaning up ${orphanedCustomerIds.length} newly created customers without orders...`);
-    const cleanupResult = await removeCustomersWithoutOrders(orphanedCustomerIds);
-    console.log(`   Removed: ${cleanupResult.removed}`);
-    if (cleanupResult.skipped.length) {
-      console.log(`   Skipped (already had orders): ${cleanupResult.skipped.length}`);
+  
+  // Ensure ALL customers have at least one order (not just newly created ones)
+  const allCustomerIdList = customers.map(c => c.id);
+  const customersWithoutOrders = allCustomerIdList.filter((id) => !usedCustomerIds.has(id));
+  
+  if (customersWithoutOrders.length > 0) {
+    console.log(`\n⚠️  Found ${customersWithoutOrders.length} customers without orders. Creating orders for them...`);
+    
+    // Create orders for customers without orders, distributing them across the date range
+    const ordersToAdd = [];
+    const dateRangeDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)); // days
+    const datesPerCustomer = Math.max(1, Math.floor(dateRangeDays / Math.max(customersWithoutOrders.length, 1)));
+    
+    for (let i = 0; i < customersWithoutOrders.length; i++) {
+      const customerId = customersWithoutOrders[i];
+      // Distribute orders evenly across the date range
+      const daysOffset = Math.floor(i * datesPerCustomer);
+      const orderDate = new Date(startDate);
+      orderDate.setDate(orderDate.getDate() + daysOffset);
+      orderDate.setHours(8 + (i % 12), (i % 60), 0, 0); // Vary time throughout the day
+      
+      // Generate a simple order for this customer
+      const generatedOrder = generateSingleOrder(new Date(orderDate));
+      
+      // Find customer info for address
+      const customer = customers.find(c => c.id === customerId);
+      const customerFullName = customer?.fullName || 'Customer';
+      
+      // Get or create delivery address
+      let deliveryAddress = generatedOrder.deliveryAddress;
+      if (!deliveryAddress || !deliveryAddress.city) {
+        const branchName = generatedOrder.pickupLocation || availableBranches[0];
+        const cityData = selectCityForBranch(branchName);
+        deliveryAddress = {
+          receiver: customerFullName,
+          phone: generatePhoneNumber(),
+          street: `${Math.floor(Math.random() * 999)} Street`,
+          barangay: cityData?.barangay || '',
+          city: cityData?.city || 'Calaca',
+          province: cityData?.province || 'Batangas',
+          postalCode: '1234'
+        };
+      }
+      
+      // Generate unique order number
+      const orderNumber = `ORD-${orderDate.getTime()}-${orderCounter++}-${Math.random().toString(36).substring(7)}`;
+      
+      // Create order in the same format as the main generation loop
+      const enrichedOrderItems = assignUniqueJerseyDesigns(generatedOrder.orderItems, customerId, orderDate);
+      
+      // Save customer address to user_addresses if not already saved
+      if (!customersWithAddresses.has(customerId)) {
+        const saved = await saveUserAddress(customerId, customerFullName, deliveryAddress);
+        if (saved) {
+          customersWithAddresses.add(customerId);
+        }
+      }
+      
+      const orderToInsert = {
+        user_id: customerId,
+        order_number: orderNumber,
+        status: generatedOrder.status,
+        shipping_method: generatedOrder.shippingMethod,
+        pickup_location: generatedOrder.pickupLocation,
+        delivery_address: deliveryAddress,
+        order_notes: generatedOrder.orderNotes,
+        subtotal_amount: generatedOrder.subtotalAmount.toString(),
+        shipping_cost: generatedOrder.shippingCost.toString(),
+        total_amount: generatedOrder.totalAmount.toString(),
+        total_items: generatedOrder.totalItems,
+        order_items: enrichedOrderItems,
+        created_at: orderDate.toISOString(),
+        updated_at: orderDate.toISOString(),
+        design_files: []
+      };
+      
+      ordersToAdd.push(orderToInsert);
     }
-    if (cleanupResult.failures.length) {
-      console.log(`   Failures: ${cleanupResult.failures.length}`);
-      cleanupResult.failures.slice(0, 10).forEach((failure) => {
-        console.log(`     • ${failure.customerId}: ${failure.reason}`);
-      });
-      if (cleanupResult.failures.length > 10) {
-        console.log('     • ... additional failures not shown');
+    
+    console.log(`   ✅ Generated ${ordersToAdd.length} orders for customers without orders`);
+    
+    // Insert these orders
+    const batchSize = 100;
+    let insertedCount = 0;
+    for (let i = 0; i < ordersToAdd.length; i += batchSize) {
+      const batch = ordersToAdd.slice(i, i + batchSize);
+      const { error } = await supabase
+        .from('orders')
+        .insert(batch);
+      
+      if (error) {
+        console.error(`   ❌ Error inserting batch: ${error.message}`);
+        // Try one by one
+        for (const order of batch) {
+          const { error: singleError } = await supabase
+            .from('orders')
+            .insert(order);
+          if (!singleError) {
+            insertedCount++;
+            allOrders.push(order);
+          }
+        }
+      } else {
+        insertedCount += batch.length;
+        allOrders.push(...batch);
       }
     }
+    
+    console.log(`   ✅ Successfully inserted ${insertedCount} orders`);
+    console.log(`\n✅ All ${customers.length} customers now have at least one order.`);
   } else {
-    console.log('\n✅ All newly created customers placed at least one order.');
+    console.log(`\n✅ All ${customers.length} customers already have at least one order.`);
+  }
+  
+  // Verify final count
+  const finalUsedCustomerIds = new Set(allOrders.map(order => order.user_id));
+  const finalCustomersWithoutOrders = allCustomerIdList.filter((id) => !finalUsedCustomerIds.has(id));
+  
+  if (finalCustomersWithoutOrders.length > 0) {
+    console.log(`\n⚠️  WARNING: ${finalCustomersWithoutOrders.length} customers still have no orders after cleanup.`);
+    console.log(`   This may indicate an issue with order generation or insertion.`);
+  } else {
+    console.log(`\n✅ VERIFIED: All ${customers.length} customers have at least one order.`);
   }
 
   console.log(`   - Date Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);

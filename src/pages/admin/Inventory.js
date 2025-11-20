@@ -49,16 +49,64 @@ const Inventory = () => {
   const applyFilters = () => {
     let filtered = [...products];
 
-    // Filter by product name search
+    // Filter by product name search (before grouping)
     if (searchTerm.trim() !== '') {
       filtered = filtered.filter(product => 
         product.name.toLowerCase().includes(searchTerm.toLowerCase().trim())
       );
     }
 
-    // Filter by branch
+    // Filter by branch (before grouping if specific branch is selected)
     if (filters.branch !== 'all') {
       filtered = filtered.filter(product => product.branch_id === parseInt(filters.branch));
+    }
+    
+    // If branch filter is 'all', group products by name and category, and sum stock quantities
+    if (filters.branch === 'all') {
+      const groupedProducts = {};
+      
+      filtered.forEach(product => {
+        // Only group products that have stock_quantity (on-hand items like balls, trophies, medals)
+        // For other products (apparel), show them individually
+        const hasStockQuantity = product.stock_quantity !== null && product.stock_quantity !== undefined;
+        const onHandCategories = ['balls', 'trophies', 'medals'];
+        const isOnHandProduct = hasStockQuantity && onHandCategories.includes(product.category?.toLowerCase());
+        
+        if (isOnHandProduct) {
+          // Create a unique key based on name and category
+          const key = `${product.name}_${product.category}`;
+          
+          if (!groupedProducts[key]) {
+            // First occurrence - create the grouped product
+            groupedProducts[key] = {
+              ...product,
+              stock_quantity: product.stock_quantity || 0,
+              branch_ids: product.branch_id ? [product.branch_id] : [],
+              branch_names: product.branch_name ? [product.branch_name] : []
+            };
+          } else {
+            // Product already exists - sum the stock quantities
+            const existingStock = groupedProducts[key].stock_quantity || 0;
+            const newStock = product.stock_quantity || 0;
+            groupedProducts[key].stock_quantity = existingStock + newStock;
+            
+            // Track branch IDs and names
+            if (product.branch_id && !groupedProducts[key].branch_ids.includes(product.branch_id)) {
+              groupedProducts[key].branch_ids.push(product.branch_id);
+            }
+            if (product.branch_name && !groupedProducts[key].branch_names.includes(product.branch_name)) {
+              groupedProducts[key].branch_names.push(product.branch_name);
+            }
+          }
+        } else {
+          // For non-on-hand products, keep them as individual items
+          const key = `${product.id}`;
+          groupedProducts[key] = product;
+        }
+      });
+      
+      // Convert grouped object back to array
+      filtered = Object.values(groupedProducts);
     }
 
     // Filter by category
@@ -145,9 +193,9 @@ const Inventory = () => {
     };
   };
 
-  const handleAddProduct = (newProduct) => {
-    const normalizedProduct = normalizeProductSurcharges(newProduct);
-    setProducts([normalizedProduct, ...products]);
+  const handleAddProduct = async (newProduct) => {
+    // Refetch all products to get the complete list (especially important when multiple branch products are created)
+    await fetchProducts();
     setShowAddModal(false);
   };
 
@@ -156,10 +204,9 @@ const Inventory = () => {
     setShowAddModal(true);
   };
 
-  const handleUpdateProduct = (updatedProduct) => {
-    const normalizedProduct = normalizeProductSurcharges(updatedProduct);
-    const updatedProducts = products.map(p => p.id === normalizedProduct.id ? normalizedProduct : p);
-    setProducts(updatedProducts);
+  const handleUpdateProduct = async (updatedProduct) => {
+    // Refetch all products to get the complete list (especially important when multiple branch products are updated)
+    await fetchProducts();
     setRefreshKey(prev => prev + 1); // Force re-render
     setShowAddModal(false);
     setEditingProduct(null);

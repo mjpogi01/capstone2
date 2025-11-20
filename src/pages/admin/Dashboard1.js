@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import './Dashboard1.css';
 import './Analytics.css';
 import orderService from '../../services/orderService';
+import productService from '../../services/productService';
 import EarningsChart from '../../components/admin/EarningsChart';
 import AddProductModal from '../../components/admin/AddProductModal';
 import { API_URL } from '../../config/api';
@@ -39,7 +40,8 @@ import {
   faEye,
   faEyeSlash,
   faComments,
-  faClipboardList
+  faClipboardList,
+  faEnvelope
 } from '@fortawesome/free-solid-svg-icons';
 import { authFetch } from '../../services/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
@@ -54,11 +56,12 @@ echarts.use([
 ]);
 
   const Dashboard1 = () => {
-  const { user } = useAuth();
+  const { user, hasAdminAccess } = useAuth();
   const navigate = useNavigate();
   const isOwner = user?.user_metadata?.role === 'owner';
   const isAdmin = user?.user_metadata?.role === 'admin';
   const adminBranchId = isAdmin ? user?.user_metadata?.branch_id : null;
+  const canAccessEmailMarketing = hasAdminAccess();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [showStockSearch, setShowStockSearch] = useState(false);
@@ -68,6 +71,7 @@ echarts.use([
   });
   const [showStockFilters, setShowStockFilters] = useState(false);
   const [showAllStockItems, setShowAllStockItems] = useState(false);
+  const [stockItemsLoading, setStockItemsLoading] = useState(true);
   const [editingItem, setEditingItem] = useState(null);
   const [restockingItem, setRestockingItem] = useState(null);
   const [restockQuantity, setRestockQuantity] = useState('');
@@ -191,96 +195,7 @@ echarts.use([
   const [loadingStats, setLoadingStats] = useState(true);
 
 
-  const [stockItems, setStockItems] = useState([
-    {
-      id: 1,
-      name: "Custom T-Shirt Premium",
-      image: "https://via.placeholder.com/50",
-      category: "t-shirts",
-      stockQuantity: 450,
-      reorderLevel: 100,
-      supplier: "Textile Co.",
-      lastRestocked: "2024-01-15",
-      status: "In Stock"
-    },
-    {
-      id: 2,
-      name: "Basketball Jersey",
-      image: "https://via.placeholder.com/50",
-      category: "jerseys",
-      stockQuantity: 35,
-      reorderLevel: 50,
-      supplier: "Sportswear Inc.",
-      lastRestocked: "2024-01-10",
-      status: "Low Stock"
-    },
-    {
-      id: 3,
-      name: "Trophy Gold",
-      image: "https://via.placeholder.com/50",
-      category: "trophies",
-      stockQuantity: 0,
-      reorderLevel: 20,
-      supplier: "Award Master",
-      lastRestocked: "2023-12-20",
-      status: "Out of Stock"
-    },
-    {
-      id: 4,
-      name: "Medal Set",
-      image: "https://via.placeholder.com/50",
-      category: "trophies",
-      stockQuantity: 120,
-      reorderLevel: 30,
-      supplier: "Award Master",
-      lastRestocked: "2024-01-08",
-      status: "In Stock"
-    },
-    {
-      id: 5,
-      name: "Long Sleeve Shirt",
-      image: "https://via.placeholder.com/50",
-      category: "long sleeves",
-      stockQuantity: 28,
-      reorderLevel: 50,
-      supplier: "Textile Co.",
-      lastRestocked: "2024-01-12",
-      status: "Low Stock"
-    },
-    {
-      id: 6,
-      name: "Hoodie",
-      image: "https://via.placeholder.com/50",
-      category: "hoodies",
-      stockQuantity: 200,
-      reorderLevel: 50,
-      supplier: "Sportswear Inc.",
-      lastRestocked: "2024-01-05",
-      status: "In Stock"
-    },
-    {
-      id: 7,
-      name: "Team Uniform Set",
-      image: "https://via.placeholder.com/50",
-      category: "uniforms",
-      stockQuantity: 75,
-      reorderLevel: 40,
-      supplier: "Sportswear Inc.",
-      lastRestocked: "2024-01-18",
-      status: "In Stock"
-    },
-    {
-      id: 8,
-      name: "Basketball Official",
-      image: "https://via.placeholder.com/50",
-      category: "balls",
-      stockQuantity: 45,
-      reorderLevel: 25,
-      supplier: "Sports Equipment Co.",
-      lastRestocked: "2024-01-20",
-      status: "In Stock"
-    }
-  ]);
+  const [stockItems, setStockItems] = useState([]);
 
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -325,34 +240,71 @@ echarts.use([
     setRestockQuantity('');
   };
 
-  const handleRestockSubmit = () => {
+  const handleRestockSubmit = async () => {
     if (!restockQuantity || parseInt(restockQuantity) <= 0) {
       alert('Please enter a valid quantity');
       return;
     }
 
-    setStockItems(prev => prev.map(item => {
-      if (item.id === restockingItem.id) {
-        const newQuantity = item.stockQuantity + parseInt(restockQuantity);
-        let newStatus = 'In Stock';
-        if (newQuantity === 0) {
-          newStatus = 'Out of Stock';
-        } else if (newQuantity <= item.reorderLevel) {
-          newStatus = 'Low Stock';
-        }
-        
-        return {
-          ...item,
-          stockQuantity: newQuantity,
-          status: newStatus,
-          lastRestocked: new Date().toISOString().split('T')[0]
-        };
+    try {
+      // Get current product to ensure we're updating the right branch's product
+      const currentProduct = stockItems.find(item => item.id === restockingItem.id);
+      if (!currentProduct) {
+        alert('Product not found');
+        return;
       }
-      return item;
-    }));
 
-    setRestockingItem(null);
-    setRestockQuantity('');
+      // Calculate new stock quantity
+      const quantityToAdd = parseInt(restockQuantity);
+      const newQuantity = currentProduct.stockQuantity + quantityToAdd;
+      
+      // Update product stock in database via API
+      const response = await authFetch(`${API_URL}/api/products/${restockingItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stock_quantity: newQuantity,
+          // Keep existing branch_id - don't change it when restocking
+          branch_id: currentProduct.branchId || null
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update stock');
+      }
+
+      // Update local state after successful API call
+      setStockItems(prev => prev.map(item => {
+        if (item.id === restockingItem.id) {
+          let newStatus = 'In Stock';
+          if (newQuantity === 0) {
+            newStatus = 'Out of Stock';
+          } else if (newQuantity <= item.reorderLevel) {
+            newStatus = 'Low Stock';
+          }
+          
+          return {
+            ...item,
+            stockQuantity: newQuantity,
+            status: newStatus,
+            lastRestocked: new Date().toISOString().split('T')[0]
+          };
+        }
+        return item;
+      }));
+
+      setRestockingItem(null);
+      setRestockQuantity('');
+      
+      // Refresh stock items to ensure data is up to date
+      // Trigger useEffect to refetch by toggling a dependency (or just rely on the useEffect dependencies)
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      alert(`Failed to update stock: ${error.message}`);
+    }
   };
 
   const handleDelete = (item) => {
@@ -366,23 +318,59 @@ echarts.use([
     }
   };
 
-  const handleUpdateItem = (updatedItem) => {
-    setStockItems(prev => prev.map(item => {
-      if (item.id === updatedItem.id) {
-        let status = updatedItem.status;
-        if (updatedItem.stockQuantity === 0) {
-          status = 'Out of Stock';
-        } else if (updatedItem.stockQuantity <= updatedItem.reorderLevel) {
-          status = 'Low Stock';
-        } else {
-          status = 'In Stock';
-        }
-        
-        return { ...updatedItem, status };
+  const handleUpdateItem = async (updatedItem) => {
+    try {
+      // Get current product to ensure we keep the correct branch_id
+      const currentProduct = stockItems.find(item => item.id === updatedItem.id);
+      if (!currentProduct) {
+        alert('Product not found');
+        return;
       }
-      return item;
-    }));
-    setEditingItem(null);
+
+      // Determine status based on stock quantity
+      let status = 'In Stock';
+      if (updatedItem.stockQuantity === 0) {
+        status = 'Out of Stock';
+      } else if (updatedItem.stockQuantity <= updatedItem.reorderLevel) {
+        status = 'Low Stock';
+      }
+
+      // Update product in database via API
+      // Keep existing branch_id - don't allow changing branch when updating stock
+      const response = await authFetch(`${API_URL}/api/products/${updatedItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: updatedItem.name,
+          category: updatedItem.category,
+          stock_quantity: updatedItem.stockQuantity,
+          reorder_level: updatedItem.reorderLevel,
+          // Keep existing branch_id - don't allow changing branch when updating stock
+          branch_id: currentProduct.branchId || null
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update product');
+      }
+
+      // Update local state after successful API call
+      setStockItems(prev => prev.map(item => {
+        if (item.id === updatedItem.id) {
+          return { ...updatedItem, status };
+        }
+        return item;
+      }));
+      setEditingItem(null);
+      
+      // Stock items will refresh automatically via useEffect dependencies
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert(`Failed to update product: ${error.message}`);
+    }
   };
 
   const handleAddStock = () => {
@@ -419,6 +407,11 @@ echarts.use([
     navigate(ordersPath);
   };
 
+  const handleEmailMarketing = () => {
+    const emailMarketingPath = isOwner ? '/owner/email-marketing' : '/admin/email-marketing';
+    navigate(emailMarketingPath);
+  };
+
   const handleAddProduct = (newProduct) => {
     // Product added successfully, modal will close automatically
     console.log('Product added:', newProduct);
@@ -429,7 +422,7 @@ echarts.use([
     setShowAddProductModal(false);
   };
 
-  const handleAddStockSubmit = () => {
+  const handleAddStockSubmit = async () => {
     // Validation
     if (!newStockItem.name || !newStockItem.category) {
       alert('Please fill in all required fields (Name, Category)');
@@ -444,43 +437,74 @@ echarts.use([
       return;
     }
 
-    // Determine status based on stock quantity
-    let status = 'In Stock';
-    if (stockQuantity === 0) {
-      status = 'Out of Stock';
-    } else if (stockQuantity <= reorderLevel) {
-      status = 'Low Stock';
+    // Determine branch_id based on user role
+    // For admins: use their branch_id from user metadata
+    // For owners: use selectedBranchId if not 'all', otherwise require branch selection
+    let targetBranchId = null;
+    if (isAdmin && adminBranchId) {
+      targetBranchId = adminBranchId;
+    } else if (isOwner && selectedBranchId && selectedBranchId !== 'all') {
+      targetBranchId = parseInt(selectedBranchId);
+    } else if (isOwner && selectedBranchId === 'all') {
+      alert('Please select a specific branch to add stock');
+      return;
     }
 
-    // Generate new ID (get max ID from existing items + 1)
-    const newId = stockItems.length > 0 
-      ? Math.max(...stockItems.map(item => item.id)) + 1 
-      : 1;
+    if (!targetBranchId) {
+      alert('Unable to determine branch. Please ensure you have a branch assigned.');
+      return;
+    }
 
-    // Create new stock item
-    const itemToAdd = {
-      id: newId,
-      name: newStockItem.name,
-      image: "https://via.placeholder.com/50",
-      category: newStockItem.category,
-      stockQuantity: stockQuantity,
-      reorderLevel: reorderLevel,
-      supplier: "N/A",
-      lastRestocked: new Date().toISOString().split('T')[0],
-      status: status
-    };
+    try {
+      // Create new product in database via API
+      const productData = {
+        name: newStockItem.name,
+        category: newStockItem.category,
+        price: 0, // Default price, can be updated later
+        stock_quantity: stockQuantity,
+        reorder_level: reorderLevel,
+        branch_id: targetBranchId,
+        description: `On-hand product for branch ${targetBranchId}`
+      };
 
-    // Add to stock items
-    setStockItems(prev => [...prev, itemToAdd]);
+      const response = await authFetch(`${API_URL}/api/products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productData),
+      });
 
-    // Close modal and reset form
-    setShowAddStockModal(false);
-    setNewStockItem({
-      name: '',
-      category: '',
-      stockQuantity: '',
-      reorderLevel: ''
-    });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create product');
+      }
+
+      const newProduct = await response.json();
+      
+      // Refresh stock items to include the new product
+      // The useEffect will automatically refetch when dependencies change
+      
+      // Close modal and reset form
+      setShowAddStockModal(false);
+      setNewStockItem({
+        name: '',
+        category: '',
+        stockQuantity: '',
+        reorderLevel: ''
+      });
+
+      // Trigger refetch of stock items
+      // Force a refetch by temporarily toggling selectedBranchId (for owners) or relying on useEffect
+      // The useEffect will automatically refetch when dependencies change
+      // Since we're creating a product for a specific branch, the useEffect should pick it up
+      
+      // For immediate UI update, we can manually refetch
+      // But the useEffect with dependencies should handle it automatically
+    } catch (error) {
+      console.error('Error creating product:', error);
+      alert(`Failed to add stock item: ${error.message}`);
+    }
   };
 
   const filteredStockItems = stockItems.filter(item => {
@@ -500,10 +524,26 @@ echarts.use([
     : filteredStockItems.slice(0, INITIAL_STOCK_DISPLAY);
   const hasMoreStockItems = filteredStockItems.length > INITIAL_STOCK_DISPLAY && !showAllStockItems;
 
-  const lowStockItems = stockItems
-    .filter(item => item.status === 'Low Stock' || item.status === 'Out of Stock')
-    .sort((a, b) => a.stockQuantity - b.stockQuantity)
-    .slice(0, 10);
+  // Filter low stock items to only show on-hand products (balls, trophies, medals)
+  // These are the only products that can be prepared and bought on-branch
+  const lowStockItems = useMemo(() => {
+    const onHandCategories = ['balls', 'trophies', 'medals'];
+    
+    return stockItems
+      .filter(item => {
+        // Only include products that:
+        // 1. Have a stock_quantity field (on-hand items)
+        // 2. Belong to on-hand categories (balls, trophies, medals)
+        const hasStockQuantity = item.stockQuantity !== null && item.stockQuantity !== undefined;
+        const category = item.category?.toLowerCase();
+        const isOnHandCategory = onHandCategories.includes(category);
+        
+        return hasStockQuantity && isOnHandCategory;
+      })
+      .filter(item => item.status === 'Low Stock' || item.status === 'Out of Stock')
+      .sort((a, b) => a.stockQuantity - b.stockQuantity)
+      .slice(0, 10);
+  }, [stockItems]);
 
   // Prepare ECharts data for low stock items
   const lowStockChartOption = useMemo(() => {
@@ -527,11 +567,10 @@ echarts.use([
       return name.length > 20 ? name.substring(0, 20) + '...' : name;
     });
     const stockQuantities = chartItems.map(item => Number(item?.stockQuantity) || 0);
-    const reorderLevels = chartItems.map(item => Number(item?.reorderLevel) || 0);
     const colors = chartItems.map(item => getStockStatusColor(item?.status || 'In Stock'));
     
     // Validate arrays have same length
-    if (itemNames.length !== stockQuantities.length || itemNames.length !== reorderLevels.length) {
+    if (itemNames.length !== stockQuantities.length) {
       console.warn('Chart data arrays length mismatch');
       return null;
     }
@@ -569,12 +608,10 @@ echarts.use([
               return '';
             }
             
-            // Get values from all series - handle both object and primitive values
+            // Get stock value - handle both object and primitive values
             let stockValue = item.stockQuantity;
-            let reorderValue = item.reorderLevel;
             
             const stockParam = params.find(p => p.seriesName === 'Stock Quantity');
-            const reorderParam = params.find(p => p.seriesName === 'Reorder Level');
             
             if (stockParam) {
               stockValue = typeof stockParam.value === 'object' && stockParam.value !== null 
@@ -582,17 +619,10 @@ echarts.use([
                 : stockParam.value;
             }
             
-            if (reorderParam) {
-              reorderValue = typeof reorderParam.value === 'object' && reorderParam.value !== null
-                ? reorderParam.value.value
-                : reorderParam.value;
-            }
-            
             return `
               <div style="padding: 8px;">
                 <div style="font-weight: 600; margin-bottom: 4px;">${item.name || 'Unknown Item'}</div>
                 <div>Stock: <strong>${stockValue || 0}</strong> units</div>
-                <div>Reorder Level: <strong>${reorderValue || 0}</strong> units</div>
                 <div>Status: <strong style="color: ${getStockStatusColor(item.status || 'In Stock')}">${item.status || 'Unknown'}</strong></div>
               </div>
             `;
@@ -675,7 +705,7 @@ echarts.use([
               return colors[params.dataIndex] || '#3b82f6';
             }
           },
-          barWidth: '25%',
+          barWidth: '50%',
           label: {
             show: showValues,
             position: 'top',
@@ -685,29 +715,6 @@ echarts.use([
             fontWeight: 500,
             distance: 5
           },
-          emphasis: {
-            focus: 'series'
-          }
-        },
-        {
-          name: 'Reorder Level',
-          type: 'bar',
-          data: reorderLevels,
-          itemStyle: {
-            color: 'rgba(107, 114, 128, 0.3)',
-            borderColor: '#6b7280',
-            borderWidth: 1
-          },
-          barWidth: '25%',
-          barGap: '-100%',
-          label: {
-            show: false,
-            position: 'right',
-            formatter: 'Reorder: {c}',
-            color: '#64748b',
-            fontSize: 9
-          },
-          z: 1,
           emphasis: {
             focus: 'series'
           }
@@ -764,6 +771,82 @@ echarts.use([
     };
     loadBranches();
   }, [isOwner]);
+
+  // Fetch stock items from products database
+  // Only include on-hand products (balls, trophies, medals) that have stock_quantity
+  // Filter by branch: admins see only their branch, owners see selected branch or all
+  useEffect(() => {
+    const fetchStockItems = async () => {
+      try {
+        setStockItemsLoading(true);
+        
+        // Determine which products to fetch based on user role and branch selection
+        let products = [];
+        if (isAdmin && adminBranchId) {
+          // Admin: only fetch products from their branch
+          products = await productService.getProductsByBranch(adminBranchId);
+        } else if (isOwner && selectedBranchId && selectedBranchId !== 'all') {
+          // Owner: fetch products from selected branch
+          products = await productService.getProductsByBranch(parseInt(selectedBranchId));
+        } else {
+          // Owner with 'all' selected or no branch filter: fetch all products
+          products = await productService.getAllProducts();
+        }
+        
+        // Define on-hand categories (products that can be prepared and bought on-branch)
+        const onHandCategories = ['balls', 'trophies', 'medals'];
+        
+        // Transform products to stock items format
+        // Only include products with stock_quantity (on-hand items) in on-hand categories
+        const transformedStockItems = products
+          .filter(product => {
+            // Only include products that:
+            // 1. Have a stock_quantity field (on-hand items)
+            // 2. Belong to on-hand categories (balls, trophies, medals)
+            const hasStockQuantity = product.stock_quantity !== null && product.stock_quantity !== undefined;
+            const category = product.category?.toLowerCase();
+            const isOnHandCategory = onHandCategories.includes(category);
+            
+            return hasStockQuantity && isOnHandCategory;
+          })
+          .map(product => {
+            const stockQuantity = product.stock_quantity || 0;
+            const reorderLevel = product.reorder_level || 10;
+            
+            // Determine status based on stock quantity and reorder level
+            let status = 'In Stock';
+            if (stockQuantity === 0) {
+              status = 'Out of Stock';
+            } else if (stockQuantity <= reorderLevel) {
+              status = 'Low Stock';
+            }
+            
+            return {
+              id: product.id,
+              name: product.name,
+              image: product.main_image || product.additional_images?.[0] || "https://via.placeholder.com/50",
+              category: product.category?.toLowerCase() || '',
+              stockQuantity: stockQuantity,
+              reorderLevel: reorderLevel,
+              supplier: product.supplier || 'N/A',
+              lastRestocked: product.last_restocked || new Date().toISOString().split('T')[0],
+              status: status,
+              branchId: product.branch_id || null
+            };
+          });
+        
+        setStockItems(transformedStockItems);
+      } catch (error) {
+        console.error('Error fetching stock items:', error);
+        setStockItems([]);
+      } finally {
+        setStockItemsLoading(false);
+      }
+    };
+    
+    fetchStockItems();
+  }, [isAdmin, isOwner, adminBranchId, selectedBranchId]);
+
 
   const fetchMetricsData = useCallback(async () => {
     try {
@@ -1392,6 +1475,15 @@ echarts.use([
                   <FontAwesomeIcon icon={faClipboardList} className="quick-action-icon" />
                   <span>View Orders</span>
                 </button>
+                {canAccessEmailMarketing && (
+                  <button 
+                    className="dashboard1-quick-action-btn dashboard1-email-marketing-btn"
+                    onClick={handleEmailMarketing}
+                  >
+                    <FontAwesomeIcon icon={faEnvelope} className="quick-action-icon" />
+                    <span>Email Marketing</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
