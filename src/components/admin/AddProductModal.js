@@ -2163,56 +2163,56 @@ const AddProductModal = ({ onClose, onAdd, editingProduct, isEditMode }) => {
         
         const productPromises = branchStockEntries.map(async ([branchId, stockQuantity]) => {
           try {
-            const branchProductData = {
-              ...productData,
-              branch_id: parseInt(branchId),
-              stock_quantity: stockQuantity ? parseInt(stockQuantity) : null
-            };
+          const branchProductData = {
+            ...productData,
+            branch_id: parseInt(branchId),
+            stock_quantity: stockQuantity ? parseInt(stockQuantity) : null
+          };
 
             console.log(`📦 [AddProductModal] Processing branch ${branchId} with stock ${stockQuantity}`);
 
-            // For edit mode, check if product exists in this branch
-            if (isEditMode && branchProducts[branchId]) {
-              // Update existing product in this branch
-              const existingProductId = branchProducts[branchId].id;
+          // For edit mode, check if product exists in this branch
+          if (isEditMode && branchProducts[branchId]) {
+            // Update existing product in this branch
+            const existingProductId = branchProducts[branchId].id;
               console.log(`📦 [AddProductModal] Updating existing product ${existingProductId} in branch ${branchId}`);
-              const url = `http://localhost:4000/api/products/${existingProductId}`;
-              const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify(branchProductData)
-              });
+            const url = `http://localhost:4000/api/products/${existingProductId}`;
+            const response = await fetch(url, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify(branchProductData)
+            });
 
-              if (!response.ok) {
-                const errorData = await response.json();
+            if (!response.ok) {
+              const errorData = await response.json();
                 console.error(`❌ [AddProductModal] Failed to update product in branch ${branchId}:`, errorData);
-                throw new Error(errorData.error || `Failed to update product in branch ${branchId}`);
-              }
+              throw new Error(errorData.error || `Failed to update product in branch ${branchId}`);
+            }
 
               const result = await response.json();
               console.log(`✅ [AddProductModal] Successfully updated product in branch ${branchId}`);
               return result;
-            } else {
-              // Create new product for this branch
+          } else {
+            // Create new product for this branch
               console.log(`📦 [AddProductModal] Creating new product in branch ${branchId}`);
-              const url = 'http://localhost:4000/api/products';
-              const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify(branchProductData)
-              });
+            const url = 'http://localhost:4000/api/products';
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify(branchProductData)
+            });
 
-              if (!response.ok) {
-                const errorData = await response.json();
+            if (!response.ok) {
+              const errorData = await response.json();
                 console.error(`❌ [AddProductModal] Failed to create product in branch ${branchId}:`, errorData);
-                throw new Error(errorData.error || `Failed to create product in branch ${branchId}`);
-              }
+              throw new Error(errorData.error || `Failed to create product in branch ${branchId}`);
+            }
 
               const result = await response.json();
               console.log(`✅ [AddProductModal] Successfully created product in branch ${branchId}:`, result.id);

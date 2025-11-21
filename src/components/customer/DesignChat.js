@@ -86,6 +86,7 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
   const [uploading, setUploading] = useState(false);
   const [assignedArtist, setAssignedArtist] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [responseNotice, setResponseNotice] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const { user } = useAuth();
@@ -99,6 +100,12 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (!responseNotice) return;
+    const timer = setTimeout(() => setResponseNotice(null), 4000);
+    return () => clearTimeout(timer);
+  }, [responseNotice]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -265,18 +272,20 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
       setSending(true);
       
       const trimmedFeedback = response.feedback.trim();
-      const responseMessage = (() => {
+      const responsePrefix = (() => {
         switch (response.action) {
           case 'approve':
             return 'Design Approved';
           case 'request_changes':
             return 'Changes Requested';
-          case 'feedback':
-            return trimmedFeedback;
           default:
-            return trimmedFeedback;
+            return '';
         }
       })();
+
+      const responseMessage = responsePrefix
+        ? `${responsePrefix}${trimmedFeedback ? `\n\n${trimmedFeedback}` : ''}`
+        : trimmedFeedback;
 
       await chatService.sendMessage(
         chatRoom.id,
@@ -295,16 +304,22 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
               reviewResponded: true,
               reviewResponseAction: response.action,
               reviewResponseAt: responseRecordedAt,
-              reviewResponseSummary: trimmedFeedback || (response.action === 'approve' ? 'The design looks great! Please proceed.' : '')
+              reviewResponseSummary: trimmedFeedback || (responsePrefix ? responsePrefix : 'Feedback shared with artist')
             }
           : msg
       )));
 
-      alert('Your response has been sent to the artist!');
-      
+      setResponseNotice({
+        type: 'success',
+        message: 'Your response was sent to the artist.'
+      });
+
     } catch (error) {
       console.error('Error sending review response:', error);
-      alert('Failed to send response. Please try again.');
+      setResponseNotice({
+        type: 'error',
+        message: 'Failed to send your response. Please try again.'
+      });
     } finally {
       setSending(false);
     }
@@ -358,6 +373,19 @@ const DesignChat = ({ orderId, isOpen, onClose }) => {
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
+        {responseNotice && (
+          <div className={`design-chat-response-banner ${responseNotice.type}`}>
+            <span>{responseNotice.message}</span>
+            <button
+              type="button"
+              className="response-banner-close"
+              onClick={() => setResponseNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+        )}
 
         <div className="design-chat-body">
           {loading ? (

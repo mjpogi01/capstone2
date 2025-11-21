@@ -235,13 +235,19 @@ const ProductModal = ({ isOpen, onClose, product, isFromCart = false, existingCa
       console.log('≡ƒôª Loaded reviews for product', product.id, ':', productReviews.length, 'reviews');
       
       // Format reviews to display properly
-      const formattedReviews = productReviews.map(review => ({
-        id: review.id,
-        user: review.user_id || 'Anonymous',
-        rating: review.rating || 0,
-        comment: review.comment || '',
-        date: new Date(review.created_at).toLocaleDateString()
-      }));
+      const formattedReviews = productReviews.map(review => {
+        const ratingValue = typeof review.rating === 'number' ? review.rating : Number(review.rating) || 0;
+        const reviewerName = review.user_name || review.user_email || review.user_id || 'Anonymous';
+        const reviewDate = review.created_at ? new Date(review.created_at).toLocaleDateString() : '';
+
+        return {
+          id: review.id,
+          user: reviewerName,
+          rating: ratingValue,
+          comment: review.comment || '',
+          date: reviewDate
+        };
+      });
       
       setReviews(formattedReviews);
     } catch (error) {

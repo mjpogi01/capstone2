@@ -121,3 +121,12 @@ async function checkCustomersWithOrders() {
 
 checkCustomersWithOrders();
 
+
+
+
+
+
+
+
+
+

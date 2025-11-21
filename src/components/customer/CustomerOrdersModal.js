@@ -131,6 +131,28 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const fetchArtistProfileById = async (artistId) => {
+    if (!artistId) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('artist_profiles')
+        .select('id, artist_name, is_active')
+        .eq('id', artistId)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error fetching artist profile:', error);
+        return null;
+      }
+
+      return data || null;
+    } catch (err) {
+      console.error('❌ Unexpected error fetching artist profile:', err);
+      return null;
+    }
+  };
+
   const loadOrderDetails = async (userOrders) => {
     const trackingData = {};
     const reviewsData = {};
@@ -150,14 +172,7 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
         try {
           const { data: artistTask, error: taskError } = await supabase
             .from('artist_tasks')
-            .select(`
-              artist_id,
-              artist_profiles(
-                id,
-                artist_name,
-                is_active
-              )
-            `)
+            .select('artist_id')
             .eq('order_id', order.id)
             .maybeSingle();
 
@@ -166,10 +181,8 @@ const CustomerOrdersModal = ({ isOpen, onClose }) => {
           if (taskError) {
             console.error(`❌ Error getting artist task for order ${order.id}:`, taskError);
             artistData[order.id] = null;
-          } else if (artistTask && artistTask.artist_profiles) {
-            const profile = Array.isArray(artistTask.artist_profiles) 
-              ? artistTask.artist_profiles[0] 
-              : artistTask.artist_profiles;
+          } else if (artistTask?.artist_id) {
+            const profile = await fetchArtistProfileById(artistTask.artist_id);
             
             if (profile && profile.is_active) {
               artistData[order.id] = profile;

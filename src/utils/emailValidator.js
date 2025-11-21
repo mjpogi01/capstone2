@@ -129,7 +129,8 @@ export async function validateEmailWithBackend(email) {
   const { API_URL } = require('../config/api');
   
   try {
-    const response = await fetch(`${API_URL}/api/auth/validate-email`, {
+    const endpoint = `${API_URL}/api/auth/verification/validate-email`;
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -137,12 +138,26 @@ export async function validateEmailWithBackend(email) {
       body: JSON.stringify({ email }),
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    let data = null;
+
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      // Non-JSON responses (like HTML error pages) should not break parsing
+      const rawText = await response.text();
+      console.error('Unexpected response from email validation endpoint:', rawText);
+      return {
+        valid: false,
+        errors: ['Email validation service returned an unexpected response. Please try again.'],
+        warnings: []
+      };
+    }
 
     if (!response.ok) {
       return {
         valid: false,
-        errors: [data.error || 'Email validation failed'],
+        errors: data.errors || [data.error || `Email validation failed (${response.status})`],
         warnings: data.warnings || []
       };
     }

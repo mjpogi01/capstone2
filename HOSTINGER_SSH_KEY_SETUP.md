@@ -203,3 +203,12 @@ scp "local_file.sql" u302669616@my-kul-web2088.main-hosting.eu:/remote/path/
 
 **Need More Help?** Contact Hostinger support or check their documentation for SSH key management.
 
+
+
+
+
+
+
+
+
+

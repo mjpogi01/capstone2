@@ -180,14 +180,7 @@ class OrderService {
       // Get assigned artist - first check if task exists
       const { data: artistTask, error: taskError } = await supabase
         .from('artist_tasks')
-        .select(`
-          artist_id,
-          artist_profiles(
-            id,
-            artist_name,
-            is_active
-          )
-        `)
+        .select('artist_id')
         .eq('order_id', orderId)
         .maybeSingle();
 
@@ -200,10 +193,8 @@ class OrderService {
 
       // Check if artist profile exists and is active
       let assignedArtist = null;
-      if (artistTask && artistTask.artist_profiles) {
-        const profile = Array.isArray(artistTask.artist_profiles) 
-          ? artistTask.artist_profiles[0] 
-          : artistTask.artist_profiles;
+      if (artistTask?.artist_id) {
+        const profile = await this.getArtistProfileById(artistTask.artist_id);
         
         if (profile && profile.is_active) {
           assignedArtist = profile;
@@ -366,6 +357,28 @@ class OrderService {
     }
   }
 
+  async getArtistProfileById(artistId) {
+    if (!artistId) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('artist_profiles')
+        .select('id, artist_name, is_active')
+        .eq('id', artistId)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('⚠️ Error fetching artist profile:', error);
+        return null;
+      }
+
+      return data || null;
+    } catch (err) {
+      console.error('⚠️ Unexpected error fetching artist profile:', err);
+      return null;
+    }
+  }
+
   // Helper method to format order data for display
   formatOrderForDisplay(order) {
     // Use customer info from API response (now populated by backend)
@@ -466,66 +479,23 @@ class OrderService {
     ];
   }
 
-  // Fetch reviews for a specific product - HYBRID VERSION (handles both new and old reviews)
+  // Fetch reviews for a specific product via backend aggregation
   async getProductReviews(productId) {
+    if (!productId) return [];
+
     try {
-      // First, get direct product-specific reviews (new system)
-      const { data: productReviews, error: productError } = await supabase
-        .from('order_reviews')
-        .select('*')
-        .eq('product_id', productId)
-        .order('created_at', { ascending: false });
+      const response = await fetch(`${API_URL}/api/order-tracking/product-reviews/${productId}`);
 
-      if (productError) {
-        console.error('Error fetching product-specific reviews:', productError);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch product reviews (status ${response.status})`);
       }
 
-      // Then, get order-level reviews that might contain this product (old system)
-      const { data: orderReviews, error: orderError } = await supabase
-        .from('order_reviews')
-        .select('*')
-        .is('product_id', null)
-        .order('created_at', { ascending: false });
-
-      if (orderError) {
-        console.error('Error fetching order-level reviews:', orderError);
+      const data = await response.json();
+      if (!data.success) {
+        return [];
       }
 
-      // For order-level reviews, we need to check if the order contains this product
-      let relevantOrderReviews = [];
-      if (orderReviews && orderReviews.length > 0) {
-        // Get all completed orders to check which ones contain this product
-        const { data: orders, error: ordersError } = await supabase
-          .from('orders')
-          .select('id, order_items')
-          .eq('status', 'picked_up_delivered');
-
-        if (!ordersError && orders) {
-          // Find orders that contain this product
-          const relevantOrderIds = orders
-            .filter(order => {
-              const orderItems = order.order_items || [];
-              return orderItems.some(item => item.id === productId);
-            })
-            .map(order => order.id);
-
-          // Filter order reviews to only include those from relevant orders
-          relevantOrderReviews = orderReviews.filter(review => 
-            relevantOrderIds.includes(review.order_id)
-          );
-        }
-      }
-
-      // Combine both types of reviews
-      const allReviews = [
-        ...(productReviews || []),
-        ...relevantOrderReviews
-      ];
-
-      // Sort by creation date (newest first)
-      allReviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      
-      return allReviews;
+      return data.reviews || [];
     } catch (error) {
       console.error('Error in getProductReviews:', error);
       return [];

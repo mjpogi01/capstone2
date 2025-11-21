@@ -332,3 +332,12 @@ sudo journalctl -u nginx -f            # Nginx system logs
 
 **Need Help?** Check Hostinger VPS documentation or contact their support!
 
+
+
+
+
+
+
+
+
+

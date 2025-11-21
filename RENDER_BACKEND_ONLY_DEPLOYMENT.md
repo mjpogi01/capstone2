@@ -324,3 +324,12 @@ Render → https://yohanns-api.onrender.com
 
 **That's it!** Your backend will be live on Render, and your frontend on Hostinger will communicate with it. This is a solid, free deployment setup! 🚀
 
+
+
+
+
+
+
+
+
+

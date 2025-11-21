@@ -263,3 +263,12 @@ Create `.htaccess` in `public_html/`:
 
 The Git deployment you used is designed for **PHP applications** (WordPress, Laravel, etc.), which is why it looked for Composer files. For Node.js, you need the **Node.js Hosting** feature.
 
+
+
+
+
+
+
+
+
+

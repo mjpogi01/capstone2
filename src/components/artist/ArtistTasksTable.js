@@ -19,7 +19,7 @@ import ArtistTaskModal from './ArtistTaskModal';
 import ArtistChatModal from './ArtistChatModal';
 import chatService from '../../services/chatService';
 
-const ArtistTasksTable = ({ limit = null, showHeader = false, enableTabs = false }) => {
+const ArtistTasksTable = ({ limit = null, showHeader = false, enableTabs = false, onTasksUpdated = () => {} }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -157,6 +157,8 @@ const ArtistTasksTable = ({ limit = null, showHeader = false, enableTabs = false
       if (updatedTask) {
         setSelectedTask(updatedTask);
       }
+      
+      onTasksUpdated();
       
       // Only close modal if explicitly requested (not for starting tasks)
       // For starting tasks, keep modal open to show the unlocked details

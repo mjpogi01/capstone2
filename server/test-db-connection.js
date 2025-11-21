@@ -2,75 +2,114 @@ const { Pool } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
+const args = new Set(process.argv.slice(2));
+const skipDirect = args.has('--pooler-only');
+const skipPooler = args.has('--direct-only');
 
-console.log('🔍 Testing Database Connection...\n');
-console.log('Connection string:', connectionString ? `${connectionString.substring(0, 50)}...` : 'MISSING');
-console.log('');
+const directUrl =
+  (!skipDirect && (process.env.SUPABASE_DB_URL || process.env.DATABASE_URL)) || null;
+const poolerUrl =
+  (!skipPooler &&
+    (process.env.SUPABASE_POOLER_URL ||
+      process.env.SUPABASE_DB_POOLER_URL ||
+      process.env.DATABASE_POOLER_URL)) ||
+  null;
 
-if (!connectionString) {
-  console.error('❌ No database connection string found!');
-  process.exit(1);
+const tests = [
+  { label: 'Primary DATABASE_URL', value: directUrl, type: 'direct' },
+  { label: 'Supabase Session Pooler URL', value: poolerUrl, type: 'pooler' }
+].filter(test => Boolean(test.value));
+
+async function runQuery(client, sql, label) {
+  const result = await client.query(sql);
+  console.log(`✓ ${label}`);
+  return result;
 }
 
-const pool = new Pool({
-  connectionString,
-  ssl: {
-    rejectUnauthorized: false
-  },
-  max: 5,
-  idleTimeoutMillis: 30_000
-});
+async function testConnection({ label, value, type }) {
+  console.log(`\n🔍 Testing ${label}`);
+  console.log('URL preview:', `${value.substring(0, 50)}...`);
 
-console.log('Attempting to connect to database...\n');
+  const pool = new Pool({
+    connectionString: value,
+    ssl: { rejectUnauthorized: false },
+    max: type === 'pooler' ? 1 : 5,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
+    keepAlive: true
+  });
 
-pool.connect()
-  .then((client) => {
-    console.log('✓ Connected to database successfully!');
-    
-    // Test a simple query
-    return client.query('SELECT NOW() as current_time, current_database() as db_name')
-      .then((result) => {
-        console.log('✓ Query executed successfully!');
-        console.log('  Current time:', result.rows[0].current_time);
-        console.log('  Database name:', result.rows[0].db_name);
-        
-        // Test querying the orders table
-        return client.query('SELECT COUNT(*) as count FROM orders LIMIT 1');
-      })
-      .then((result) => {
-        console.log('✓ Orders table accessible!');
-        console.log('  Order count:', result.rows[0]?.count || 'N/A');
-        client.release();
-        pool.end();
-        console.log('\n✅ Database connection test passed!');
-        process.exit(0);
-      })
-      .catch((queryError) => {
-        console.error('❌ Query error:', queryError.message);
-        console.error('Error code:', queryError.code);
-        console.error('Error details:', queryError);
-        client.release();
-        pool.end();
-        process.exit(1);
-      });
-  })
-  .catch((error) => {
-    console.error('❌ Connection failed!');
-    console.error('Error message:', error.message);
-    console.error('Error code:', error.code);
-    console.error('Full error:', error);
-    
+  const startTime = Date.now();
+  let client;
+
+  try {
+    client = await pool.connect();
+    console.log(`✓ Connected (${((Date.now() - startTime) / 1000).toFixed(2)}s)`);
+
+    await runQuery(
+      client,
+      'SELECT NOW() as current_time, current_database() as db_name, inet_server_addr() as server_ip',
+      'Basic SELECT works'
+    );
+
+    await runQuery(
+      client,
+      "SELECT COUNT(*)::bigint AS total_orders FROM orders WHERE LOWER(status) NOT IN ('cancelled','canceled')",
+      '`orders` table accessible'
+    );
+
+    console.log('✅ Database connection test passed for this URL!');
+    return true;
+  } catch (error) {
+    console.error('❌ Connection/query failed for this URL');
+    console.error('   Message:', error.message);
+    console.error('   Code:', error.code || 'N/A');
     const errorMsg = (error.message || String(error) || '').toLowerCase();
     if (errorMsg.includes('tenant') || errorMsg.includes('user not found')) {
-      console.error('\n⚠️  "Tenant or user not found" error detected!');
-      console.error('This might mean:');
-      console.error('  1. The database password is incorrect');
-      console.error('  2. The connection string format is wrong');
-      console.error('  3. The database user doesn\'t exist');
+      console.error('   Hint: password/user mismatch (check Supabase dashboard > Settings > Database).');
+    } else if (errorMsg.includes('timeout')) {
+      console.error('   Hint: host not reachable or project asleep (resume project or check firewall).');
+    } else if (errorMsg.includes('certificate')) {
+      console.error(
+        '   Hint: SSL rejection – ensure NODE_TLS_REJECT_UNAUTHORIZED=0 for local dev when using Supabase.'
+      );
     }
-    
-    pool.end();
+    return false;
+  } finally {
+    if (client) {
+      client.release();
+    }
+    await pool.end();
+  }
+}
+
+async function main() {
+  if (tests.length === 0) {
+    console.error('❌ No database URLs found in environment variables.');
+    console.error(
+      '   Set DATABASE_URL for direct connections or SUPABASE_POOLER_URL for session pooler access.'
+    );
     process.exit(1);
-  });
+  }
+
+  let success = false;
+  for (const test of tests) {
+    // eslint-disable-next-line no-await-in-loop
+    const result = await testConnection(test);
+    success = success || result;
+  }
+
+  if (!success) {
+    console.error('\n❌ All database connection attempts failed.');
+    process.exit(1);
+  }
+
+  console.log('\n🎉 At least one database connection succeeded.');
+  process.exit(0);
+}
+
+main().catch(err => {
+  console.error('Unexpected error while running test:', err);
+  process.exit(1);
+});
 

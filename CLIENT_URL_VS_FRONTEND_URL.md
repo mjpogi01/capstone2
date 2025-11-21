@@ -298,3 +298,12 @@ CLIENT_URL = https://yourdomain.com
 
 **They can be the same value!** This is the most common setup. ✅
 
+
+
+
+
+
+
+
+
+

@@ -21,9 +21,54 @@ const DEFAULT_SELECT_FIELDS = `
   status,
   last_message_at,
   created_at,
-  updated_at,
-  branch:branches ( id, name, phone, email )
+  updated_at
 `;
+
+const enrichRoomsWithBranchInfo = async (rooms) => {
+  if (!Array.isArray(rooms)) return [];
+  if (rooms.length === 0) return [];
+
+  const branchIds = [...new Set(rooms.map(room => room?.branch_id).filter(Boolean))];
+  if (branchIds.length === 0) {
+    return rooms.map(room => ({
+      ...room,
+      branch: null
+    }));
+  }
+
+  try {
+    const { data: branches, error } = await supabase
+      .from('branches')
+      .select('id, name, phone, email')
+      .in('id', branchIds);
+
+    if (error) {
+      console.error('[Branch Chat] Error fetching branches:', error);
+      return rooms.map(room => ({
+        ...room,
+        branch: null
+      }));
+    }
+
+    const branchMap = new Map();
+    (branches || []).forEach(branch => {
+      if (branch?.id) {
+        branchMap.set(branch.id, branch);
+      }
+    });
+
+    return rooms.map(room => ({
+      ...room,
+      branch: branchMap.get(room.branch_id) || null
+    }));
+  } catch (error) {
+    console.error('[Branch Chat] Unexpected error enriching branches:', error);
+    return rooms.map(room => ({
+      ...room,
+      branch: null
+    }));
+  }
+};
 
 async function getRoomForUser(roomId, user) {
   const { data: room, error } = await supabase
@@ -183,8 +228,10 @@ router.post('/rooms', authenticateSupabaseToken, async (req, res) => {
       }
     }
 
+    const [roomWithBranch] = await enrichRoomsWithBranchInfo([room]);
+
     res.json({
-      room,
+      room: roomWithBranch || room,
       branch,
       isNew,
       initialMessage: firstMessage
@@ -207,7 +254,9 @@ router.get('/rooms/customer', authenticateSupabaseToken, async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
-    res.json({ rooms: data || [] });
+    const roomsWithBranches = await enrichRoomsWithBranchInfo(data || []);
+
+    res.json({ rooms: roomsWithBranches });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to load branch chats' });
   }
@@ -262,12 +311,14 @@ router.get('/rooms/admin', authenticateSupabaseToken, async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
-    console.log(`[Branch Chat Admin] Query returned ${data?.length || 0} rooms`);
+    const rooms = await enrichRoomsWithBranchInfo(data || []);
+
+    console.log(`[Branch Chat Admin] Query returned ${rooms.length} rooms`);
 
     // Fetch customer names from user_profiles and auth.users
     // Note: customer_id in branch_chat_rooms = user_id in user_profiles = id in auth.users
-    if (data && data.length > 0) {
-      const customerIds = [...new Set(data.map(room => room.customer_id).filter(Boolean))];
+    if (rooms && rooms.length > 0) {
+      const customerIds = [...new Set(rooms.map(room => room.customer_id).filter(Boolean))];
       
       console.log(`[Branch Chat] Fetching names for ${customerIds.length} customers`);
       
@@ -423,7 +474,7 @@ router.get('/rooms/admin', authenticateSupabaseToken, async (req, res) => {
         }
         
         // Add customer name to each room
-        data.forEach(room => {
+        rooms.forEach(room => {
           const customerName = profileMap.get(room.customer_id);
           if (customerName) {
             room.customer_name = customerName;
@@ -438,7 +489,7 @@ router.get('/rooms/admin', authenticateSupabaseToken, async (req, res) => {
       }
     }
 
-    res.json({ rooms: data || [] });
+    res.json({ rooms });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to load branch chats' });
   }

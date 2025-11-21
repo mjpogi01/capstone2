@@ -56,3 +56,12 @@ WHERE LOWER(status) NOT IN ('cancelled', 'canceled')
 GROUP BY branch
 ORDER BY customers_with_orders DESC;
 
+
+
+
+
+
+
+
+
+

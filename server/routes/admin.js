@@ -2,6 +2,7 @@ const express = require('express');
 const { authenticateSupabaseToken, requireAdminOrOwner, requireOwner, requireBranchAccess } = require('../middleware/supabaseAuth');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
+const { executeSql } = require('../lib/sqlClient');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // Initialize Supabase client for admin operations
@@ -101,176 +102,325 @@ router.get('/users/debug', requireOwner, async (req, res) => {
 // Get all admin users (owner only)
 router.get('/users', requireOwner, async (req, res) => {
   try {
-    // Fetch all users by paginating through all pages
-    let allUsers = [];
-    let page = 1;
-    const perPage = 1000;
-    let hasMore = true;
-    
-    while (hasMore) {
-      const { data: usersData, error } = await supabase.auth.admin.listUsers({
-        page,
-        perPage
-      });
-      
-      if (error) {
-        console.error(`Supabase error fetching users (page ${page}):`, error);
-        break;
-      }
-      
-      // Check the response structure - Supabase might return data directly or in a nested structure
-      console.log(`🔍 Page ${page} response structure:`, {
-        hasData: !!usersData,
-        dataType: typeof usersData,
-        isArray: Array.isArray(usersData),
-        hasUsers: !!usersData?.users,
-        usersIsArray: Array.isArray(usersData?.users),
-        usersLength: usersData?.users?.length,
-        directLength: Array.isArray(usersData) ? usersData.length : 'not array'
-      });
-      
-      const users = usersData?.users || (Array.isArray(usersData) ? usersData : []);
-      
-      if (users && Array.isArray(users) && users.length > 0) {
-        console.log(`📄 Fetched page ${page}: ${users.length} users`);
-        allUsers = allUsers.concat(users);
-        hasMore = users.length === perPage;
-        page++;
-      } else {
-        console.log(`📄 Page ${page}: No more users (got ${users?.length || 0} users)`);
-        hasMore = false;
-      }
-    }
-    
-    const users = { users: allUsers };
-    
-    if (allUsers.length === 0) {
-      console.log('⚠️ No users found in database');
-    } else {
-      console.log(`✅ Fetched ${allUsers.length} total users from database`);
-    }
+    const admins = await fetchAdminUsersWithFallback();
 
-    // Debug: Log the raw structure of the first user to understand the API response
-    if (users.users && users.users.length > 0) {
-      const firstUser = users.users[0];
-      console.log('🔬 RAW FIRST USER OBJECT STRUCTURE:', JSON.stringify({
-        email: firstUser.email,
-        id: firstUser.id,
-        has_user_metadata: !!firstUser.user_metadata,
-        has_raw_user_meta_data: !!firstUser.raw_user_meta_data,
-        user_metadata_value: firstUser.user_metadata,
-        raw_user_meta_data_value: firstUser.raw_user_meta_data,
-        all_properties: Object.keys(firstUser)
-      }, null, 2));
-    }
-
-    // Debug: Log role distribution
-    // Check both user_metadata and raw_user_meta_data
-    const roleCounts = {};
-    users.users.forEach(user => {
-      // Try multiple ways to access the role
-      const role = user.user_metadata?.role 
-        || user.raw_user_meta_data?.role 
-        || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null)
-        || 'no-role';
-      roleCounts[role] = (roleCounts[role] || 0) + 1;
-    });
-    console.log('🔍 Role distribution in database:', roleCounts);
-    
-    // Log a sample admin/owner user to see the structure
-    const sampleAdmin = users.users.find(u => {
-      const role = u.user_metadata?.role || u.raw_user_meta_data?.role;
-      return role === 'admin' || role === 'owner';
-    });
-    if (sampleAdmin) {
-      console.log('📊 Sample admin/owner user structure:', {
-        email: sampleAdmin.email,
-        id: sampleAdmin.id,
-        user_metadata: sampleAdmin.user_metadata,
-        raw_user_meta_data: sampleAdmin.raw_user_meta_data,
-        all_keys: Object.keys(sampleAdmin),
-        user_metadata_type: typeof sampleAdmin.user_metadata,
-        raw_metadata_type: typeof sampleAdmin.raw_user_meta_data
-      });
-    }
-    
-    console.log('📊 Sample user metadata (first 3):', users.users.slice(0, 3).map(u => ({
-      email: u.email,
-      role: u.user_metadata?.role || u.raw_user_meta_data?.role,
-      has_user_metadata: !!u.user_metadata,
-      has_raw_metadata: !!u.raw_user_meta_data,
-      user_metadata_keys: u.user_metadata ? Object.keys(u.user_metadata) : [],
-      raw_metadata_keys: u.raw_user_meta_data ? Object.keys(u.raw_user_meta_data) : []
-    })));
-    
-    // Filter for admin and owner users
-    // Check both user_metadata and raw_user_meta_data (Supabase sometimes stores in different places)
-    const adminUsers = users.users.filter(user => {
-      // Try multiple ways to access the role
-      const role = user.user_metadata?.role 
-        || user.raw_user_meta_data?.role
-        || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null);
-      const isAdminOrOwner = role === 'admin' || role === 'owner';
-      if (!isAdminOrOwner && role) {
-        console.log(`⚠️ User ${user.email} has role "${role}" (not admin/owner)`);
-      }
-      return isAdminOrOwner;
-    });
-    
-    console.log('👥 Total users found:', users.users.length);
-    console.log('👑 Admin/Owner users found:', adminUsers.length);
-
-    // Get branch information for each user
-    const usersWithBranches = await Promise.all(
-      adminUsers.map(async (user) => {
-        let branchName = null;
-        const branchId = user.user_metadata?.branch_id || user.raw_user_meta_data?.branch_id;
-        if (branchId) {
-          try {
-            const { data: branchData, error: branchError } = await supabase
-              .from('branches')
-              .select('name')
-              .eq('id', branchId)
-              .single();
-            
-            if (!branchError && branchData) {
-              branchName = branchData.name;
-            }
-          } catch (err) {
-            console.error('Error fetching branch name:', err);
-          }
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          first_name: user.user_metadata?.first_name || null,
-          last_name: user.user_metadata?.last_name || null,
-          name: `${user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || ''} ${user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || ''}`.trim() || user.email,
-          role: user.user_metadata?.role || user.raw_user_meta_data?.role || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null) || 'customer',
-          branch_id: user.user_metadata?.branch_id || user.raw_user_meta_data?.branch_id || null,
-          contact_number: user.user_metadata?.contact_number || user.raw_user_meta_data?.contact_number || null,
-          branch_name: branchName,
-          created_at: user.created_at
-        };
-      })
-    );
-
-    console.log('📤 Sending admin users to frontend:', usersWithBranches.length);
-    
-    // Add cache-busting headers
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'
     });
-    
-    res.json(usersWithBranches);
+
+    res.json(admins);
   } catch (error) {
     console.error('Error fetching admin users:', error);
     res.status(500).json({ error: 'Failed to fetch admin users' });
   }
 });
+
+async function fetchAdminUsersWithFallback() {
+  let allUsers = [];
+  let page = 1;
+  const perPage = 1000;
+  let hasMore = true;
+  let fallbackNeeded = false;
+
+  while (hasMore) {
+    const { data: usersData, error } = await supabase.auth.admin.listUsers({
+      page,
+      perPage
+    });
+
+    if (error) {
+      console.error(`Supabase error fetching users (page ${page}):`, error);
+      if (error.code === 'unexpected_failure' || error.message?.includes('Database error')) {
+        fallbackNeeded = true;
+      }
+      break;
+    }
+
+    const users = usersData?.users || (Array.isArray(usersData) ? usersData : []);
+
+    if (users && Array.isArray(users) && users.length > 0) {
+      allUsers = allUsers.concat(users);
+      hasMore = users.length === perPage;
+      page++;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  if (fallbackNeeded || allUsers.length === 0) {
+    console.log('⚠️ Falling back to direct SQL query for admin users');
+    return fetchAdminUsersViaSql();
+  }
+
+  const adminUsers = allUsers.filter((user) => {
+    const role = user.user_metadata?.role
+      || user.raw_user_meta_data?.role
+      || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null);
+    return role === 'admin' || role === 'owner';
+  });
+
+  return Promise.all(
+    adminUsers.map(async (user) => {
+      let branchName = null;
+      const branchId = user.user_metadata?.branch_id || user.raw_user_meta_data?.branch_id;
+      if (branchId) {
+        const { data: branchData } = await supabase
+          .from('branches')
+          .select('name')
+          .eq('id', branchId)
+          .maybeSingle();
+
+        if (branchData?.name) {
+          branchName = branchData.name;
+        }
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        first_name: user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || null,
+        last_name: user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || null,
+        name: `${user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || ''} ${user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || ''}`.trim() || user.email,
+        role: user.user_metadata?.role || user.raw_user_meta_data?.role || 'customer',
+        branch_id: branchId || null,
+        contact_number: user.user_metadata?.contact_number || user.raw_user_meta_data?.contact_number || null,
+        branch_name: branchName,
+        created_at: user.created_at
+      };
+    })
+  );
+}
+
+async function fetchAdminUsersViaSql() {
+  const result = await executeSql(`
+    SELECT
+      u.id,
+      u.email,
+      u.created_at,
+      u.raw_user_meta_data,
+      (u.raw_user_meta_data->>'branch_id')::INT AS branch_id,
+      b.name AS branch_name
+    FROM auth.users u
+    LEFT JOIN branches b ON (u.raw_user_meta_data->>'branch_id')::INT = b.id
+    WHERE (u.raw_user_meta_data->>'role') IN ('admin', 'owner')
+    ORDER BY u.created_at ASC;
+  `);
+
+  return result.rows.map((row) => {
+    const metadata = row.raw_user_meta_data || {};
+    const firstName = metadata.first_name || metadata.firstName || null;
+    const lastName = metadata.last_name || metadata.lastName || null;
+
+    return {
+      id: row.id,
+      email: row.email,
+      first_name: firstName,
+      last_name: lastName,
+      name: `${firstName || ''} ${lastName || ''}`.trim() || row.email,
+      role: metadata.role || 'customer',
+      branch_id: row.branch_id || null,
+      contact_number: metadata.contact_number || null,
+      branch_name: row.branch_name || metadata.branch_name || null,
+      created_at: row.created_at
+    };
+  });
+}
+
+async function fetchArtistUsersWithFallback() {
+  let allUsers = [];
+  let page = 1;
+  const perPage = 1000;
+  let hasMore = true;
+  let fallbackNeeded = false;
+
+  while (hasMore) {
+    const { data: usersData, error } = await supabase.auth.admin.listUsers({
+      page,
+      perPage
+    });
+
+    if (error) {
+      console.error(`Supabase error fetching artist users (page ${page}):`, error);
+      if (error.code === 'unexpected_failure' || error.message?.includes('Database error')) {
+        fallbackNeeded = true;
+      }
+      break;
+    }
+
+    const users = usersData?.users || (Array.isArray(usersData) ? usersData : []);
+
+    if (users && Array.isArray(users) && users.length > 0) {
+      allUsers = allUsers.concat(users);
+      hasMore = users.length === perPage;
+      page++;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  // Filter for artists from collected users
+  const artistUsers = allUsers.filter((user) => {
+    const role = user.user_metadata?.role
+      || user.raw_user_meta_data?.role
+      || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null);
+    return role === 'artist';
+  });
+
+  if (fallbackNeeded || artistUsers.length === 0) {
+    console.log('⚠️ Falling back to direct SQL query for artist users');
+    return fetchArtistUsersViaSql();
+  }
+
+  return Promise.all(
+    artistUsers.map(async (user) => {
+      let artistProfile = null;
+      let totalTasksAssigned = 0;
+      try {
+        const { data: profileData } = await supabase
+          .from('artist_profiles')
+          .select('id, artist_name, is_active, is_verified, total_tasks_completed, rating, commission_rate')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (profileData) {
+          artistProfile = profileData;
+
+          const { count } = await supabase
+            .from('artist_tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('artist_id', profileData.id);
+
+          if (count !== null) {
+            totalTasksAssigned = count;
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching artist profile:', err);
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        artist_name: user.user_metadata?.artist_name || user.raw_user_meta_data?.artist_name || artistProfile?.artist_name || 'N/A',
+        full_name: user.user_metadata?.full_name || user.raw_user_meta_data?.full_name || user.user_metadata?.artist_name || user.raw_user_meta_data?.artist_name || 'N/A',
+        is_active: artistProfile?.is_active !== undefined ? artistProfile.is_active : true,
+        is_verified: artistProfile?.is_verified || false,
+        total_tasks_completed: artistProfile?.total_tasks_completed || 0,
+        total_tasks_assigned: totalTasksAssigned,
+        rating: artistProfile?.rating || 0,
+        commission_rate: artistProfile?.commission_rate || 0,
+        created_at: user.created_at
+      };
+    })
+  );
+}
+
+async function fetchArtistUsersViaSql() {
+  const result = await executeSql(`
+    WITH task_counts AS (
+      SELECT artist_id, COUNT(*) AS total_tasks
+      FROM artist_tasks
+      GROUP BY artist_id
+    )
+    SELECT
+      u.id,
+      u.email,
+      u.created_at,
+      u.raw_user_meta_data,
+      ap.id AS profile_id,
+      ap.artist_name,
+      ap.is_active,
+      ap.is_verified,
+      ap.total_tasks_completed,
+      ap.rating,
+      ap.commission_rate,
+      COALESCE(task_counts.total_tasks, 0) AS total_tasks_assigned
+    FROM auth.users u
+    LEFT JOIN artist_profiles ap ON ap.user_id = u.id
+    LEFT JOIN task_counts ON task_counts.artist_id = ap.id
+    WHERE (u.raw_user_meta_data->>'role') = 'artist'
+    ORDER BY u.created_at ASC;
+  `);
+
+  return result.rows.map((row) => {
+    const metadata = row.raw_user_meta_data || {};
+    const fullName = metadata.full_name || metadata.artist_name || row.artist_name || 'N/A';
+
+    return {
+      id: row.id,
+      email: row.email,
+      artist_name: row.artist_name || metadata.artist_name || fullName,
+      full_name: fullName,
+      is_active: row.is_active !== null ? row.is_active : true,
+      is_verified: row.is_verified || false,
+      total_tasks_completed: row.total_tasks_completed || 0,
+      total_tasks_assigned: row.total_tasks_assigned || 0,
+      rating: row.rating || 0,
+      commission_rate: row.commission_rate || 0,
+      created_at: row.created_at
+    };
+  });
+}
+
+async function ensureArtistProfileRecord(userId) {
+  const { data, error } = await supabase
+    .from('artist_profiles')
+    .select('id, user_id, artist_name, is_active')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching artist profile via Supabase:', error);
+  }
+
+  if (data) {
+    return data;
+  }
+
+  console.log('⚠️ Artist profile missing, creating default profile for user:', userId);
+
+  const userResult = await executeSql(
+    'SELECT email, raw_user_meta_data FROM auth.users WHERE id = $1 LIMIT 1;',
+    [userId]
+  );
+
+  if (!userResult.rows.length) {
+    throw new Error('Artist user not found in auth.users');
+  }
+
+  const userRow = userResult.rows[0];
+  const metadata = userRow.raw_user_meta_data || {};
+  const fallbackName =
+    metadata.artist_name ||
+    metadata.full_name ||
+    metadata.first_name ||
+    (userRow.email ? userRow.email.split('@')[0] : 'Artist');
+
+  const { data: insertedProfile, error: insertError } = await supabase
+    .from('artist_profiles')
+    .insert({
+      user_id: userId,
+      artist_name: fallbackName,
+      bio: 'Professional design layout specialist',
+      specialties: ['Layout Design', 'Custom Graphics', 'Team Jerseys'],
+      commission_rate: 12.0,
+      rating: 0,
+      is_verified: false,
+      is_active: true
+    })
+    .select()
+    .single();
+
+  if (insertError) {
+    console.error('❌ Failed to create missing artist profile:', insertError);
+    throw new Error('Failed to create artist profile');
+  }
+
+  console.log('✅ Created missing artist profile for user:', userId);
+  return insertedProfile;
+}
 
 // Create new admin user (owner only)
 router.post('/users', requireOwner, async (req, res) => {
@@ -353,7 +503,10 @@ router.get('/customers', requireAdminOrOwner, async (req, res) => {
 
     // Filter for customer users
     const customerUsers = allUsers.filter(user => {
-      const role = user.user_metadata?.role;
+      const role = user.user_metadata?.role
+        || user.raw_user_meta_data?.role
+        || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null)
+        || (user.raw_user_meta_data && typeof user.raw_user_meta_data === 'object' ? user.raw_user_meta_data.role : null);
       return role === 'customer';
     });
     
@@ -365,10 +518,35 @@ router.get('/customers', requireAdminOrOwner, async (req, res) => {
       const searchLower = searchTerm.toLowerCase();
       filteredCustomers = customerUsers.filter(user => {
         const email = user.email?.toLowerCase() || '';
-        const firstName = user.user_metadata?.first_name?.toLowerCase() || '';
-        const lastName = user.user_metadata?.last_name?.toLowerCase() || '';
-        const fullName = `${firstName} ${lastName}`.trim().toLowerCase();
-        return email.includes(searchLower) || fullName.includes(searchLower);
+        const firstName = (
+          user.user_metadata?.first_name ||
+          user.raw_user_meta_data?.first_name ||
+          user.user_metadata?.firstName ||
+          user.raw_user_meta_data?.firstName
+        );
+        const lastName = (
+          user.user_metadata?.last_name ||
+          user.raw_user_meta_data?.last_name ||
+          user.user_metadata?.lastName ||
+          user.raw_user_meta_data?.lastName
+        );
+        const metaFullName = (
+          user.user_metadata?.full_name ||
+          user.raw_user_meta_data?.full_name ||
+          user.user_metadata?.fullName ||
+          user.raw_user_meta_data?.fullName
+        );
+
+        const normalizedFirst = firstName?.toLowerCase() || '';
+        const normalizedLast = lastName?.toLowerCase() || '';
+        const fullName = `${normalizedFirst} ${normalizedLast}`.trim();
+        const normalizedFullName = metaFullName?.toLowerCase() || '';
+
+        return (
+          email.includes(searchLower) ||
+          fullName.includes(searchLower) ||
+          normalizedFullName.includes(searchLower)
+        );
       });
     }
     
@@ -450,6 +628,7 @@ router.get('/customers', requireAdminOrOwner, async (req, res) => {
     
     // Fetch addresses from most recent orders (for customers without addresses in user_addresses)
     let orderAddressesMap = {};
+    let orderCustomerNamesMap = {};
     const usersWithoutAddress = userIds.filter(id => !userAddressesMap[id]);
     if (usersWithoutAddress.length > 0) {
       console.log(`🔍 Looking for addresses in orders for ${usersWithoutAddress.length} users without addresses`);
@@ -460,7 +639,7 @@ router.get('/customers', requireAdminOrOwner, async (req, res) => {
         // Use a different approach to filter out null delivery_address
         const { data: orders, error: ordersError } = await supabase
           .from('orders')
-          .select('user_id, delivery_address, created_at')
+          .select('user_id, delivery_address, order_items, created_at')
           .in('user_id', batch)
           .order('created_at', { ascending: false });
         
@@ -530,6 +709,23 @@ router.get('/customers', requireAdminOrOwner, async (req, res) => {
                 console.log('⚠️ Unexpected delivery_address type:', typeof deliveryAddr, deliveryAddr);
               }
             }
+
+            // Capture customer name from delivery address or order items
+            let derivedCustomerName = null;
+            if (deliveryAddr && typeof deliveryAddr === 'object') {
+              if (deliveryAddr.receiver && typeof deliveryAddr.receiver === 'string') {
+                derivedCustomerName = deliveryAddr.receiver.trim();
+              }
+            }
+            if (!derivedCustomerName && Array.isArray(order.order_items) && order.order_items.length > 0) {
+              const firstItem = order.order_items[0];
+              if (firstItem?.client_name && typeof firstItem.client_name === 'string') {
+                derivedCustomerName = firstItem.client_name.trim();
+              }
+            }
+            if (derivedCustomerName) {
+              orderCustomerNamesMap[userId] = derivedCustomerName;
+            }
           });
         } else if (ordersError) {
           console.warn(`⚠️ Error fetching order addresses batch ${Math.floor(i / batchSize) + 1}:`, ordersError.message);
@@ -546,15 +742,20 @@ router.get('/customers', requireAdminOrOwner, async (req, res) => {
       const profile = userProfilesMap[user.id];
       const userAddress = userAddressesMap[user.id];
       const orderAddress = orderAddressesMap[user.id];
+      const orderCustomerName = orderCustomerNamesMap[user.id];
       
-      // Get name: priority is user_profiles.full_name > user_metadata (first_name + last_name) > email
-      let name = null;
-      if (profile?.full_name) {
-        name = profile.full_name;
-      } else {
-        const firstName = user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || '';
-        const lastName = user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || '';
-        name = `${firstName} ${lastName}`.trim() || user.email || 'N/A';
+      // Get name: priority is profile full name > metadata full name > combined first/last > order-derived name > email
+      const metaFullName = user.user_metadata?.full_name || user.raw_user_meta_data?.full_name;
+      const firstName = profile?.first_name || user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || '';
+      const lastName = profile?.last_name || user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || '';
+      let name = profile?.full_name
+        || metaFullName
+        || `${firstName} ${lastName}`.trim()
+        || orderCustomerName
+        || null;
+
+      if (!name || name.trim() === '') {
+        name = user.email || 'N/A';
       }
       
       // Get contact number: priority is user_profiles.phone > user_metadata.phone > user_metadata.contact_number
@@ -688,158 +889,15 @@ router.delete('/customers/:id', requireAdminOrOwner, async (req, res) => {
 // Get all artist accounts (admin or owner)
 router.get('/artists', requireAdminOrOwner, async (req, res) => {
   try {
-    // Fetch all users by paginating through all pages
-    let allUsers = [];
-    let page = 1;
-    const perPage = 1000;
-    let hasMore = true;
-    
-    while (hasMore) {
-      const { data: usersData, error } = await supabase.auth.admin.listUsers({
-        page,
-        perPage
-      });
-      
-      if (error) {
-        console.error(`Supabase error fetching users (page ${page}):`, error);
-        break;
-      }
-      
-      // Check the response structure - Supabase might return data directly or in a nested structure
-      console.log(`🔍 Page ${page} response structure:`, {
-        hasData: !!usersData,
-        dataType: typeof usersData,
-        isArray: Array.isArray(usersData),
-        hasUsers: !!usersData?.users,
-        usersIsArray: Array.isArray(usersData?.users),
-        usersLength: usersData?.users?.length,
-        directLength: Array.isArray(usersData) ? usersData.length : 'not array'
-      });
-      
-      const users = usersData?.users || (Array.isArray(usersData) ? usersData : []);
-      
-      if (users && Array.isArray(users) && users.length > 0) {
-        console.log(`📄 Fetched page ${page}: ${users.length} users`);
-        allUsers = allUsers.concat(users);
-        hasMore = users.length === perPage;
-        page++;
-      } else {
-        console.log(`📄 Page ${page}: No more users (got ${users?.length || 0} users)`);
-        hasMore = false;
-      }
-    }
-    
-    const users = { users: allUsers };
-    
-    if (allUsers.length === 0) {
-      console.log('⚠️ No users found in database');
-    } else {
-      console.log(`✅ Fetched ${allUsers.length} total users from database`);
-    }
+    const artists = await fetchArtistUsersWithFallback();
 
-    // Debug: Log the raw structure of the first user to understand the API response
-    if (users.users && users.users.length > 0) {
-      const firstUser = users.users[0];
-      console.log('🔬 RAW FIRST USER OBJECT STRUCTURE (artists):', JSON.stringify({
-        email: firstUser.email,
-        id: firstUser.id,
-        has_user_metadata: !!firstUser.user_metadata,
-        has_raw_user_meta_data: !!firstUser.raw_user_meta_data,
-        user_metadata_value: firstUser.user_metadata,
-        raw_user_meta_data_value: firstUser.raw_user_meta_data,
-        all_properties: Object.keys(firstUser)
-      }, null, 2));
-    }
-
-    // Debug: Log role distribution
-    // Check both user_metadata and raw_user_meta_data
-    const roleCounts = {};
-    users.users.forEach(user => {
-      const role = user.user_metadata?.role || user.raw_user_meta_data?.role || 'no-role';
-      roleCounts[role] = (roleCounts[role] || 0) + 1;
-    });
-    console.log('🔍 Role distribution in database (for artists):', roleCounts);
-    console.log('📊 Sample user metadata (first 3):', users.users.slice(0, 3).map(u => ({
-      email: u.email,
-      role: u.user_metadata?.role || u.raw_user_meta_data?.role,
-      has_user_metadata: !!u.user_metadata,
-      has_raw_metadata: !!u.raw_user_meta_data,
-      user_metadata_keys: u.user_metadata ? Object.keys(u.user_metadata) : [],
-      raw_metadata_keys: u.raw_user_meta_data ? Object.keys(u.raw_user_meta_data) : []
-    })));
-    
-    // Filter for artist users
-    // Check both user_metadata and raw_user_meta_data (Supabase sometimes stores in different places)
-    const artistUsers = users.users.filter(user => {
-      // Try multiple ways to access the role
-      const role = user.user_metadata?.role 
-        || user.raw_user_meta_data?.role
-        || (user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata.role : null);
-      const isArtist = role === 'artist';
-      if (!isArtist && role) {
-        console.log(`⚠️ User ${user.email} has role "${role}" (not artist)`);
-      }
-      return isArtist;
-    });
-    
-    console.log('👥 Total users found:', users.users.length);
-    console.log('🎨 Artist users found:', artistUsers.length);
-
-    // Get artist profile information for each user
-    const artistsWithProfiles = await Promise.all(
-      artistUsers.map(async (user) => {
-        let artistProfile = null;
-        let totalTasksAssigned = 0;
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('artist_profiles')
-            .select('id, artist_name, is_active, is_verified, total_tasks_completed, rating, commission_rate')
-            .eq('user_id', user.id)
-            .single();
-          
-          if (!profileError && profileData) {
-            artistProfile = profileData;
-            
-            // Get total tasks assigned to this artist
-            const { count, error: tasksError } = await supabase
-              .from('artist_tasks')
-              .select('*', { count: 'exact', head: true })
-              .eq('artist_id', profileData.id);
-            
-            if (!tasksError && count !== null) {
-              totalTasksAssigned = count;
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching artist profile:', err);
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          artist_name: user.user_metadata?.artist_name || user.raw_user_meta_data?.artist_name || artistProfile?.artist_name || 'N/A',
-          full_name: user.user_metadata?.full_name || user.raw_user_meta_data?.full_name || user.user_metadata?.artist_name || user.raw_user_meta_data?.artist_name || 'N/A',
-          is_active: artistProfile?.is_active !== undefined ? artistProfile.is_active : true,
-          is_verified: artistProfile?.is_verified || false,
-          total_tasks_completed: artistProfile?.total_tasks_completed || 0,
-          total_tasks_assigned: totalTasksAssigned,
-          rating: artistProfile?.rating || 0,
-          commission_rate: artistProfile?.commission_rate || 0,
-          created_at: user.created_at
-        };
-      })
-    );
-
-    console.log('📤 Sending artist users to frontend:', artistsWithProfiles.length);
-    
-    // Add cache-busting headers
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'
     });
-    
-    res.json(artistsWithProfiles);
+
+    res.json(artists);
   } catch (error) {
     console.error('Error fetching artists:', error);
     res.status(500).json({ error: 'Failed to fetch artists' });
@@ -936,17 +994,8 @@ router.patch('/artists/:id/toggle-status', authenticateSupabaseToken, async (req
       return res.status(400).json({ error: 'is_active must be a boolean value' });
     }
     
-    // Get artist profile by user_id
-    const { data: profileData, error: profileError } = await supabase
-      .from('artist_profiles')
-      .select('id, user_id, artist_name')
-      .eq('user_id', id)
-      .single();
-    
-    if (profileError || !profileData) {
-      console.error('Error finding artist profile:', profileError);
-      return res.status(404).json({ error: 'Artist profile not found' });
-    }
+    // Ensure artist profile exists (create if missing)
+    const profileData = await ensureArtistProfileRecord(id);
     
     // Check permissions: owner/admin can toggle any artist, artist can only toggle themselves
     if (!isOwner && !isAdmin) {

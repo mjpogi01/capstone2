@@ -25,6 +25,11 @@ const ArtistDashboard = () => {
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
+  const [dataRefreshToken, setDataRefreshToken] = useState(0);
+
+  const handleArtistDataRefresh = () => {
+    setDataRefreshToken((prev) => prev + 1);
+  };
 
   // Fetch artist profile to get is_active status
   useEffect(() => {
@@ -79,14 +84,15 @@ const ArtistDashboard = () => {
         setIsActive(newStatus);
         showNotification(`Your status has been updated to ${newStatus ? 'Active' : 'Inactive'}`, 'success');
       } else {
-        const errorText = await response.text();
-        console.error('❌ Status toggle failed:', response.status, errorText);
+        let errorMessage = 'Failed to update status';
         try {
-          const errorData = JSON.parse(errorText);
-          showNotification(`Error: ${errorData.error || 'Failed to update status'}`, 'error');
-        } catch (parseError) {
-          showNotification(`Error: ${response.status} - ${errorText}`, 'error');
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          const fallbackText = await response.text();
+          errorMessage = fallbackText || errorMessage;
         }
+        showNotification(errorMessage, 'error');
       }
     } catch (error) {
       console.error('❌ Error toggling status:', error);
@@ -122,7 +128,7 @@ const ArtistDashboard = () => {
             {/* Metrics row */}
             <div className="artist-panels-row">
               <div className="artist-panel artist-panel-full">
-                <ArtistMetricsCards />
+                <ArtistMetricsCards refreshToken={dataRefreshToken} />
               </div>
             </div>
 
@@ -148,6 +154,7 @@ const ArtistDashboard = () => {
                     showHeader={false}
                     period={selectedPeriod}
                     onPeriodChange={setSelectedPeriod}
+                    dataRefreshToken={dataRefreshToken}
                   />
                 </div>
               </div>
@@ -163,18 +170,18 @@ const ArtistDashboard = () => {
                   </button>
                 </div>
                 <div className="artist-panel-body">
-                  <ArtistTasksTable limit={5} showHeader={false} />
+                  <ArtistTasksTable limit={5} showHeader={false} onTasksUpdated={handleArtistDataRefresh} />
                 </div>
               </div>
             </div>
           </div>
         );
       case 'tasks':
-        return <ArtistTasksTable enableTabs={true} />;
+        return <ArtistTasksTable enableTabs={true} onTasksUpdated={handleArtistDataRefresh} />;
       case 'profile':
         return <ArtistProfile />;
       case 'workload':
-        return <ArtistWorkloadChart fullWidth={true} />;
+        return <ArtistWorkloadChart fullWidth={true} dataRefreshToken={dataRefreshToken} />;
       case 'chats':
         return <ArtistChatList />;
       default:

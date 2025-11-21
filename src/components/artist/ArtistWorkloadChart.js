@@ -8,7 +8,14 @@ import ReactECharts from 'echarts-for-react';
 import { useAuth } from '../../contexts/AuthContext';
 import artistDashboardService from '../../services/artistDashboardService';
 
-const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = null, onPeriodChange = null, onSummaryChange = null }) => {
+const ArtistWorkloadChart = ({
+  fullWidth = false,
+  showHeader = true,
+  period = null,
+  onPeriodChange = null,
+  onSummaryChange = null,
+  dataRefreshToken = 0
+}) => {
   const [workloadData, setWorkloadData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
@@ -34,7 +41,7 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
     } finally {
       setLoading(false);
     }
-  }, [user, selectedPeriod]);
+  }, [user, selectedPeriod, dataRefreshToken]);
 
   useEffect(() => {
     // keep internal state in sync when controlled period provided
@@ -45,7 +52,7 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
 
   useEffect(() => {
     fetchWorkloadData();
-  }, [selectedPeriod, fetchWorkloadData]);
+  }, [selectedPeriod, fetchWorkloadData, dataRefreshToken]);
 
   // Handle resize for responsive chart (both window and container resize)
   useEffect(() => {
@@ -121,8 +128,19 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
       if (resizeTimeout) {
         clearTimeout(resizeTimeout);
       }
-      if (chartRef.current?._resizeObserver && chartRef.current.ele) {
-        chartRef.current._resizeObserver.unobserve(chartRef.current.ele);
+      if (chartRef.current?._resizeObserver) {
+        try {
+          if (chartRef.current.ele) {
+            chartRef.current._resizeObserver.unobserve(chartRef.current.ele);
+          }
+          if (typeof chartRef.current._resizeObserver.disconnect === 'function') {
+            chartRef.current._resizeObserver.disconnect();
+          }
+        } catch (observerError) {
+          console.debug('ResizeObserver cleanup error:', observerError);
+        } finally {
+          chartRef.current._resizeObserver = null;
+        }
       }
     };
   }, [loading, workloadData]); // Re-run when loading completes or data changes
@@ -372,6 +390,7 @@ const ArtistWorkloadChart = ({ fullWidth = false, showHeader = true, period = nu
             option={chartOption}
             style={{ width: '100%', height: '100%', minHeight: '250px' }}
             opts={{ renderer: 'canvas' }}
+            autoResize={false}
             notMerge={true}
             lazyUpdate={true}
             onEvents={{

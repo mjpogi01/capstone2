@@ -142,18 +142,18 @@ const EarningsChart = ({ selectedBranchId = null, isValuesVisible = true, onTogg
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
           try {
-            if (!isValuesVisible) return '';
-            if (!Array.isArray(params) || !params.length) return '';
+          if (!isValuesVisible) return '';
+          if (!Array.isArray(params) || !params.length) return '';
             const firstParam = params[0];
             if (!firstParam || firstParam.axisValue === undefined) return '';
             const lines = params
               .filter(point => point && point.seriesName)
               .map(point => {
-                if (point.seriesName === 'Sales') {
+            if (point.seriesName === 'Sales') {
                   return `${point.marker || ''}${point.seriesName}: ₱${formatNumber(point.data ?? 0)}`;
-                }
+            }
                 return `${point.marker || ''}${point.seriesName}: ${formatNumber(point.data ?? 0)}`;
-              });
+          });
             return [`${firstParam.axisValue}`, ...lines].join('<br/>');
           } catch (error) {
             console.warn('Tooltip formatter error:', error);

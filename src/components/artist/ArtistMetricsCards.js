@@ -10,7 +10,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import artistDashboardService from '../../services/artistDashboardService';
 
-const ArtistMetricsCards = () => {
+const ArtistMetricsCards = ({ refreshToken = 0 }) => {
   const [metrics, setMetrics] = useState({
     totalTasks: 0,
     pendingTasks: 0,
@@ -49,11 +49,11 @@ const ArtistMetricsCards = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, refreshToken]);
 
   useEffect(() => {
     fetchArtistMetrics();
-  }, [user, fetchArtistMetrics]);
+  }, [fetchArtistMetrics]);
 
   const cards = [
     {

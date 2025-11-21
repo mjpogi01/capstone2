@@ -13,17 +13,7 @@ class WishlistService {
 
       const { data, error } = await supabase
         .from('user_wishlist')
-        .select(`
-          *,
-          products (
-            id,
-            name,
-            category,
-            price,
-            main_image,
-            additional_images
-          )
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .abortSignal(AbortSignal.timeout(15000)); // Increased timeout to 15 seconds
@@ -44,20 +34,24 @@ class WishlistService {
         throw new Error(`Database error: ${error.message}`);
       }
 
+      const productIds = [...new Set((data || []).map(item => item.product_id).filter(Boolean))];
+      const productsMap = await this.fetchProductsMap(productIds);
+
       // Transform the data to match the wishlist item format
       const transformedData = data.map(item => {
-        if (!item.products) {
-          console.warn('Wishlist item missing product data:', item);
+        const product = productsMap.get(item.product_id);
+        if (!product) {
+          console.warn('Wishlist item missing product data for product_id:', item.product_id);
           return null;
         }
         
         return {
-          id: item.products.id,
-          name: item.products.name,
-          category: item.products.category,
-          price: parseFloat(item.products.price),
-          image: item.products.main_image,
-          additional_images: item.products.additional_images,
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          price: parseFloat(product.price),
+          image: product.main_image,
+          additional_images: product.additional_images,
           addedAt: item.created_at,
           wishlistId: item.id // Use database ID as unique identifier
         };
@@ -198,6 +192,36 @@ class WishlistService {
       console.error('Error checking wishlist status:', error);
       return false;
     }
+  }
+
+  async fetchProductsMap(productIds) {
+    const map = new Map();
+
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return map;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, category, price, main_image, additional_images')
+        .in('id', productIds);
+
+      if (error) {
+        console.error('Error fetching products for wishlist items:', error);
+        return map;
+      }
+
+      (data || []).forEach(product => {
+        if (product?.id) {
+          map.set(product.id, product);
+        }
+      });
+    } catch (err) {
+      console.error('Unexpected error fetching products for wishlist items:', err);
+    }
+
+    return map;
   }
 }
 
