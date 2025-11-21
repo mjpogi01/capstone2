@@ -413,3 +413,12 @@
 
 **The main con is the cold start delay.** If you can solve that (with monitoring or paid plan), Render is a great option!
 
+
+
+
+
+
+
+
+
+

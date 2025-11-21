@@ -104,3 +104,12 @@ checkCustomerCountDiscrepancy().catch(err => {
   process.exit(1);
 });
 
+
+
+
+
+
+
+
+
+

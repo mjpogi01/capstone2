@@ -255,17 +255,14 @@ router.post('/bulk-status-update', async (req, res) => {
 // Get email service status
 router.get('/status', async (req, res) => {
   try {
-    // Check if email service is configured
-    const isConfigured = !!(
-      process.env.EMAIL_USER && 
-      process.env.EMAIL_PASSWORD
-    );
+    const fromAddress = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    const isConfigured = Boolean(process.env.RESEND_API_KEY && fromAddress);
 
     res.json({
       success: true,
       configured: isConfigured,
-      service: 'nodemailer',
-      provider: 'gmail',
+      service: 'resend',
+      provider: 'Resend',
       timestamp: new Date().toISOString()
     });
 

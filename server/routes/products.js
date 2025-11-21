@@ -59,6 +59,53 @@ const parseAvailableSizes = (sizeValue) => {
   return [];
 };
 
+const attachBranchNames = async (products) => {
+  if (!Array.isArray(products) || products.length === 0) {
+    return Array.isArray(products) ? [...products] : [];
+  }
+
+  const branchIds = [...new Set(products.map(product => product?.branch_id).filter(Boolean))];
+  if (branchIds.length === 0) {
+    return products.map(product => ({
+      ...product,
+      branch_name: null
+    }));
+  }
+
+  try {
+    const { data: branchesData, error: branchesError } = await supabase
+      .from('branches')
+      .select('id, name')
+      .in('id', branchIds);
+
+    if (branchesError) {
+      console.error('Error fetching branches:', branchesError);
+      return products.map(product => ({
+        ...product,
+        branch_name: null
+      }));
+    }
+
+    const branchMap = new Map();
+    (branchesData || []).forEach(branch => {
+      if (branch?.id) {
+        branchMap.set(branch.id, branch.name || null);
+      }
+    });
+
+    return products.map(product => ({
+      ...product,
+      branch_name: branchMap.get(product.branch_id) || null
+    }));
+  } catch (error) {
+    console.error('Unexpected error fetching branches:', error);
+    return products.map(product => ({
+      ...product,
+      branch_name: null
+    }));
+  }
+};
+
 // Test endpoint
 router.get('/test', (req, res) => {
   res.json({ message: 'Backend is working!', timestamp: new Date().toISOString() });
@@ -182,12 +229,7 @@ router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        branches (
-          name
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -195,16 +237,17 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    const productsWithBranches = await attachBranchNames(data || []);
+
     // Calculate review stats for all products
-    const productIds = data.map(p => p.id).filter(Boolean);
+    const productIds = (productsWithBranches || []).map(p => p.id).filter(Boolean);
     const reviewStats = await calculateProductReviewStats(productIds);
 
     // Transform the data to match the expected format
-    const transformedData = data.map(product => {
+    const transformedData = productsWithBranches.map(product => {
       const stats = reviewStats.get(product.id) || { review_count: 0, average_rating: 0 };
       return {
         ...product,
-        branch_name: product.branches?.name || null,
         available_sizes: parseAvailableSizes(product.size),
         review_count: stats.review_count,
         average_rating: stats.average_rating,
@@ -266,12 +309,7 @@ router.get('/branch/:branchId', async (req, res) => {
     
     const { data, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        branches (
-          name
-        )
-      `)
+      .select('*')
       .eq('branch_id', branchId)
       .order('created_at', { ascending: false });
 
@@ -280,16 +318,17 @@ router.get('/branch/:branchId', async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    const productsWithBranches = await attachBranchNames(data || []);
+
     // Calculate review stats for all products
-    const productIds = data.map(p => p.id).filter(Boolean);
+    const productIds = productsWithBranches.map(p => p.id).filter(Boolean);
     const reviewStats = await calculateProductReviewStats(productIds);
 
     // Transform the data
-    const transformedData = data.map(product => {
+    const transformedData = productsWithBranches.map(product => {
       const stats = reviewStats.get(product.id) || { review_count: 0, average_rating: 0 };
       return {
         ...product,
-        branch_name: product.branches?.name || null,
         available_sizes: parseAvailableSizes(product.size),
         review_count: stats.review_count,
         average_rating: stats.average_rating,
@@ -311,12 +350,7 @@ router.get('/:id', async (req, res) => {
     
     const { data: product, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        branches (
-          name
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .single();
     
@@ -324,17 +358,18 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    const [productWithBranch] = await attachBranchNames([product]);
+
     // Calculate review stats for this product
     const reviewStats = await calculateProductReviewStats([id]);
     const stats = reviewStats.get(id) || { review_count: 0, average_rating: 0 };
 
     const transformedData = {
-      ...product,
-      branch_name: product.branches?.name || null,
-      available_sizes: parseAvailableSizes(product.size),
+      ...productWithBranch,
+      available_sizes: parseAvailableSizes(productWithBranch.size),
       review_count: stats.review_count,
       average_rating: stats.average_rating,
-      sold_quantity: product.sold_quantity || 0
+      sold_quantity: productWithBranch.sold_quantity || 0
     };
     
     res.json(transformedData);
@@ -506,12 +541,7 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
           updated_at: new Date().toISOString()
         })
         .eq('id', existingProduct.id)
-        .select(`
-          *,
-          branches (
-            name
-          )
-        `)
+        .select('*')
         .single();
       
       data = updateData;
@@ -528,12 +558,7 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
       const { data: insertResult, error: insertError } = await supabase
         .from('products')
         .insert(insertData)
-        .select(`
-          *,
-          branches (
-            name
-          )
-        `)
+        .select('*')
         .single();
       
       data = insertResult;
@@ -561,10 +586,10 @@ router.post('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res
     console.log('✅ [Products API] Inserted product fabric_surcharges:', data?.fabric_surcharges);
 
     // Transform the data to match the expected format
+    const [productWithBranch] = await attachBranchNames([data]);
     const transformedData = {
-      ...data,
-      branch_name: data.branches?.name || null,
-      available_sizes: parseAvailableSizes(data.size)
+      ...productWithBranch,
+      available_sizes: parseAvailableSizes(productWithBranch.size)
     };
 
     res.status(201).json(transformedData);
@@ -726,12 +751,7 @@ router.put('/:id', async (req, res) => {
       .from('products')
       .update(updateData)
       .eq('id', id)
-      .select(`
-        *,
-        branches (
-          name
-        )
-      `)
+      .select('*')
       .single();
 
     if (error) {
@@ -752,10 +772,10 @@ router.put('/:id', async (req, res) => {
     console.log('✅ [Products API] Updated product fabric_surcharges:', data?.fabric_surcharges);
 
     // Transform the data to match the expected format
+    const [productWithBranch] = await attachBranchNames([data]);
     const transformedData = {
-      ...data,
-      branch_name: data.branches?.name || null,
-      available_sizes: parseAvailableSizes(data.size)
+      ...productWithBranch,
+      available_sizes: parseAvailableSizes(productWithBranch.size)
     };
 
     res.json(transformedData);

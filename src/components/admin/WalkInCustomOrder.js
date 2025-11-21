@@ -909,7 +909,8 @@ export default function WalkInCustomOrder({ onClose }) {
         pickup: shippingMethod === 'pickup' ? branches.find(b => b.id === pickupBranchId)?.name : null,
         deliveryAddress: shippingMethod === 'delivery' ? deliveryAddress.address : null,
         deliveryFee: shippingMethod === 'delivery' ? DELIVERY_FEE : 0,
-        emailSent: result.emailSent
+        emailSent: result.emailSent,
+        emailQueued: result.emailQueued
       });
       
       // Clear the form after successful submission
@@ -1835,11 +1836,26 @@ export default function WalkInCustomOrder({ onClose }) {
                   <p>Delivery Fee: <strong>₱{confirmation.deliveryFee}</strong></p>
                 </>
               )}
-              {confirmation.emailSent !== undefined && (
-                <p style={{ color: confirmation.emailSent ? '#4CAF50' : '#FF9800' }}>
-                  {confirmation.emailSent ? '✅ Confirmation email sent' : '⚠️ Email notification failed'}
-                </p>
-              )}
+              {(confirmation.emailSent !== undefined || confirmation.emailQueued !== undefined) && (() => {
+                let emailStatusText = '';
+                let emailStatusColor = '#FF9800';
+
+                if (confirmation.emailSent) {
+                  emailStatusText = '✅ Confirmation email sent';
+                  emailStatusColor = '#4CAF50';
+                } else if (confirmation.emailQueued) {
+                  emailStatusText = '📨 Confirmation email is being sent. Please check the inbox shortly.';
+                  emailStatusColor = '#1E88E5';
+                } else {
+                  emailStatusText = '⚠️ Email notification not available. Please provide a copy manually if needed.';
+                }
+
+                return (
+                  <p style={{ color: emailStatusColor }}>
+                    {emailStatusText}
+                  </p>
+                );
+              })()}
               <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px' }}>
                 Our design team will contact you within 2-3 business days to discuss your custom design requirements.
               </p>

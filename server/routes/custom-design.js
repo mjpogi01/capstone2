@@ -284,7 +284,8 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
 
     // Send confirmation email (non-blocking - don't await)
     // Let it run in background so it doesn't delay order response
-    if (process.env.EMAIL_USER) {
+    const emailConfigured = Boolean(process.env.EMAIL_USER);
+    if (emailConfigured) {
       (async () => {
         try {
           const emailResult = await emailService.sendCustomDesignConfirmation(
@@ -305,6 +306,8 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
           }
         }
       })();
+    } else {
+      console.warn('⚠️ Skipping custom design confirmation email: EMAIL_USER not configured');
     }
 
     // Respond immediately - don't wait for email
@@ -312,7 +315,8 @@ router.post('/', upload.array('designImages', 10), async (req, res) => {
       success: true,
       message: 'Custom design order created successfully',
       order: insertedOrder,
-      emailSent: false, // Will be sent in background
+      emailSent: false, // Actual send result runs in background
+      emailQueued: emailConfigured,
       emailError: null
     });
 

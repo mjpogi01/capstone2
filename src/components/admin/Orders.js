@@ -70,6 +70,7 @@ const Orders = () => {
     total: 0,
     totalPages: 1
   });
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -214,48 +215,126 @@ const Orders = () => {
     status: '',
     searchTerm: ''
   });
+  const isMetricsFiltered = Boolean(filters.pickupBranch || filters.status || filters.searchTerm);
 
   // Fetch orders from API
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        // First, load page 1 with a smaller limit for fast initial display
+        const initialLimit = 20;
         setLoading(true);
-        const response = await orderService.getAllOrders({
+        
+        console.log('📦 [Orders Component] Loading first page with limit:', initialLimit);
+        const firstPageResponse = await orderService.getAllOrders({
           ...filters,
-          page: pagination.page,
-          limit: pagination.limit
+          page: 1,
+          limit: initialLimit
         });
-        console.log('📦 [Orders Component] API Response:', response);
-        console.log('📦 [Orders Component] Total orders returned:', response.orders?.length);
-        console.log('📦 [Orders Component] Pagination info:', response.pagination);
+        
+        console.log('📦 [Orders Component] First page API Response:', firstPageResponse);
+        console.log('📦 [Orders Component] First page orders returned:', firstPageResponse.orders?.length);
+        console.log('📦 [Orders Component] First page pagination info:', firstPageResponse.pagination);
         
         // Add null check for response.orders
-        if (response && response.orders && Array.isArray(response.orders)) {
-          const formattedOrders = response.orders.map(order => orderService.formatOrderForDisplay(order));
-          console.log('📦 [Orders Component] Formatted orders:', formattedOrders.length);
+        if (firstPageResponse && firstPageResponse.orders && Array.isArray(firstPageResponse.orders)) {
+          const formattedOrders = firstPageResponse.orders.map(order => orderService.formatOrderForDisplay(order));
+          console.log('📦 [Orders Component] First page formatted orders:', formattedOrders.length);
+          
+          // Set first page immediately for fast display
           setOrders(formattedOrders);
           setFilteredOrders(formattedOrders);
-          if (response.pagination) {
-            setPagination(response.pagination);
+          setLoading(false); // Stop loading spinner after first page
+          
+          if (firstPageResponse.pagination) {
+            const paginationInfo = firstPageResponse.pagination;
+            setPagination(paginationInfo);
+            
+            // If there are more pages, load a few more in the background (not all to avoid slow loading)
+            // Limit to next 2-3 pages for better performance
+            const maxBackgroundPages = 3;
+            const pagesToLoad = Math.min(paginationInfo.totalPages - 1, maxBackgroundPages);
+            
+            if (pagesToLoad > 0) {
+              console.log(`📦 [Orders Component] Loading next ${pagesToLoad} pages in background (parallel)...`);
+              setIsLoadingMore(true);
+              
+              // Load next few pages in parallel for faster loading
+              const pagePromises = [];
+              for (let page = 2; page <= pagesToLoad + 1; page++) {
+                pagePromises.push(
+                  orderService.getAllOrders({
+                    ...filters,
+                    page: page,
+                    limit: initialLimit
+                  }).then(pageResponse => {
+                    if (pageResponse && pageResponse.orders && Array.isArray(pageResponse.orders)) {
+                      const formattedPageOrders = pageResponse.orders.map(order => orderService.formatOrderForDisplay(order));
+                      console.log(`📦 [Orders Component] Loaded page ${page}/${paginationInfo.totalPages}: ${formattedPageOrders.length} orders`);
+                      return formattedPageOrders;
+                    }
+                    return [];
+                  }).catch(pageError => {
+                    console.error(`Error loading page ${page}:`, pageError);
+                    return []; // Return empty array on error
+                  })
+                );
+              }
+              
+              // Wait for all pages to load in parallel
+              Promise.all(pagePromises).then(allPageResults => {
+                const remainingPages = allPageResults.flat();
+                
+                // Append remaining orders to the first page
+                if (remainingPages.length > 0) {
+                  console.log('📦 [Orders Component] Appending', remainingPages.length, 'orders from background pages');
+                  setOrders(prevOrders => {
+                    const allOrders = [...prevOrders, ...remainingPages];
+                    // Recalculate stats with loaded orders
+                    setStats(prevStats => ({
+                      ...prevStats,
+                      total: firstPageResponse.stats?.total ?? allOrders.length,
+                      delivered: allOrders.filter(o => o.status === 'picked_up_delivered').length,
+                      inProgress: allOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length,
+                      pending: allOrders.filter(o => o.status === 'pending').length
+                    }));
+                    return allOrders;
+                  });
+                  setFilteredOrders(prevOrders => [...prevOrders, ...remainingPages]);
+                }
+                
+                setIsLoadingMore(false);
+                console.log('📦 [Orders Component] Finished loading background pages');
+              });
+            }
           }
 
-          if (response.stats) {
+          // Update stats with first page data initially
+          if (firstPageResponse.stats) {
             setStats({
-              total: response.stats.total ?? formattedOrders.length,
-              delivered: response.stats.delivered ?? formattedOrders.filter(o => o.status === 'picked_up_delivered').length,
-              inProgress: response.stats.inProgress ?? formattedOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length,
-              pending: response.stats.pending ?? formattedOrders.filter(o => o.status === 'pending').length
+              total: firstPageResponse.stats.total ?? formattedOrders.length,
+              delivered: firstPageResponse.stats.delivered ?? formattedOrders.filter(o => o.status === 'picked_up_delivered').length,
+              deliveredOverall: firstPageResponse.stats.deliveredOverall ?? firstPageResponse.stats.delivered ?? formattedOrders.filter(o => o.status === 'picked_up_delivered').length,
+              inProgress: firstPageResponse.stats.inProgress ?? formattedOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length,
+              pending: firstPageResponse.stats.pending ?? formattedOrders.filter(o => o.status === 'pending').length
             });
           } else {
             setStats({
               total: formattedOrders.length,
               delivered: formattedOrders.filter(o => o.status === 'picked_up_delivered').length,
+              deliveredOverall: formattedOrders.filter(o => o.status === 'picked_up_delivered').length,
               inProgress: formattedOrders.filter(o => ['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing'].includes(o.status)).length,
               pending: formattedOrders.filter(o => o.status === 'pending').length
             });
           }
+          
+          // Update stats again after all pages are loaded (if there are more pages)
+          if (firstPageResponse.pagination && firstPageResponse.pagination.totalPages > 1) {
+            // Stats will be recalculated when remaining pages finish loading
+            // The stats are calculated from the final orders array
+          }
         } else {
-          console.warn('No orders data received or invalid format:', response);
+          console.warn('No orders data received or invalid format:', firstPageResponse);
           setOrders([]);
           setFilteredOrders([]);
           setStats({
@@ -264,6 +343,7 @@ const Orders = () => {
             inProgress: 0,
             pending: 0
           });
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching orders:', error);
@@ -275,13 +355,13 @@ const Orders = () => {
           inProgress: 0,
           pending: 0
         });
-      } finally {
         setLoading(false);
+        setIsLoadingMore(false);
       }
     };
 
     fetchOrders();
-  }, [filters.pickupBranch, filters.status, pagination.page, pagination.limit, refreshKey]);
+  }, [filters.pickupBranch, filters.status, refreshKey]);
 
   // Fetch assigned artist when order is expanded
   useEffect(() => {
@@ -957,16 +1037,16 @@ const Orders = () => {
     }
   };
 
-  const branches = [
-    'MAIN (SAN PASCUAL)',
-    'MUZON',
-    'ROSARIO',
-    'BATANGAS CITY',
-    'PINAMALAYAN',
-    'CALACA',
-    'LEMERY',
-    'CALAPAN',
-    'BAUAN'
+  const branchOptions = [
+    { label: 'Main (San Pascual)', value: 'SAN PASCUAL (MAIN BRANCH)' },
+    { label: 'Muzon', value: 'MUZON BRANCH' },
+    { label: 'Rosario', value: 'ROSARIO BRANCH' },
+    { label: 'Batangas City', value: 'BATANGAS CITY BRANCH' },
+    { label: 'Pinamalayan', value: 'PINAMALAYAN BRANCH' },
+    { label: 'Calaca', value: 'CALACA BRANCH' },
+    { label: 'Lemery', value: 'LEMERY BRANCH' },
+    { label: 'Calapan', value: 'CALAPAN BRANCH' },
+    { label: 'Bauan', value: 'BAUAN BRANCH' }
   ];
 
   const statuses = [
@@ -983,8 +1063,48 @@ const Orders = () => {
     );
   }
 
+  const deliveredFallbackCount = filteredOrders.filter(o => o.status === 'picked_up_delivered').length;
+  const deliveredTotalsByBranch = stats.deliveredTotalsByBranch || {};
+  const deliveredStatValue = (() => {
+    if (filters.pickupBranch && deliveredTotalsByBranch[filters.pickupBranch] !== undefined) {
+      return deliveredTotalsByBranch[filters.pickupBranch];
+    }
+    if (isMetricsFiltered) {
+      return stats.delivered ?? deliveredFallbackCount;
+    }
+    return stats.deliveredOverall ?? stats.delivered ?? deliveredFallbackCount;
+  })();
+
   return (
     <div className="orders-container">
+      {/* Background loading indicator */}
+      {isLoadingMore && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: 'rgba(37, 99, 235, 0.9)',
+          color: 'white',
+          padding: '8px 16px',
+          borderRadius: '8px',
+          fontSize: '0.875rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <div style={{
+            width: '16px',
+            height: '16px',
+            border: '2px solid rgba(255, 255, 255, 0.3)',
+            borderTop: '2px solid white',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }}></div>
+          Loading more orders...
+        </div>
+      )}
       {/* Notification System */}
       <OrderNotification 
         notifications={notifications}
@@ -1031,9 +1151,15 @@ const Orders = () => {
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {stats.delivered ?? filteredOrders.filter(o => o.status === 'picked_up_delivered').length}
+              {deliveredStatValue}
             </span>
-            <span className="stat-label">Delivered</span>
+            <span className="stat-label">
+              Delivered
+              {!isMetricsFiltered && <span className="stat-subtext"> (All Branches)</span>}
+              {isMetricsFiltered && filters.pickupBranch && (
+                <span className="stat-subtext"> ({filters.pickupBranch})</span>
+              )}
+            </span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
@@ -1082,8 +1208,8 @@ const Orders = () => {
                 onChange={(e) => handleFilterChange('pickupBranch', e.target.value)}
               >
                 <option value="">All Branches</option>
-                {branches.map(branch => (
-                  <option key={branch} value={branch}>{branch}</option>
+                {branchOptions.map(branch => (
+                  <option key={branch.value} value={branch.value}>{branch.label}</option>
                 ))}
               </select>
             </div>
@@ -1158,7 +1284,7 @@ const Orders = () => {
           {(filteredOrders || []).map((order, index) => {
             const dateInfo = formatDate(order.orderDate);
             return (
-              <div key={order.id} className={`yh-orders-table-row ${index % 2 === 0 ? 'yh-orders-row-even' : 'yh-orders-row-odd'}`}>
+              <div key={`${order.id || order.orderNumber || 'order'}-${index}`} className={`yh-orders-table-row ${index % 2 === 0 ? 'yh-orders-row-even' : 'yh-orders-row-odd'}`}>
                 <div className="yh-orders-table-cell yh-orders-cell-order-number">
                   <span 
                     className="yh-orders-number-text"

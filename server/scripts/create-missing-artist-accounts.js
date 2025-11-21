@@ -1,141 +1,255 @@
 const { createClient } = require('@supabase/supabase-js');
+const { Pool } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-// Supabase connection configuration
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ Missing Supabase credentials. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
+  process.exit(1);
+}
 
-async function createArtistAccounts() {
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const DATABASE_URL = process.env.SUPABASE_POOLER_URL || process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('❌ Missing Supabase database connection string. Set SUPABASE_POOLER_URL or DATABASE_URL.');
+  process.exit(1);
+}
+
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+const DEFAULT_PASSWORD = process.env.ARTIST_DEFAULT_PASSWORD || 'Artist123!';
+const TOTAL_ARTISTS = Number(process.env.ARTIST_TOTAL_COUNT || 21);
+const RESET_ARTISTS = process.env.RESET_ARTISTS === 'true';
+
+const artistSeeds = Array.from({ length: TOTAL_ARTISTS }, (_, index) => {
+  const number = index + 1;
+  const artistName = `Artist ${number}`;
+  return {
+    email: `artist${number}@yohanns.com`,
+    password: DEFAULT_PASSWORD,
+    artistName,
+    fullName: artistName,
+    role: 'artist'
+  };
+});
+
+async function purgeExistingArtistAccounts() {
+  console.log('🧹 RESET_ARTISTS flag enabled — removing existing artist accounts before seeding...');
+
+  const { rows } = await pool.query(
+    "SELECT id, email FROM auth.users WHERE email LIKE 'artist%@yohanns.com'"
+  );
+
+  if (!rows.length) {
+    console.log('   • No existing artist accounts found, nothing to purge.');
+    return;
+  }
+
+  const userIds = rows.map((row) => row.id);
+
+  console.log(`   • Deleting ${userIds.length} artist profile rows...`);
+  const { error: profileDeleteError } = await supabase
+    .from('artist_profiles')
+    .delete()
+    .in('user_id', userIds);
+
+  if (profileDeleteError) {
+    console.error('   ❌ Failed to delete artist_profiles rows:', profileDeleteError.message);
+  } else {
+    console.log('   ✅ Removed related artist_profiles rows');
+  }
+
+  console.log('   • Removing users from Supabase Auth...');
+  for (const row of rows) {
+    try {
+      await supabase.auth.admin.deleteUser(row.id);
+      console.log(`     - Deleted ${row.email}`);
+    } catch (error) {
+      console.error(`     - Failed to delete ${row.email}:`, error.message);
+    }
+  }
+
+  console.log('✅ Artist accounts purged. Proceeding with fresh seed...\n');
+}
+
+async function findUserByEmail(email) {
+  const queryText = `
+    SELECT id, email, raw_user_meta_data
+    FROM auth.users
+    WHERE lower(email) = lower($1)
+    LIMIT 1;
+  `;
+
   try {
-    console.log('🎨 Creating All 20 Artist Accounts...\n');
-    
-    const artistAccounts = [];
-    
-    // Generate all 20 artist accounts
-    for (let i = 1; i <= 20; i++) {
-      const email = `artist${i}@yohanns.com`;
-      const artistName = `Artist ${i}`;
-      
-      artistAccounts.push({
-        email,
-        password: 'Artist123!',
-        user_metadata: {
-          role: 'artist',
-          artist_name: artistName,
-          full_name: artistName
-        },
-        email_confirm: true // Auto-confirm email
-      });
+    const { rows } = await pool.query(queryText, [email]);
+    if (!rows.length) {
+      return null;
     }
-    
-    console.log(`📝 Will create ${artistAccounts.length} artist accounts:`);
-    artistAccounts.forEach((account, index) => {
-      console.log(`${index + 1}. ${account.email} (${account.user_metadata.artist_name})`);
-    });
-    
-    // Create accounts one by one
-    let successCount = 0;
-    let errorCount = 0;
-    
-    for (const account of artistAccounts) {
-      try {
-        const { data, error } = await supabase.auth.admin.createUser({
-          email: account.email,
-          password: account.password,
-          user_metadata: account.user_metadata,
-          email_confirm: account.email_confirm
-        });
-        
-        if (error) {
-          console.log(`❌ Failed to create ${account.email}:`, error.message);
-          errorCount++;
-        } else {
-          console.log(`✅ Created ${account.email} (${account.user_metadata.artist_name})`);
-          successCount++;
-          
-          // Wait a bit to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      } catch (err) {
-        console.log(`❌ Error creating ${account.email}:`, err.message);
-        errorCount++;
-      }
-    }
-    
-    console.log(`\n📊 Summary:`);
-    console.log(`✅ Successfully created: ${successCount} accounts`);
-    console.log(`❌ Failed to create: ${errorCount} accounts`);
-    
-    // Now check if profiles were created automatically
-    console.log(`\n🔍 Checking if profiles were created automatically...`);
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for trigger
-    
-    const { data: allUsers, error: allUsersError } = await supabase.auth.admin.listUsers();
-    
-    if (!allUsersError) {
-      const artistUsers = allUsers.users.filter(user => 
-        user.user_metadata?.role === 'artist'
-      );
-      
-      console.log(`👥 Total artist users: ${artistUsers.length}`);
-      
-      // Check profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('artist_profiles')
-        .select('artist_name, user_id');
-      
-      if (!profilesError) {
-        console.log(`📋 Total artist profiles: ${profiles.length}`);
-        
-        if (profiles.length < artistUsers.length) {
-          console.log(`⚠️  Some profiles are missing. Creating them manually...`);
-          
-          const usersWithProfiles = profiles.map(p => p.user_id);
-          const usersNeedingProfiles = artistUsers.filter(user => 
-            !usersWithProfiles.includes(user.id)
-          );
-          
-          for (const user of usersNeedingProfiles) {
-            const artistName = user.user_metadata?.artist_name || `Artist ${user.email.split('@')[0]}`;
-            
-            const { error: profileError } = await supabase
-              .from('artist_profiles')
-              .insert({
-                user_id: user.id,
-                artist_name: artistName,
-                bio: 'Professional design layout specialist',
-                specialties: ['Layout Design', 'Custom Graphics', 'Team Jerseys'],
-                commission_rate: 12.00,
-                rating: 0.00,
-                is_verified: false,
-                is_active: true
-              });
-            
-            if (profileError) {
-              console.log(`❌ Failed to create profile for ${user.email}:`, profileError.message);
-            } else {
-              console.log(`✅ Created profile for ${user.email} (${artistName})`);
-            }
-          }
-        }
-      }
-    }
-    
-    console.log(`\n🎉 Artist account creation complete!`);
-    console.log(`📝 Login credentials:`);
-    console.log(`   Email: artist1@yohanns.com through artist20@yohanns.com`);
-    console.log(`   Password: Artist123!`);
-    
+
+    const row = rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      user_metadata: row.raw_user_meta_data || {}
+    };
   } catch (error) {
-    console.error('❌ Error creating artist accounts:', error.message);
+    console.error(`❌ Database lookup error for ${email}:`, error);
+    throw new Error(`Database error checking email (${email}): ${error.message}`);
   }
 }
 
+async function ensureArtistProfile(user, artist) {
+  const displayName = artist.artistName || artist.fullName || artist.email.split('@')[0];
+
+  const { data: existingProfile, error: profileError } = await supabase
+    .from('artist_profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (profileError && profileError.code !== 'PGRST116') {
+    throw new Error(`Failed to check artist profile (${artist.email}): ${profileError.message}`);
+  }
+
+  if (!existingProfile) {
+    const { error: insertError } = await supabase.from('artist_profiles').insert({
+      user_id: user.id,
+      artist_name: displayName,
+      bio: 'Professional design layout specialist',
+      commission_rate: 12.0,
+      rating: 0,
+      is_verified: false,
+      is_active: true
+    });
+
+    if (insertError) {
+      throw new Error(`Failed to create artist profile (${artist.email}): ${insertError.message}`);
+    }
+
+    return { created: true };
+  }
+
+  const { error: updateError } = await supabase
+    .from('artist_profiles')
+    .update({
+      artist_name: displayName,
+      is_active: true
+    })
+    .eq('id', existingProfile.id);
+
+  if (updateError) {
+    throw new Error(`Failed to update artist profile (${artist.email}): ${updateError.message}`);
+  }
+
+  return { created: false };
+}
+
+async function upsertArtistAccount(artist) {
+  const userMetadata = {
+    role: artist.role,
+    artist_name: artist.artistName,
+    full_name: artist.fullName
+  };
+
+  const existing = await findUserByEmail(artist.email);
+
+  if (existing) {
+    const { data, error: updateError } = await supabase.auth.admin.updateUserById(existing.id, {
+      password: artist.password,
+      user_metadata: userMetadata
+    });
+
+    if (updateError) {
+      console.error(`❌ Supabase update error for ${artist.email}:`, updateError);
+      throw new Error(`Database error loading user (${artist.email}): ${updateError.message}`);
+    }
+
+    return { created: false, updated: true, user: data.user || existing };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: artist.email,
+      password: artist.password,
+      email_confirm: true,
+      user_metadata: userMetadata
+    });
+
+    if (error) {
+      console.error(`❌ Supabase create error for ${artist.email}:`, error);
+      throw new Error(`Database error creating user (${artist.email}): ${error.message}`);
+    }
+
+    return { created: true, user: data.user };
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function createArtistAccounts() {
+  if (RESET_ARTISTS) {
+    await purgeExistingArtistAccounts();
+  }
+
+  console.log(`🎨 Ensuring ${TOTAL_ARTISTS} artist accounts exist via Supabase Admin API...\n`);
+
+  let created = 0;
+  let updated = 0;
+  const failures = [];
+
+  for (const artist of artistSeeds) {
+    process.stdout.write(`• ${artist.email} ... `);
+    try {
+      const result = await upsertArtistAccount(artist);
+      const user = result.user;
+
+      await ensureArtistProfile(user, artist);
+
+      if (result.created) {
+        created += 1;
+        console.log('created ✅');
+      } else if (result.updated) {
+        updated += 1;
+        console.log('updated 🔄');
+      } else {
+        console.log('skipped');
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 75));
+    } catch (error) {
+      failures.push({ email: artist.email, message: error.message });
+      console.log(`failed ❌ (${error.message})`);
+    }
+  }
+
+  console.log('\n📊 Summary:');
+  console.log(`   ✅ Created: ${created}`);
+  console.log(`   🔄 Updated: ${updated}`);
+  console.log(`   ⚠️ Failed: ${failures.length}`);
+
+  if (failures.length) {
+    console.log('\nDetails:');
+    failures.forEach((failure) => console.log(`   - ${failure.email}: ${failure.message}`));
+  }
+
+  console.log('\n📝 Artists can sign in with:');
+  console.log('   • Emails: artist1@yohanns.com – artist21@yohanns.com');
+  console.log(`   • Password: ${DEFAULT_PASSWORD}`);
+
+  console.log('\n✅ Artist provisioning complete.');
+}
+
 if (require.main === module) {
-  createArtistAccounts();
+  createArtistAccounts().catch((error) => {
+    console.error('❌ Error creating artist accounts:', error.message);
+    process.exit(1);
+  });
 }
 
 module.exports = createArtistAccounts;

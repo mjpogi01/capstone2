@@ -1,87 +1,44 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 class EmailService {
   constructor() {
-    this.transporter = null;
-    this.initializeTransporter();
+    this.client = null;
+    this.fromAddress = null;
+    this.initializeClient();
   }
 
-  initializeTransporter() {
+  initializeClient() {
     try {
-      // Check if email credentials are configured
-      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-        console.warn('⚠️ Email service not configured: EMAIL_USER or EMAIL_PASSWORD not set');
-        this.transporter = null;
+      const apiKey = process.env.RESEND_API_KEY;
+      const fromAddress = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+      if (!apiKey) {
+        console.warn('⚠️ Email service not configured: RESEND_API_KEY not set');
+        this.client = null;
         return;
       }
 
-      // Create transporter using Gmail SMTP (you can change this to other providers)
-      // Increased timeouts for production environments (Render, Railway, etc.)
-      const isProduction = process.env.NODE_ENV === 'production';
-      
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER, // Your Gmail address
-          pass: process.env.EMAIL_PASSWORD // Your Gmail app password
-        },
-        // Connection timeout settings - increased for production
-        // Production often has slower network connections or restricted ports
-        // Note: Render and some cloud providers may block SMTP ports (465, 587)
-        connectionTimeout: isProduction ? 60000 : 15000, // 60 seconds in production, 15 in dev
-        greetingTimeout: isProduction ? 30000 : 15000, // 30 seconds in production, 15 in dev
-        socketTimeout: isProduction ? 180000 : 15000, // 180 seconds in production, 15 in dev
-        // Connection pool settings - disabled to avoid connection reuse issues
-        pool: false, // Disable pooling to avoid stale connections
-        maxConnections: 1,
-        maxMessages: 1,
-        rateDelta: 1000,
-        rateLimit: 5,
-        // TLS/SSL configuration
-        // For development: ignore SSL certificate errors
-        // In production, this is usually safe but can be removed if needed
-        tls: {
-          rejectUnauthorized: false,
-          minVersion: 'TLSv1.2',
-          ciphers: 'HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA'
-        },
-        // Use STARTTLS instead of direct SSL (more compatible with firewalls)
-        secure: false, // Use port 587 with STARTTLS instead of port 465 with SSL
-        requireTLS: true, // Require TLS for secure connection
-        // Additional options for reliability
-        debug: process.env.NODE_ENV === 'development', // Enable debug logging in dev
-        logger: false // Use default logger
-      });
+      if (!fromAddress) {
+        console.warn('⚠️ Email service not configured: RESEND_FROM_EMAIL/EMAIL_FROM/EMAIL_USER not set');
+        this.client = null;
+        return;
+      }
 
-      // Verify connection configuration (non-blocking, with timeout)
-      // Don't block server startup if email verification fails
-      const verifyTimeout = setTimeout(() => {
-        console.warn('⚠️ Email service verification timed out - will retry on first use');
-      }, 8000); // 8 second timeout
-
-      this.transporter.verify((error, success) => {
-        clearTimeout(verifyTimeout);
-        if (error) {
-          console.error('❌ Email service configuration error:', error.message || error);
-          console.warn('⚠️ Email service will be unavailable. Emails will fail silently.');
-        } else {
-          console.log('✅ Email service ready to send messages');
-        }
-      });
+      this.client = new Resend(apiKey);
+      this.fromAddress = fromAddress;
+      console.log('✅ Resend email client initialized');
     } catch (error) {
       console.error('❌ Failed to initialize email service:', error.message || error);
-      this.transporter = null;
+      this.client = null;
     }
   }
 
   // Send order status update email
   async sendOrderStatusUpdate(orderData, customerEmail, customerName, newStatus, previousStatus = null) {
     try {
-      // Check if transporter is available
-      if (!this.transporter) {
-        console.warn('⚠️ Email service not available - skipping order status update email');
+      if (!this._isClientReady()) {
         return { success: false, error: 'Email service not configured' };
       }
 
@@ -92,10 +49,12 @@ class EmailService {
         previousStatus
       );
 
+      console.log('ORDER STATUS FROM:', JSON.stringify(this.fromAddress));
+
       const mailOptions = {
         from: {
           name: 'Yohanns - No Reply',
-          address: process.env.EMAIL_USER
+          address: this.fromAddress
         },
         to: customerEmail,
         subject: `Order ${orderData.order_number} Status Update - ${this.getStatusDisplayName(newStatus)}`,
@@ -103,10 +62,9 @@ class EmailService {
         text: emailTemplate.text
       };
 
-      // Use retry logic for better reliability
       const result = await this._sendEmailWithRetry(mailOptions, 2);
-      console.log('✅ Order status email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      console.log('✅ Order status email sent successfully:', result.id);
+      return { success: true, messageId: result.id };
 
     } catch (error) {
       console.error('❌ Failed to send order status email:', error);
@@ -114,103 +72,79 @@ class EmailService {
     }
   }
 
-  // Helper method to check if email service is available
-  _checkTransporter() {
-    if (!this.transporter) {
-      console.warn('⚠️ Email service not available - transporter not initialized');
+  // Helper to verify Resend client availability
+  _isClientReady() {
+    if (!this.client || !this.fromAddress) {
+      console.warn('⚠️ Email service not available - Resend client not initialized');
       return false;
     }
     return true;
   }
 
+  _formatFromAddress(fromOption) {
+    if (!fromOption) {
+      return this.fromAddress;
+    }
+    if (typeof fromOption === 'string') {
+      return fromOption;
+    }
+    if (typeof fromOption === 'object' && fromOption.address) {
+      return fromOption.name ? `${fromOption.name} <${fromOption.address}>` : fromOption.address;
+    }
+    return this.fromAddress;
+  }
+
+  _normalizeMailOptions(mailOptions = {}) {
+    return {
+      from: this._formatFromAddress(mailOptions.from),
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+      text: mailOptions.text,
+      reply_to: mailOptions.replyTo || mailOptions.reply_to
+    };
+  }
+
   // Helper method to send email with retry logic and timeout handling
   async _sendEmailWithRetry(mailOptions, maxRetries = 3) {
-    const isProduction = process.env.NODE_ENV === 'production';
-    // Longer timeout per attempt in production due to network latency
-    const timeoutPerAttempt = isProduction ? 120000 : 30000; // 120s in production, 30s in dev
+    if (!this._isClientReady()) {
+      throw new Error('Email service not configured');
+    }
+
     let lastError = null;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Create a promise with timeout wrapper
-        const sendPromise = this.transporter.sendMail(mailOptions);
-        let timeoutId = null;
-        let isResolved = false;
-        
-        const timeoutPromise = new Promise((_, reject) => {
-          timeoutId = setTimeout(() => {
-            if (!isResolved) {
-              isResolved = true;
-              reject(new Error('Email send timeout - connection took too long (this may indicate SMTP port is blocked by your hosting provider)'));
-            }
-          }, timeoutPerAttempt);
-        });
+        const normalizedOptions = this._normalizeMailOptions(mailOptions);
+        const { data, error } = await this.client.emails.send(normalizedOptions);
 
-        // Race between sending and timeout
-        try {
-          const result = await Promise.race([
-            sendPromise.then(result => {
-              if (timeoutId) {
-                clearTimeout(timeoutId);
-                isResolved = true;
-              }
-              return result;
-            }),
-            timeoutPromise
-          ]);
-          
-          return result;
-        } catch (raceError) {
-          // If timeout won, clear and rethrow
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-            isResolved = true;
-          }
-          throw raceError;
+        if (error) {
+          const resendError = new Error(error.message || 'Resend API error');
+          resendError.code = error.code;
+          throw resendError;
         }
-        
+
+        return { id: data?.id || null };
       } catch (error) {
         lastError = error;
-        const isTimeoutError = error.code === 'ETIMEDOUT' || 
-                              error.code === 'ECONNRESET' ||
-                              error.code === 'ECONNREFUSED' ||
-                              error.code === 'ETIMEDOUT' ||
-                              error.message?.includes('timeout') ||
-                              error.message?.includes('ETIMEDOUT') ||
-                              error.message?.includes('connection took too long') ||
-                              (error.command === 'CONN' && error.code === 'ETIMEDOUT');
-        
-        // Only retry on connection/timeout errors, and only if we have retries left
-        if (attempt < maxRetries && isTimeoutError) {
-          // Exponential backoff: wait 2^attempt seconds before retrying
-          const waitTime = Math.pow(2, attempt) * 1000;
-          console.warn(`⚠️ Email send attempt ${attempt}/${maxRetries} failed (${error.code || error.command || 'unknown'}: ${error.message}). Retrying in ${waitTime/1000}s...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          
-          // Recreate transporter on retry to get fresh connection
-          // This helps with connection pooling issues
-          try {
-            this.initializeTransporter();
-            // Small delay to let transporter initialize
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } catch (initError) {
-            console.warn('⚠️ Failed to reinitialize transporter, continuing with existing one');
-          }
-          
-          continue;
-        } else {
+        if (attempt >= maxRetries) {
           throw error;
         }
+
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.warn(`⚠️ Email send attempt ${attempt}/${maxRetries} failed (${error.message || error}). Retrying in ${waitTime / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        this.initializeClient();
       }
     }
-    
+
     throw lastError;
   }
 
   // Send order confirmation email
   async sendOrderConfirmation(orderData, customerEmail, customerName) {
     try {
-      if (!this._checkTransporter()) {
+      if (!this._isClientReady()) {
         return { success: false, error: 'Email service not configured' };
       }
       
@@ -219,7 +153,7 @@ class EmailService {
       const mailOptions = {
         from: {
           name: 'Yohanns - No Reply',
-          address: process.env.EMAIL_USER
+          address: this.fromAddress
         },
         to: customerEmail,
         subject: `Order Confirmation - ${orderData.order_number}`,
@@ -227,10 +161,9 @@ class EmailService {
         text: emailTemplate.text
       };
 
-      // Use retry logic for better reliability in production
       const result = await this._sendEmailWithRetry(mailOptions, 2);
-      console.log('✅ Order confirmation email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      console.log('✅ Order confirmation email sent successfully:', result.id);
+      return { success: true, messageId: result.id };
 
     } catch (error) {
       // Log detailed error information
@@ -261,7 +194,7 @@ class EmailService {
   // Send custom design order confirmation email
   async sendCustomDesignConfirmation(orderData, customerEmail, customerName) {
     try {
-      if (!this._checkTransporter()) {
+      if (!this._isClientReady()) {
         return { success: false, error: 'Email service not configured' };
       }
       const emailTemplate = this.getCustomDesignConfirmationEmailTemplate(orderData, customerName);
@@ -269,7 +202,7 @@ class EmailService {
       const mailOptions = {
         from: {
           name: 'Yohanns - No Reply',
-          address: process.env.EMAIL_USER
+          address: this.fromAddress
         },
         to: customerEmail,
         subject: `Custom Design Order Confirmation - ${orderData.order_number}`,
@@ -277,10 +210,9 @@ class EmailService {
         text: emailTemplate.text
       };
 
-      // Use retry logic for better reliability
       const result = await this._sendEmailWithRetry(mailOptions, 2);
-      console.log('✅ Custom design confirmation email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      console.log('✅ Custom design confirmation email sent successfully:', result.id);
+      return { success: true, messageId: result.id };
 
     } catch (error) {
       console.error('❌ Failed to send custom design confirmation email:', error);
@@ -857,13 +789,13 @@ class EmailService {
   // Send email verification code
   async sendVerificationCode(email, verificationCode, userName = null) {
     try {
-      if (!this._checkTransporter()) {
+      if (!this._isClientReady()) {
         return { success: false, error: 'Email service not configured' };
       }
       const mailOptions = {
         from: {
           name: 'Yohanns - Email Verification',
-          address: process.env.EMAIL_USER
+          address: this.fromAddress
         },
         to: email,
         subject: 'Verify Your Email - Yohanns',
@@ -871,10 +803,9 @@ class EmailService {
         text: this.getVerificationCodeEmailTextTemplate(verificationCode, userName)
       };
 
-      // Use retry logic for better reliability
       const result = await this._sendEmailWithRetry(mailOptions, 2);
-      console.log('✅ Verification code email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      console.log('✅ Verification code email sent successfully:', result.id);
+      return { success: true, messageId: result.id };
 
     } catch (error) {
       console.error('❌ Failed to send verification code email:', error);
@@ -1026,13 +957,13 @@ class EmailService {
   // Test email functionality
   async sendTestEmail(toEmail) {
     try {
-      if (!this._checkTransporter()) {
+      if (!this._isClientReady()) {
         return { success: false, error: 'Email service not configured' };
       }
       const mailOptions = {
         from: {
           name: 'Yohanns - Test',
-          address: process.env.EMAIL_USER
+          address: this.fromAddress
         },
         to: toEmail,
         subject: 'Yohanns Email Service Test',
@@ -1045,10 +976,9 @@ class EmailService {
         text: 'This is a test email from Yohanns email automation system. If you received this email, the email service is working correctly!'
       };
 
-      // Use retry logic for better reliability
       const result = await this._sendEmailWithRetry(mailOptions, 2);
-      console.log('✅ Test email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      console.log('✅ Test email sent successfully:', result.id);
+      return { success: true, messageId: result.id };
 
     } catch (error) {
       console.error('❌ Failed to send test email:', error);
@@ -1059,7 +989,7 @@ class EmailService {
   // Send newsletter welcome email
   async sendNewsletterWelcomeEmail(subscriberEmail) {
     try {
-      if (!this._checkTransporter()) {
+      if (!this._isClientReady()) {
         return { success: false, error: 'Email service not configured' };
       }
       const emailTemplate = this.getNewsletterWelcomeEmailTemplate(subscriberEmail);
@@ -1067,7 +997,7 @@ class EmailService {
       const mailOptions = {
         from: {
           name: 'Yohanns - Newsletter',
-          address: process.env.EMAIL_USER
+          address: this.fromAddress
         },
         to: subscriberEmail,
         subject: 'Welcome to Yohanns Newsletter! 🏀',
@@ -1075,10 +1005,9 @@ class EmailService {
         text: emailTemplate.text
       };
 
-      // Use retry logic for better reliability
       const result = await this._sendEmailWithRetry(mailOptions, 2);
-      console.log('✅ Newsletter welcome email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      console.log('✅ Newsletter welcome email sent successfully:', result.id);
+      return { success: true, messageId: result.id };
 
     } catch (error) {
       console.error('❌ Failed to send newsletter welcome email:', error);
@@ -1089,7 +1018,7 @@ class EmailService {
   // Send marketing email to subscribers
   async sendMarketingEmail(subscriberEmail, marketingData) {
     try {
-      if (!this._checkTransporter()) {
+      if (!this._isClientReady()) {
         return { success: false, error: 'Email service not configured' };
       }
       const emailTemplate = this.getMarketingEmailTemplate(marketingData, subscriberEmail);
@@ -1097,7 +1026,7 @@ class EmailService {
       const mailOptions = {
         from: {
           name: 'Yohanns - Special Offers',
-          address: process.env.EMAIL_USER
+          address: this.fromAddress
         },
         to: subscriberEmail,
         subject: marketingData.title || 'Special Offer from Yohanns',
@@ -1105,10 +1034,9 @@ class EmailService {
         text: emailTemplate.text
       };
 
-      // Use retry logic for better reliability
       const result = await this._sendEmailWithRetry(mailOptions, 2);
-      console.log('✅ Marketing email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      console.log('✅ Marketing email sent successfully:', result.id);
+      return { success: true, messageId: result.id };
 
     } catch (error) {
       console.error('❌ Failed to send marketing email:', error);

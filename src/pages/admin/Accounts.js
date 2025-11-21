@@ -22,6 +22,7 @@ const Accounts = () => {
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [artistSearchTerm, setArtistSearchTerm] = useState('');
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [feedbackNotice, setFeedbackNotice] = useState(null);
   // Customer pagination state
   const [customerPage, setCustomerPage] = useState(1);
   const [customerPerPage, setCustomerPerPage] = useState(50);
@@ -35,6 +36,13 @@ const Accounts = () => {
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [pendingArtist, setPendingArtist] = useState(null);
   const [pendingStatus, setPendingStatus] = useState(null);
+
+  const showFeedback = (message, type = 'info', duration = 4000) => {
+    setFeedbackNotice({ message, type });
+    if (duration > 0) {
+      setTimeout(() => setFeedbackNotice(null), duration);
+    }
+  };
 
   // Make isOwner reactive to user changes
   const isOwner = useMemo(() => user?.user_metadata?.role === 'owner', [user?.user_metadata?.role]);
@@ -224,7 +232,7 @@ const Accounts = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          alert('No active session. Please log in again.');
+          showFeedback('No active session. Please log in again.', 'error');
           return;
         }
 
@@ -242,7 +250,7 @@ const Accounts = () => {
         if (response.ok) {
           const result = await response.json();
           console.log('✅ Delete successful:', result);
-          alert('Admin account deleted successfully!');
+          showFeedback('Admin account deleted successfully!', 'success');
           
           console.log('🔄 BEFORE REFRESH - Current admin accounts:', adminAccounts.map(acc => ({ id: acc.id, email: acc.email, name: acc.name })));
           
@@ -260,11 +268,11 @@ const Accounts = () => {
         } else {
           const errorData = await response.json();
           console.log('❌ Delete failed:', errorData);
-          alert(`Error: ${errorData.error || 'Failed to delete admin account'}`);
+          showFeedback(errorData.error || 'Failed to delete admin account', 'error');
         }
       } catch (error) {
         console.error('❌ Error deleting admin:', error);
-        alert(`Error deleting admin account: ${error.message}`);
+        showFeedback(`Error deleting admin account: ${error.message}`, 'error');
       }
     }
   };
@@ -283,7 +291,7 @@ const Accounts = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          alert('No active session. Please log in again.');
+          showFeedback('No active session. Please log in again.', 'error');
           return;
         }
 
@@ -301,7 +309,7 @@ const Accounts = () => {
         if (response.ok) {
           const result = await response.json();
           console.log('✅ Delete successful:', result);
-          alert('Customer account deleted successfully!');
+          showFeedback('Customer account deleted successfully!', 'success');
           
           console.log('🔄 BEFORE REFRESH - Current customer accounts:', customerAccounts.map(acc => ({ id: acc.id, email: acc.email, name: acc.name })));
           
@@ -319,11 +327,11 @@ const Accounts = () => {
         } else {
           const errorData = await response.json();
           console.log('❌ Delete failed:', errorData);
-          alert(`Error: ${errorData.error || 'Failed to delete customer account'}`);
+          showFeedback(errorData.error || 'Failed to delete customer account', 'error');
         }
       } catch (error) {
         console.error('❌ Error deleting customer:', error);
-        alert(`Error deleting customer account: ${error.message}`);
+        showFeedback(`Error deleting customer account: ${error.message}`, 'error');
       }
     }
   };
@@ -342,7 +350,7 @@ const Accounts = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          alert('No active session. Please log in again.');
+          showFeedback('No active session. Please log in again.', 'error');
           return;
         }
 
@@ -360,7 +368,7 @@ const Accounts = () => {
         if (response.ok) {
           const result = await response.json();
           console.log('✅ Delete successful:', result);
-          alert('Artist account deleted successfully!');
+          showFeedback('Artist account deleted successfully!', 'success');
           
           console.log('🔄 BEFORE REFRESH - Current artist accounts:', artistAccounts.map(acc => ({ id: acc.id, email: acc.email, artist_name: acc.artist_name })));
           
@@ -378,11 +386,11 @@ const Accounts = () => {
         } else {
           const errorData = await response.json();
           console.log('❌ Delete failed:', errorData);
-          alert(`Error: ${errorData.error || 'Failed to delete artist account'}`);
+          showFeedback(errorData.error || 'Failed to delete artist account', 'error');
         }
       } catch (error) {
         console.error('❌ Error deleting artist:', error);
-        alert(`Error deleting artist account: ${error.message}`);
+        showFeedback(`Error deleting artist account: ${error.message}`, 'error');
       }
     }
   };
@@ -618,6 +626,27 @@ const Accounts = () => {
   );
 
   // Customer accounts are already filtered server-side, so use them directly
+  const getCustomerDisplayName = (customer) => {
+    if (!customer) return 'N/A';
+    
+    const profileName = customer.profile?.full_name;
+    const legacyName = customer.full_name || customer.name;
+    const composedName = `${customer.profile?.first_name || customer.first_name || ''} ${customer.profile?.last_name || customer.last_name || ''}`.trim();
+    
+    const orderName = customer.orders?.[0]?.customer_name;
+    
+    const candidateNames = [
+      profileName,
+      legacyName,
+      composedName && composedName.length > 0 ? composedName : null,
+      orderName
+    ];
+    
+    const name = candidateNames.find(n => typeof n === 'string' && n.trim().length > 0);
+    
+    return name?.trim() || 'N/A';
+  };
+
   const filteredCustomerAccounts = customerAccounts;
 
   const filteredArtistAccounts = artistAccounts.filter(artist =>
@@ -840,9 +869,9 @@ const Accounts = () => {
                           </span>
                         </button>
                       ) : (
-                        <span className={`status-badge ${artist.is_active ? 'active' : 'inactive'}`}>
-                          {artist.is_active ? 'Active' : 'Inactive'}
-                        </span>
+                      <span className={`status-badge ${artist.is_active ? 'active' : 'inactive'}`}>
+                        {artist.is_active ? 'Active' : 'Inactive'}
+                      </span>
                       )}
                     </td>
                     <td>
@@ -945,7 +974,7 @@ const Accounts = () => {
               ) : (
                 filteredCustomerAccounts.map((customer) => (
                   <tr key={`customer-${customer.id}-${forceUpdate}`}>
-                    <td>{customer.name || 'N/A'}</td>
+                    <td>{getCustomerDisplayName(customer)}</td>
                     <td>{customer.email || 'N/A'}</td>
                     <td>{customer.contact_number || 'N/A'}</td>
                     <td>{customer.address || 'N/A'}</td>

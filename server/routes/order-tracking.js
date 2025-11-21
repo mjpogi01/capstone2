@@ -2,6 +2,70 @@ const express = require('express');
 const { supabase } = require('../lib/db');
 const router = express.Router();
 
+async function enrichReviewsWithUserInfo(reviews = []) {
+  if (!Array.isArray(reviews) || reviews.length === 0) {
+    return reviews || [];
+  }
+
+  const userIds = [...new Set(reviews.map(review => review.user_id).filter(Boolean))];
+  const userMap = {};
+
+  for (const userId of userIds) {
+    try {
+      const { data, error } = await supabase.auth.admin.getUserById(userId);
+      if (!error && data?.user) {
+        const user = data.user;
+        const firstName = user.user_metadata?.first_name || user.raw_user_meta_data?.first_name || '';
+        const lastName = user.user_metadata?.last_name || user.raw_user_meta_data?.last_name || '';
+        const metaFullName = user.user_metadata?.full_name || user.raw_user_meta_data?.full_name;
+        const fullName = metaFullName || `${firstName} ${lastName}`.trim();
+        userMap[userId] = {
+          email: user.email || null,
+          fullName: fullName && fullName.trim() !== '' ? fullName : null
+        };
+      }
+    } catch (error) {
+      console.warn(`Unable to fetch user ${userId} for review display:`, error.message);
+    }
+  }
+
+  return reviews.map(review => {
+    const userInfo = review.user_id ? userMap[review.user_id] : null;
+    const normalizedRating = typeof review.rating === 'number'
+      ? review.rating
+      : Number(review.rating) || 0;
+
+    return {
+      ...review,
+      rating: normalizedRating,
+      review_type: review.review_type || 'general',
+      user_email: userInfo?.email || review.user_email || null,
+      user_name: userInfo?.fullName || review.user_name || userInfo?.email || review.user_email || null
+    };
+  });
+}
+
+function parseOrderItems(orderItems) {
+  if (!orderItems) return [];
+  if (Array.isArray(orderItems)) return orderItems;
+  if (typeof orderItems === 'string') {
+    try {
+      const parsed = JSON.parse(orderItems);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn('Unable to parse order_items JSON:', error.message);
+      return [];
+    }
+  }
+  return [];
+}
+
+function orderContainsProduct(orderItems, productId) {
+  if (!productId) return false;
+  const items = parseOrderItems(orderItems);
+  return items.some(item => item?.id === productId || item?.product_id === productId);
+}
+
 // Get order tracking history
 router.get('/:orderId', async (req, res) => {
   try {
@@ -399,25 +463,23 @@ router.get('/status/:orderId', async (req, res) => {
 router.get('/reviews/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
-    
-    const { data: result, error: resultError } = await supabase
+
+    const { data: reviews, error: reviewsError } = await supabase
       .from('order_reviews')
-      .select(`
-        r.*,
-        u.email as user_email,
-        u.user_metadata->>'full_name' as user_name
-      `)
+      .select('*')
       .eq('order_id', orderId)
       .order('created_at', { ascending: false });
 
-    if (resultError) {
-      throw resultError;
+    if (reviewsError) {
+      throw reviewsError;
     }
+
+    const enriched = await enrichReviewsWithUserInfo(reviews || []);
 
     res.json({
       success: true,
-      reviews: result,
-      total: result.length
+      reviews: enriched,
+      total: enriched.length
     });
   } catch (error) {
     console.error('Error fetching order reviews:', error);
@@ -453,6 +515,86 @@ router.get('/user-reviews/:userId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching user reviews:', error);
     res.status(500).json({ error: 'Failed to fetch user reviews' });
+  }
+});
+
+// Get reviews associated with a product (direct product reviews + related order reviews)
+router.get('/product-reviews/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    if (!productId) {
+      return res.status(400).json({ error: 'Product ID is required' });
+    }
+
+    // Reviews explicitly tied to this product
+    const { data: productReviews, error: productError } = await supabase
+      .from('order_reviews')
+      .select('*')
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false });
+
+    if (productError) {
+      console.warn('Unable to fetch product-specific reviews:', productError.message);
+    }
+
+    // Order-level reviews (no product_id) that might include this product
+    const { data: generalReviews, error: generalError } = await supabase
+      .from('order_reviews')
+      .select('*')
+      .is('product_id', null)
+      .order('created_at', { ascending: false });
+
+    if (generalError) {
+      console.warn('Unable to fetch general order reviews:', generalError.message);
+    }
+
+    let relevantOrderReviews = [];
+    if (generalReviews && generalReviews.length > 0) {
+      const orderIds = [...new Set(generalReviews.map(review => review.order_id).filter(Boolean))];
+      if (orderIds.length > 0) {
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select('id, order_items')
+          .in('id', orderIds);
+
+        if (ordersError) {
+          console.warn('Unable to fetch orders for review mapping:', ordersError.message);
+        } else if (ordersData) {
+          const matchingOrderIds = new Set();
+          ordersData.forEach(order => {
+            if (orderContainsProduct(order.order_items, productId)) {
+              matchingOrderIds.add(order.id);
+            }
+          });
+
+          relevantOrderReviews = generalReviews.filter(review => matchingOrderIds.has(review.order_id));
+        }
+      }
+    }
+
+    const combinedMap = new Map();
+    (productReviews || []).forEach(review => combinedMap.set(review.id, review));
+    relevantOrderReviews.forEach(review => {
+      if (!combinedMap.has(review.id)) {
+        combinedMap.set(review.id, review);
+      }
+    });
+
+    const combined = Array.from(combinedMap.values()).sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    const enriched = await enrichReviewsWithUserInfo(combined);
+
+    res.json({
+      success: true,
+      reviews: enriched,
+      total: enriched.length
+    });
+  } catch (error) {
+    console.error('Error fetching product reviews:', error);
+    res.status(500).json({ error: 'Failed to fetch product reviews' });
   }
 });
 

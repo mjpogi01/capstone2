@@ -180,3 +180,12 @@ Backend (Express) on Render:
 
 **That's it!** Add your Hostinger domain to Google reCAPTCHA and it should work! 🎉
 
+
+
+
+
+
+
+
+
+

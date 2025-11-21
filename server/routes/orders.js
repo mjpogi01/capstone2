@@ -4,6 +4,114 @@ const emailService = require('../lib/emailService');
 const { authenticateSupabaseToken, requireAdminOrOwner } = require('../middleware/supabaseAuth');
 const router = express.Router();
 
+async function assignArtistTaskFallback({
+  order,
+  orderType,
+  productName,
+  quantity,
+  requirements,
+  productId,
+  productImage
+}) {
+  const safeProductName = productName || 'Store Product';
+  const safeQuantity = quantity || 1;
+  let designRequirements = requirements || '';
+
+  if (productImage && !designRequirements.includes(productImage)) {
+    designRequirements = designRequirements
+      ? `${designRequirements}\n\n🖼️ Product Reference Image: ${productImage}`
+      : `🖼️ Product Reference Image: ${productImage}`;
+  }
+
+  try {
+    const { data: artistProfile, error: artistError } = await supabase
+      .from('artist_profiles')
+      .select('id, artist_name')
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+
+    if (artistError && artistError.code !== 'PGRST116') {
+      throw new Error(artistError.message || 'Failed to query active artists');
+    }
+
+    if (!artistProfile) {
+      throw new Error('No active artists available for fallback assignment');
+    }
+
+    let priority = 'medium';
+    let deadlineDays = 2;
+    let orderSource = 'online';
+    let taskTitle = `Layout Store Product: ${safeProductName}`;
+    let taskDescription = `Prepare layout for store product. Quantity: ${safeQuantity}.`;
+    const isCustomOrder = orderType === 'custom_design';
+
+    if (orderType === 'custom_design') {
+      deadlineDays = 3;
+      taskTitle = `Custom Design: ${safeProductName}`;
+      taskDescription = `Create custom design layout. Quantity: ${safeQuantity}.`;
+    } else if (orderType === 'walk_in') {
+      deadlineDays = 1;
+      priority = 'high';
+      orderSource = 'walk_in';
+      taskTitle = `Walk-in Order: ${safeProductName}`;
+      taskDescription = `Process walk-in order. Quantity: ${safeQuantity}.`;
+    }
+
+    const deadline = new Date(Date.now() + deadlineDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: insertedTask, error: insertError } = await supabase
+      .from('artist_tasks')
+      .insert({
+        artist_id: artistProfile.id,
+        order_id: order?.id || null,
+        product_id: productId || null,
+        task_title: taskTitle,
+        task_description: taskDescription,
+        design_requirements: designRequirements || null,
+        order_type: orderType || 'regular',
+        is_custom_order: isCustomOrder,
+        order_source: orderSource,
+        priority,
+        deadline,
+        status: 'pending'
+      })
+      .select('id')
+      .single();
+
+    if (insertError) {
+      throw new Error(insertError.message || 'Failed to insert fallback artist task');
+    }
+
+    return { taskId: insertedTask.id };
+  } catch (error) {
+    console.error('❌ Fallback artist task creation failed:', error);
+    throw error;
+  }
+}
+
+async function fetchArtistProfileById(artistId) {
+  if (!artistId) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('artist_profiles')
+      .select('id, artist_name, is_active')
+      .eq('id', artistId)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      console.warn('⚠️ Error fetching artist profile:', error);
+      return null;
+    }
+
+    return data || null;
+  } catch (err) {
+    console.error('⚠️ Unexpected error fetching artist profile:', err);
+    return null;
+  }
+}
+
 // Test endpoint to verify server is working
 router.get('/test', (req, res) => {
   console.log('🧪 Test endpoint called');
@@ -272,21 +380,23 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
 
     const resolvedTotal = typeof totalCount === 'number' ? totalCount : filteredOrders.length;
 
-    const buildStatsQuery = () => {
+    const buildStatsQuery = (applyFilters = true) => {
       let statsQuery = supabase
         .from('orders')
         .select('id', { count: 'exact', head: true });
 
-      if (pickupBranch) {
+      if (applyFilters && pickupBranch) {
         statsQuery = statsQuery.eq('pickup_location', pickupBranch);
       }
 
-      statsQuery = applyBranchFilter(statsQuery, branchContext);
+      if (applyFilters) {
+        statsQuery = applyBranchFilter(statsQuery, branchContext);
+      }
       return statsQuery;
     };
 
-    const getCountForStatuses = async (statuses) => {
-      let statsQuery = buildStatsQuery();
+    const getCountForStatuses = async (statuses, applyFilters = true) => {
+      let statsQuery = buildStatsQuery(applyFilters);
       if (Array.isArray(statuses) && statuses.length > 0) {
         if (statuses.length === 1) {
           statsQuery = statsQuery.eq('status', statuses[0]);
@@ -302,12 +412,35 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
       return count || 0;
     };
 
-    const [statsTotal, deliveredCount, inProgressCount, pendingCount] = await Promise.all([
+    const [statsTotal, deliveredCount, inProgressCount, pendingCount, deliveredOverallCount] = await Promise.all([
       getCountForStatuses(),
       getCountForStatuses(['picked_up_delivered']),
       getCountForStatuses(['layout', 'sizing', 'printing', 'press', 'prod', 'packing_completing']),
-      getCountForStatuses(['pending'])
+      getCountForStatuses(['pending']),
+      getCountForStatuses(['picked_up_delivered'], false)
     ]);
+
+    let deliveredTotalsByBranch = {};
+    try {
+      const branchTotalsQuery = buildStatsQuery(false)
+        .eq('status', 'picked_up_delivered')
+        .select('pickup_location, count:id', { head: false })
+        .group('pickup_location');
+
+      const { data: branchTotalsData, error: branchTotalsError } = await branchTotalsQuery;
+      if (!branchTotalsError && Array.isArray(branchTotalsData)) {
+        deliveredTotalsByBranch = branchTotalsData.reduce((acc, row) => {
+          if (row.pickup_location) {
+            acc[row.pickup_location] = row.count || 0;
+          }
+          return acc;
+        }, {});
+      } else if (branchTotalsError) {
+        console.warn('Unable to fetch delivered totals by branch:', branchTotalsError.message);
+      }
+    } catch (branchTotalsException) {
+      console.warn('Failed to compute delivered totals by branch:', branchTotalsException.message);
+    }
 
     console.log(`📦 [Orders API] Returning ${filteredOrders?.length} orders, total: ${resolvedTotal}`);
 
@@ -412,6 +545,8 @@ router.get('/', authenticateSupabaseToken, requireAdminOrOwner, async (req, res)
       stats: {
         total: statsTotal || 0,
         delivered: deliveredCount || 0,
+        deliveredOverall: deliveredOverallCount || deliveredCount || 0,
+        deliveredTotalsByBranch,
         inProgress: inProgressCount || 0,
         pending: pendingCount || 0
       }
@@ -1120,6 +1255,21 @@ router.patch('/:id/status', authenticateSupabaseToken, async (req, res) => {
         let taskId = null;
         let assignmentError = null;
         
+        const firstItem = Array.isArray(currentOrder.order_items) && currentOrder.order_items.length > 0
+          ? currentOrder.order_items[0]
+          : null;
+        const defaultProductName = firstItem?.name || firstItem?.product_name || 'Store Product';
+        const defaultProductId = firstItem?.id || firstItem?.product_id || null;
+        const defaultQuantity = currentOrder.total_items || firstItem?.quantity || 1;
+        const productImage = firstItem?.image || firstItem?.main_image || null;
+        let fallbackContext = {
+          productName: defaultProductName,
+          quantity: defaultQuantity,
+          requirements: currentOrder.order_notes || null,
+          productId: defaultProductId,
+          productImage
+        };
+
         if (orderType === 'custom_design') {
           // Custom design order
           const { data: customTaskData, error: customError } = await supabase.rpc('assign_custom_design_task', {
@@ -1144,6 +1294,14 @@ router.patch('/:id/status', authenticateSupabaseToken, async (req, res) => {
             taskId = customTaskData;
             console.log(`✅ Custom design task assigned: ${taskId}`);
           }
+
+          fallbackContext = {
+            productName: currentOrder.order_items?.[0]?.name || 'Custom Design',
+            quantity: currentOrder.total_items || 1,
+            requirements: currentOrder.order_notes || null,
+            productId: currentOrder.order_items?.[0]?.id || null,
+            productImage
+          };
         } else if (orderType === 'walk_in') {
           // Walk-in order (using order_type field instead of parsing order_number)
           const { data: walkInTaskData, error: walkInError } = await supabase.rpc('assign_walk_in_order_task', {
@@ -1168,11 +1326,16 @@ router.patch('/:id/status', authenticateSupabaseToken, async (req, res) => {
             taskId = walkInTaskData;
             console.log(`✅ Walk-in order task assigned: ${taskId}`);
           }
+
+          fallbackContext = {
+            productName: firstItem?.name || 'Walk-in Product',
+            quantity: currentOrder.total_items || 1,
+            requirements: currentOrder.order_notes || null,
+            productId: firstItem?.id || null,
+            productImage
+          };
         } else {
           // Regular order (store products)
-          // Get product image from order items for artist reference
-          const firstItem = currentOrder.order_items?.[0];
-          const productImage = firstItem?.image || firstItem?.main_image || null;
           let customerRequirements = currentOrder.order_notes || '';
           
           // Add product image to requirements if available
@@ -1236,6 +1399,44 @@ router.patch('/:id/status', authenticateSupabaseToken, async (req, res) => {
               }
             }
           }
+
+          fallbackContext = {
+            productName: firstItem?.name || 'Store Product',
+            quantity: currentOrder.total_items || 1,
+            requirements: customerRequirements || null,
+            productId: firstItem?.id || null,
+            productImage
+          };
+        }
+
+        if (!taskId) {
+          try {
+            console.log('⚠️ Primary artist assignment failed, attempting fallback assignment...');
+            const fallbackResult = await assignArtistTaskFallback({
+              order: currentOrder,
+              orderType,
+              productName: fallbackContext.productName,
+              quantity: fallbackContext.quantity,
+              requirements: fallbackContext.requirements,
+              productId: fallbackContext.productId,
+              productImage: fallbackContext.productImage
+            });
+
+            if (fallbackResult?.taskId) {
+              taskId = fallbackResult.taskId;
+              assignmentError = null;
+              console.log(`✅ Fallback artist task assigned: ${taskId}`);
+            }
+          } catch (fallbackError) {
+            console.error('❌ Fallback artist assignment error:', fallbackError);
+            if (!assignmentError) {
+              assignmentError = {
+                type: 'fallback',
+                message: fallbackError.message || 'Fallback artist assignment failed',
+                details: fallbackError
+              };
+            }
+          }
         }
         
         // Handle assignment result
@@ -1247,32 +1448,20 @@ router.patch('/:id/status', authenticateSupabaseToken, async (req, res) => {
           try {
             const { data: assignedTask, error: taskFetchError } = await supabase
               .from('artist_tasks')
-              .select(`
-                artist_id,
-                artist_profiles(
-                  id,
-                  artist_name,
-                  is_active
-                )
-              `)
+              .select('artist_id')
               .eq('id', taskId)
               .single();
 
             if (!taskFetchError && assignedTask?.artist_id) {
-              // Extract artist profile
-              if (assignedTask.artist_profiles) {
-                const profile = Array.isArray(assignedTask.artist_profiles) 
-                  ? assignedTask.artist_profiles[0] 
-                  : assignedTask.artist_profiles;
-                
-                if (profile) {
-                  artistInfo = {
-                    id: profile.id || assignedTask.artist_id,
-                    artist_name: profile.artist_name || 'Assigned Artist',
-                    is_active: profile.is_active
-                  };
-                  console.log(`✅ Artist found: ${artistInfo.artist_name}`);
-                }
+              const profile = await fetchArtistProfileById(assignedTask.artist_id);
+              
+              if (profile) {
+                artistInfo = {
+                  id: profile.id || assignedTask.artist_id,
+                  artist_name: profile.artist_name || 'Assigned Artist',
+                  is_active: profile.is_active
+                };
+                console.log(`✅ Artist found: ${artistInfo.artist_name}`);
               }
 
               // Create chat room automatically when task is assigned (admin/owner initiated)
@@ -1369,7 +1558,11 @@ router.patch('/:id/status', authenticateSupabaseToken, async (req, res) => {
 
     // Send email notification if not skipped and email is configured
     let emailResult = null;
-    if (!skipEmail && currentOrder.customer_email && process.env.EMAIL_USER) {
+    const canSendEmail = typeof emailService?._isClientReady === 'function'
+      ? emailService._isClientReady()
+      : false;
+
+    if (!skipEmail && currentOrder.customer_email && canSendEmail) {
       try {
         emailResult = await emailService.sendOrderStatusUpdate(
           updatedOrder,
@@ -1384,6 +1577,8 @@ router.patch('/:id/status', authenticateSupabaseToken, async (req, res) => {
         // Don't fail the entire request if email fails
         emailResult = { success: false, error: emailError.message };
       }
+    } else if (!skipEmail && currentOrder.customer_email && !canSendEmail) {
+      console.warn('⚠️ Email service not ready, skipping status email for order:', updatedOrder.order_number);
     }
 
     res.json({

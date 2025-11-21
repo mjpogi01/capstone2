@@ -92,14 +92,19 @@ const authenticateSupabaseToken = async (req, res, next) => {
     }
 
     // Get user role from user metadata
-    const rawRole = user.user_metadata?.role;
-    const role = typeof rawRole === 'string' ? rawRole.toLowerCase() : 'customer';
+    const resolvedRole =
+      user.user_metadata?.role ||
+      user.raw_user_meta_data?.role ||
+      (typeof user?.app_metadata?.role === 'string' ? user.app_metadata.role : null);
+    const role = typeof resolvedRole === 'string' ? resolvedRole.toLowerCase() : 'customer';
 
-    const rawBranchId = user.user_metadata?.branch_id;
-    const parsedBranchId = typeof rawBranchId === 'number'
-      ? rawBranchId
-      : typeof rawBranchId === 'string' && rawBranchId.trim() !== ''
-        ? parseInt(rawBranchId, 10)
+    const resolvedBranchId =
+      user.user_metadata?.branch_id ||
+      user.raw_user_meta_data?.branch_id;
+    const parsedBranchId = typeof resolvedBranchId === 'number'
+      ? resolvedBranchId
+      : typeof resolvedBranchId === 'string' && resolvedBranchId.trim() !== ''
+        ? parseInt(resolvedBranchId, 10)
         : null;
 
     // Attach user info to request

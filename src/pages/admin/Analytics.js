@@ -675,7 +675,7 @@ const Analytics = () => {
       // For productStocks, don't pass chartData - backend fetches it from database
       // Only pass chartData for charts that need it (like salesForecast)
       const shouldIncludeChartData = chart === 'salesForecast' && chartContext.data;
-      
+
       const payload = {
         chartId: chart,
         filters: appliedFilters,
@@ -987,11 +987,11 @@ const Analytics = () => {
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
           try {
-            if (!isSalesChartValuesVisible) return '';
-            if (!Array.isArray(params) || !params.length) return '';
-            const point = params[0];
+          if (!isSalesChartValuesVisible) return '';
+          if (!Array.isArray(params) || !params.length) return '';
+          const point = params[0];
             if (!point || point.axisValue === undefined) return '';
-            return `${point.axisValue}<br/>${seriesName}: ₱${formatNumber(point.data || 0)}`;
+          return `${point.axisValue}<br/>${seriesName}: ₱${formatNumber(point.data || 0)}`;
           } catch (error) {
             console.warn('Tooltip formatter error:', error);
             return '';
@@ -1051,9 +1051,9 @@ const Analytics = () => {
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
           try {
-            if (!isSalesChartValuesVisible) return '';
-            if (!Array.isArray(params) || !params.length) return '';
-            const bar = params[0];
+          if (!isSalesChartValuesVisible) return '';
+          if (!Array.isArray(params) || !params.length) return '';
+          const bar = params[0];
             if (!bar) return '';
             const axisLabel = bar.axisValueLabel || bar.axisValue || '';
             const value = bar.data?.value ?? bar.data ?? 0;
@@ -1171,7 +1171,7 @@ const Analytics = () => {
             if (!param) return '';
             const name = param.name || '';
             const value = param.value ?? 0;
-            return `${name}<br/>${value} orders`;
+          return `${name}<br/>${value} orders`;
           } catch (error) {
             console.warn('Tooltip formatter error:', error);
             return '';
@@ -1242,18 +1242,18 @@ const Analytics = () => {
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
           try {
-            if (!isSalesChartValuesVisible) return '';
-            if (!Array.isArray(params) || !params.length) return '';
+          if (!isSalesChartValuesVisible) return '';
+          if (!Array.isArray(params) || !params.length) return '';
             const firstParam = params[0];
             if (!firstParam || firstParam.axisValue === undefined) return '';
             const lines = params
               .filter(point => point && point.seriesName)
               .map(point => {
-                if (point.seriesName === 'Sales') {
+            if (point.seriesName === 'Sales') {
                   return `${point.marker || ''}${point.seriesName}: ₱${formatNumber(point.data ?? 0)}`;
-                }
+            }
                 return `${point.marker || ''}${point.seriesName}: ${formatNumber(point.data ?? 0)}`;
-              });
+          });
             return [`${firstParam.axisValue}`, ...lines].join('<br/>');
           } catch (error) {
             console.warn('Tooltip formatter error:', error);
@@ -1348,30 +1348,30 @@ const Analytics = () => {
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
           try {
-            if (!Array.isArray(params) || !params.length) return '';
-            const bar = params[0];
+          if (!Array.isArray(params) || !params.length) return '';
+          const bar = params[0];
             if (!bar || bar.dataIndex === undefined || bar.dataIndex === null) return '';
             const dataIndex = Number(bar.dataIndex);
             if (isNaN(dataIndex) || dataIndex < 0 || dataIndex >= products.length) return '';
             const product = products[dataIndex];
-            if (!product) return '';
-            const quantity = product.quantity ?? 0;
-            const orders = product.orders ?? 0;
-            const share = product.percentage ?? 0;
-            const revenue = product.revenue ?? 0;
+          if (!product) return '';
+          const quantity = product.quantity ?? 0;
+          const orders = product.orders ?? 0;
+          const share = product.percentage ?? 0;
+          const revenue = product.revenue ?? 0;
             const axisLabel = bar.axisValueLabel || bar.axisValue || '';
-            const lines = [
+          const lines = [
               `${axisLabel}`,
-              `Quantity: ${formatNumber(quantity)}`,
-              `Share: ${share}%`
-            ];
-            if (orders) {
-              lines.push(`Orders: ${formatNumber(orders)}`);
-            }
-            if (revenue) {
-              lines.push(`Revenue: ₱${formatNumber(revenue)}`);
-            }
-            return lines.join('<br/>');
+            `Quantity: ${formatNumber(quantity)}`,
+            `Share: ${share}%`
+          ];
+          if (orders) {
+            lines.push(`Orders: ${formatNumber(orders)}`);
+          }
+          if (revenue) {
+            lines.push(`Revenue: ₱${formatNumber(revenue)}`);
+          }
+          return lines.join('<br/>');
           } catch (error) {
             console.warn('Tooltip formatter error:', error);
             return '';
@@ -1466,17 +1466,17 @@ const Analytics = () => {
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
           try {
-            if (!Array.isArray(params) || !params.length) return '';
-            const bar = params[0];
+          if (!Array.isArray(params) || !params.length) return '';
+          const bar = params[0];
             if (!bar || bar.dataIndex === undefined || bar.dataIndex === null) return '';
             const dataIndex = Number(bar.dataIndex);
             if (isNaN(dataIndex) || dataIndex < 0 || dataIndex >= customers.length) return '';
             const customer = customers[dataIndex];
-            if (!customer) return '';
+          if (!customer) return '';
             const name = getCustomerDisplayName(customer, dataIndex);
-            const spent = customer.totalSpent || customer.totalSpentValue || customer.total || 0;
-            const orderCount = customer.orderCount || customer.order_count || customer.orderCountValue || customer.orders || 0;
-            return `${name}<br/>Spent: ₱${formatNumber(spent)}<br/>Orders: ${formatNumber(orderCount)}`;
+          const spent = customer.totalSpent || customer.totalSpentValue || customer.total || 0;
+          const orderCount = customer.orderCount || customer.order_count || customer.orderCountValue || customer.orders || 0;
+          return `${name}<br/>Spent: ₱${formatNumber(spent)}<br/>Orders: ${formatNumber(orderCount)}`;
           } catch (error) {
             console.warn('Tooltip formatter error:', error);
             return '';
@@ -1665,23 +1665,23 @@ const Analytics = () => {
         textStyle: { color: '#f9fafb' },
         formatter: (params) => {
           try {
-            if (!Array.isArray(params) || !params.length) return '';
+          if (!Array.isArray(params) || !params.length) return '';
             const firstParam = params[0];
             if (!firstParam) return '';
             const axisLabel = firstParam.axisValueLabel || firstParam.axisValue || '';
-            const lines = params
+          const lines = params
               .filter(point => point && point.seriesName && point.value !== null && point.value !== undefined)
-              .map(point => {
+            .map(point => {
                 let line = `${point.marker || ''}${point.seriesName}: ₱${formatNumber(point.value || 0)}`;
-                if (point.seriesName === 'Forecast') {
+              if (point.seriesName === 'Forecast') {
                   const label = point.axisValueLabel || point.axisValue || '';
                   const confidence = confidenceMap.get(String(label));
-                  if (confidence !== undefined) {
-                    line += `<br/>Confidence: ${confidence}%`;
-                  }
+                if (confidence !== undefined) {
+                  line += `<br/>Confidence: ${confidence}%`;
                 }
-                return line;
-              });
+              }
+              return line;
+            });
             return [axisLabel, ...lines].join('<br/>');
           } catch (error) {
             console.warn('Tooltip formatter error:', error);
@@ -2311,36 +2311,36 @@ const Analytics = () => {
             {/* Top Selling Products */}
             {activeProductsChartTab === 'topProducts' && (
               <div className="analytics-card geo-distribution-card sales-chart-card">
-                <div className="card-header">
-                  <FaTshirt className="card-icon" />
-                  <h3>Top Selling Products</h3>
-                  <button
-                    className="analytics-header-analyze-btn"
-                    type="button"
-                    onClick={() => handleAnalyzeClick('topProducts', { data: analyticsData.topProducts, filters })}
-                  >
-                    Analyze
-                  </button>
+          <div className="card-header">
+            <FaTshirt className="card-icon" />
+            <h3>Top Selling Products</h3>
+                <button
+              className="analytics-header-analyze-btn"
+                  type="button"
+                  onClick={() => handleAnalyzeClick('topProducts', { data: analyticsData.topProducts, filters })}
+                >
+                  Analyze
+                </button>
+          </div>
+          <div className="chart-container">
+            <>
+              <ReactEChartsCore
+                echarts={echarts}
+                option={topProductsOption}
+                notMerge
+                lazyUpdate
+                opts={{ renderer: 'svg' }}
+                style={{ height: chartHeights.tall, width: '100%', minHeight: '200px' }}
+                onChartReady={onChartReady('topProducts')}
+              />
+              {!hasTopProductsData && (
+                <div className="chart-empty-state">
+                  <p>No product data available</p>
                 </div>
-                <div className="chart-container">
-                  <>
-                    <ReactEChartsCore
-                      echarts={echarts}
-                      option={topProductsOption}
-                      notMerge
-                      lazyUpdate
-                      opts={{ renderer: 'svg' }}
-                      style={{ height: chartHeights.tall, width: '100%', minHeight: '200px' }}
-                      onChartReady={onChartReady('topProducts')}
-                    />
-                    {!hasTopProductsData && (
-                      <div className="chart-empty-state">
-                        <p>No product data available</p>
-                      </div>
-                    )}
-                  </>
-                </div>
-              </div>
+              )}
+            </>
+          </div>
+        </div>
             )}
 
             {/* Products Stocks */}

@@ -101,7 +101,6 @@ class ArtistService {
         .from('artist_tasks')
         .select(`
           *,
-          artist_profiles(artist_name),
           orders(order_number, status)
         `)
         .eq('artist_id', artistId)

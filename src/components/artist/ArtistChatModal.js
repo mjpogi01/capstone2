@@ -16,6 +16,7 @@ import {
 import chatService from '../../services/chatService';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import ConfirmModal from '../shared/ConfirmModal';
 
 const ArtistChatModal = ({ room, isOpen, onClose }) => {
   const [messages, setMessages] = useState([]);
@@ -31,6 +32,10 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
   const [reviewNotes, setReviewNotes] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [reviewConfirmModal, setReviewConfirmModal] = useState({
+    isOpen: false,
+    message: ''
+  });
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const reviewFileInputRef = useRef(null);
@@ -373,6 +378,39 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
     setReviewFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const buildReviewConfirmationMessage = () => {
+    const fileCount = reviewFiles.length;
+    const fileLabel = `${fileCount} design file${fileCount === 1 ? '' : 's'}`;
+    const filePreviewNames = reviewFiles
+      .slice(0, 3)
+      .map(file => file.name)
+      .join(', ');
+    const extraFiles =
+      fileCount > 3 ? ` +${fileCount - 3} more` : '';
+    const notes = reviewNotes.trim();
+    const notesPreview = notes
+      ? `Notes preview: "${notes.length > 140 ? `${notes.slice(0, 137)}…` : notes}"`
+      : 'No additional notes were added.';
+
+    return `You're about to send ${fileLabel} for customer approval (${filePreviewNames}${extraFiles}). ${notesPreview}`;
+  };
+
+  const openReviewConfirmation = () => {
+    if (reviewFiles.length === 0) {
+      alert('Please upload at least one design file for review.');
+      return;
+    }
+
+    setReviewConfirmModal({
+      isOpen: true,
+      message: buildReviewConfirmationMessage()
+    });
+  };
+
+  const closeReviewConfirmation = () => {
+    setReviewConfirmModal(prev => ({ ...prev, isOpen: false }));
+  };
+
   const handleSubmitReview = async () => {
     if (reviewFiles.length === 0) {
       alert('Please upload at least one design file for review.');
@@ -435,17 +473,20 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
       setReviewFiles([]);
       setReviewNotes('');
       
-      alert('Review request sent successfully! The customer will be notified.');
-      
     } catch (error) {
       console.error('Error submitting review:', error);
-      alert('Failed to submit review request. Please try again.');
       if (optimisticId) {
         setMessages(prev => prev.filter(msg => (msg.client_id || msg.id) !== optimisticId));
       }
     } finally {
       setSubmittingReview(false);
+      closeReviewConfirmation();
     }
+  };
+
+  const handleConfirmReviewSubmit = () => {
+    closeReviewConfirmation();
+    handleSubmitReview();
   };
 
   const formatTime = (timestamp) => {
@@ -774,7 +815,7 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
                 </button>
                 <button 
                   className="submit-review-btn"
-                  onClick={handleSubmitReview}
+                  onClick={openReviewConfirmation}
                   disabled={submittingReview || reviewFiles.length === 0}
                 >
                   {submittingReview ? (
@@ -814,6 +855,17 @@ const ArtistChatModal = ({ room, isOpen, onClose }) => {
             />
           </div>
         )}
+
+        <ConfirmModal
+          isOpen={reviewConfirmModal.isOpen}
+          onClose={closeReviewConfirmation}
+          onConfirm={handleConfirmReviewSubmit}
+          title="Send review request?"
+          message={reviewConfirmModal.message}
+          confirmText="Send Review"
+          cancelText="Go Back"
+          type="warning"
+        />
       </div>
     </div>
   );

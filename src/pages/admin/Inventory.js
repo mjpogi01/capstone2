@@ -38,15 +38,29 @@ const Inventory = () => {
     try {
       const response = await fetch('http://localhost:4000/api/products');
       const data = await response.json();
-      setProducts(data);
+      const normalizedProducts = normalizeProductsResponse(data);
+      setProducts(normalizedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const normalizeProductsResponse = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.products)) return data.products;
+    return [];
+  };
+
   const applyFilters = () => {
+    if (!Array.isArray(products) || products.length === 0) {
+      setFilteredProducts([]);
+      return;
+    }
+
     let filtered = [...products];
 
     // Filter by product name search (before grouping)
@@ -141,7 +155,7 @@ const Inventory = () => {
       });
     }
 
-    setFilteredProducts(filtered);
+    setFilteredProducts(Array.isArray(filtered) ? filtered : []);
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -152,6 +166,8 @@ const Inventory = () => {
   };
 
   const getUniqueBranches = () => {
+    if (!Array.isArray(products) || products.length === 0) return [];
+
     const branches = [...new Set(products.map(p => p.branch_id).filter(Boolean))];
     return branches.map(id => {
       const product = products.find(p => p.branch_id === id);
@@ -160,6 +176,8 @@ const Inventory = () => {
   };
 
   const getUniqueCategories = () => {
+    if (!Array.isArray(products) || products.length === 0) return [];
+
     return [...new Set(products.map(p => p.category).filter(Boolean))];
   };
 

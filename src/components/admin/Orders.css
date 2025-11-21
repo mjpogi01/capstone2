@@ -4254,6 +4254,16 @@ body.sidebar-collapsed .orders-container {
   }
 }
 
+/* Spinner animation for background loading indicator */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .confirm-dialog-header h3 {
   margin: 0;
   font-size: 18px;
@@ -4408,5 +4418,15 @@ body.sidebar-collapsed .orders-container {
   
   .confirm-dialog-message {
     font-size: 14px;
+  }
+}
+
+/* Spinner animation for background loading indicator */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

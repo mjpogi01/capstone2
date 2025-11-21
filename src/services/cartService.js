@@ -15,17 +15,7 @@ class CartService {
 
       const { data, error } = await supabase
         .from('user_carts')
-        .select(`
-          *,
-          products (
-            id,
-            name,
-            category,
-            price,
-            main_image,
-            additional_images
-          )
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }) // Last added item appears first
         .abortSignal(AbortSignal.timeout(15000)); // Increased timeout to 15 seconds
@@ -60,11 +50,14 @@ class CartService {
 
       console.log('🔍 CartService: Found', data?.length || 0, 'cart items for user:', userId);
 
+      const productIds = [...new Set((data || []).map(item => item.product_id).filter(Boolean))];
+      const productsMap = await this.fetchProductsMap(productIds);
 
       // Transform the data to match the cart item format
       const transformedData = data.map(item => {
-        if (!item.products) {
-          console.warn('Cart item missing product data:', item);
+        const product = productsMap.get(item.product_id);
+        if (!product) {
+          console.warn('Cart item missing product data for product_id:', item.product_id);
           return null;
         }
         
@@ -73,16 +66,16 @@ class CartService {
           ? (item.team_members[0]?.teamName || item.team_members[0]?.team_name || null)
           : null;
 
-        const basePrice = parseFloat(item.base_price ?? item.products.price) || 0;
-        const unitPrice = parseFloat(item.unit_price ?? item.products.price) || 0;
+        const basePrice = parseFloat(item.base_price ?? product.price) || 0;
+        const unitPrice = parseFloat(item.unit_price ?? product.price) || 0;
 
         return {
-          id: item.products.id,
-          name: item.products.name,
-          category: item.products.category,
+          id: product.id,
+          name: product.name,
+          category: product.category,
           price: unitPrice,
-          image: item.products.main_image,
-          additional_images: item.products.additional_images,
+          image: product.main_image,
+          additional_images: product.additional_images,
           quantity: item.quantity,
           size: item.size,
           isTeamOrder: item.is_team_order,
@@ -445,16 +438,19 @@ class CartService {
     try {
       const { data, error } = await supabase
         .from('user_carts')
-        .select(`
-          quantity,
-          products (price)
-        `)
+        .select('product_id, quantity, unit_price, base_price')
         .eq('user_id', userId);
 
       if (error) throw error;
 
-      const total = data.reduce((sum, item) => {
-        return sum + (parseFloat(item.products.price) * item.quantity);
+      const productIds = [...new Set((data || []).map(item => item.product_id).filter(Boolean))];
+      const productsMap = await this.fetchProductsMap(productIds);
+
+      const total = (data || []).reduce((sum, item) => {
+        const product = productsMap.get(item.product_id);
+        const price = parseFloat(item.unit_price ?? item.base_price ?? product?.price ?? 0) || 0;
+        const quantity = parseInt(item.quantity, 10) || 0;
+        return sum + (price * quantity);
       }, 0);
 
       return total;
@@ -462,6 +458,36 @@ class CartService {
       console.error('Error getting cart total:', error);
       throw error;
     }
+  }
+
+  async fetchProductsMap(productIds) {
+    const map = new Map();
+
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return map;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, category, price, main_image, additional_images')
+        .in('id', productIds);
+
+      if (error) {
+        console.error('Error fetching products for cart items:', error);
+        return map;
+      }
+
+      (data || []).forEach(product => {
+        if (product?.id) {
+          map.set(product.id, product);
+        }
+      });
+    } catch (err) {
+      console.error('Unexpected error fetching products for cart items:', err);
+    }
+
+    return map;
   }
 }
 
