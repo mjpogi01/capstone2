@@ -136,6 +136,8 @@ function shouldMatchByName(branchContext, order) {
 
 // Supabase client and query helper are provided by ../lib/db
 
+const ON_HAND_PRODUCT_KEYWORDS = ['ball', 'balls', 'trophy', 'trophies'];
+
 // Function to update sold_quantity for products in an order
 async function updateSoldQuantityForOrder(orderItems) {
   try {
@@ -179,6 +181,77 @@ async function updateSoldQuantityForOrder(orderItems) {
   } catch (error) {
     console.error('Error in updateSoldQuantityForOrder:', error);
     throw error;
+  }
+}
+
+async function deductStockForOnHandItems(orderItems, context = {}) {
+  try {
+    if (!Array.isArray(orderItems) || orderItems.length === 0) {
+      return;
+    }
+
+    const productQuantities = orderItems.reduce((acc, item) => {
+      const productId = item?.id;
+      const quantity = parseInt(item?.quantity, 10) || 0;
+      if (!productId || quantity <= 0) {
+        return acc;
+      }
+      acc.set(productId, (acc.get(productId) || 0) + quantity);
+      return acc;
+    }, new Map());
+
+    if (productQuantities.size === 0) {
+      return;
+    }
+
+    const productIds = Array.from(productQuantities.keys());
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('id, category, stock_quantity')
+      .in('id', productIds);
+
+    if (error) {
+      console.error('Error fetching products for stock deduction:', error);
+      return;
+    }
+
+    for (const product of products || []) {
+      const category = (product.category || '').toLowerCase();
+      const isOnHandCategory = ON_HAND_PRODUCT_KEYWORDS.some(keyword => category.includes(keyword));
+      const hasStockField = product.stock_quantity !== null && product.stock_quantity !== undefined;
+
+      if (!isOnHandCategory || !hasStockField) {
+        continue;
+      }
+
+      const quantityToDeduct = productQuantities.get(product.id) || 0;
+      if (quantityToDeduct <= 0) {
+        continue;
+      }
+
+      const currentStock = parseInt(product.stock_quantity, 10) || 0;
+      const newStock = Math.max(0, currentStock - quantityToDeduct);
+
+      if (newStock === currentStock) {
+        continue;
+      }
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          stock_quantity: newStock,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', product.id);
+
+      if (updateError) {
+        console.error(`Error updating stock for product ${product.id}:`, updateError);
+      } else {
+        console.log(`📦 Deducted ${quantityToDeduct} from product ${product.id}. ${currentStock} → ${newStock}`, context);
+      }
+    }
+  } catch (error) {
+    console.error('Error deducting stock for order items:', error, context);
   }
 }
 
@@ -1516,6 +1589,17 @@ router.post('/', async (req, res) => {
     }
 
     const newOrder = inserted;
+
+    // Deduct inventory for on-hand items (balls, trophies) immediately after order creation
+    try {
+      await deductStockForOnHandItems(orderItems, {
+        orderId: newOrder.id,
+        orderNumber: newOrder.order_number,
+        source: 'order_create'
+      });
+    } catch (inventoryError) {
+      console.error('❌ Failed to deduct stock for new order:', inventoryError);
+    }
 
     // Note: sold_quantity will be updated when order status changes to 'picked_up_delivered'
     // This prevents double-counting when orders are created and then completed

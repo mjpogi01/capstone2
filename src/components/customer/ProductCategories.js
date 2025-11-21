@@ -49,6 +49,18 @@ const getDisplayPrice = (product) => {
   return parseFloat(product.price) || 0;
 };
 
+const isBallOrTrophy = (category = '') => {
+  const normalized = category.toLowerCase();
+  return normalized.includes('ball') || normalized.includes('troph');
+};
+
+const getStockBadgeClass = (stockQuantity) => {
+  if (stockQuantity === null || Number.isNaN(stockQuantity)) return 'neutral';
+  if (stockQuantity <= 0) return 'out';
+  if (stockQuantity <= 5) return 'low';
+  return 'in';
+};
+
 const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, setSearchQuery }) => {
   const [showAll, setShowAll] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null); // Add this state
@@ -428,7 +440,19 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
           <ErrorState message={error} onRetry={() => window.location.reload()} />
         ) : (
           <div className="sportswear-products-grid">
-            {displayedProducts.map(product => (
+            {displayedProducts.map(product => {
+              const stockQuantityRaw = product?.stock_quantity;
+              const parsedStockQuantity =
+                stockQuantityRaw === null || stockQuantityRaw === undefined
+                  ? null
+                  : Number(stockQuantityRaw);
+              const normalizedStockQuantity = Number.isNaN(parsedStockQuantity)
+                ? null
+                : parsedStockQuantity;
+              const showStockBadge = isBallOrTrophy(product.category);
+              const stockBadgeClass = getStockBadgeClass(normalizedStockQuantity);
+
+              return (
               <div key={product.id} className="sportswear-product-card">
                 <ProtectedAction
                   onAuthenticated={() => openProductModal(product)}
@@ -469,6 +493,14 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                         <span className="sportswear-stat-item">{product.sold_quantity} sold</span>
                       )}
                     </div>
+                    {showStockBadge && (
+                      <div className="sportswear-product-stock">
+                        <span className="sportswear-stock-label">Stock</span>
+                        <span className={`sportswear-stock-badge ${stockBadgeClass}`}>
+                          {normalizedStockQuantity === null ? 'N/A' : normalizedStockQuantity}
+                        </span>
+                      </div>
+                    )}
                     <div className="sportswear-action-buttons">
                       <button 
                         className="sportswear-add-to-cart-btn" 
@@ -500,7 +532,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                   </div>
                 </ProtectedAction>
               </div>
-            ))}
+            )})}
           </div>
         )}
 

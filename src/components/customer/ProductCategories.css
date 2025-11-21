@@ -162,6 +162,44 @@
   right: 10px;
 }
 
+@media (min-width: 1025px) {
+  .sportswear-scroll-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(0, 191, 255, 0.22), rgba(3, 15, 24, 0.92));
+    border: 1px solid rgba(0, 191, 255, 0.25);
+    box-shadow: 0 0 18px rgba(0, 191, 255, 0.18), inset 0 0 12px rgba(0, 191, 255, 0.18);
+    color: var(--sportswear-accent-cyan);
+    font-size: 1.35rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+  }
+
+  .sportswear-scroll-btn:hover {
+    color: #ffffff;
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.36), inset 0 0 18px rgba(0, 191, 255, 0.32);
+    transform: translateY(-50%) scale(1.08);
+    background: radial-gradient(circle at 50% 50%, rgba(0, 191, 255, 0.95), rgba(0, 132, 204, 0.85));
+  }
+
+  .sportswear-scroll-btn:hover svg {
+    color: #ffffff;
+  }
+
+  .sportswear-scroll-btn svg {
+    font-size: 1.35rem;
+    color: inherit;
+  }
+
+  .sportswear-scroll-btn.left {
+    left: -90px;
+  }
+
+  .sportswear-scroll-btn.right {
+    right: -90px;
+  }
+}
+
 /* ===== CATEGORY BUTTONS ===== */
 .sportswear-category-btn {
   flex: 0 0 auto;
@@ -762,6 +800,52 @@
     max-height: 24px;
     height: 24px;
   }
+
+.sportswear-product-stock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0.35rem 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.sportswear-stock-label {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: #cbd5f5;
+}
+
+.sportswear-stock-badge {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.sportswear-stock-badge.in {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.sportswear-stock-badge.low {
+  background: rgba(251, 191, 36, 0.18);
+  color: #f6ad55;
+}
+
+.sportswear-stock-badge.out {
+  background: rgba(245, 101, 101, 0.2);
+  color: #feb2b2;
+}
+
+.sportswear-stock-badge.neutral {
+  background: rgba(160, 174, 192, 0.25);
+  color: #e2e8f0;
+}
 
   .sportswear-sold-count {
     font-size: 0.85rem;
