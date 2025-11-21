@@ -863,15 +863,27 @@
     padding: 0 1rem;
   }
   
+  /* Apply ProductListModal product-card-info styles for mobile */
+  .sportswear-product-info {
+    padding: 8px !important;
+    background-color: #0a0a0a !important;
+    gap: 4px !important;
+  }
+
   .sportswear-product-name {
-    font-size: 10px;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+    line-height: 1.4 !important;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
     word-break: break-word;
-    word-wrap: break-word;
+    margin: 0 !important;
   }
 
   .sportswear-product-stats {
@@ -900,11 +912,16 @@
   }
 
   .sportswear-product-price {
-    font-size: 1rem;
-    min-height: 1.5rem;
-    max-height: 1.5rem;
-    display: flex;
-    align-items: center;
+    color: #e9c00b !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    font-family: 'Inter', sans-serif !important;
+    letter-spacing: -0.02em !important;
+    margin: 4px 0 !important;
+    min-height: auto !important;
+    max-height: auto !important;
+    display: block !important;
+    align-items: unset !important;
   }
   
   .sportswear-price-rating-row {
@@ -926,7 +943,18 @@
   
   .sportswear-category-nav {
     gap: 0.8rem;
-    padding: 0.8rem 1rem;
+    padding: 0.4rem 0.3rem;
+    justify-content: flex-start !important;
+  }
+  
+  .sportswear-category-nav-wrapper {
+    padding: 0 12px 10px;
+    gap: 0.4rem;
+  }
+  
+  .sportswear-scroll-btn {
+    width: 32px;
+    height: 32px;
   }
 
   .sportswear-category-btn {
@@ -1003,23 +1031,25 @@
     transform: scale(1.03);
   }
 
-  /* Enlarged Product Info */
+  /* Enlarged Product Info - Apply ProductListModal styles for mobile */
   .sportswear-product-info {
-    padding: 6px 5px 4px !important;
-    gap: 0.6rem;
+    padding: 8px !important;
+    background-color: #0a0a0a !important;
+    gap: 4px !important;
     min-height: 180px;
     max-height: 180px;
-    background: #000000;
   }
 
   .sportswear-product-name {
-    font-size: 0.75rem;
-    line-height: 1.3;
-    min-height: 2.4rem;
-    max-height: 2.4rem;
-    font-weight: 700;
-    margin: 0;
-    padding: 0;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+    line-height: 1.4 !important;
+    min-height: auto !important;
+    max-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -1056,13 +1086,16 @@
   }
 
   .sportswear-product-price {
-    font-size: 1.15rem;
-    margin: 0.35rem 0;
-    font-weight: 800;
-    min-height: 1.5rem;
-    max-height: 1.5rem;
-    display: flex;
-    align-items: center;
+    color: #e9c00b !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    font-family: 'Inter', sans-serif !important;
+    letter-spacing: -0.02em !important;
+    margin: 4px 0 !important;
+    min-height: auto !important;
+    max-height: auto !important;
+    display: block !important;
+    align-items: unset !important;
   }
   
   .sportswear-price-rating-row {
@@ -1135,7 +1168,18 @@
   
   .sportswear-category-nav {
     gap: 0.6rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.35rem 0.25rem;
+    justify-content: flex-start !important;
+  }
+  
+  .sportswear-category-nav-wrapper {
+    padding: 0 10px 8px;
+    gap: 0.35rem;
+  }
+  
+  .sportswear-scroll-btn {
+    width: 28px;
+    height: 28px;
   }
   
   .sportswear-category-btn {
@@ -1310,7 +1354,18 @@
   
   .sportswear-category-nav {
     gap: 0.5rem;
-    padding: 0.4rem 0.6rem;
+    padding: 0.3rem 0.2rem;
+    justify-content: flex-start !important;
+  }
+  
+  .sportswear-category-nav-wrapper {
+    padding: 0 8px 6px;
+    gap: 0.3rem;
+  }
+  
+  .sportswear-scroll-btn {
+    width: 26px;
+    height: 26px;
   }
   
   .sportswear-category-btn {
@@ -1605,13 +1660,14 @@
   .sportswear-category-nav-wrapper {
     max-width: 100%;
     border-radius: 30px;
-    padding: 0 40px;
-    margin-left: 10px;
-    margin-right: 10px;
-    margin-bottom: 1.5rem;
+    margin: 0 10px 1.5rem;
     border: none;
-    padding-bottom: 12px;
+    padding: 0 18px 12px;
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
   }
   
   /* Show scroll radio indicators on mobile */
@@ -1652,19 +1708,22 @@
     opacity: 0.8 !important;
   }
   
-  .sportswear-scroll-btn.left {
-    left: 5px !important;
-  }
-  
-  .sportswear-scroll-btn.right {
-    right: 5px !important;
+  .sportswear-scroll-btn {
+    position: static !important;
+    transform: none !important;
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex !important;
+    justify-content: center;
   }
   
   .sportswear-category-nav {
     gap: 0.4rem;
     padding: 0.2rem 0;
-    margin-left: 0;
-    margin-right: 0;
+    margin: 0 6px;
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-start !important;
   }
   
   .sportswear-category-btn {

@@ -24,7 +24,7 @@ const FAQs = () => {
     },
     {
       question: "Do you have multiple branch locations?",
-      answer: "Yes! We have 7 convenient locations across Batangas and Oriental Mindoro, including our main branch in San Pascual, Batangas."
+      answer: "Yes! We have 9 branches across Batangas and Oriental Mindoro, including our main branch in San Pascual, Batangas."
     },
     {
       question: "What sizes are available?",

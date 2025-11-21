@@ -25,6 +25,12 @@
   align-items: center;
   margin-left: 0.2rem;
   flex-shrink: 0;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.logo.logo-hidden {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .logo-image {
@@ -711,10 +717,8 @@
 .header-search-wrapper {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.35rem;
   position: relative;
-  /* Reserve space for search input so navigation doesn't move */
-
   justify-content: flex-end;
 }
 
@@ -798,6 +802,36 @@
 
 .header-search-input::placeholder {
   color: #9ca3af;
+}
+
+.header-search-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-search-field.mobile-slide {
+  position: absolute;
+  right: calc(36px + 0.4rem);
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(220px, 70vw);
+  animation: mobileSearchSlideIn 0.25s ease forwards;
+  z-index: 12;
+  overflow: hidden;
+}
+
+.header-search-field.mobile-slide .header-search-input {
+  position: relative;
+  right: auto;
+  top: auto;
+  transform: none;
+  width: 100% !important;
+  min-width: unset !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  border-radius: 999px !important;
 }
 
 .yohanns-search-wrapper {
@@ -1291,7 +1325,9 @@
     align-items: center;
     justify-content: flex-end;
     order: 3;
-   
+    width: auto;
+    min-width: 36px;
+    flex-shrink: 0;
   }
   
   /* Ensure utility icons wrapper doesn't interfere */
@@ -1299,34 +1335,69 @@
     display: flex;
     align-items: center;
     gap: 0;
+    width: 100%;
   }
   
-  /* Hide Search Button - Mobile Only */
-  .yohanns-search-toggle,
-  .header-search-btn,
-  .header-search-wrapper,
-  .yohanns-search-dropdown-wrapper,
-  .yohanns-search-dropdown {
-    display: none !important;
+  /* Show Search Button on Mobile - Right Column */
+  .header-search-wrapper {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
   }
   
-  .yohanns-search-toggle:hover,
-  .yohanns-search-toggle:active,
-  .yohanns-search-toggle:focus,
-  .header-search-btn:hover,
-  .header-search-btn:active,
-  .header-search-btn:focus {
+  .header-search-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
     background: transparent !important;
     border: none !important;
-    box-shadow: none !important;
-    transform: none !important;
+    border-radius: 50% !important;
+    color: #00bfff !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 11;
+    flex-shrink: 0;
   }
   
-  .yohanns-search-toggle svg,
   .header-search-btn svg {
-    width: 14px !important;
-    height: 14px !important;
+    width: 18px !important;
+    height: 18px !important;
+    color: #00bfff !important;
+    fill: none !important;
+    stroke: currentColor !important;
     stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+  
+  .header-search-btn:hover {
+    transform: scale(1.1) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #00bfff !important;
+  }
+  
+  .header-search-btn:active {
+    transform: scale(0.95) !important;
+  }
+  
+  .header-search-btn.active {
+    background: transparent !important;
+    color: #00bfff !important;
+  }
+
+  .header-search-field.mobile-slide {
+    right: calc(36px + 0.35rem);
+    width: min(220px, 75vw);
+  }
+  
+  /* Hide other search components */
+  .yohanns-search-toggle {
+    display: none !important;
   }
   
   /* Mobile Search Dropdown - Appears below header */
@@ -2512,12 +2583,65 @@
     height: 36px;
   }
   
-  /* Hide Search Button - Mobile Only */
-  .yohanns-search-toggle,
-  .header-search-btn,
-  .header-search-wrapper,
-  .yohanns-search-dropdown-wrapper,
-  .yohanns-search-dropdown {
+  /* Show Search Button on Mobile - Responsive Sizing for 600px */
+  .header-search-wrapper {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
+  }
+  
+  .header-search-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 50% !important;
+    color: #00bfff !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 11;
+    flex-shrink: 0;
+  }
+  
+  .header-search-btn svg {
+    width: 16px !important;
+    height: 16px !important;
+    color: #00bfff !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+  
+  .header-search-btn:hover {
+    transform: scale(1.1) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #00bfff !important;
+  }
+  
+  .header-search-btn:active {
+    transform: scale(0.95) !important;
+  }
+  
+  .header-search-btn.active {
+    background: transparent !important;
+    color: #00bfff !important;
+  }
+
+  .header-search-field.mobile-slide {
+    right: calc(34px + 0.3rem);
+    width: min(200px, 78vw);
+  }
+  
+  /* Hide other search components */
+  .yohanns-search-toggle {
     display: none !important;
   }
   
@@ -2719,9 +2843,39 @@
 }
 
 /* ============================================
+   SMALL MOBILE DEVICES (≤480px)
+   ============================================ */
+@media only screen and (max-width: 480px) {
+  .header-search-btn {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  
+  .header-search-btn svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .header-search-field.mobile-slide {
+    right: calc(32px + 0.25rem);
+    width: min(190px, 82vw);
+  }
+}
+
+/* ============================================
    EXTRA SMALL MOBILE DEVICES (≤320px)
    ============================================ */
 @media only screen and (max-width: 320px) {
+  .header-search-btn {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  
+  .header-search-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
   .nav-menu {
     width: 88vw;
     max-width: 260px;

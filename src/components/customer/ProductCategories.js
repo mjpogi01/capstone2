@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import './ProductCategories.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { FaChevronLeft, FaChevronRight, FaStar, FaShoppingCart } from "react-icons/fa";
 import ProductModal from './ProductModal';
+import ProductCarousel from './ProductCarousel';
 import ProtectedAction from '../ProtectedAction';
 import { useModal } from '../../contexts/ModalContext';
 import { useWishlist } from '../../contexts/WishlistContext';
@@ -250,14 +251,14 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
   // Debug logging
   console.log(`Category: ${activeCategory}, Total products: ${products.length}, Filtered: ${filteredProducts.length}, Displayed: ${displayedProducts.length}, Show All: ${showAll}, Search: ${searchQuery}`);
 
-  const checkScroll = () => {
+  const checkScroll = useCallback(() => {
     if (navRef.current) {
       setCanScrollLeft(navRef.current.scrollLeft > 0);
       setCanScrollRight(
         navRef.current.scrollWidth > navRef.current.clientWidth + navRef.current.scrollLeft
       );
     }
-  };
+  }, []);
 
   const scrollNav = (direction) => {
     if (navRef.current) {
@@ -326,7 +327,7 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
         window.removeEventListener("resize", checkScroll);
       }
     };
-  }, [activeCategory]); // Add activeCategory to dependency array
+  }, [activeCategory, checkScroll]); // Add checkScroll to dependency array
 
   return (
     <section className="product-categories">
@@ -435,15 +436,14 @@ const ProductCategories = ({ activeCategory, setActiveCategory, searchQuery, set
                   className="sportswear-product-clickable-area"
                 >
                   <div className="sportswear-product-image-wrapper">
-                    {product.main_image ? (
-                      <img 
-                        src={product.main_image} 
-                        alt={product.name}
-                        className="sportswear-product-image"
-                      />
-                    ) : (
-                      <span className="sportswear-product-emoji">🏀</span>
-                    )}
+                    <ProductCarousel
+                      images={{
+                        main_image: product.main_image,
+                        image_url: product.image_url,
+                        additional_images: product.additional_images
+                      }}
+                      productName={product.name}
+                    />
                   </div>
                   <div className="sportswear-product-info">
                     <p className="sportswear-product-name">{product.name}</p>

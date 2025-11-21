@@ -20,7 +20,7 @@ import { FaStar, FaBars, FaTimes } from 'react-icons/fa';
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false); // Keep for backward compatibility
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false); // Legacy dropdown (kept hidden)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
@@ -45,6 +45,7 @@ const Header = () => {
   const { getCartItemsCount, openCart, isCartOpen } = useCart();
   const { openWishlist, wishlistItems, isWishlistOpen } = useWishlist();
   const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Check if any modal is open
   const isAnyModalOpen = showSignInModal || showSignUpModal || isCartOpen || isWishlistOpen || showOrdersModal || showChatModal || showSearchDropdown;
@@ -63,19 +64,14 @@ const Header = () => {
   
   // Search toggle handler (similar to admin recent orders)
   const handleSearchToggle = () => {
-    if (isMobileView) {
-      // On mobile, toggle the dropdown
-      setShowSearchDropdown(!showSearchDropdown);
-      if (showSearchDropdown) {
+    setShowSearchDropdown(false);
+    setShowSearch((prev) => {
+      const next = !prev;
+      if (!next) {
         setSearchQuery('');
       }
-    } else {
-      // On desktop, toggle the inline search
-      setShowSearch(!showSearch);
-      if (showSearch) {
-        setSearchQuery('');
-      }
-    }
+      return next;
+    });
   };
   
   // Handle search input change
@@ -197,6 +193,12 @@ const Header = () => {
     searchProducts();
   }, [searchQuery]);
 
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearch]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -228,7 +230,7 @@ const Header = () => {
     <header className="header">
       <div className="header-top">
         <div className="header-left">
-          <div className="logo">
+          <div className={`logo ${showSearch && isMobileView ? 'logo-hidden' : ''}`}>
             <img 
               src={logo} 
               alt="YOHANNS Sportswear House" 
@@ -413,26 +415,54 @@ const Header = () => {
           <div className="utility-icons">
           <div className="header-search-wrapper">
             {showSearch && (
-              <input
-                type="text"
-                className="header-search-input"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                autoFocus
-                onBlur={(e) => {
-                  // Keep search open if there's text
-                  if (!e.target.value) {
-                    // Only auto-close if empty
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    setShowSearch(false);
-                    setSearchQuery('');
-                  }
-                }}
-              />
+              isMobileView ? (
+                <div className="header-search-field mobile-slide">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    className="header-search-input mobile"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setShowSearch(false);
+                        setSearchQuery('');
+                      } else if (e.key === 'Enter') {
+                        if (searchQuery.trim()) {
+                          navigate(`/?search=${encodeURIComponent(searchQuery)}`);
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  className="header-search-input"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  autoFocus
+                  onBlur={(e) => {
+                    if (!e.target.value) {
+                      setShowSearch(false);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setShowSearch(false);
+                      setSearchQuery('');
+                    } else if (e.key === 'Enter') {
+                      if (searchQuery.trim()) {
+                        navigate(`/?search=${encodeURIComponent(searchQuery)}`);
+                      }
+                    }
+                  }}
+                />
+              )
             )}
             <button 
               className={`header-search-btn ${showSearch ? 'active' : ''}`}

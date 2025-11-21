@@ -436,8 +436,15 @@
 
 @media (max-width: 768px) {
   .modal-fabric-button {
-    flex: 1 1 100%;
-    max-width: 100%;
+    flex: 1 1 calc(50% - 5px);
+    max-width: calc(50% - 5px);
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
+  
+  .modal-fabric-fee {
+    font-size: 0.65rem;
   }
 }
 
@@ -2069,7 +2076,27 @@
   }
   
   .modal-action-buttons {
-    flex-direction: column;
+    flex-direction: row !important;
+    gap: 8px !important;
+  }
+  
+  .modal-add-cart-button,
+  .modal-buy-now-button {
+    flex: 1 !important;
+    padding: 10px 12px !important;
+    font-size: 0.85rem !important;
+  }
+  
+  /* Reduce quantity button and display size on mobile */
+  .modal-quantity-button {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 1rem !important;
+  }
+  
+  .modal-quantity-display {
+    font-size: 1rem !important;
+    min-width: 25px !important;
   }
 }
 
@@ -2121,57 +2148,318 @@
     right: 15px;
   }
   
+  /* Group left panel and content section as one page on mobile */
   .modal-main-content {
-    flex-direction: column;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
+    height: 100% !important;
+  }
+  
+  /* Single scrollbar for the whole page on mobile */
+  .modal-main-content::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 191, 255, 0.5);
+    border-radius: 3px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 191, 255, 0.7);
+  }
+  
+  .modal-main-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 191, 255, 0.5) rgba(0, 0, 0, 0.3);
   }
   
   .modal-left-panel {
-    border-right: none;
+    border-right: none !important;
     border-bottom: 2px solid #00bfff;
-    flex: 0 0 auto;
-    max-height: 50vh;
-    padding: 15px;
+    flex: 0 0 auto !important;
+    max-height: none !important;
+    padding: 8px;
+    overflow: visible !important;
+    width: 100% !important;
   }
   
   .modal-right-panel {
-    flex: 1;
-    overflow-y: auto;
-    padding: 15px;
+    flex: 0 0 auto !important;
+    overflow: visible !important;
+    padding: 8px !important;
+    width: 100% !important;
+  }
+  
+  /* Remove individual scrollbars - use main content scrollbar only */
+  .modal-right-panel::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  .modal-right-panel {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  
+  .modal-content-section {
+    overflow: visible !important;
   }
   
   .modal-image {
     width: 100% !important;
     height: auto !important;
-    max-width: 400px !important;
-    max-height: 400px !important;
+    max-width: 250px !important;
+    max-height: 250px !important;
+    object-fit: contain !important;
+  }
+  
+  .modal-header-section {
+    padding: 15px 0px !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
   
   .modal-product-title {
-    font-size: 1.8rem;
+    font-size: 10px !important;
+    line-height: 1.2;
+    margin: 0 0 10px 0 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    overflow: visible !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Jersey type button - 10px font on mobile */
+  .modal-jersey-type-button {
+    font-size: 10px !important;
+  }
+  
+  /* Jersey type section - padding and margin on mobile */
+  .modal-jersey-type-section {
+    padding: 0px 0px 8px !important;
+    margin: 0px 0px 8px !important;
+  }
+  
+  /* Size type section - reduce margin on mobile */
+  .modal-size-type-section {
+    margin-bottom: 8px !important;
+    padding-bottom: 8px !important;
+  }
+  
+  /* Remove vertical scrollbars on mobile */
+  .modal-right-panel {
+    overflow-y: visible !important;
+  }
+  
+  .modal-content-section {
+    overflow-y: visible !important;
+  }
+  
+  /* Description and Review titles - 10px on mobile */
+  .modal-description-title {
+    font-size: 10px !important;
+  }
+  
+  .modal-reviews-title {
+    font-size: 10px !important;
+  }
+  
+  /* Jersey type buttons - 10px on mobile */
+  .modal-member-jersey-type-btn,
+  .modal-member-size-type-btn {
+    padding: 8px 10px !important;
+    font-size: 10px !important;
+  }
+  
+  /* Make size selectors display side by side on mobile - short size on the right */
+  .modal-member-size-selectors {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+  }
+  
+  .modal-member-size-wrapper {
+    flex: 1 !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Ensure short size is on the right */
+  .modal-member-size-wrapper:last-child {
+    margin-left: auto;
+  }
+  
+  .modal-product-title::-webkit-scrollbar {
+    height: 3px;
+  }
+  
+  .modal-product-title::-webkit-scrollbar-thumb {
+    background: rgba(0, 191, 255, 0.5);
+    border-radius: 2px;
   }
   
   .modal-product-price {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
+  }
+  
+  .modal-fabric-section {
+    margin-bottom: 12px;
+  }
+  
+  .modal-fabric-title {
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+  }
+  
+  .modal-fabric-options {
+    gap: 6px;
   }
   
   .modal-single-order-form {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  
+  /* Make last item align to left if it doesn't have a partner */
+  .modal-single-order-form > *:last-child:nth-child(odd) {
+    grid-column: 1;
+  }
+  
+  /* Ensure Shirt Size and Short Size are side by side on mobile - override the odd child rule */
+  .modal-single-order-form > .modal-single-order-size-wrapper:first-of-type {
+    grid-column: 1 !important;
+  }
+  
+  .modal-single-order-form > .modal-single-order-size-wrapper:last-of-type {
+    grid-column: 2 !important;
+  }
+  
+  /* If there's only one size wrapper, keep it in column 1 */
+  .modal-single-order-form > .modal-single-order-size-wrapper:only-of-type {
+    grid-column: 1 !important;
+  }
+  
+  .modal-single-order-form-row-1 {
+    grid-column: 1 / -1;
   }
   
   .modal-team-order-form {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 6px;
+  }
+  
+  /* Reduce all content padding - MOBILE ONLY */
+  .modal-single-order-section {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+  
+  .modal-single-order-label {
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+  }
+  
+  .modal-single-order-size-wrapper {
+    gap: 4px;
+  }
+  
+  /* Ensure Shirt Size and Short Size are side by side on mobile */
+  .modal-single-order-form .modal-single-order-size-wrapper {
+    width: 100%;
+  }
+  
+  /* Make sure both size selectors are in the same row */
+  .modal-single-order-form > .modal-single-order-size-wrapper:first-of-type {
+    grid-column: 1;
+  }
+  
+  .modal-single-order-form > .modal-single-order-size-wrapper:last-of-type {
+    grid-column: 2;
+  }
+  
+  .modal-single-order-size-label {
+    font-size: 0.7rem;
+  }
+  
+  .team-order-form-card {
+    margin-bottom: 8px;
+  }
+  
+  .team-order-form-row-1,
+  .team-order-form-row-2,
+  .team-order-form-row-3 {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  
+  .team-order-form-input,
+  .team-order-form-select {
+    padding: 6px 8px;
+    font-size: 0.7rem;
+  }
+  
+  .team-order-form-size-label {
+    font-size: 0.7rem;
+  }
+  
+  .modal-form-group {
+    margin-bottom: 6px;
+  }
+  
+  .modal-form-label {
+    font-size: 0.7rem;
+    margin-bottom: 4px;
+  }
+  
+  .modal-form-input,
+  .modal-form-select {
+    padding: 6px 8px;
+    font-size: 0.7rem;
   }
   
   .modal-action-buttons {
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row !important;
+    gap: 6px !important;
+    margin-top: 8px;
+  }
+  
+  .modal-add-cart-button,
+  .modal-buy-now-button {
+    flex: 1 !important;
+    padding: 8px 10px !important;
+    font-size: 0.75rem !important;
+  }
+  
+  /* Reduce quantity button and display size on mobile */
+  .modal-quantity-button {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .modal-quantity-display {
+    font-size: 0.9rem !important;
+    min-width: 20px !important;
   }
   
   .modal-button {
-    padding: 12px 20px;
-    font-size: 0.9rem;
+    padding: 8px 12px;
+    font-size: 0.75rem;
   }
 
   /* Hide error messages on mobile - show only red borders */
@@ -2209,24 +2497,194 @@
     right: 12px;
   }
   
-  .modal-left-panel,
+  /* Group left panel and content section as one page on mobile */
+  .modal-main-content {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    height: 100% !important;
+  }
+  
+  /* Single scrollbar for the whole page on mobile */
+  .modal-main-content::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 191, 255, 0.5);
+    border-radius: 3px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 191, 255, 0.7);
+  }
+  
+  .modal-main-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 191, 255, 0.5) rgba(0, 0, 0, 0.3);
+  }
+  
+  .modal-left-panel {
+    border-right: none !important;
+    border-bottom: 2px solid #00bfff;
+    flex: 0 0 auto !important;
+    max-height: none !important;
+    padding: 6px;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  
   .modal-right-panel {
-    padding: 12px;
+    flex: 0 0 auto !important;
+    padding: 6px !important;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  
+  /* Remove individual scrollbars - use main content scrollbar only */
+  .modal-right-panel::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  .modal-right-panel {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  
+  .modal-content-section {
+    overflow: visible !important;
+  }
+  
+  .modal-single-order-form {
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  
+  .modal-single-order-form > *:last-child:nth-child(odd) {
+    grid-column: 1;
+  }
+  
+  /* Ensure Shirt Size and Short Size are side by side on mobile - override the odd child rule */
+  .modal-single-order-form > .modal-single-order-size-wrapper:first-of-type {
+    grid-column: 1 !important;
+  }
+  
+  .modal-single-order-form > .modal-single-order-size-wrapper:last-of-type {
+    grid-column: 2 !important;
+  }
+  
+  /* If there's only one size wrapper, keep it in column 1 */
+  .modal-single-order-form > .modal-single-order-size-wrapper:only-of-type {
+    grid-column: 1 !important;
   }
   
   .modal-image {
     width: 100% !important;
     height: auto !important;
-    max-width: 300px !important;
-    max-height: 300px !important;
+    max-width: 200px !important;
+    max-height: 200px !important;
+    object-fit: contain !important;
+  }
+  
+  .modal-header-section {
+    padding: 15px 0px !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
   
   .modal-product-title {
-    font-size: 1.6rem;
+    font-size: 10px !important;
+    margin: 0 0 8px 0 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    overflow: visible !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Jersey type button - 10px font on mobile */
+  .modal-jersey-type-button {
+    font-size: 10px !important;
+  }
+  
+  /* Jersey type section - padding and margin on mobile */
+  .modal-jersey-type-section {
+    padding: 0px 0px 8px !important;
+    margin: 0px 0px 8px !important;
+  }
+  
+  /* Size type section - reduce margin on mobile */
+  .modal-size-type-section {
+    margin-bottom: 8px !important;
+    padding-bottom: 8px !important;
+  }
+  
+  /* Remove vertical scrollbars on mobile */
+  .modal-right-panel {
+    overflow-y: visible !important;
+  }
+  
+  .modal-content-section {
+    overflow-y: visible !important;
+  }
+  
+  /* Description and Review titles - 10px on mobile */
+  .modal-description-title {
+    font-size: 10px !important;
+  }
+  
+  .modal-reviews-title {
+    font-size: 10px !important;
+  }
+  
+  /* Jersey type buttons - 10px on mobile */
+  .modal-member-jersey-type-btn,
+  .modal-member-size-type-btn {
+    padding: 8px 10px !important;
+    font-size: 10px !important;
+  }
+  
+  /* Make size selectors display side by side on mobile - short size on the right */
+  .modal-member-size-selectors {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+  }
+  
+  .modal-member-size-wrapper {
+    flex: 1 !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Ensure short size is on the right */
+  .modal-member-size-wrapper:last-child {
+    margin-left: auto;
   }
   
   .modal-product-price {
-    font-size: 1.2rem;
+    font-size: 1rem;
+  }
+  
+  .modal-fabric-button {
+    padding: 6px 8px;
+    font-size: 0.7rem;
+    gap: 3px;
+  }
+  
+  .modal-fabric-fee {
+    font-size: 0.6rem;
   }
   
   .modal-form-group {
@@ -2300,24 +2758,165 @@
     right: 10px;
   }
   
-  .modal-left-panel,
+  /* Group left panel and content section as one page on mobile */
+  .modal-main-content {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    height: 100% !important;
+  }
+  
+  /* Single scrollbar for the whole page on mobile */
+  .modal-main-content::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 191, 255, 0.5);
+    border-radius: 3px;
+  }
+  
+  .modal-main-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 191, 255, 0.7);
+  }
+  
+  .modal-main-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 191, 255, 0.5) rgba(0, 0, 0, 0.3);
+  }
+  
+  .modal-left-panel {
+    border-right: none !important;
+    border-bottom: 2px solid #00bfff;
+    flex: 0 0 auto !important;
+    max-height: none !important;
+    padding: 4px;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  
   .modal-right-panel {
-    padding: 10px;
+    flex: 0 0 auto !important;
+    padding: 8px;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  
+  /* Remove individual scrollbars - use main content scrollbar only */
+  .modal-right-panel::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  .modal-right-panel {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  
+  .modal-content-section {
+    overflow: visible !important;
   }
   
   .modal-image {
     width: 100% !important;
     height: auto !important;
-    max-width: 250px !important;
-    max-height: 250px !important;
+    max-width: 150px !important;
+    max-height: 150px !important;
+    object-fit: contain !important;
+  }
+  
+  .modal-header-section {
+    padding: 15px 0px !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
   
   .modal-product-title {
-    font-size: 1.4rem;
+    font-size: 10px !important;
+    margin: 0 0 6px 0 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    overflow: visible !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Jersey type button - 10px font on mobile */
+  .modal-jersey-type-button {
+    font-size: 10px !important;
+  }
+  
+  /* Jersey type section - padding and margin on mobile */
+  .modal-jersey-type-section {
+    padding: 0px 0px 8px !important;
+    margin: 0px 0px 8px !important;
+  }
+  
+  /* Size type section - reduce margin on mobile */
+  .modal-size-type-section {
+    margin-bottom: 8px !important;
+    padding-bottom: 8px !important;
+  }
+  
+  /* Remove vertical scrollbars on mobile */
+  .modal-main-content {
+    overflow-y: visible !important;
+  }
+  
+  .modal-right-panel {
+    overflow-y: visible !important;
+  }
+  
+  .modal-content-section {
+    overflow-y: visible !important;
   }
   
   .modal-product-price {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
+  }
+  
+  .modal-fabric-button {
+    padding: 5px 6px;
+    font-size: 0.65rem;
+    gap: 2px;
+  }
+  
+  .modal-fabric-fee {
+    font-size: 0.55rem;
+  }
+  
+  .modal-action-buttons {
+    flex-direction: row !important;
+    gap: 5px !important;
+  }
+  
+  .modal-add-cart-button,
+  .modal-buy-now-button {
+    flex: 1 !important;
+    padding: 7px 8px !important;
+    font-size: 0.7rem !important;
+  }
+  
+  /* Reduce quantity button and display size on mobile */
+  .modal-quantity-button {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.85rem !important;
+  }
+  
+  .modal-quantity-display {
+    font-size: 0.85rem !important;
+    min-width: 18px !important;
   }
   
   .modal-form-group {
@@ -2373,33 +2972,9 @@
   .modal-single-order-input.error {
     padding-right: 10px !important;
   }
-
-  .modal-product-price {
-    font-size: 1.2rem;
-  }
-
-  .modal-form-group {
-    margin-bottom: 12px;
-  }
-
-  .modal-form-label {
-    font-size: 0.85rem;
-    margin-bottom: 6px;
-  }
-
-  .modal-form-input,
-  .modal-form-select {
-    padding: 8px 12px;
-    font-size: 0.85rem;
-  }
-
-  .modal-button {
-    padding: 10px 16px;
-    font-size: 0.85rem;
-  }
 }
 
-/* Extra small mobile styles */
+/* Extra small mobile styles - Second instance */
 @media (max-width: 360px) {
   .modal-container {
     width: 100vw;
@@ -2415,24 +2990,104 @@
     right: 10px;
   }
   
-  .modal-left-panel,
+  .modal-main-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
+  }
+  
+  .modal-left-panel {
+    max-height: none;
+    padding: 4px;
+    overflow: visible;
+  }
+  
   .modal-right-panel {
-    padding: 10px;
+    padding: 8px;
+    overflow: visible !important;
+  }
+  
+  /* Hide right panel scrollbar on mobile - MOBILE ONLY */
+  .modal-right-panel::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  .modal-right-panel {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
   
   .modal-image {
     width: 100% !important;
     height: auto !important;
-    max-width: 250px !important;
-    max-height: 250px !important;
+    max-width: 150px !important;
+    max-height: 150px !important;
+    object-fit: contain !important;
+  }
+  
+  .modal-header-section {
+    padding: 15px 0px !important;
   }
   
   .modal-product-title {
-    font-size: 1.4rem;
+    font-size: 10px !important;
+    margin: 0 0 6px 0 !important;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Description and Review titles - 10px on mobile */
+  .modal-description-title {
+    font-size: 10px !important;
+  }
+  
+  .modal-reviews-title {
+    font-size: 10px !important;
+  }
+  
+  /* Jersey type buttons - 10px on mobile */
+  .modal-member-jersey-type-btn,
+  .modal-member-size-type-btn {
+    padding: 8px 10px !important;
+    font-size: 10px !important;
+  }
+  
+  /* Make size selectors display side by side on mobile - short size on the right */
+  .modal-member-size-selectors {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    align-items: flex-start !important;
+  }
+  
+  .modal-member-size-wrapper {
+    flex: 1 !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Ensure short size is on the right */
+  .modal-member-size-wrapper:last-child {
+    margin-left: auto;
   }
   
   .modal-product-price {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
+  }
+  
+  .modal-fabric-button {
+    padding: 5px 6px;
+    font-size: 0.65rem;
+    gap: 2px;
+  }
+  
+  .modal-fabric-fee {
+    font-size: 0.55rem;
   }
   
   .modal-form-group {

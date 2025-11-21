@@ -37,23 +37,32 @@ window.addEventListener('error', (event) => {
   }
   // Suppress AbortSignal timeout errors from Supabase queries (handled gracefully in services)
   // Catch all "Timeout (u)" errors - these are non-critical AbortSignal timeouts
-  if (event.message === 'Timeout (u)' || 
-      (event.message && event.message.includes('Timeout')) || 
-      event.name === 'AbortError' ||
+  // Check for timeout errors first, before other checks
+  const errorMessage = event.message || event.error?.message || '';
+  const errorName = event.name || event.error?.name || '';
+  const errorStack = event.error?.stack || '';
+  
+  if (errorMessage === 'Timeout (u)' || 
+      errorName === 'AbortError' ||
+      (errorMessage && errorMessage.includes('Timeout (u)')) ||
+      (errorStack && errorStack.includes('Timeout (u)'))) {
+    console.warn('⚠️ Timeout error handled gracefully (non-critical)');
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    return false;
+  }
+  
+  // Also catch general timeout errors from bundle.js or Supabase
+  if ((errorMessage && errorMessage.includes('Timeout')) || 
+      errorName === 'AbortError' ||
       (event.error && event.error.name === 'AbortError')) {
-    // Always suppress "Timeout (u)" errors - they're non-critical
-    if (event.message === 'Timeout (u)' || event.name === 'AbortError' || (event.error && event.error.name === 'AbortError')) {
+    const source = event.filename || event.source || errorStack || '';
+    if (source.includes('supabase') || source.includes('AbortSignal') || source.includes('bundle.js') || source.includes('handleError')) {
       console.warn('⚠️ Timeout error handled gracefully (non-critical)');
       event.preventDefault();
       event.stopPropagation();
-      return false;
-    }
-    // Check source for other timeout errors
-    const source = event.filename || event.source || event.error?.stack || '';
-    if (source.includes('supabase') || source.includes('AbortSignal') || source.includes('bundle.js')) {
-      console.warn('⚠️ Timeout error handled gracefully (non-critical)');
-      event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation();
       return false;
     }
   }
@@ -269,8 +278,15 @@ if (typeof window !== 'undefined') {
   // Override window.onerror to catch timeout errors before React
   const originalOnError = window.onerror;
   window.onerror = (message, source, lineno, colno, error) => {
-    if (message === 'Timeout (u)' || 
-        (error && (error.name === 'AbortError' || error.message === 'Timeout (u)'))) {
+    // Check for timeout errors in various formats
+    const isTimeoutError = 
+      message === 'Timeout (u)' || 
+      (typeof message === 'string' && message.includes('Timeout (u)')) ||
+      (error && (error.name === 'AbortError' || error.message === 'Timeout (u)' || 
+                 (error.message && error.message.includes('Timeout (u)')))) ||
+      (error && error.stack && error.stack.includes('Timeout (u)'));
+    
+    if (isTimeoutError) {
       console.warn('⚠️ Timeout error caught by window.onerror (suppressed):', message);
       return true; // Prevent default error handling
     }
@@ -283,6 +299,30 @@ if (typeof window !== 'undefined') {
     }
     return false;
   };
+  
+  // Also intercept React's error reporting mechanism
+  if (window.__REACT_ERROR_OVERLAY_GLOBAL_HOOK__) {
+    const originalOnError = window.__REACT_ERROR_OVERLAY_GLOBAL_HOOK__.onError;
+    if (originalOnError) {
+      window.__REACT_ERROR_OVERLAY_GLOBAL_HOOK__.onError = (errorInfo) => {
+        const error = errorInfo.error || errorInfo;
+        const message = error?.message || errorInfo?.message || '';
+        const name = error?.name || '';
+        
+        // Suppress timeout errors from React error overlay
+        if (message === 'Timeout (u)' || 
+            message.includes('Timeout (u)') ||
+            name === 'AbortError' ||
+            (error?.stack && error.stack.includes('Timeout (u)'))) {
+          console.warn('⚠️ Timeout error suppressed from React error overlay');
+          return; // Don't show error overlay
+        }
+        
+        // Call original handler for other errors
+        originalOnError(errorInfo);
+      };
+    }
+  }
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

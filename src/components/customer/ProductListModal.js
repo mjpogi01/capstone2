@@ -7,6 +7,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { useCart } from '../../contexts/CartContext';
 import productService from '../../services/productService';
 import ProductModal from './ProductModal';
+import ProductCarousel from './ProductCarousel';
 import './ProductListModal.css';
 import Loading from '../Loading';
 import ErrorState from '../ErrorState';
@@ -548,17 +549,15 @@ const ProductListModal = ({ isOpen, onClose }) => {
                         onClick={() => handleProductClick(product)}
                       >
                         <div className="product-card-image">
-                          {product.main_image || product.image_url ? (
-                            <img 
-                              src={product.main_image || product.image_url} 
-                              alt={product.name}
-                              className="product-img"
-                              onClick={(e) => handleImageClick(product, e)}
-                              title="Click to zoom"
-                            />
-                          ) : (
-                            <span className="product-placeholder">🏀</span>
-                          )}
+                          <ProductCarousel
+                            images={{
+                              main_image: product.main_image,
+                              image_url: product.image_url,
+                              additional_images: product.additional_images
+                            }}
+                            productName={product.name}
+                            onImageClick={(e) => handleImageClick(product, e)}
+                          />
                         </div>
                         
                         <div className="product-card-info">

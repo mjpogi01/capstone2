@@ -855,6 +855,7 @@ section:has(.cdfm-address-form .searchable-select.open) + section .cdfm-card {
   font-size: 1rem;
   font-weight: bold;
   flex-shrink: 0;
+  padding: 10px 10px;
 }
 
 .cdfm-add-row:hover {
@@ -938,7 +939,7 @@ section:has(.cdfm-address-form .searchable-select.open) + section .cdfm-card {
   background: rgba(255, 255, 255, 0.1);
   color: #63b3ed;
   border: 1px solid rgba(99, 179, 237, 0.3);
-  padding: 8px 16px;
+  padding: 5px 10px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2608,6 +2609,7 @@ section:has(.cdfm-address-form .searchable-select.open) + section .cdfm-card {
     flex: 0 0 calc(50% - 4px);
     min-width: calc(50% - 4px);
     max-width: calc(50% - 4px);
+    padding: 7px 16px;
   }
 }
 
@@ -3157,7 +3159,7 @@ div.cdfm-address-form .cdfm-form-group .searchable-select.disabled {
   background: rgba(26, 32, 44, 0.6);
   border: 2px solid rgba(99, 179, 237, 0.2);
   border-radius: 12px;
-  padding: 20px;
+  padding: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   animation: cdfm-slideUp 0.3s ease-out;
@@ -3221,6 +3223,227 @@ div.cdfm-address-form .cdfm-form-group .searchable-select.disabled {
 .cdfm-address-line {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.8);
+}
+
+/* Mobile: Address card font size */
+@media only screen and (max-width: 768px) {
+  .cdfm-modal .cdfm-address-card {
+    font-size: 9px !important;
+    padding: 5px 10px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-card-content {
+    gap: 6px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-header {
+    gap: 6px !important;
+  }
+  
+  .cdfm-modal .cdfm-location-icon {
+    font-size: 12px !important;
+    margin-top: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-name {
+    font-size: 9px !important;
+    margin: 0 0 2px 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-phone {
+    font-size: 9px !important;
+    margin: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-address-details {
+    padding-left: 18px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-line {
+    font-size: 9px !important;
+  }
+  
+  .cdfm-modal .cdfm-edit-address-btn,
+  .cdfm-modal .cdfm-delete-address-btn {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  .cdfm-modal .cdfm-address-card {
+    font-size: 9px !important;
+    padding: 5px 10px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-card-content {
+    gap: 6px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-header {
+    gap: 6px !important;
+  }
+  
+  .cdfm-modal .cdfm-location-icon {
+    font-size: 12px !important;
+    margin-top: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-name {
+    font-size: 9px !important;
+    margin: 0 0 2px 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-phone {
+    font-size: 9px !important;
+    margin: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-address-details {
+    padding-left: 18px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-line {
+    font-size: 9px !important;
+  }
+  
+  .cdfm-modal .cdfm-edit-address-btn,
+  .cdfm-modal .cdfm-delete-address-btn {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  .cdfm-modal .cdfm-address-card {
+    font-size: 9px !important;
+    padding: 5px 10px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-card-content {
+    gap: 5px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-header {
+    gap: 5px !important;
+  }
+  
+  .cdfm-modal .cdfm-location-icon {
+    font-size: 11px !important;
+    margin-top: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-name {
+    font-size: 9px !important;
+    margin: 0 0 2px 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-phone {
+    font-size: 9px !important;
+    margin: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-address-details {
+    padding-left: 16px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-line {
+    font-size: 9px !important;
+  }
+  
+  .cdfm-modal .cdfm-edit-address-btn,
+  .cdfm-modal .cdfm-delete-address-btn {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+}
+
+@media only screen and (max-width: 360px) {
+  .cdfm-modal .cdfm-address-card {
+    font-size: 9px !important;
+    padding: 5px 10px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-card-content {
+    gap: 5px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-header {
+    gap: 5px !important;
+  }
+  
+  .cdfm-modal .cdfm-location-icon {
+    font-size: 10px !important;
+    margin-top: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-name {
+    font-size: 9px !important;
+    margin: 0 0 2px 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-phone {
+    font-size: 9px !important;
+    margin: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-address-details {
+    padding-left: 15px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-line {
+    font-size: 9px !important;
+  }
+  
+  .cdfm-modal .cdfm-edit-address-btn,
+  .cdfm-modal .cdfm-delete-address-btn {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+}
+
+@media only screen and (max-width: 280px) {
+  .cdfm-modal .cdfm-address-card {
+    font-size: 9px !important;
+    padding: 5px 10px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-card-content {
+    gap: 4px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-header {
+    gap: 4px !important;
+  }
+  
+  .cdfm-modal .cdfm-location-icon {
+    font-size: 10px !important;
+    margin-top: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-name {
+    font-size: 9px !important;
+    margin: 0 0 2px 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-receiver-phone {
+    font-size: 9px !important;
+    margin: 0 !important;
+  }
+  
+  .cdfm-modal .cdfm-address-details {
+    padding-left: 14px !important;
+  }
+  
+  .cdfm-modal .cdfm-address-line {
+    font-size: 9px !important;
+  }
+  
+  .cdfm-modal .cdfm-edit-address-btn,
+  .cdfm-modal .cdfm-delete-address-btn {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
 }
 
 /* ============================================
@@ -3484,7 +3707,7 @@ div.cdfm-address-form .cdfm-form-group .searchable-select.disabled {
   }
 
   .cdfm-field select {
-    padding: 7px 10px !important;
+    padding: 2px 3px !important;
     font-size: 0.75rem !important;
     height: 32px !important;
     border-radius: 5px !important;
@@ -3556,7 +3779,7 @@ div.cdfm-address-form .cdfm-form-group .searchable-select.disabled {
   }
 
   .cdfm-field select {
-    padding: 6px 8px !important;
+    padding: 2px 3px !important;
     font-size: 0.7rem !important;
     height: 30px !important;
     border-radius: 4px !important;
@@ -3650,7 +3873,7 @@ div.cdfm-address-form .cdfm-form-group .searchable-select.disabled {
   .cdfm-modal .cdfm-field select,
   .cdfm-modal .cdfm-form select,
   .cdfm-modal .cdfm-card select {
-    padding: 6px 8px !important;
+    padding: 2px 3px !important;
     font-size: 0.7rem !important;
     height: 28px !important;
     border-radius: 4px !important;
@@ -3721,7 +3944,7 @@ div.cdfm-address-form .cdfm-form-group .searchable-select.disabled {
 
   .cdfm-modal .cdfm-field select,
   .cdfm-modal .cdfm-form select {
-    padding: 5px 6px !important;
+    padding: 2px 3px !important;
     font-size: 0.65rem !important;
     height: 26px !important;
     border-radius: 3px !important;
@@ -4012,5 +4235,577 @@ div.cdfm-address-form .cdfm-form-group .searchable-select.disabled {
     padding: 5px 10px !important;
     font-size: 0.65rem !important;
     border-radius: 4px !important;
+  }
+}
+
+/* ============================================
+   COMPREHENSIVE MOBILE RESPONSIVE STYLES
+   Reduce all elements and make image preview scrollable
+   ============================================ */
+
+@media only screen and (max-width: 768px) {
+  /* Reduce modal padding and spacing - MOBILE ONLY */
+  .cdfm-modal {
+    max-height: 100vh !important;
+    padding: 4px !important;
+    border-radius: 8px !important;
+  }
+
+  .cdfm-overlay {
+    padding: 4px !important;
+  }
+
+  .cdfm-header {
+    padding: 6px 8px !important;
+    border-bottom-width: 1px !important;
+  }
+
+  .cdfm-title {
+    font-size: 0.85rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .cdfm-close {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+  }
+
+  /* Reduce card padding and spacing - MOBILE ONLY */
+  .cdfm-card {
+    padding: 6px 8px !important;
+    margin-bottom: 6px !important;
+    border-radius: 6px !important;
+  }
+
+  /* Make card titles scrollable and smaller - MOBILE ONLY */
+  .cdfm-card-title {
+    font-size: 0.7rem !important;
+    margin: 0 0 6px 0 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+  }
+
+  .cdfm-card-title::-webkit-scrollbar {
+    height: 2px !important;
+  }
+
+  .cdfm-card-title::-webkit-scrollbar-thumb {
+    background: rgba(99, 179, 237, 0.5) !important;
+    border-radius: 1px !important;
+  }
+
+  .cdfm-card-title-row {
+    margin-bottom: 6px !important;
+  }
+
+  .cdfm-char-count {
+    font-size: 0.65rem !important;
+  }
+
+  /* Reduce all form elements - MOBILE ONLY */
+  .cdfm-field {
+    margin-bottom: 6px !important;
+  }
+
+  .cdfm-field label {
+    font-size: 0.65rem !important;
+    margin-bottom: 2px !important;
+    line-height: 1.2 !important;
+  }
+
+  .cdfm-field input,
+  .cdfm-field textarea {
+    padding: 4px 6px !important;
+    font-size: 0.7rem !important;
+    border-radius: 4px !important;
+    line-height: 1.3 !important;
+  }
+
+  .cdfm-field select {
+    padding: 4px 6px !important;
+    font-size: 0.7rem !important;
+    height: 28px !important;
+  }
+
+  .cdfm-input-wrapper {
+    margin-bottom: 6px !important;
+  }
+
+  .cdfm-form-group {
+    margin-bottom: 6px !important;
+  }
+
+  /* Make image preview grid scrollable - MOBILE ONLY */
+  .cdfm-cust-preview-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+    padding-bottom: 3px !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+  }
+
+  .cdfm-cust-preview-grid::-webkit-scrollbar {
+    height: 3px !important;
+  }
+
+  .cdfm-cust-preview-grid::-webkit-scrollbar-thumb {
+    background: rgba(99, 179, 237, 0.5) !important;
+    border-radius: 2px !important;
+  }
+
+  .cdfm-cust-preview-item {
+    flex: 0 0 60px !important;
+    width: 60px !important;
+    height: 60px !important;
+    min-width: 60px !important;
+    border-radius: 4px !important;
+  }
+
+  .cdfm-cust-preview-item img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  .cdfm-cust-delete-thumb {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 10px !important;
+    top: 2px !important;
+    right: 2px !important;
+  }
+
+  /* Reduce upload area - MOBILE ONLY */
+  .cdfm-cust-upload-area {
+    padding: 12px 6px !important;
+    border-radius: 4px !important;
+    margin-top: 6px !important;
+  }
+
+  .cdfm-cust-upload-icon-wrapper {
+    margin-bottom: 4px !important;
+  }
+
+  .cdfm-cust-upload-icon {
+    font-size: 20px !important;
+  }
+
+  .cdfm-cust-upload-text {
+    gap: 2px !important;
+  }
+
+  .cdfm-cust-upload-text-primary {
+    font-size: 0.65rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .cdfm-cust-upload-text-secondary {
+    font-size: 0.6rem !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Reduce buttons - MOBILE ONLY */
+  .cdfm-button {
+    padding: 4px 8px !important;
+    font-size: 0.7rem !important;
+    border-radius: 4px !important;
+    line-height: 1.3 !important;
+  }
+
+  .cdfm-submit-button {
+    padding: 6px 12px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .cdfm-form-actions {
+    padding: 8px !important;
+    gap: 6px !important;
+  }
+
+  /* Reduce member cards - MOBILE ONLY */
+  .cdfm-member-card {
+    padding: 6px 8px !important;
+    margin-bottom: 6px !important;
+    border-radius: 4px !important;
+  }
+
+  .cdfm-member-header {
+    margin-bottom: 6px !important;
+  }
+
+  .cdfm-member-tag-wrapper {
+    gap: 4px !important;
+  }
+
+  .cdfm-member-tag {
+    font-size: 0.65rem !important;
+    padding: 2px 4px !important;
+    border-radius: 3px !important;
+  }
+
+  .cdfm-member-price {
+    font-size: 0.7rem !important;
+  }
+
+  .cdfm-member-toggle-btn {
+    padding: 3px 6px !important;
+    font-size: 0.65rem !important;
+    border-radius: 3px !important;
+  }
+
+  .cdfm-member-toggle-label {
+    font-size: 0.65rem !important;
+  }
+
+  .cdfm-member-row-row-1 {
+    gap: 4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .cdfm-member-wrapper {
+    margin-bottom: 4px !important;
+  }
+
+  .cdfm-member-wrapper input {
+    padding: 4px 6px !important;
+    font-size: 0.7rem !important;
+    height: 28px !important;
+  }
+
+  .cdfm-member-jersey-type-btn,
+  .cdfm-member-size-type-btn {
+    padding: 8px 10px !important;
+    font-size: 10px !important;
+    min-width: 70px !important;
+    border-radius: 4px !important;
+  }
+
+  .cdfm-member-size-selectors {
+    gap: 6px !important;
+    margin-top: 4px !important;
+  }
+
+  /* Reduce spacing in grid - MOBILE ONLY */
+  .cdfm-grid-two {
+    gap: 6px !important;
+  }
+
+  /* Reduce summary section - MOBILE ONLY */
+  .cdfm-summary-toggle {
+    padding: 4px 8px !important;
+    font-size: 0.7rem !important;
+    border-radius: 4px !important;
+  }
+
+  .cdfm-summary-content {
+    margin-top: 6px !important;
+    font-size: 0.7rem !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Reduce shipping method section - MOBILE ONLY */
+  .cdfm-shipping-method {
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .cdfm-shipping-option {
+    padding: 6px 8px !important;
+    border-radius: 4px !important;
+  }
+
+  /* Reduce error messages - MOBILE ONLY */
+  .cdfm-error-message,
+  .cdfm-inline-error {
+    font-size: 0.6rem !important;
+    margin-top: 2px !important;
+    padding: 2px 4px !important;
+  }
+
+  /* Reduce sections - MOBILE ONLY */
+  section.cdfm-card {
+    margin-bottom: 6px !important;
+  }
+
+  /* Reduce content padding - MOBILE ONLY */
+  .cdfm-content {
+    padding: 8px !important;
+  }
+
+  /* Reduce searchable select - MOBILE ONLY */
+  .cdfm-modal .searchable-select-wrapper {
+    margin-bottom: 6px !important;
+  }
+
+  .cdfm-modal .searchable-select {
+    padding: 4px 6px !important;
+    font-size: 0.7rem !important;
+    height: 28px !important;
+    border-radius: 4px !important;
+  }
+
+  .cdfm-modal .searchable-select-label {
+    font-size: 0.65rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  /* Reduce address form - MOBILE ONLY */
+  .cdfm-address-form {
+    padding: 6px !important;
+  }
+
+  .cdfm-address-form-fields {
+    gap: 6px !important;
+  }
+
+  /* Reduce members roster - MOBILE ONLY */
+  .cdfm-members-roster {
+    gap: 6px !important;
+  }
+
+  /* Reduce all spacing - MOBILE ONLY */
+  .cdfm-form {
+    gap: 6px !important;
+  }
+
+  /* Reduce text sizes - MOBILE ONLY */
+  .cdfm-required {
+    font-size: 0.65rem !important;
+  }
+
+  /* Reduce icon sizes - MOBILE ONLY */
+  .cdfm-location-icon {
+    font-size: 14px !important;
+  }
+
+  /* Reduce address actions - MOBILE ONLY */
+  .cdfm-address-actions {
+    gap: 4px !important;
+  }
+
+  .cdfm-edit-address-btn,
+  .cdfm-delete-address-btn {
+    padding: 2px 4px !important;
+    font-size: 0.6rem !important;
+  }
+
+  /* Reduce receiver info - MOBILE ONLY */
+  .cdfm-receiver-info {
+    gap: 2px !important;
+  }
+
+  .cdfm-receiver-name {
+    font-size: 0.65rem !important;
+    margin: 0 0 1px 0 !important;
+  }
+
+  .cdfm-receiver-phone {
+    font-size: 0.6rem !important;
+  }
+
+  .cdfm-address-line {
+    font-size: 0.6rem !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Reduce branch selection - MOBILE ONLY */
+  .cdfm-branch-list {
+    gap: 6px !important;
+  }
+
+  .cdfm-branch-item {
+    padding: 6px 8px !important;
+    border-radius: 4px !important;
+  }
+
+  .cdfm-branch-name {
+    font-size: 0.7rem !important;
+  }
+
+  .cdfm-branch-address {
+    font-size: 0.65rem !important;
+  }
+}
+
+/* Extra small mobile devices - MOBILE ONLY */
+@media only screen and (max-width: 480px) {
+  .cdfm-modal {
+    padding: 3px !important;
+  }
+
+  .cdfm-overlay {
+    padding: 3px !important;
+  }
+
+  .cdfm-header {
+    padding: 4px 6px !important;
+  }
+
+  .cdfm-title {
+    font-size: 0.75rem !important;
+  }
+
+  .cdfm-close {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 10px !important;
+  }
+
+  .cdfm-card {
+    padding: 4px 6px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .cdfm-card-title {
+    font-size: 0.65rem !important;
+    margin: 0 0 4px 0 !important;
+  }
+
+  .cdfm-card-title-row {
+    margin-bottom: 4px !important;
+  }
+
+  .cdfm-cust-preview-item {
+    flex: 0 0 50px !important;
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+  }
+
+  .cdfm-field {
+    margin-bottom: 4px !important;
+  }
+
+  .cdfm-field label {
+    font-size: 0.6rem !important;
+    margin-bottom: 1px !important;
+  }
+
+  .cdfm-field input,
+  .cdfm-field textarea,
+  .cdfm-field select {
+    padding: 3px 5px !important;
+    font-size: 0.65rem !important;
+    height: 26px !important;
+  }
+
+  .cdfm-form-group {
+    margin-bottom: 4px !important;
+  }
+
+  .cdfm-button {
+    padding: 3px 6px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .cdfm-submit-button {
+    padding: 4px 10px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .cdfm-member-card {
+    padding: 4px 6px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .cdfm-cust-upload-area {
+    padding: 8px 4px !important;
+  }
+
+  .cdfm-cust-upload-icon {
+    font-size: 18px !important;
+  }
+}
+
+/* Very small mobile devices - MOBILE ONLY */
+@media only screen and (max-width: 360px) {
+  .cdfm-modal {
+    padding: 2px !important;
+  }
+
+  .cdfm-overlay {
+    padding: 2px !important;
+  }
+
+  .cdfm-header {
+    padding: 3px 4px !important;
+  }
+
+  .cdfm-title {
+    font-size: 0.7rem !important;
+  }
+
+  .cdfm-close {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 9px !important;
+  }
+
+  .cdfm-card {
+    padding: 3px 4px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .cdfm-card-title {
+    font-size: 0.6rem !important;
+    margin: 0 0 3px 0 !important;
+  }
+
+  .cdfm-card-title-row {
+    margin-bottom: 3px !important;
+  }
+
+  .cdfm-cust-preview-item {
+    flex: 0 0 45px !important;
+    width: 45px !important;
+    height: 45px !important;
+    min-width: 45px !important;
+  }
+
+  .cdfm-field {
+    margin-bottom: 3px !important;
+  }
+
+  .cdfm-field label {
+    font-size: 0.55rem !important;
+  }
+
+  .cdfm-field input,
+  .cdfm-field textarea,
+  .cdfm-field select {
+    padding: 2px 4px !important;
+    font-size: 0.6rem !important;
+    height: 24px !important;
+  }
+
+  .cdfm-form-group {
+    margin-bottom: 3px !important;
+  }
+
+  .cdfm-button {
+    padding: 2px 5px !important;
+    font-size: 0.6rem !important;
+  }
+
+  .cdfm-member-card {
+    padding: 3px 4px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .cdfm-cust-upload-area {
+    padding: 6px 3px !important;
+  }
+
+  .cdfm-cust-upload-icon {
+    font-size: 16px !important;
   }
 }
